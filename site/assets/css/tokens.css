@@ -1,0 +1,52 @@
+:root {
+  /* Paleta declarada pela ONG (secao 3.4 do escopo). Nao alterar. */
+  --amarelo: #E0A400;      /* luz, sabedoria, criatividade, ancestralidade */
+  --azul: #7FA9CE;         /* ceu, esperanca, serenidade, conhecimento */
+  --azul-texto: #2E5C8A;   /* variante do azul com contraste para texto */
+  --marrom: #8A6A4A;       /* terra, mae Africa, raizes, memoria */
+  --tinta: #241C12;        /* texto */
+  --fundo: #FAF6EE;        /* fundo claro levemente quente */
+
+  --superficie: #FFFFFF;
+  --borda: #E3D9C6;
+  --tinta-suave: #5A4A38;
+  --foco: #2E5C8A;
+
+  /* Escala tipografica, toda em rem para responder a --escala-fonte */
+  --texto-pequeno: 0.875rem;
+  --texto-base: 1rem;
+  --texto-medio: 1.125rem;
+  --texto-grande: 1.5rem;
+  --texto-titulo: 2rem;
+  --texto-destaque: 2.75rem;
+
+  --espaco-1: 0.25rem;
+  --espaco-2: 0.5rem;
+  --espaco-3: 1rem;
+  --espaco-4: 1.5rem;
+  --espaco-5: 2.5rem;
+  --espaco-6: 4rem;
+
+  --raio: 0.5rem;
+  --largura-conteudo: 68rem;
+  --alvo-toque: 2.75rem;   /* 44px - minimo para uso com o polegar */
+}
+
+/* O controle A- / A / A+ altera apenas esta linha. */
+html {
+  font-size: var(--escala-fonte, 100%);
+}
+
+/* Alto contraste: os mesmos tokens, redefinidos.
+   Nenhum componente precisa saber que isto existe. */
+html[data-contraste="alto"] {
+  --fundo: #FFFFFF;
+  --superficie: #FFFFFF;
+  --tinta: #000000;
+  --tinta-suave: #000000;
+  --borda: #000000;
+  --azul-texto: #00327A;
+  --marrom: #4A3520;
+  --amarelo: #8A6500;
+  --foco: #000000;
+}
