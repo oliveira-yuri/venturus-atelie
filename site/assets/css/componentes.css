@@ -28,3 +28,120 @@
   color: var(--fundo);
   border-color: var(--tinta);
 }
+
+/* ---------- Cabecalho ---------- */
+
+.cabecalho {
+  background: var(--superficie);
+  border-bottom: 3px solid var(--amarelo);
+}
+
+.cabecalho__topo {
+  max-width: var(--largura-conteudo);
+  margin: 0 auto;
+  padding: var(--espaco-3);
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+  flex-wrap: wrap;
+}
+
+.cabecalho__marca {
+  margin-right: auto;
+  color: var(--tinta);
+  text-decoration: none;
+}
+
+.cabecalho__marca-nome {
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.cabecalho__alternar {
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--amarelo);
+  color: var(--tinta);
+  border: 2px solid transparent;
+  border-radius: var(--raio);
+  font-size: var(--texto-base);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cabecalho__menu ul {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0 var(--espaco-3) var(--espaco-3);
+  max-width: var(--largura-conteudo);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.cabecalho__menu a {
+  display: block;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2);
+  color: var(--tinta);
+  text-decoration: none;
+  border-radius: var(--raio);
+}
+
+.cabecalho__menu a:hover { background: var(--fundo); }
+
+.cabecalho__menu a[aria-current="page"] {
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--amarelo);
+}
+
+@media (min-width: 48rem) {
+  .cabecalho__menu ul { flex-direction: row; flex-wrap: wrap; gap: var(--espaco-2); }
+  .cabecalho__menu a[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--amarelo); }
+}
+
+/* ---------- Rodape ---------- */
+
+.rodape {
+  margin-top: var(--espaco-6);
+  padding: var(--espaco-5) var(--espaco-3);
+  background: var(--marrom);
+  color: #FFFFFF;
+}
+
+.rodape a { color: #FFFFFF; }
+.rodape h2 { font-size: var(--texto-medio); }
+
+.rodape__conteudo {
+  max-width: var(--largura-conteudo);
+  margin: 0 auto;
+  display: grid;
+  gap: var(--espaco-4);
+}
+
+@media (min-width: 48rem) {
+  .rodape__conteudo { grid-template-columns: 1fr 1fr; }
+}
+
+.rodape__lista { list-style: none; margin: 0; padding: 0; }
+.rodape__lista li { margin-bottom: var(--espaco-2); }
+
+.rodape__lista a {
+  display: inline-block;
+  min-height: var(--alvo-toque);
+  line-height: var(--alvo-toque);
+}
+
+.rodape__endereco { font-style: normal; }
+
+.rodape__aviso {
+  max-width: var(--largura-conteudo);
+  margin: var(--espaco-4) auto 0;
+}
+
+html[data-contraste="alto"] .rodape {
+  background: #000000;
+  border-top: 3px solid #FFFFFF;
+}
