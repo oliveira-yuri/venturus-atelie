@@ -16,7 +16,7 @@ reaberto aqui. Onde esta spec acrescenta algo, a origem está marcada.
 | 11 dias corridos até a entrega em produção | O plano é diário, não por fase de 1,5 semana |
 | Equipe de 4 pessoas fornecendo informação; desenvolvimento feito pelo agente | O gargalo é acesso a contas, conteúdo e validação — não velocidade de código |
 | Escopo completo mantido, sem recorte | Registrado: a estimativa do documento é de 13,5 pessoa-semanas. A decisão de manter o escopo é do usuário, tomada com essa informação à vista |
-| Contas externas ainda não existem | Construção contra Supabase local; credenciais entram por arquivo de configuração |
+| Contas externas ainda não existem | Credenciais entram por `site/config.js`. **Não há Docker nesta máquina**, então `supabase start` local não roda: o banco precisa ser o projeto na nuvem, região São Paulo. A Fundação não depende dele; a Fase 02 em diante, sim |
 
 Nenhuma restrição da seção 3 do documento de escopo é relaxada por causa do prazo. Em particular, o
 teste de acesso indevido da seção 12 continua bloqueante para o go-live.
@@ -54,7 +54,9 @@ material-origem/          arquivos brutos da ONG — fora do deploy e do version
 acervo-web/               saída do tratamento do R3 — fora do versionamento
 ferramentas/
   tratar-acervo.sh        compressão de PDF e conversão de .pptx
-  teste-seguranca.mjs     aceite bloqueante da seção 12
+testes/
+  seguranca.test.mjs      aceite bloqueante da seção 12
+  *.test.mjs              demais testes, rodados com `node --test testes/`
 supabase/
   migrations/             uma migration por assunto, cada uma com suas políticas
   functions/enviar-email/ Edge Function (Deno)
@@ -179,7 +181,7 @@ origem e revisão humana. **A permissão de leitura não é afrouxada em nenhuma
 
 ### Aceite bloqueante, automatizado
 
-`ferramentas/teste-seguranca.mjs`, com o test runner nativo do Node 24 (zero dependências): conecta
+`testes/seguranca.test.mjs`, com o test runner nativo do Node 24 (zero dependências): conecta
 com a anon key **sem autenticar** e tenta ler `inscricoes`, `voluntarios`, `doacoes`, `contatos` e
 `presencas`. Todas precisam voltar vazias.
 
@@ -264,8 +266,8 @@ Nada além do que já existe na máquina.
 
 | O quê | Como |
 |---|---|
-| Acesso indevido (aceite bloqueante) | `node --test ferramentas/` |
-| Módulos da camada de dados | `node --test` contra Supabase local |
+| Acesso indevido (aceite bloqueante) | `node --test testes/` |
+| Módulos da camada de dados | `node --test` contra o projeto Supabase na nuvem |
 | Acessibilidade automatizável | `npx @axe-core/cli` |
 | Teclado, leitor de tela, contraste | checklist manual — o automatizado cobre parte |
 | Os 11 critérios da seção 14 do escopo | checklist executado no celular, não no desktop |
@@ -292,9 +294,9 @@ Destrava a fase 05 sem consumir tempo de ninguém — é processamento em segund
 
 | Dia | Entrega |
 |---|---|
-| 24–25/08 | Repositório, sistema visual, cabeçalho/rodapé/acessibilidade, Supabase local, `eh_equipe()`, teste de segurança escrito e falhando. Acervo processando em paralelo |
+| 24–25/08 | Repositório, sistema visual, cabeçalho/rodapé/acessibilidade, utilitários de erro e estado, contrato do cliente Supabase. Acervo tratado |
 | 26–27/08 | Site institucional completo com conteúdo real — 9 páginas (RF01–RF07, RF38, RF39) |
-| 28/08 | Contas, autenticação, casca do painel, RLS completa, teste de segurança passando (RF08–RF12, RF33, RF34) |
+| 28/08 | Projeto Supabase na nuvem, `eh_equipe()`, migrations com políticas, teste de segurança escrito falhando e depois passando, autenticação, casca do painel (RF08–RF12, RF33, RF34) |
 | 29/08 | Eventos: agenda, inscrição sem conta, inscritos, presença com Realtime (RF13–RF17) |
 | 30/08 | Edge Function e Brevo; doações ponta a ponta (RF18, RF19–RF23) |
 | 31/08 | Voluntariado e acervo aberto (RF24–RF26, RF35–RF37) |
@@ -313,7 +315,7 @@ Como o desenvolvimento é feito pelo agente, este é o caminho crítico real.
 
 | Prazo | O que | Bloqueia |
 |---|---|---|
-| Imediato | Criar Supabase (região São Paulo), Netlify e Brevo | Deploy de 03/09 |
+| **Hoje** | Criar Supabase (região São Paulo), Netlify e Brevo | **Fase 02, em 28/08** — sem Docker local, não há alternativa ao projeto na nuvem |
 | 27/08 | Validar textos institucionais; conferir grafias e datas do clipping (seção 18.2 pede explicitamente) | Publicação do site |
 | 27/08 | Logotipo em vetor ou autorização para redesenho (D9) | Sistema visual |
 | 29/08 | Fotos com autorização de uso de imagem registrada (RN07, risco R10), incluindo os arquivos dos quatro álbuns do `meualbum.co` — o material recebido traz só os atalhos | Galeria (RF05) |
