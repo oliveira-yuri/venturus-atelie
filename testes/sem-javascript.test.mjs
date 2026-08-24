@@ -14,7 +14,10 @@ import { extname, join, normalize } from 'node:path';
 import { Builder } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
 
-const PAGINAS = ['index.html'];
+const PAGINAS = [
+  'index.html', 'quem-somos.html', 'projetos.html', 'noticias.html',
+  'galeria.html', 'para-escolas.html', 'contato.html'
+];
 
 const RAIZ = new URL('../site/', import.meta.url).pathname;
 const TIPOS = {

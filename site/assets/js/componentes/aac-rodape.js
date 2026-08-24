@@ -11,8 +11,8 @@ class AacRodape extends HTMLElement {
     this.innerHTML = `
       <footer class="rodape">
         <div class="rodape__conteudo">
-          <section aria-labelledby="rodape-contato">
-            <h2 id="rodape-contato">Fale com a gente</h2>
+          <div class="rodape__bloco">
+            <h2>Fale com a gente</h2>
             <ul class="rodape__lista">
               <li><a href="tel:+5511953968344">(11) 95396-8344</a></li>
               <li><a href="https://wa.me/5511953968344" rel="noopener">WhatsApp</a></li>
@@ -20,15 +20,15 @@ class AacRodape extends HTMLElement {
               <li><a href="https://instagram.com/atelie_afrocultural" rel="noopener">Instagram</a></li>
               <li><a href="https://tiktok.com/@ateli.afro.cultur" rel="noopener">TikTok</a></li>
             </ul>
-          </section>
+          </div>
 
-          <section aria-labelledby="rodape-endereco">
-            <h2 id="rodape-endereco">Onde estamos</h2>
+          <div class="rodape__bloco">
+            <h2>Onde estamos</h2>
             <address class="rodape__endereco">
               Rua Dr. Paulo Gatti, 135 — Vila Romero<br>
               São Paulo/SP — CEP 02468-030
             </address>
-          </section>
+          </div>
         </div>
 
         <p class="rodape__aviso">

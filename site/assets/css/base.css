@@ -149,3 +149,4 @@ main section { margin-bottom: var(--espaco-5); }
 
 .lista-simples { padding-left: var(--espaco-4); max-width: 60ch; }
 .lista-simples li { margin-bottom: var(--espaco-2); }
+.endereco { font-style: normal; }

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Projetos e atividades — Ateliê Afro Cultural</title>
-  <meta name="description" content="Contações de história, espetáculos e vivências brincantes do Ateliê Afro Cultural, com ficha técnica de cada atividade.">
+  <title>Notícias — Ateliê Afro Cultural</title>
+  <meta name="description" content="Notícias, campanhas e resultados do Ateliê Afro Cultural.">
   <link rel="stylesheet" href="assets/css/tokens.css">
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/componentes.css">
@@ -13,22 +13,14 @@
 <body>
   <a class="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
-  <aac-header pagina-atual="projetos"></aac-header>
+  <aac-header pagina-atual="noticias"></aac-header>
 
   <main id="conteudo" class="conteudo">
-    <h1>Projetos e atividades</h1>
-    <p class="destaque">
-      Contações de história performáticas e vivências brincantes. Todas se adaptam a qualquer
-      espaço e têm classificação livre.
-    </p>
-
-    <p>
-      Quer levar uma destas atividades para a sua escola ou instituição?
-      <a href="/para-escolas.html">Veja como funciona</a> ou
-      <a href="/contato.html">fale com a gente</a>.
-    </p>
-
-    <div id="lista-atividades" class="lista-atividades"></div>
+    <h1>Notícias</h1>
+    <p class="destaque">O que anda acontecendo no ateliê.</p>
+    <div id="lista-noticias">
+      <p class="estado estado--vazio">Nenhuma notícia publicada ainda.</p>
+    </div>
   </main>
 
   <!-- Navegacao para quem esta sem JavaScript. Precisa ficar no HTML estatico:
@@ -49,11 +41,8 @@
         <li><a href="/contato.html">Contato</a></li>
       </ul>
       <p>
-        O catálogo de atividades precisa de JavaScript para carregar.
-        Fale com a gente pelo telefone e WhatsApp
-        <a href="tel:+5511953968344">(11) 95396-8344</a> ou pelo e-mail
-        <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>
-        que enviamos o catálogo completo.
+        Telefone e WhatsApp: <a href="tel:+5511953968344">(11) 95396-8344</a> ·
+        E-mail: <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>
       </p>
     </nav>
   </noscript>
@@ -62,6 +51,5 @@
 
   <script type="module" src="assets/js/componentes/aac-header.js"></script>
   <script type="module" src="assets/js/componentes/aac-rodape.js"></script>
-  <script type="module" src="assets/js/paginas/projetos.js"></script>
 </body>
 </html>

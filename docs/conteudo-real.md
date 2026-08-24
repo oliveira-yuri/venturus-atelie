@@ -249,3 +249,12 @@ risco R10 do escopo.
 4. Autorizações de uso de imagem das fotos que existem.
 5. A ONG quer usar o **Sankofa** como elemento da identidade do site? A matéria o apresenta como a
    ideia que origina o Ateliê, e ele daria substância visual e narrativa à home.
+
+## Pendente da Fase 02
+
+- **RF07 — formulário de contato**: depende da tabela `contatos` e da sua política de RLS.
+  Até lá, `contato.html` oferece os canais diretos, que já funcionam.
+- **RF04 — notícias** e **RF05 — galeria**: as páginas existem com estado vazio; ligam às tabelas
+  `publicacoes` e `midia` sem reescrita.
+- **Galeria**: migrar os quatro álbuns do `meualbum.co` depende das fotos em alta e das
+  autorizações de uso de imagem.

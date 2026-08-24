@@ -1,0 +1,173 @@
+/**
+ * Verificações estruturais em todas as páginas públicas.
+ *
+ * Roda em Firefox headless com servidor próprio, como testes/navegador.test.mjs.
+ * Cada página nova entra na lista PAGINAS e ganha toda a bateria de graça.
+ */
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { extname, join, normalize } from 'node:path';
+import { Builder, By } from 'selenium-webdriver';
+import { Options } from 'selenium-webdriver/firefox.js';
+
+const PAGINAS = [
+  { arquivo: 'index.html',        chave: 'inicio' },
+  { arquivo: 'quem-somos.html',   chave: 'quem-somos' },
+  { arquivo: 'projetos.html',     chave: 'projetos' },
+  { arquivo: 'noticias.html',     chave: 'noticias' },
+  { arquivo: 'galeria.html',      chave: 'galeria' },
+  { arquivo: 'para-escolas.html', chave: 'para-escolas' },
+  { arquivo: 'contato.html',      chave: 'contato' }
+];
+
+const RAIZ = new URL('../site/', import.meta.url).pathname;
+const TIPOS = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8'
+};
+
+let servidor;
+let navegador;
+let endereco;
+
+before(async () => {
+  servidor = createServer(async (requisicao, resposta) => {
+    const caminho = requisicao.url === '/' ? '/index.html' : requisicao.url.split('?')[0];
+    try {
+      const arquivo = join(RAIZ, normalize(caminho));
+      const conteudo = await readFile(arquivo);
+      resposta.writeHead(200, { 'Content-Type': TIPOS[extname(arquivo)] || 'application/octet-stream' });
+      resposta.end(conteudo);
+    } catch {
+      resposta.writeHead(404).end('nao encontrado');
+    }
+  });
+
+  await new Promise((pronto) => servidor.listen(0, pronto));
+  endereco = `http://localhost:${servidor.address().port}`;
+
+  navegador = await new Builder()
+    .forBrowser('firefox')
+    .setFirefoxOptions(new Options().addArguments('-headless'))
+    .build();
+});
+
+after(async () => {
+  await navegador?.quit();
+  servidor?.close();
+});
+
+for (const pagina of PAGINAS) {
+  test(`${pagina.arquivo}: estrutura semântica completa`, async () => {
+    await navegador.manage().window().setRect({ width: 1280, height: 900 });
+    await navegador.get(`${endereco}/${pagina.arquivo}`);
+
+    const estrutura = await navegador.executeScript(`
+      return {
+        titulo: document.title,
+        descricao: document.querySelector('meta[name="description"]')?.content || '',
+        h1: document.querySelectorAll('h1').length,
+        main: Boolean(document.querySelector('main#conteudo')),
+        skip: Boolean(document.querySelector('.pular-para-conteudo')),
+        idioma: document.documentElement.lang
+      };
+    `);
+
+    assert.ok(estrutura.titulo.includes('Ateliê Afro Cultural'), 'título sem o nome da organização');
+    assert.ok(estrutura.descricao.length > 30, 'meta description ausente ou curta');
+    assert.equal(estrutura.h1, 1, 'a página precisa de exatamente um h1');
+    assert.ok(estrutura.main, 'falta <main id="conteudo">');
+    assert.ok(estrutura.skip, 'falta o link de pular para o conteúdo');
+    assert.equal(estrutura.idioma, 'pt-BR');
+  });
+
+  test(`${pagina.arquivo}: cabeçalho e rodapé montam`, async () => {
+    await navegador.get(`${endereco}/${pagina.arquivo}`);
+
+    const montou = await navegador.executeScript(`
+      return {
+        menu: Boolean(document.querySelector('#menu-principal')),
+        atual: document.querySelector('[aria-current="page"]')?.textContent.trim() || null,
+        contatos: document.querySelectorAll('.rodape__lista a').length,
+        acessibilidade: document.querySelectorAll('.acessibilidade button').length
+      };
+    `);
+
+    assert.ok(montou.menu, 'o menu não montou');
+    assert.ok(montou.atual, 'nenhum item marcado como página atual');
+    assert.ok(montou.contatos >= 5, 'o rodapé precisa dos cinco contatos do RF06');
+    assert.equal(montou.acessibilidade, 4, 'faltam controles de acessibilidade');
+  });
+
+  test(`${pagina.arquivo}: toda imagem tem alt`, async () => {
+    await navegador.get(`${endereco}/${pagina.arquivo}`);
+    const semAlt = await navegador.executeScript(`
+      return [...document.querySelectorAll('img')]
+        .filter((i) => !i.hasAttribute('alt'))
+        .map((i) => i.src);
+    `);
+    assert.deepEqual(semAlt, [], 'imagens sem alt');
+  });
+
+  test(`${pagina.arquivo}: sem rolagem horizontal em 375px`, async () => {
+    await navegador.manage().window().setRect({ width: 375, height: 720 });
+    await navegador.get(`${endereco}/${pagina.arquivo}`);
+    const excesso = await navegador.executeScript(
+      'return document.documentElement.scrollWidth - document.documentElement.clientWidth'
+    );
+    assert.ok(excesso <= 0, `vaza ${excesso}px na horizontal`);
+  });
+}
+
+test('projetos.html mostra as onze atividades', async () => {
+  await navegador.manage().window().setRect({ width: 1280, height: 900 });
+  await navegador.get(`${endereco}/projetos.html`);
+
+  // O catálogo carrega por fetch: espera o primeiro cartão aparecer.
+  await navegador.wait(async () =>
+    (await navegador.findElements(By.css('aac-card-atividade'))).length > 0, 5000);
+
+  const cartoes = await navegador.findElements(By.css('aac-card-atividade'));
+  assert.equal(cartoes.length, 11, 'o escopo lista 11 atividades');
+});
+
+test('as atividades sem sinopse não exibem bloco vazio', async () => {
+  await navegador.get(`${endereco}/projetos.html`);
+  await navegador.wait(async () =>
+    (await navegador.findElements(By.css('aac-card-atividade'))).length > 0, 5000);
+
+  const vazios = await navegador.executeScript(`
+    return [...document.querySelectorAll('.atividade')]
+      .filter((a) => [...a.querySelectorAll('p')].some((p) => p.textContent.trim() === ''))
+      .map((a) => a.id);
+  `);
+  assert.deepEqual(vazios, [], 'atividades com parágrafo vazio');
+});
+
+test('a prova social carrega na home e em para-escolas', async () => {
+  for (const [arquivo, seletor] of [['index.html', '#lista-midia'], ['para-escolas.html', '#lista-instituicoes']]) {
+    await navegador.get(`${endereco}/${arquivo}`);
+    await navegador.wait(async () =>
+      (await navegador.findElements(By.css(`${seletor} .clipping__item`))).length > 0, 5000,
+      `a prova social não carregou em ${arquivo}`);
+
+    const itens = await navegador.findElements(By.css(`${seletor} .clipping__item`));
+    assert.ok(itens.length >= 3, `${arquivo}: só ${itens.length} registros`);
+  }
+});
+
+test('nenhuma página pública usa linguagem assistencialista', async () => {
+  // Seção 3.1 do escopo: o Ateliê é organização de arte, cultura e identidade,
+  // não de assistência social. Linguagem de caridade invalida a entrega.
+  const proibidos = /crianças carentes|ajude uma criança|doe um sorriso|vidas salvas|apadrinhe|carência|coitad/i;
+
+  for (const pagina of PAGINAS) {
+    await navegador.get(`${endereco}/${pagina.arquivo}`);
+    const texto = await navegador.executeScript('return document.body.innerText');
+    assert.doesNotMatch(texto, proibidos, `linguagem assistencialista em ${pagina.arquivo}`);
+  }
+});

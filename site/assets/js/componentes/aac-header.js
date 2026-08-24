@@ -5,6 +5,8 @@ const ITENS = [
   { chave: 'quem-somos',   texto: 'Quem somos',   href: '/quem-somos.html' },
   { chave: 'projetos',     texto: 'Projetos',     href: '/projetos.html' },
   { chave: 'agenda',       texto: 'Agenda',       href: '/agenda.html' },
+  { chave: 'noticias',     texto: 'Notícias',     href: '/noticias.html' },
+  { chave: 'galeria',      texto: 'Galeria',      href: '/galeria.html' },
   { chave: 'acervo',       texto: 'Acervo',       href: '/acervo.html' },
   { chave: 'para-escolas', texto: 'Para escolas', href: '/para-escolas.html' },
   { chave: 'voluntariado', texto: 'Voluntariado', href: '/voluntariado.html' },

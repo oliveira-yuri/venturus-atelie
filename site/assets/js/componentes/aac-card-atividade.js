@@ -21,7 +21,7 @@ class AacCardAtividade extends HTMLElement {
 
     this.innerHTML = `
       <article class="atividade" id="${dados.id}">
-        <h3 class="atividade__titulo">${dados.titulo}</h3>
+        <h2 class="atividade__titulo">${dados.titulo}</h2>
         ${dados.resumo ? `<p class="atividade__resumo">${dados.resumo}</p>` : ''}
         ${dados.descricao ? dados.descricao.split('\n\n')
             .map((paragrafo) => `<p>${paragrafo}</p>`).join('') : ''}
