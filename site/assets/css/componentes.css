@@ -207,3 +207,90 @@ html[data-contraste="alto"] .rodape {
 .atividade__ficha > div { display: flex; gap: var(--espaco-2); flex-wrap: wrap; }
 .atividade__ficha dt { font-weight: 700; min-width: 8rem; }
 .atividade__ficha dd { margin: 0; color: var(--tinta-suave); }
+
+/* ---------- Abertura da home ---------- */
+
+.abertura {
+  background: var(--amarelo);
+  border-bottom: 3px solid var(--tinta);
+}
+
+.abertura__conteudo {
+  max-width: var(--largura-conteudo);
+  margin: 0 auto;
+  padding: var(--espaco-6) var(--espaco-3);
+}
+
+.abertura h1 {
+  font-size: var(--texto-destaque);
+  color: var(--tinta);
+  margin-bottom: var(--espaco-3);
+}
+
+.abertura__slogan {
+  font-size: var(--texto-medio);
+  color: var(--tinta);
+  max-width: 46ch;
+}
+
+.abertura__acoes {
+  display: flex;
+  gap: var(--espaco-3);
+  flex-wrap: wrap;
+  margin-top: var(--espaco-4);
+}
+
+.abertura .botao { background: var(--tinta); color: var(--fundo); }
+
+.abertura .botao--secundario {
+  background: transparent;
+  border-color: var(--tinta);
+  color: var(--tinta);
+}
+
+/* ---------- Caminhos ---------- */
+
+.caminhos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-3);
+}
+
+@media (min-width: 48rem) {
+  .caminhos { grid-template-columns: repeat(2, 1fr); }
+}
+
+.caminho {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-top: 4px solid var(--azul);
+  border-radius: var(--raio);
+  padding: var(--espaco-3);
+}
+
+.caminho h3 { margin-bottom: var(--espaco-2); }
+.caminho p  { margin-bottom: 0; color: var(--tinta-suave); }
+
+html[data-contraste="alto"] .abertura { background: #FFFFFF; }
+html[data-contraste="alto"] .abertura .botao { background: #000000; color: #FFFFFF; }
+
+/* ---------- Clipping ---------- */
+
+.clipping { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--espaco-2); }
+
+.clipping__item {
+  padding: var(--espaco-3);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-left: 4px solid var(--marrom);
+  border-radius: var(--raio);
+  display: flex;
+  gap: var(--espaco-2);
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.clipping__detalhe { color: var(--tinta-suave); }
+.clipping__ano { margin-left: auto; color: var(--tinta-suave); }

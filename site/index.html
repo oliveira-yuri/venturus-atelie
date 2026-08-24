@@ -4,12 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ateliê Afro Cultural</title>
-  <meta name="description" content="Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira.">
+  <meta name="description" content="Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira, na Casa Verde, zona norte de São Paulo.">
   <link rel="stylesheet" href="assets/css/tokens.css">
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/componentes.css">
-  <!-- Sincrono e antes do corpo: aplica a preferencia de acessibilidade
-       antes da primeira pintura, para a pagina nao piscar no tamanho errado. -->
   <script src="assets/js/preferencias-inicial.js"></script>
 </head>
 <body>
@@ -17,39 +15,79 @@
 
   <aac-header pagina-atual="inicio"></aac-header>
 
-  <main id="conteudo" class="conteudo">
-    <h1>Ateliê Afro Cultural</h1>
-    <p class="slogan">
-      Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira.
-    </p>
-
-    <section aria-labelledby="titulo-setores">
-      <h2 id="titulo-setores">Nossos três setores</h2>
-
-      <article>
-        <h3>Literário</h3>
-        <p>
-          Livros de temática negra, leituras, pesquisas, análises, contação de histórias,
-          exercícios e técnicas de teatro.
+  <main id="conteudo">
+    <section class="abertura">
+      <div class="abertura__conteudo">
+        <h1>Ateliê Afro Cultural</h1>
+        <p class="abertura__slogan">
+          Espaço educativo de criação, reflexão e valorização da cultura e memória
+          afro brasileira.
         </p>
-      </article>
-
-      <article>
-        <h3>Musical</h3>
-        <p>
-          Cantigas, instrumentos e corporeidade negra, movimentos de capoeira: jongo, maculelê,
-          maracatu, forró, samba, rap, hip hop e funk.
+        <p class="abertura__acoes">
+          <a class="botao" href="/projetos.html">Conhecer nossos projetos</a>
+          <a class="botao botao--secundario" href="/agenda.html">Ver a agenda</a>
         </p>
-      </article>
-
-      <article>
-        <h3>Artístico criativo</h3>
-        <p>
-          Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura
-          e colagem.
-        </p>
-      </article>
+      </div>
     </section>
+
+    <div class="conteudo">
+      <section aria-labelledby="titulo-caminhos">
+        <h2 id="titulo-caminhos">Por onde começar</h2>
+        <ul class="caminhos">
+          <li class="caminho">
+            <h3><a href="/quem-somos.html">Conhecer</a></h3>
+            <p>Nossa história, quem idealizou o ateliê e os três setores de atuação.</p>
+          </li>
+          <li class="caminho">
+            <h3><a href="/agenda.html">Participar</a></h3>
+            <p>Oficinas, apresentações e vivências abertas ao público. A inscrição não exige cadastro.</p>
+          </li>
+          <li class="caminho">
+            <h3><a href="/voluntariado.html">Ser voluntário</a></h3>
+            <p>Cinco áreas de atuação, do apoio pedagógico à organização do acervo.</p>
+          </li>
+          <li class="caminho">
+            <h3><a href="/doar.html">Apoiar</a></h3>
+            <p>Recebemos livros, instrumentos musicais, materiais de arte, itens de acervo e recursos financeiros.</p>
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="titulo-setores-home">
+        <h2 id="titulo-setores-home">O que fazemos</h2>
+
+        <article class="setor">
+          <h3>Literário</h3>
+          <p>Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</p>
+        </article>
+
+        <article class="setor">
+          <h3>Musical</h3>
+          <p>Cantigas, instrumentos e corporeidade negra: jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</p>
+        </article>
+
+        <article class="setor">
+          <h3>Artístico criativo</h3>
+          <p>Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</p>
+        </article>
+
+        <p><a href="/quem-somos.html">Ler nossa história completa</a></p>
+      </section>
+
+      <section aria-labelledby="titulo-escolas-home">
+        <h2 id="titulo-escolas-home">É de uma escola ou instituição?</h2>
+        <p>
+          Levamos contações de história e vivências brincantes até o seu espaço. Todas as
+          atividades se adaptam a qualquer local e têm classificação livre.
+        </p>
+        <p><a class="botao" href="/para-escolas.html">Ver como funciona</a></p>
+      </section>
+
+      <section id="na-midia" aria-labelledby="titulo-midia-home">
+        <h2 id="titulo-midia-home">Na mídia</h2>
+        <div id="lista-midia"></div>
+      </section>
+    </div>
   </main>
 
   <!-- Navegacao para quem esta sem JavaScript. Precisa ficar no HTML estatico:
@@ -78,5 +116,6 @@
 
   <script type="module" src="assets/js/componentes/aac-header.js"></script>
   <script type="module" src="assets/js/componentes/aac-rodape.js"></script>
+  <script type="module" src="assets/js/paginas/prova-social.js"></script>
 </body>
 </html>
