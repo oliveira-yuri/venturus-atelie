@@ -173,3 +173,37 @@ html[data-contraste="alto"] .rodape {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ---------- Atividades ---------- */
+
+.lista-atividades { display: grid; gap: var(--espaco-4); }
+
+.atividade {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: var(--espaco-4);
+}
+
+.atividade__titulo {
+  font-size: var(--texto-grande);
+  color: var(--tinta);
+  margin-bottom: var(--espaco-2);
+}
+
+.atividade__resumo {
+  font-size: var(--texto-medio);
+  color: var(--tinta-suave);
+}
+
+.atividade__ficha {
+  margin: var(--espaco-4) 0 0;
+  padding-top: var(--espaco-3);
+  border-top: 1px solid var(--borda);
+  display: grid;
+  gap: var(--espaco-2);
+}
+
+.atividade__ficha > div { display: flex; gap: var(--espaco-2); flex-wrap: wrap; }
+.atividade__ficha dt { font-weight: 700; min-width: 8rem; }
+.atividade__ficha dd { margin: 0; color: var(--tinta-suave); }
