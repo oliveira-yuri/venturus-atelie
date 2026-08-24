@@ -1,0 +1,30 @@
+/* ---------- Controles de acessibilidade ---------- */
+
+.acessibilidade {
+  display: flex;
+  gap: var(--espaco-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.acessibilidade button {
+  min-height: var(--alvo-toque);
+  min-width: var(--alvo-toque);
+  padding: 0 var(--espaco-2);
+  background: var(--superficie);
+  color: var(--tinta);
+  border: 2px solid var(--borda);
+  border-radius: var(--raio);
+  font-size: var(--texto-base);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.acessibilidade button:hover:not(:disabled) { border-color: var(--azul-texto); }
+.acessibilidade button:disabled { opacity: 0.45; cursor: default; }
+
+.acessibilidade button[aria-pressed="true"] {
+  background: var(--tinta);
+  color: var(--fundo);
+  border-color: var(--tinta);
+}
