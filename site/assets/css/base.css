@@ -94,3 +94,58 @@ img { max-width: 100%; height: auto; }
   min-height: var(--alvo-toque);
   line-height: var(--alvo-toque);
 }
+
+/* ---------- Conteudo editorial ---------- */
+
+.destaque {
+  font-size: var(--texto-medio);
+  color: var(--tinta);
+  border-left: 4px solid var(--amarelo);
+  padding-left: var(--espaco-3);
+  max-width: 52ch;
+}
+
+main section { margin-bottom: var(--espaco-5); }
+
+.setor {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-left: 4px solid var(--amarelo);
+  border-radius: var(--raio);
+  padding: var(--espaco-3);
+  margin-bottom: var(--espaco-3);
+}
+
+.setor h3 { margin-bottom: var(--espaco-2); }
+.setor p  { margin-bottom: 0; }
+
+.botao {
+  display: inline-block;
+  min-height: var(--alvo-toque);
+  line-height: var(--alvo-toque);
+  padding: 0 var(--espaco-4);
+  background: var(--amarelo);
+  color: var(--tinta);
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid transparent;
+  border-radius: var(--raio);
+}
+
+.botao:hover { filter: brightness(0.95); }
+
+.botao--secundario {
+  background: transparent;
+  border-color: var(--marrom);
+  color: var(--tinta);
+}
+
+.chamada-final { margin-top: var(--espaco-5); }
+
+.ficha { display: grid; gap: var(--espaco-2); margin: 0 0 var(--espaco-3); }
+.ficha > div { display: flex; gap: var(--espaco-2); flex-wrap: wrap; }
+.ficha dt { font-weight: 700; min-width: 9rem; }
+.ficha dd { margin: 0; color: var(--tinta-suave); }
+
+.lista-simples { padding-left: var(--espaco-4); max-width: 60ch; }
+.lista-simples li { margin-bottom: var(--espaco-2); }
