@@ -145,3 +145,31 @@ html[data-contraste="alto"] .rodape {
   background: #000000;
   border-top: 3px solid #FFFFFF;
 }
+
+/* ---------- Estados de lista ---------- */
+
+.estado {
+  padding: var(--espaco-4);
+  border: 2px dashed var(--borda);
+  border-radius: var(--raio);
+  color: var(--tinta-suave);
+}
+
+.estado--erro {
+  border-style: solid;
+  border-color: var(--marrom);
+  color: var(--tinta);
+}
+
+.estado--erro button {
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--amarelo);
+  color: var(--tinta);
+  border: 2px solid transparent;
+  border-radius: var(--raio);
+  font-size: var(--texto-base);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
