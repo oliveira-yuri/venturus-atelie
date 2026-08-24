@@ -1,0 +1,7 @@
+material-origem/
+acervo-web/
+*.zip
+node_modules/
+.env
+.env.*
+supabase/.temp/
