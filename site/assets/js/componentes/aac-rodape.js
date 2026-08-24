@@ -1,9 +1,10 @@
 /**
- * Rodapé compartilhado.
+ * Rodapé compartilhado. Traz os cinco contatos nomeados pela ONG (RF06).
  *
- * Traz os cinco contatos nomeados pela ONG (RF06) e, no noscript, a navegação
- * completa: como o cabeçalho é um custom element, sem JavaScript não haveria
- * nenhum caminho entre as páginas.
+ * A navegação alternativa para quem está sem JavaScript NÃO mora aqui: ela
+ * precisa estar no HTML estático de cada página. Um <noscript> dentro deste
+ * componente nunca chegaria ao DOM, porque o componente só existe se o
+ * JavaScript rodar — a proteção não protegeria nada.
  */
 class AacRodape extends HTMLElement {
   connectedCallback() {
@@ -33,22 +34,6 @@ class AacRodape extends HTMLElement {
         <p class="rodape__aviso">
           <a href="/privacidade.html">Política de privacidade</a>
         </p>
-
-        <noscript>
-          <nav aria-label="Navegação sem JavaScript">
-            <ul class="rodape__lista">
-              <li><a href="/index.html">Início</a></li>
-              <li><a href="/quem-somos.html">Quem somos</a></li>
-              <li><a href="/projetos.html">Projetos</a></li>
-              <li><a href="/agenda.html">Agenda</a></li>
-              <li><a href="/acervo.html">Acervo</a></li>
-              <li><a href="/para-escolas.html">Para escolas</a></li>
-              <li><a href="/voluntariado.html">Voluntariado</a></li>
-              <li><a href="/doar.html">Apoiar</a></li>
-              <li><a href="/contato.html">Contato</a></li>
-            </ul>
-          </nav>
-        </noscript>
       </footer>`;
 
     this.carregarVLibras();

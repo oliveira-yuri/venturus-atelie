@@ -69,3 +69,28 @@ img { max-width: 100%; height: auto; }
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Navegacao exibida apenas quando o JavaScript esta desativado.
+   Cabecalho e rodape sao custom elements e nao existem nesse caso. */
+.navegacao-sem-js {
+  max-width: var(--largura-conteudo);
+  margin: var(--espaco-5) auto 0;
+  padding: var(--espaco-4) var(--espaco-3);
+  background: var(--superficie);
+  border-top: 3px solid var(--amarelo);
+}
+
+.navegacao-sem-js ul {
+  list-style: none;
+  margin: 0 0 var(--espaco-3);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-3);
+}
+
+.navegacao-sem-js a {
+  display: inline-block;
+  min-height: var(--alvo-toque);
+  line-height: var(--alvo-toque);
+}

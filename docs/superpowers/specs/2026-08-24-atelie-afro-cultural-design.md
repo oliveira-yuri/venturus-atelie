@@ -41,9 +41,13 @@ Alternativas descartadas:
 tamanho de fonte e de alto contraste, que precisa atravessar todos os componentes. Light DOM com
 prefixo `aac-`.
 
-**Limite conhecido:** o cabeçalho depende de JavaScript. O conteúdo de `<main>` — o que é indexado e
-lido por leitor de tela — é HTML estático e não depende disso. Um `<noscript>` no rodapé publica os
-links essenciais e os cinco contatos do RF06.
+**Limite conhecido:** cabeçalho e rodapé dependem de JavaScript. O conteúdo de `<main>` — o que é
+indexado e lido por leitor de tela — é HTML estático e não depende disso.
+
+A navegação alternativa fica num `<noscript>` **no HTML estático de cada página**, nunca dentro de um
+componente: um `<noscript>` dentro do `aac-rodape` jamais chegaria ao DOM, porque o componente só
+existe se o script rodar. Esse erro foi cometido e corrigido na Fase 00; `testes/sem-javascript.test.mjs`
+impede que volte.
 
 ---
 

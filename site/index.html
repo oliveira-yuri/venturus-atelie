@@ -52,6 +52,28 @@
     </section>
   </main>
 
+  <!-- Navegacao para quem esta sem JavaScript. Precisa ficar no HTML estatico:
+       cabecalho e rodape sao custom elements e nao existem sem script. -->
+  <noscript>
+    <nav class="navegacao-sem-js" aria-label="Navegação">
+      <ul>
+        <li><a href="/index.html">Início</a></li>
+        <li><a href="/quem-somos.html">Quem somos</a></li>
+        <li><a href="/projetos.html">Projetos</a></li>
+        <li><a href="/agenda.html">Agenda</a></li>
+        <li><a href="/acervo.html">Acervo</a></li>
+        <li><a href="/para-escolas.html">Para escolas</a></li>
+        <li><a href="/voluntariado.html">Voluntariado</a></li>
+        <li><a href="/doar.html">Apoiar</a></li>
+        <li><a href="/contato.html">Contato</a></li>
+      </ul>
+      <p>
+        Telefone e WhatsApp: <a href="tel:+5511953968344">(11) 95396-8344</a> ·
+        E-mail: <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>
+      </p>
+    </nav>
+  </noscript>
+
   <aac-rodape></aac-rodape>
 
   <script type="module" src="assets/js/componentes/aac-header.js"></script>
