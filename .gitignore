@@ -5,3 +5,7 @@ node_modules/
 .env
 .env.*
 supabase/.temp/
+
+# A service role key nunca entra no repositorio: ela vive como secret da
+# Edge Function. Se algum arquivo com ela aparecer aqui, e engano.
+**/service-role*
