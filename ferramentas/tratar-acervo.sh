@@ -32,7 +32,14 @@ for arquivo in "$ORIGEM"/*.pdf "$DESTINO"/_bruto/*.pdf; do
   comprimir_pdf "$arquivo" "$saida" || { echo "!! falhou: $base"; continue; }
   antes=$(stat -c%s "$arquivo")
   depois=$(stat -c%s "$saida")
-  printf '%-55s %7s KB -> %7s KB\n' "$base" "$((antes/1024))" "$((depois/1024))"
+  # PDFs cujas imagens ja estao bem comprimidas crescem ao serem reencodados.
+  # Nesses casos o original e melhor: fica ele.
+  if [ "$depois" -ge "$antes" ]; then
+    cp "$arquivo" "$saida"
+    printf '%-55s %7s KB    (original mantido)\n' "$base" "$((antes/1024))"
+  else
+    printf '%-55s %7s KB -> %7s KB\n' "$base" "$((antes/1024))" "$((depois/1024))"
+  fi
 done
 
 echo "== Concluido =="
