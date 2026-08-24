@@ -24,7 +24,7 @@
 - **Não é ONG assistencialista.** Nada de estética de pena, linguagem de caridade ou contador de vidas salvas.
 - **Toda imagem tem `alt`.** Sem exceção.
 - **Só `site/` é publicado.** `material-origem/` e `acervo-web/` ficam fora do versionamento.
-- Rodar os testes com `node --test testes/`.
+- Rodar os testes com `node --test` (Node 24 descobre `testes/*.test.mjs` sozinho; passar `testes/` como argumento faz o Node tratar o diretório como arquivo de entrada e falhar).
 
 ---
 
@@ -1260,7 +1260,7 @@ Fecha a fase provando que o que foi construído atende os critérios que a Fase 
 
 - [ ] **Step 1: Rodar toda a suíte de testes**
 
-Run: `node --test testes/`
+Run: `node --test`
 Expected: PASS — 18 testes (11 de preferências, 7 de erros)
 
 - [ ] **Step 2: Rodar a auditoria automatizada de acessibilidade**
@@ -1299,7 +1299,7 @@ Data: <preencher com a data da execução>
 
 | Verificação | Resultado |
 |---|---|
-| `node --test testes/` | <preencher> |
+| `node --test` | <preencher> |
 | axe-core em index.html | <preencher> |
 | Navegação completa por teclado | <preencher> |
 | Foco visível em todos os elementos | <preencher> |

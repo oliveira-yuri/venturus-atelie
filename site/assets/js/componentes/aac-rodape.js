@@ -49,12 +49,7 @@ class AacRodape extends HTMLElement {
             </ul>
           </nav>
         </noscript>
-      </footer>
-
-      <div vw class="enabled">
-        <div vw-access-button class="active"></div>
-        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
-      </div>`;
+      </footer>`;
 
     this.carregarVLibras();
   }
@@ -70,11 +65,48 @@ class AacRodape extends HTMLElement {
     script.onload = () => {
       try {
         new window.VLibras.Widget('https://vlibras.gov.br/app');
+        this.corrigirAcessibilidadeVLibras();
       } catch {
         // Sem tradução para Libras nesta visita. O resto da página não muda.
       }
     };
     document.body.appendChild(script);
+  }
+
+  /**
+   * O widget injeta duas imagens sem alt e monta seu conteúdo fora de qualquer
+   * landmark — violações que o axe acusa e que não são nossas.
+   *
+   * Ele tem valor real para pessoas surdas, então corrigimos por fora em vez de
+   * removê-lo. As imagens ficam dentro de um shadow root aberto, o que exige
+   * atravessar `shadowRoot` — um querySelector comum não as alcança.
+   *
+   * O widget se monta sozinho num setTimeout, então observamos até ele existir.
+   */
+  corrigirAcessibilidadeVLibras() {
+    const ajustar = () => {
+      const area = document.getElementById('vlibras-access-wrapper');
+      if (!area) return false;
+
+      if (!area.hasAttribute('role')) {
+        area.setAttribute('role', 'complementary');
+        area.setAttribute('aria-label', 'Tradução para Libras');
+      }
+
+      // As imagens são decorativas: o botão já carrega a descrição em aria-label.
+      area.shadowRoot?.querySelectorAll('img:not([alt])').forEach((imagem) => {
+        imagem.setAttribute('alt', '');
+      });
+
+      return true;
+    };
+
+    if (ajustar()) return;
+
+    const observador = new MutationObserver(() => {
+      if (ajustar()) observador.disconnect();
+    });
+    observador.observe(document.body, { childList: true, subtree: true });
   }
 }
 

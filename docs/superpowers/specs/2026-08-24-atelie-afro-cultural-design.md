@@ -56,7 +56,7 @@ ferramentas/
   tratar-acervo.sh        compressão de PDF e conversão de .pptx
 testes/
   seguranca.test.mjs      aceite bloqueante da seção 12
-  *.test.mjs              demais testes, rodados com `node --test testes/`
+  *.test.mjs              demais testes, rodados com `node --test`
 supabase/
   migrations/             uma migration por assunto, cada uma com suas políticas
   functions/enviar-email/ Edge Function (Deno)
@@ -266,7 +266,7 @@ Nada além do que já existe na máquina.
 
 | O quê | Como |
 |---|---|
-| Acesso indevido (aceite bloqueante) | `node --test testes/` |
+| Acesso indevido (aceite bloqueante) | `node --test` |
 | Módulos da camada de dados | `node --test` contra o projeto Supabase na nuvem |
 | Acessibilidade automatizável | `npx @axe-core/cli` |
 | Teclado, leitor de tela, contraste | checklist manual — o automatizado cobre parte |
