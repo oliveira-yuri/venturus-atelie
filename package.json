@@ -4,7 +4,9 @@
   "description": "Site do Ateliê Afro Cultural. O site em si nao tem build: selenium-webdriver serve apenas as verificacoes de navegador.",
   "scripts": {
     "test": "node --test",
-    "verificar": "node --test testes/navegador.test.mjs"
+    "verificar": "node --test testes/navegador.test.mjs",
+    "verificar-deploy": "node ferramentas/verificar-antes-do-deploy.mjs",
+    "seed": "node ferramentas/gerar-seed.mjs"
   },
   "devDependencies": {
     "selenium-webdriver": "^4.27.0"
