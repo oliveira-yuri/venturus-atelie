@@ -1,0 +1,234 @@
+/* =====================================================================
+   Painel administrativo — mobile-first por RNF08.
+
+   A ONG nao possui computador. Toda operacao acontece no celular pessoal
+   da equipe, muitas vezes em pe, no meio de um evento, com uma mao. Por
+   isso a navegacao fica embaixo e os alvos sao grandes.
+   ===================================================================== */
+
+body.painel {
+  /* Espaco para a barra de navegacao fixa nao cobrir o conteudo. */
+  padding-bottom: calc(var(--alvo-toque) + var(--espaco-5));
+  background: var(--fundo);
+}
+
+/* ---------- Barra superior ---------- */
+
+.topo-admin {
+  background: var(--tinta);
+  color: var(--fundo);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topo-admin__conteudo {
+  max-width: var(--largura-conteudo);
+  margin: 0 auto;
+  padding: var(--espaco-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+}
+
+.topo-admin__marca {
+  margin: 0;
+  font-size: var(--texto-pequeno);
+  opacity: 0.75;
+}
+
+.topo-admin__titulo {
+  margin: 0;
+  font-size: var(--texto-grande);
+  color: var(--fundo);
+}
+
+.topo-admin__pessoa {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  font-size: var(--texto-pequeno);
+}
+
+.topo-admin__pessoa button {
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: transparent;
+  color: var(--fundo);
+  border: 2px solid var(--fundo);
+  border-radius: var(--raio);
+  font-family: inherit;
+  font-size: var(--texto-pequeno);
+  cursor: pointer;
+}
+
+/* ---------- Navegacao inferior ---------- */
+
+.nav-admin {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--superficie);
+  border-top: 2px solid var(--borda);
+  /* Respeita a area segura do iPhone. */
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.nav-admin ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.nav-admin li { flex: 1; }
+
+.nav-admin a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: calc(var(--alvo-toque) + var(--espaco-2));
+  padding: var(--espaco-1);
+  color: var(--tinta-suave);
+  text-decoration: none;
+  font-size: var(--texto-pequeno);
+  border-top: 3px solid transparent;
+}
+
+.nav-admin__icone { font-size: var(--texto-medio); line-height: 1; }
+
+.nav-admin a[aria-current="page"] {
+  color: var(--tinta);
+  font-weight: 700;
+  border-top-color: var(--amarelo);
+  background: var(--fundo);
+}
+
+/* No desktop a navegacao vira lateral: nao ha polegar a alcancar. */
+@media (min-width: 48rem) {
+  body.painel {
+    padding-bottom: 0;
+    display: grid;
+    grid-template-columns: 14rem 1fr;
+    grid-template-areas: "topo topo" "nav conteudo";
+    min-height: 100vh;
+  }
+
+  .topo-admin { grid-area: topo; }
+  aac-nav-admin { grid-area: nav; }
+  .painel__conteudo { grid-area: conteudo; }
+
+  .nav-admin {
+    position: sticky;
+    top: 5rem;
+    bottom: auto;
+    border-top: none;
+    border-right: 2px solid var(--borda);
+    height: fit-content;
+  }
+
+  .nav-admin ul { flex-direction: column; }
+
+  .nav-admin a {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--espaco-2);
+    border-top: none;
+    border-left: 4px solid transparent;
+    font-size: var(--texto-base);
+    padding: var(--espaco-2) var(--espaco-3);
+  }
+
+  .nav-admin a[aria-current="page"] {
+    border-top-color: transparent;
+    border-left-color: var(--amarelo);
+  }
+}
+
+/* ---------- Conteudo do painel ---------- */
+
+.painel__conteudo {
+  max-width: var(--largura-conteudo);
+  margin: 0 auto;
+  padding: var(--espaco-4) var(--espaco-3);
+  width: 100%;
+}
+
+/* ---------- Cartoes de acao ---------- */
+
+.acoes-painel {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-3);
+}
+
+@media (min-width: 30rem) {
+  .acoes-painel { grid-template-columns: repeat(2, 1fr); }
+}
+
+.acao-painel a {
+  display: block;
+  padding: var(--espaco-4) var(--espaco-3);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-left: 4px solid var(--amarelo);
+  border-radius: var(--raio);
+  text-decoration: none;
+  color: var(--tinta);
+  min-height: var(--alvo-toque);
+}
+
+.acao-painel strong { display: block; font-size: var(--texto-medio); }
+.acao-painel span { color: var(--tinta-suave); font-size: var(--texto-pequeno); }
+
+/* ---------- Indicadores ---------- */
+
+.indicadores {
+  list-style: none;
+  margin: 0 0 var(--espaco-5);
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-2);
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 48rem) {
+  .indicadores { grid-template-columns: repeat(4, 1fr); }
+}
+
+.indicador {
+  padding: var(--espaco-3);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+
+.indicador__numero {
+  display: block;
+  font-size: var(--texto-titulo);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.indicador__rotulo {
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+/* ---------- Tabela vira lista de cartoes no celular ---------- */
+
+.tabela-cartoes { display: grid; gap: var(--espaco-2); }
+
+.tabela-cartoes__item {
+  padding: var(--espaco-3);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}

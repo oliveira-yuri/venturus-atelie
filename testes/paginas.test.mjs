@@ -19,7 +19,8 @@ const PAGINAS = [
   { arquivo: 'noticias.html',     chave: 'noticias' },
   { arquivo: 'galeria.html',      chave: 'galeria' },
   { arquivo: 'para-escolas.html', chave: 'para-escolas' },
-  { arquivo: 'contato.html',      chave: 'contato' }
+  { arquivo: 'contato.html',      chave: 'contato' },
+  { arquivo: 'entrar.html',       chave: 'entrar' }
 ];
 
 const RAIZ = new URL('../site/', import.meta.url).pathname;

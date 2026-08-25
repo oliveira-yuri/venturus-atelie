@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar — Ateliê Afro Cultural</title>
+  <meta name="description" content="Entre na sua conta do Ateliê Afro Cultural ou crie uma para se candidatar ao voluntariado e registrar doações.">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/componentes.css">
+  <script src="assets/js/preferencias-inicial.js"></script>
+</head>
+<body>
+  <a class="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+  <aac-header pagina-atual="entrar"></aac-header>
+
+  <main id="conteudo" class="conteudo">
+    <h1>Sua conta</h1>
+
+    <p class="destaque">
+      A conta serve para acompanhar sua candidatura ao voluntariado e o histórico das suas
+      doações. Para se inscrever em um evento ou baixar material do acervo, não é preciso conta.
+    </p>
+
+    <div class="abas" role="tablist" aria-label="Entrar ou criar conta">
+      <button type="button" id="aba-entrar" role="tab" aria-selected="true"
+              aria-controls="painel-entrar">Entrar</button>
+      <button type="button" id="aba-criar" role="tab" aria-selected="false"
+              aria-controls="painel-criar">Criar conta</button>
+    </div>
+
+    <div id="aviso" class="aviso" hidden></div>
+
+    <section id="painel-entrar" role="tabpanel" aria-labelledby="aba-entrar">
+      <form id="form-entrar" class="formulario" novalidate>
+        <aac-form-campo nome="email" rotulo="E-mail" tipo="email"
+                        autocomplete="email" inputmode="email" obrigatorio></aac-form-campo>
+
+        <aac-form-campo nome="senha" rotulo="Senha" tipo="password"
+                        autocomplete="current-password" obrigatorio></aac-form-campo>
+
+        <button type="submit">Entrar</button>
+
+        <p><a href="/recuperar-acesso.html">Esqueci minha senha</a></p>
+      </form>
+    </section>
+
+    <section id="painel-criar" role="tabpanel" aria-labelledby="aba-criar" hidden>
+      <form id="form-criar" class="formulario" novalidate>
+        <aac-form-campo nome="nome" rotulo="Nome completo" tipo="text"
+                        autocomplete="name" obrigatorio></aac-form-campo>
+
+        <aac-form-campo nome="email" rotulo="E-mail" tipo="email"
+                        autocomplete="email" inputmode="email" obrigatorio
+                        ajuda="É por aqui que respondemos você."></aac-form-campo>
+
+        <aac-form-campo nome="telefone" rotulo="Telefone" tipo="tel"
+                        autocomplete="tel" inputmode="numeric"
+                        ajuda="Opcional. Com DDD, como (11) 95396-8344."></aac-form-campo>
+
+        <aac-form-campo nome="senha" rotulo="Senha" tipo="password"
+                        autocomplete="new-password" obrigatorio
+                        ajuda="Pelo menos 8 caracteres."></aac-form-campo>
+
+        <fieldset class="grupo-campos">
+          <legend>Como você quer participar?</legend>
+          <aac-form-campo nome="voluntario" rotulo="Quero ser voluntário ou voluntária"
+                          tipo="checkbox"></aac-form-campo>
+          <aac-form-campo nome="doador" rotulo="Quero doar ou apoiar"
+                          tipo="checkbox"></aac-form-campo>
+        </fieldset>
+
+        <aac-form-campo nome="maioridade" tipo="checkbox" obrigatorio
+                        rotulo="Confirmo que tenho 18 anos ou mais"
+                        ajuda="Crianças e adolescentes participam das atividades por inscrição feita por um responsável, sem precisar de conta."></aac-form-campo>
+
+        <aac-form-campo nome="consentimento" tipo="checkbox" obrigatorio
+                        rotulo="Concordo com o uso dos meus dados"
+                        ajuda="Usamos seu nome, e-mail e telefone apenas para falar com você sobre voluntariado e doações."></aac-form-campo>
+
+        <button type="submit">Criar conta</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Navegacao para quem esta sem JavaScript. Precisa ficar no HTML estatico:
+       cabecalho e rodape sao custom elements e nao existem sem script. -->
+  <noscript>
+    <nav class="navegacao-sem-js" aria-label="Navegação">
+      <ul>
+        <li><a href="/index.html">Início</a></li>
+        <li><a href="/quem-somos.html">Quem somos</a></li>
+        <li><a href="/projetos.html">Projetos</a></li>
+        <li><a href="/agenda.html">Agenda</a></li>
+        <li><a href="/noticias.html">Notícias</a></li>
+        <li><a href="/galeria.html">Galeria</a></li>
+        <li><a href="/acervo.html">Acervo</a></li>
+        <li><a href="/para-escolas.html">Para escolas</a></li>
+        <li><a href="/voluntariado.html">Voluntariado</a></li>
+        <li><a href="/doar.html">Apoiar</a></li>
+        <li><a href="/contato.html">Contato</a></li>
+      </ul>
+      <p>
+        Criar conta e entrar precisam de JavaScript. Fale com a gente pelo
+        telefone e WhatsApp <a href="tel:+5511953968344">(11) 95396-8344</a> ou pelo e-mail
+        <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>.
+      </p>
+    </nav>
+  </noscript>
+
+  <aac-rodape></aac-rodape>
+
+  <script type="module" src="assets/js/componentes/aac-header.js"></script>
+  <script type="module" src="assets/js/componentes/aac-rodape.js"></script>
+  <script type="module" src="assets/js/paginas/entrar.js"></script>
+</body>
+</html>

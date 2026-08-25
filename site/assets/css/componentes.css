@@ -294,3 +294,169 @@ html[data-contraste="alto"] .abertura .botao { background: #000000; color: #FFFF
 
 .clipping__detalhe { color: var(--tinta-suave); }
 .clipping__ano { margin-left: auto; color: var(--tinta-suave); }
+
+/* ---------- Formularios ---------- */
+
+.formulario {
+  max-width: 34rem;
+  display: grid;
+  gap: var(--espaco-3);
+}
+
+.campo { display: grid; gap: var(--espaco-1); }
+
+.campo label {
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+.campo__obrigatorio { color: var(--marrom); }
+
+.campo__ajuda {
+  margin: 0;
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+  max-width: none;
+}
+
+.campo input,
+.campo textarea,
+.campo select {
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2);
+  font-size: var(--texto-base);
+  font-family: inherit;
+  color: var(--tinta);
+  background: var(--superficie);
+  border: 2px solid var(--borda);
+  border-radius: var(--raio);
+  width: 100%;
+}
+
+.campo textarea { min-height: 7rem; resize: vertical; }
+
+.campo input:focus,
+.campo textarea:focus,
+.campo select:focus { border-color: var(--azul-texto); }
+
+.campo__erro {
+  margin: 0;
+  min-height: 0;
+  font-size: var(--texto-pequeno);
+  color: var(--marrom);
+  font-weight: 600;
+  max-width: none;
+}
+
+aac-form-campo.tem-erro input,
+aac-form-campo.tem-erro textarea,
+aac-form-campo.tem-erro select { border-color: var(--marrom); }
+
+/* Caixa de marcar: alvo grande e rotulo clicavel. */
+.campo--caixa .campo__linha {
+  display: flex;
+  gap: var(--espaco-2);
+  align-items: flex-start;
+}
+
+.campo--caixa input[type="checkbox"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  min-height: 1.5rem;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  accent-color: var(--marrom);
+}
+
+.campo--caixa label { font-weight: 400; cursor: pointer; }
+
+.formulario button[type="submit"] {
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-4);
+  background: var(--amarelo);
+  color: var(--tinta);
+  border: 2px solid transparent;
+  border-radius: var(--raio);
+  font-size: var(--texto-base);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  justify-self: start;
+}
+
+.formulario button[type="submit"]:disabled { opacity: 0.5; cursor: progress; }
+
+.grupo-campos {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: var(--espaco-3);
+  margin: 0;
+  display: grid;
+  gap: var(--espaco-2);
+}
+
+.grupo-campos legend {
+  font-weight: 600;
+  padding: 0 var(--espaco-2);
+}
+
+/* ---------- Aviso ---------- */
+
+.aviso {
+  padding: var(--espaco-3);
+  border-radius: var(--raio);
+  border: 2px solid var(--borda);
+  background: var(--superficie);
+}
+
+.aviso--erro { border-color: var(--marrom); }
+.aviso--sucesso { border-color: var(--azul-texto); }
+.aviso p { margin: 0; }
+
+/* ---------- Abas de entrar / criar conta ---------- */
+
+.abas {
+  display: flex;
+  gap: var(--espaco-2);
+  border-bottom: 2px solid var(--borda);
+  margin-bottom: var(--espaco-4);
+}
+
+.abas button {
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: transparent;
+  border: none;
+  border-bottom: 4px solid transparent;
+  font-size: var(--texto-base);
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--tinta-suave);
+  cursor: pointer;
+}
+
+.abas button[aria-selected="true"] {
+  color: var(--tinta);
+  border-bottom-color: var(--amarelo);
+}
+
+/* Entrar fica fora do menu principal: e acao de conta, nao navegacao de
+   conteudo, e o menu ja carrega onze destinos. */
+.cabecalho__entrar {
+  min-height: var(--alvo-toque);
+  line-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  color: var(--tinta);
+  text-decoration: none;
+  font-weight: 600;
+  border: 2px solid var(--borda);
+  border-radius: var(--raio);
+}
+
+.cabecalho__entrar:hover { border-color: var(--azul-texto); }
+
+.cabecalho__entrar[aria-current="page"] {
+  background: var(--tinta);
+  color: var(--fundo);
+  border-color: var(--tinta);
+}

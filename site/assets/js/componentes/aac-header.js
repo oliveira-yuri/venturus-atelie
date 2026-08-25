@@ -32,6 +32,8 @@ class AacHeader extends HTMLElement {
             <span class="cabecalho__marca-nome">Ateliê Afro Cultural</span>
           </a>
 
+          <a class="cabecalho__entrar" href="/entrar.html"${atual === 'entrar' ? ' aria-current="page"' : ''}>Entrar</a>
+
           <button class="cabecalho__alternar" type="button"
                   aria-expanded="false" aria-controls="menu-principal">
             Menu
