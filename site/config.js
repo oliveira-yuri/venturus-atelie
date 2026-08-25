@@ -7,10 +7,8 @@
  *
  * A service role key NUNCA entra neste arquivo nem em qualquer outro do
  * repositorio. Ela existe apenas como secret da Edge Function.
- *
- * Preencher quando o projeto Supabase (regiao Sao Paulo) for criado.
  */
 export const CONFIG = {
-  supabaseUrl: '',
-  supabaseAnonKey: ''
+  supabaseUrl: 'https://lubsufltidrbmganftux.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1YnN1Zmx0aWRyYm1nYW5mdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2MzU3NDIsImV4cCI6MjEwMzIxMTc0Mn0.ZL7Qea0EctyLSUvTlGhbxLQsw_qNo_QVqPUS9KhVdno'
 };

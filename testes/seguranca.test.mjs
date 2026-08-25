@@ -15,9 +15,9 @@
  * Requer SUPABASE_URL e SUPABASE_ANON_KEY no ambiente, ou site/config.js
  * preenchido.
  */
-import { test, before, describe } from 'node:test';
+import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 
 /** Tabelas cuja leitura sem autenticação precisa voltar vazia. */
 const PROTEGIDAS = ['inscricoes', 'voluntarios', 'doacoes', 'contatos', 'presencas'];
@@ -28,27 +28,29 @@ const PUBLICAS = ['atividades', 'clipping', 'eventos', 'publicacoes', 'acervo'];
 /** Colunas que jamais podem aparecer numa resposta não autenticada. */
 const COLUNAS_SENSIVEIS = ['email', 'telefone', 'cpf', 'responsavel_nome', 'responsavel_telefone'];
 
-let configuracao = null;
-
-before(async () => {
+/**
+ * Lê a configuração de forma SÍNCRONA, no carregamento do módulo.
+ *
+ * O `skip` do describe é avaliado antes de qualquer before() rodar: se a
+ * leitura fosse assíncrona, o aceite pularia mesmo com o projeto configurado
+ * — que foi exatamente o que aconteceu na primeira versão deste arquivo.
+ */
+function lerConfiguracao() {
   if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-    configuracao = {
-      url: process.env.SUPABASE_URL,
-      chave: process.env.SUPABASE_ANON_KEY
-    };
-    return;
+    return { url: process.env.SUPABASE_URL, chave: process.env.SUPABASE_ANON_KEY };
   }
 
-  // Sem variáveis de ambiente, lê o mesmo config.js que o site usa.
   try {
-    const bruto = await readFile(new URL('../site/config.js', import.meta.url), 'utf8');
+    const bruto = readFileSync(new URL('../site/config.js', import.meta.url), 'utf8');
     const url = bruto.match(/supabaseUrl:\s*'([^']*)'/)?.[1];
     const chave = bruto.match(/supabaseAnonKey:\s*'([^']*)'/)?.[1];
-    if (url && chave) configuracao = { url, chave };
+    return url && chave ? { url, chave } : null;
   } catch {
-    configuracao = null;
+    return null;
   }
-});
+}
+
+const configuracao = lerConfiguracao();
 
 /**
  * Consulta o PostgREST diretamente, sem supabase-js.
@@ -137,10 +139,7 @@ describe('acesso indevido às tabelas com dados pessoais', { skip: skipSemConfig
  * nada. Marca como pulado, com o motivo visível.
  */
 function skipSemConfiguracao() {
-  const configurado = Boolean(
-    (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
-  );
-  return configurado
+  return configuracao
     ? false
     : 'Supabase ainda não configurado. Defina SUPABASE_URL e SUPABASE_ANON_KEY, '
       + 'ou preencha site/config.js. ATENÇÃO: enquanto isso, o aceite bloqueante '
