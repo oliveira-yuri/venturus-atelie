@@ -40,6 +40,10 @@
   --texto-titulo: 2.1rem;
   --texto-destaque: 3rem;
 
+  /* Nao usar vw aqui: com vw o texto para de responder ao botao A+, e a
+     acessibilidade e requisito, nao preferencia. Em rem, o titulo encolhe na
+     tela estreita E continua crescendo quando a pessoa aumenta a fonte. */
+
   --espaco-1: 0.25rem;
   --espaco-2: 0.5rem;
   --espaco-3: 1rem;
@@ -51,6 +55,16 @@
   --raio: 0;
   --largura-conteudo: 68rem;
   --alvo-toque: 2.75rem;   /* 44px - minimo para uso com o polegar */
+}
+
+/* Em tela de celular o titulo de abertura precisa caber sem hifenizar:
+   48px de altura numa largura util de ~290px nao cabe de jeito nenhum. */
+@media (max-width: 34rem) {
+  :root {
+    --texto-destaque: 1.85rem;
+    --texto-titulo: 1.6rem;
+    --texto-grande: 1.3rem;
+  }
 }
 
 /* O controle A- / A / A+ altera apenas esta linha. */

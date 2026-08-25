@@ -17,18 +17,14 @@ h1, h2, h3 {
   line-height: 1.1;
   margin: 0 0 var(--espaco-3);
   letter-spacing: -0.015em;
-  /* Portugues tem palavras longas — "pertencimento", "afro-brasileira". Sem
-     isto, uma delas sozinha pode exceder a largura da tela e empurrar a
-     pagina para o lado. Quebra apenas quando a palavra nao cabe de jeito
-     nenhum; havendo espaco, ela vai inteira para a linha seguinte. */
-  overflow-wrap: break-word;
-}
+  /* Sem hifenizacao. O navegador prefere hifenizar a mover a palavra inteira
+     para a linha seguinte, e "perten-cimento" partido no meio fica pior do
+     que uma linha mais curta.
 
-/* O hifen so entra onde ele resolve um problema real: tela estreita, onde
-   uma palavra longa sozinha ocupa a linha toda. Em tela larga hifenizar seria
-   ruido — foi o que aconteceu com "pertencimen-to" na primeira versao. */
-@media (max-width: 34rem) {
-  h1, h2, h3 { hyphens: auto; }
+     overflow-wrap cobre o caso extremo — palavra maior que a linha inteira —
+     sem interferir quando ha espaco. */
+  overflow-wrap: break-word;
+  hyphens: manual;
 }
 
 h1 { font-size: var(--texto-titulo); font-weight: 900; }
