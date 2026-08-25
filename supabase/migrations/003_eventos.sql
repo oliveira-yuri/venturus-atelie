@@ -108,3 +108,20 @@ alter table public.presencas enable row level security;
 create policy "presencas: so a equipe"
   on public.presencas for all
   using (public.eh_equipe()) with check (public.eh_equipe());
+
+-- ---------------------------------------------------------------------
+-- Permissoes de eventos, inscricoes e presencas
+--
+-- Repare no que anon recebe em inscricoes: APENAS insert. Sem select, sem
+-- update, sem delete. Mesmo que a politica de leitura fosse escrita errada
+-- um dia, o papel anonimo nao teria o privilegio de tentar.
+--
+-- presencas nao concede nada a anon: nem leitura nem escrita.
+-- ---------------------------------------------------------------------
+grant select on public.eventos to anon, authenticated;
+grant insert, update, delete on public.eventos to authenticated;
+
+grant insert on public.inscricoes to anon;
+grant select, insert, update, delete on public.inscricoes to authenticated;
+
+grant select, insert, update, delete on public.presencas to authenticated;

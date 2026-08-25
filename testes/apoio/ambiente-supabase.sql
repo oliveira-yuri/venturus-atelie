@@ -76,16 +76,12 @@ create table if not exists storage.objects (
 
 alter table storage.objects enable row level security;
 
--- Concessões amplas, como o Supabase faz. É de propósito: o que protege os
--- dados é a RLS, não a ausência de GRANT. Um teste com GRANT restrito daria
--- falso verde — passaria por falta de permissão, não por política correta.
+-- Acesso aos schemas, mas NENHUMA concessão sobre as tabelas do schema public.
+--
+-- O projeto Supabase foi criado com "Automatically expose new tables"
+-- desligado, então quem concede é cada migration, tabela por tabela. Conceder
+-- amplamente aqui esconderia um grant faltando nas migrations — o site
+-- funcionaria no teste e ficaria vazio em produção.
 grant usage on schema public, auth, storage to anon, authenticated, service_role;
-grant all on all tables in schema public to anon, authenticated, service_role;
-grant all on all sequences in schema public to anon, authenticated, service_role;
 grant all on all tables in schema storage to anon, authenticated, service_role;
 grant execute on all functions in schema auth to anon, authenticated, service_role;
-
-alter default privileges in schema public
-  grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public
-  grant all on sequences to anon, authenticated, service_role;

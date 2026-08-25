@@ -149,3 +149,16 @@ create policy "acervo: leitura publica do que esta publicado"
 create policy "acervo: equipe gerencia"
   on public.acervo for all
   using (public.eh_equipe()) with check (public.eh_equipe());
+
+-- ---------------------------------------------------------------------
+-- Permissoes do conteudo publico
+--
+-- Leitura para todos; escrita apenas para quem esta autenticado, e a RLS
+-- restringe essa escrita a equipe.
+-- ---------------------------------------------------------------------
+grant select on public.atividades, public.publicacoes, public.midia,
+                public.clipping, public.acervo to anon, authenticated;
+
+grant insert, update, delete on public.atividades, public.publicacoes,
+                                 public.midia, public.clipping, public.acervo
+  to authenticated;

@@ -154,3 +154,19 @@ create policy "contatos: qualquer pessoa escreve"
 create policy "contatos: equipe gerencia"
   on public.contatos for all
   using (public.eh_equipe()) with check (public.eh_equipe());
+
+-- ---------------------------------------------------------------------
+-- Permissoes de voluntariado, doacoes e contatos
+--
+-- anon so recebe insert em contatos — o formulario publico do RF07. Nas
+-- demais nao recebe nada: sao dados pessoais.
+-- ---------------------------------------------------------------------
+grant select on public.areas_voluntariado to anon, authenticated;
+grant insert, update, delete on public.areas_voluntariado to authenticated;
+
+grant select, insert, update, delete on public.voluntarios,
+                                        public.voluntario_areas,
+                                        public.doacoes to authenticated;
+
+grant insert on public.contatos to anon;
+grant select, insert, update, delete on public.contatos to authenticated;

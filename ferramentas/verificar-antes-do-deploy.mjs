@@ -85,6 +85,29 @@ if (semRls.length > 0) {
 }
 
 // ---------------------------------------------------------------------
+// 4. Toda tabela precisa de grant explicito
+//
+// O projeto Supabase foi criado sem exposicao automatica de tabelas. Uma
+// tabela sem grant nao chega a API: o sintoma e uma tela vazia, e o risco e
+// alguem concluir que a RLS esta apertada demais e afrouxa-la.
+// ---------------------------------------------------------------------
+const tabelasComGrant = new Set(
+  [...migrations.matchAll(/grant[^;]*?\son\s([^;]*?)\sto\s/gis)]
+    .flatMap((achado) =>
+      [...achado[1].matchAll(/public\.(\w+)/g)].map((t) => t[1]))
+);
+
+const semGrant = tabelasCriadas.filter((tabela) => !tabelasComGrant.has(tabela));
+if (semGrant.length > 0) {
+  relatar(
+    'Tabela sem concessao explicita de privilegio',
+    `Sem grant: ${semGrant.join(', ')}\n`
+    + '  Com a exposicao automatica desligada no projeto, uma tabela sem grant\n'
+    + '  simplesmente nao existe para a API — a tela fica vazia sem erro visivel.'
+  );
+}
+
+// ---------------------------------------------------------------------
 // Resultado
 // ---------------------------------------------------------------------
 if (problemas.length === 0) {

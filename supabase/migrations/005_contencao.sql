@@ -104,3 +104,11 @@ set search_path = public
 as $$
   delete from public.envios_recentes where criado_em < now() - interval '1 day';
 $$;
+
+-- ---------------------------------------------------------------------
+-- Permissoes da contencao
+--
+-- Ninguem escreve aqui pela API: quem insere e o trigger, que roda como
+-- definer. A equipe pode consultar para investigar um pico de envios.
+-- ---------------------------------------------------------------------
+grant select on public.envios_recentes to authenticated;

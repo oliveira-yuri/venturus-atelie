@@ -147,3 +147,16 @@ $$;
 create trigger proteger_papel_equipe
   before update on public.perfis
   for each row execute function public.proteger_papel_equipe();
+
+-- ---------------------------------------------------------------------
+-- Permissoes de perfis
+--
+-- O projeto foi criado com "Automatically expose new tables" DESLIGADO, entao
+-- nenhuma tabela chega a API sem uma concessao explicita como estas. E defesa
+-- em profundidade: se uma politica tiver erro, o papel ainda assim nao tem o
+-- privilegio. A RLS filtra o que passa; o grant decide o que sequer e tentado.
+--
+-- anon nao recebe nada aqui: perfil so existe para quem esta autenticado.
+-- A insercao acontece pelo trigger ao_criar_usuario, que roda como definer.
+-- ---------------------------------------------------------------------
+grant select, update on public.perfis to authenticated;

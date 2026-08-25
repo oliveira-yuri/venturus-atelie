@@ -63,12 +63,8 @@ before(async () => {
     }
   }
 
-  // 3. Concessões para o que as migrations acabaram de criar
-  await cliente.query(`
-    grant all on all tables in schema public to anon, authenticated;
-    grant all on all sequences in schema public to anon, authenticated;
-    grant execute on all functions in schema public to anon, authenticated;
-  `);
+  // 3. Nenhuma concessão extra aqui, de propósito: quem concede são as
+  //    próprias migrations. Se faltar um grant lá, este teste acusa.
 
   // 4. Pessoas de teste
   await cliente.query(`
@@ -211,6 +207,61 @@ describe('ACEITE BLOQUEANTE: leitura anônima das tabelas com dados pessoais', (
     for (const tabela of ['inscricoes', 'voluntarios', 'doacoes', 'contatos']) {
       const { rows } = await cliente.query(`select count(*)::int as total from public.${tabela}`);
       assert.ok(rows[0].total > 0, `${tabela} está vazia: o teste de vazamento seria vácuo`);
+    }
+  });
+});
+
+describe('privilégios: a camada antes da política', () => {
+  // A RLS decide o que passa; o GRANT decide o que sequer é tentado. Com o
+  // projeto criado sem exposição automática de tabelas, esta é uma segunda
+  // barreira independente: mesmo uma política escrita errada não expõe uma
+  // tabela em que anon não tem privilégio nenhum.
+  const SEM_LEITURA_ANONIMA = [
+    'inscricoes', 'voluntarios', 'voluntario_areas', 'doacoes',
+    'contatos', 'presencas', 'perfis', 'envios_recentes'
+  ];
+
+  for (const tabela of SEM_LEITURA_ANONIMA) {
+    test(`anon não tem privilégio de SELECT em ${tabela}`, async () => {
+      const { rows } = await cliente.query(
+        `select has_table_privilege('anon', 'public.${tabela}', 'SELECT') as tem`);
+      assert.equal(rows[0].tem, false,
+        `anon tem privilégio de leitura em ${tabela} — o grant está largo demais`);
+    });
+  }
+
+  test('anon só escreve onde o site precisa: inscricoes e contatos', async () => {
+    const { rows } = await cliente.query(`
+      select c.relname as tabela
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r'
+        and has_table_privilege('anon', c.oid, 'INSERT')
+      order by c.relname
+    `);
+    assert.deepEqual(rows.map((r) => r.tabela), ['contatos', 'inscricoes'],
+      'anon pode inserir em tabela que não deveria');
+  });
+
+  test('anon nunca pode apagar nada', async () => {
+    const { rows } = await cliente.query(`
+      select c.relname as tabela
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r'
+        and has_table_privilege('anon', c.oid, 'DELETE')
+    `);
+    assert.deepEqual(rows.map((r) => r.tabela), [], 'anon tem privilégio de exclusão');
+  });
+
+  test('toda tabela lida pelo site tem grant para anon', async () => {
+    // O oposto também quebra: sem grant, a tabela pública some do site e
+    // alguém pode concluir que a RLS está apertada demais e afrouxá-la.
+    for (const tabela of ['atividades', 'clipping', 'eventos', 'publicacoes',
+                          'midia', 'acervo', 'areas_voluntariado']) {
+      const { rows } = await cliente.query(
+        `select has_table_privilege('anon', 'public.${tabela}', 'SELECT') as tem`);
+      assert.equal(rows[0].tem, true, `falta grant de leitura em ${tabela}`);
     }
   });
 });
