@@ -6,9 +6,11 @@
     "test": "node --test",
     "verificar": "node --test testes/navegador.test.mjs",
     "verificar-deploy": "node ferramentas/verificar-antes-do-deploy.mjs",
-    "seed": "node ferramentas/gerar-seed.mjs"
+    "seed": "node ferramentas/gerar-seed.mjs",
+    "rls": "node --test testes/rls.test.mjs"
   },
   "devDependencies": {
-    "selenium-webdriver": "^4.27.0"
+    "selenium-webdriver": "^4.27.0",
+    "embedded-postgres": "^17.0.0"
   }
 }

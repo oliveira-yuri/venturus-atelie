@@ -102,3 +102,48 @@ create policy "perfis: equipe gerencia"
   on public.perfis for all
   using (public.eh_equipe())
   with check (public.eh_equipe());
+
+-- ---------------------------------------------------------------------
+-- Protecao contra escalada de privilegio
+--
+-- A politica acima deixa cada pessoa editar o proprio registro, e o
+-- with check so garante que o id continue sendo o dela — nao impede que
+-- ela mude eh_equipe. Sem este trigger, qualquer pessoa com conta de
+-- voluntario ou doador executa
+--
+--   update perfis set eh_equipe = true where id = auth.uid()
+--
+-- e passa a ler inscritos, doadores e contatos. Numa organizacao que
+-- atende criancas a partir de 10 anos, isso e incidente de dados pessoais.
+--
+-- Confirmado em teste antes de existir projeto Supabase: ver
+-- testes/rls.test.mjs, "pessoa autenticada nao consegue se tornar equipe".
+-- ---------------------------------------------------------------------
+-- SECURITY INVOKER de proposito (o padrao). Com SECURITY DEFINER, o
+-- current_user dentro da funcao passa a ser o dono dela, e a checagem de
+-- papel abaixo nunca enxergaria 'authenticated' — a protecao seria inerte.
+-- Quem precisa ser DEFINER e eh_equipe(), para nao recursionar.
+create or replace function public.proteger_papel_equipe()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  -- A restricao vale para quem chega pela API publica (anon e authenticated).
+  -- O painel do Supabase e as Edge Functions operam como postgres ou
+  -- service_role, e precisam conseguir promover alguem: e assim que a
+  -- PRIMEIRA pessoa da equipe ganha acesso, e assim que a ONG adiciona uma
+  -- nova. Sem esta distincao o sistema fica sem administrador nenhum.
+  if new.eh_equipe is distinct from old.eh_equipe
+     and current_user in ('anon', 'authenticated')
+     and not public.eh_equipe() then
+    raise exception 'somente a equipe altera o papel de equipe'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger proteger_papel_equipe
+  before update on public.perfis
+  for each row execute function public.proteger_papel_equipe();
