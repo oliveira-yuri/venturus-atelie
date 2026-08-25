@@ -15,6 +15,13 @@
 create schema if not exists auth;
 create schema if not exists storage;
 
+-- O Supabase instala extensoes no schema "extensions", nao em public. Imitar
+-- isso aqui e o que faz o teste local pegar uma funcao de extensao chamada
+-- sem qualificacao — foi assim que digest() passou no teste e falhou em
+-- producao.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+
 -- Papéis que o PostgREST assume conforme o token da requisição.
 do $$
 begin

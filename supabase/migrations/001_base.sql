@@ -5,7 +5,9 @@
 -- arquivo. Nunca existe tabela sem politica, nem por uma hora.
 -- =====================================================================
 
-create extension if not exists pgcrypto;
+-- Nenhuma extensao e necessaria: gen_random_uuid() e sha256() sao nativos do
+-- Postgres. Depender de pgcrypto obrigaria a qualificar o schema "extensions"
+-- em toda chamada, porque e la que o Supabase instala as extensoes.
 
 -- ---------------------------------------------------------------------
 -- perfis

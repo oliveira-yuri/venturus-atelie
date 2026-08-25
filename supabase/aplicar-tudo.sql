@@ -14,7 +14,9 @@
 -- arquivo. Nunca existe tabela sem politica, nem por uma hora.
 -- =====================================================================
 
-create extension if not exists pgcrypto;
+-- Nenhuma extensao e necessaria: gen_random_uuid() e sha256() sao nativos do
+-- Postgres. Depender de pgcrypto obrigaria a qualificar o schema "extensions"
+-- em toda chamada, porque e la que o Supabase instala as extensoes.
 
 -- ---------------------------------------------------------------------
 -- perfis
@@ -707,7 +709,12 @@ begin
   );
 
   -- Guardamos o hash, nunca o IP: coleta minima (RNF09).
-  v_origem := encode(digest(v_ip, 'sha256'), 'hex');
+  --
+  -- sha256() e nativo do Postgres desde a versao 11. Usar digest() do
+  -- pgcrypto exigiria qualificar o schema: no Supabase as extensoes ficam em
+  -- "extensions", e esta funcao roda com search_path = public, entao digest()
+  -- simplesmente nao existiria aqui.
+  v_origem := encode(sha256(convert_to(v_ip, 'UTF8')), 'hex');
 
   select count(*) into v_recentes
   from public.envios_recentes e
