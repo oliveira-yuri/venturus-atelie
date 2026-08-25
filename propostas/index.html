@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Três direções de design — Ateliê Afro Cultural</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; background:#1A1410; color:#F2E9D6;
+         font-family: system-ui, sans-serif; line-height:1.6; }
+  .limite { max-width: 66rem; margin:0 auto; padding: 3rem 1.5rem; }
+  h1 { font-size: clamp(1.8rem,5vw,2.8rem); line-height:1.1; margin:0 0 .75rem; }
+  .sub { color:#C8AB7D; margin:0 0 3rem; max-width:60ch; }
+  .grade { display:grid; gap:1.5rem; }
+  @media (min-width:52rem) { .grade { grid-template-columns: repeat(3,1fr); } }
+  .cartao { border:2px solid #C8AB7D; display:flex; flex-direction:column; }
+  .cartao__amostra { height: 150px; display:flex; align-items:center; justify-content:center;
+                     font-weight:800; font-size:1.5rem; letter-spacing:-.02em; }
+  .a1 { background:#E0A400; color:#1A1410;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='none' stroke='%231A1410' stroke-width='2' opacity='.2'%3E%3Ccircle cx='30' cy='30' r='6'/%3E%3Ccircle cx='30' cy='30' r='13'/%3E%3C/g%3E%3C/svg%3E"); }
+  .a2 { background:#C8AB7D; color:#2A2016;
+        background-image:repeating-linear-gradient(90deg,rgba(90,66,42,.14) 0 2px,transparent 2px 6px),
+                         repeating-linear-gradient(0deg,rgba(90,66,42,.14) 0 2px,transparent 2px 6px); }
+  .a3 { background:linear-gradient(170deg,#EDBB33,#E0A400 55%,#CE9500); color:#FFFDF7;
+        text-shadow:2px 2px 0 rgba(0,0,0,.22),4px 4px 0 rgba(0,0,0,.12); }
+  .cartao__corpo { padding:1.25rem; flex:1; display:flex; flex-direction:column; }
+  .cartao h2 { font-size:1.2rem; margin:0 0 .5rem; }
+  .cartao p { font-size:.95rem; color:#C8AB7D; margin:0 0 1.25rem; flex:1; }
+  .cartao a { display:block; text-align:center; padding:.85rem;
+              background:#E0A400; color:#1A1410; font-weight:700; text-decoration:none; }
+  .cartao a:hover { background:#F2E9D6; }
+  .nota { margin-top:3rem; padding:1.25rem; border-left:4px solid #E0A400; color:#C8AB7D; }
+</style>
+</head>
+<body>
+<div class="limite">
+  <h1>Três direções de design</h1>
+  <p class="sub">
+    A paleta da ONG é a mesma nas três — amarelo, azul e marrom. O que muda é
+    tipografia, estrutura, textura e o elemento que dá identidade. Abra cada uma
+    e veja também no celular, estreitando a janela.
+  </p>
+
+  <div class="grade">
+    <article class="cartao">
+      <div class="cartao__amostra a1">ADINKRA</div>
+      <div class="cartao__corpo">
+        <h2>1. Adinkra</h2>
+        <p>Os símbolos gráficos do povo Akan, de Gana — a mesma tradição do Sankofa que a ONG cita como origem. Cada seção é marcada pelo símbolo cujo significado corresponde ao que ela diz. Geométrico, forte, culturalmente ancorado.</p>
+        <a href="1-adinkra.html">Abrir direção 1</a>
+      </div>
+    </article>
+
+    <article class="cartao">
+      <div class="cartao__amostra a2">ESTANDARTE</div>
+      <div class="cartao__corpo">
+        <h2>2. Estandarte</h2>
+        <p>A partir do estandarte de juta que aparece nas fotos: trama de tecido, peças aplicadas com sombra de costura, franja azul como divisor, búzios nos cantos. Artesanal e caloroso.</p>
+        <a href="2-estandarte.html">Abrir direção 2</a>
+      </div>
+    </article>
+
+    <article class="cartao">
+      <div class="cartao__amostra a3">FACHADA</div>
+      <div class="cartao__corpo">
+        <h2>3. Fachada</h2>
+        <p>A parede amarela da sede, com as letras brancas em relevo e a janela de veneziana. Tipografia enorme, poucos elementos, muito respiro. É a imagem que quem já foi lá reconhece na hora.</p>
+        <a href="3-fachada.html">Abrir direção 3</a>
+      </div>
+    </article>
+  </div>
+
+  <p class="nota">
+    Nenhuma das três usa fotografia ainda — continuamos sem autorização de uso de
+    imagem. As três foram desenhadas para receber fotos depois sem precisar de
+    reestruturação.
+  </p>
+</div>
+</body>
+</html>

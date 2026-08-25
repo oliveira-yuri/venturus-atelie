@@ -4,38 +4,55 @@ body {
   margin: 0;
   background: var(--fundo);
   color: var(--tinta);
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: var(--corpo);
   font-size: var(--texto-base);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
-h1, h2, h3 { line-height: 1.25; margin: 0 0 var(--espaco-3); }
-h1 { font-size: var(--texto-titulo); }
-h2 { font-size: var(--texto-grande); }
-h3 { font-size: var(--texto-medio); }
-p  { margin: 0 0 var(--espaco-3); max-width: 60ch; }
+/* ---------- Tipografia ----------
+   O display carrega a personalidade; o corpo se apaga para ser lido. */
+
+h1, h2, h3 {
+  font-family: var(--display);
+  line-height: 1.1;
+  margin: 0 0 var(--espaco-3);
+  letter-spacing: -0.015em;
+  /* Portugues tem palavras longas — "pertencimento", "afro-brasileira". Em
+     tela de celular com a fonte no maior degrau, uma delas sozinha excede a
+     largura e empurra a pagina para o lado. Hifeniza em vez de vazar. */
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+h1 { font-size: var(--texto-titulo); font-weight: 900; }
+h2 { font-size: var(--texto-grande); font-weight: 900; }
+h3 { font-size: var(--texto-medio); font-weight: 700; }
+
+p  { margin: 0 0 var(--espaco-3); max-width: 62ch; }
 
 a { color: var(--azul-texto); }
+a:hover { text-decoration-thickness: 2px; }
 
 img { max-width: 100%; height: auto; }
 
+strong { font-weight: 700; }
+
 /* Foco sempre visivel - RNF02. Nunca remover sem substituir. */
 :focus-visible {
-  outline: 3px solid var(--foco);
-  outline-offset: 2px;
-  border-radius: 2px;
+  outline: 4px solid var(--foco);
+  outline-offset: 3px;
 }
 
 .pular-para-conteudo {
   position: absolute;
   left: var(--espaco-3);
-  top: -4rem;
+  top: -5rem;
   z-index: 100;
   padding: var(--espaco-2) var(--espaco-3);
-  background: var(--superficie);
+  background: var(--cal);
   color: var(--tinta);
-  border: 2px solid var(--foco);
-  border-radius: var(--raio);
+  border: 2px solid var(--tinta);
+  font-weight: 700;
   transition: top 0.15s;
 }
 .pular-para-conteudo:focus { top: var(--espaco-3); }
@@ -43,14 +60,91 @@ img { max-width: 100%; height: auto; }
 .conteudo {
   max-width: var(--largura-conteudo);
   margin: 0 auto;
-  padding: var(--espaco-4) var(--espaco-3);
+  padding: var(--espaco-5) var(--espaco-3) var(--espaco-6);
+}
+
+main section { margin-bottom: var(--espaco-6); }
+
+/* ---------- O gesto: peca aplicada ----------
+   Contorno e deslocamento solido. E o unico elemento decorativo do sistema:
+   tudo o mais e chapado. */
+.aplique {
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--tinta);
+}
+
+.aplique--amarelo { box-shadow: var(--aplique) var(--amarelo); }
+.aplique--azul    { box-shadow: var(--aplique) var(--azul); }
+.aplique--marrom  { box-shadow: var(--aplique) var(--marrom); }
+
+/* No celular a sombra encolhe: 8px comem largura util numa tela de 375px. */
+@media (max-width: 34rem) {
+  :root { --aplique: 5px 5px 0; }
+}
+
+/* ---------- Conteudo editorial ---------- */
+
+.destaque {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: var(--texto-medio);
+  color: var(--tinta);
+  border-left: 5px solid var(--amarelo);
+  padding-left: var(--espaco-3);
+  max-width: 50ch;
 }
 
 .slogan {
+  font-family: var(--display);
+  font-weight: 500;
   font-size: var(--texto-medio);
   color: var(--tinta-suave);
   max-width: 46ch;
 }
+
+.setor {
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--amarelo);
+  padding: var(--espaco-4);
+  margin-bottom: var(--espaco-5);
+}
+
+.setor h3 { margin-bottom: var(--espaco-2); }
+.setor p  { margin-bottom: 0; color: var(--tinta-suave); }
+
+.botao {
+  display: inline-block;
+  min-height: var(--alvo-toque);
+  line-height: calc(var(--alvo-toque) - 4px);
+  padding: 0 var(--espaco-4);
+  background: var(--tinta);
+  color: var(--cal);
+  font-weight: 700;
+  text-decoration: none;
+  border: 2px solid var(--tinta);
+}
+
+.botao:hover { background: var(--cal); color: var(--tinta); }
+
+.botao--secundario {
+  background: transparent;
+  color: var(--tinta);
+}
+.botao--secundario:hover { background: var(--tinta); color: var(--cal); }
+
+.chamada-final { margin-top: var(--espaco-5); }
+
+.ficha { display: grid; gap: var(--espaco-2); margin: 0 0 var(--espaco-3); }
+.ficha > div { display: flex; gap: var(--espaco-2); flex-wrap: wrap; }
+.ficha dt { font-weight: 700; min-width: 9rem; }
+.ficha dd { margin: 0; color: var(--tinta-suave); }
+
+.lista-simples { padding-left: var(--espaco-4); max-width: 62ch; }
+.lista-simples li { margin-bottom: var(--espaco-2); }
+
+.endereco { font-style: normal; }
 
 /* Visivel apenas para leitor de tela. */
 .apenas-leitor-de-tela {
@@ -63,21 +157,14 @@ img { max-width: 100%; height: auto; }
   border: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
-}
-
 /* Navegacao exibida apenas quando o JavaScript esta desativado.
    Cabecalho e rodape sao custom elements e nao existem nesse caso. */
 .navegacao-sem-js {
   max-width: var(--largura-conteudo);
   margin: var(--espaco-5) auto 0;
   padding: var(--espaco-4) var(--espaco-3);
-  background: var(--superficie);
-  border-top: 3px solid var(--amarelo);
+  background: var(--cal);
+  border-top: 4px solid var(--amarelo);
 }
 
 .navegacao-sem-js ul {
@@ -95,58 +182,9 @@ img { max-width: 100%; height: auto; }
   line-height: var(--alvo-toque);
 }
 
-/* ---------- Conteudo editorial ---------- */
-
-.destaque {
-  font-size: var(--texto-medio);
-  color: var(--tinta);
-  border-left: 4px solid var(--amarelo);
-  padding-left: var(--espaco-3);
-  max-width: 52ch;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
-
-main section { margin-bottom: var(--espaco-5); }
-
-.setor {
-  background: var(--superficie);
-  border: 1px solid var(--borda);
-  border-left: 4px solid var(--amarelo);
-  border-radius: var(--raio);
-  padding: var(--espaco-3);
-  margin-bottom: var(--espaco-3);
-}
-
-.setor h3 { margin-bottom: var(--espaco-2); }
-.setor p  { margin-bottom: 0; }
-
-.botao {
-  display: inline-block;
-  min-height: var(--alvo-toque);
-  line-height: var(--alvo-toque);
-  padding: 0 var(--espaco-4);
-  background: var(--amarelo);
-  color: var(--tinta);
-  font-weight: 600;
-  text-decoration: none;
-  border: 2px solid transparent;
-  border-radius: var(--raio);
-}
-
-.botao:hover { filter: brightness(0.95); }
-
-.botao--secundario {
-  background: transparent;
-  border-color: var(--marrom);
-  color: var(--tinta);
-}
-
-.chamada-final { margin-top: var(--espaco-5); }
-
-.ficha { display: grid; gap: var(--espaco-2); margin: 0 0 var(--espaco-3); }
-.ficha > div { display: flex; gap: var(--espaco-2); flex-wrap: wrap; }
-.ficha dt { font-weight: 700; min-width: 9rem; }
-.ficha dd { margin: 0; color: var(--tinta-suave); }
-
-.lista-simples { padding-left: var(--espaco-4); max-width: 60ch; }
-.lista-simples li { margin-bottom: var(--espaco-2); }
-.endereco { font-style: normal; }

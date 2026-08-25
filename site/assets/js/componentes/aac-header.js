@@ -82,7 +82,7 @@ class AacHeader extends HTMLElement {
 
   /** No desktop o menu é sempre visível e o botão não faz sentido. */
   ajustarAoTamanho() {
-    const desktop = window.matchMedia('(min-width: 48rem)').matches;
+    const desktop = window.matchMedia('(min-width: 62rem)').matches;
     this.alternar.hidden = desktop;
 
     if (desktop) {

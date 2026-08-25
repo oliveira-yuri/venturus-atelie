@@ -40,6 +40,8 @@ body.painel {
 
 .topo-admin__titulo {
   margin: 0;
+  font-family: var(--display);
+  font-weight: 900;
   font-size: var(--texto-grande);
   color: var(--fundo);
 }
@@ -57,8 +59,7 @@ body.painel {
   background: transparent;
   color: var(--fundo);
   border: 2px solid var(--fundo);
-  border-radius: var(--raio);
-  font-family: inherit;
+    font-family: inherit;
   font-size: var(--texto-pequeno);
   cursor: pointer;
 }
@@ -71,7 +72,7 @@ body.painel {
   left: 0;
   right: 0;
   z-index: 20;
-  background: var(--superficie);
+  background: var(--cal);
   border-top: 2px solid var(--borda);
   /* Respeita a area segura do iPhone. */
   padding-bottom: env(safe-area-inset-bottom, 0);
@@ -176,10 +177,9 @@ body.painel {
 .acao-painel a {
   display: block;
   padding: var(--espaco-4) var(--espaco-3);
-  background: var(--superficie);
-  border: 1px solid var(--borda);
-  border-left: 4px solid var(--amarelo);
-  border-radius: var(--raio);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  box-shadow: var(--aplique) var(--amarelo);
   text-decoration: none;
   color: var(--tinta);
   min-height: var(--alvo-toque);
@@ -205,9 +205,8 @@ body.painel {
 
 .indicador {
   padding: var(--espaco-3);
-  background: var(--superficie);
-  border: 1px solid var(--borda);
-  border-radius: var(--raio);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
 }
 
 .indicador__numero {
@@ -228,7 +227,6 @@ body.painel {
 
 .tabela-cartoes__item {
   padding: var(--espaco-3);
-  background: var(--superficie);
-  border: 1px solid var(--borda);
-  border-radius: var(--raio);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
 }

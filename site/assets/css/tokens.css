@@ -1,3 +1,15 @@
+/* =====================================================================
+   Sistema visual — direcao "Aplique"
+
+   A partir de dois objetos reais da ONG: o estandarte de juta com letras
+   recortadas e aplicadas, e a parede amarela da sede com o nome em relevo.
+
+   Uma regra acima das outras: NENHUMA textura de fundo repetida. Sem trama,
+   sem estampa, sem grade. Toda a personalidade vem de um gesto so — o
+   deslocamento solido que faz cada peca parecer costurada por cima. Fundos
+   sao chapados; tipografia e espaco fazem o resto.
+   ===================================================================== */
+
 :root {
   /* Paleta declarada pela ONG (secao 3.4 do escopo). Nao alterar. */
   --amarelo: #E0A400;      /* luz, sabedoria, criatividade, ancestralidade */
@@ -7,27 +19,36 @@
   --tinta: #241C12;        /* texto */
   --fundo: #FAF6EE;        /* fundo claro levemente quente */
 
-  --superficie: #FFFFFF;
-  --borda: #E3D9C6;
+  --cal: #FFFDF7;          /* o branco de cal da fachada; superficie das pecas */
+  --superficie: #FFFDF7;
+  --borda: var(--tinta);   /* as pecas tem contorno, nao borda apagada */
   --tinta-suave: #5A4A38;
   --foco: #2E5C8A;
 
+  /* O gesto do sistema: deslocamento solido, sem desfoque. */
+  --aplique: 8px 8px 0;
+  --aplique-curto: 4px 4px 0;
+
+  --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --corpo: 'Karla', system-ui, -apple-system, sans-serif;
+
   /* Escala tipografica, toda em rem para responder a --escala-fonte */
   --texto-pequeno: 0.875rem;
-  --texto-base: 1rem;
-  --texto-medio: 1.125rem;
+  --texto-base: 1.0625rem;
+  --texto-medio: 1.15rem;
   --texto-grande: 1.5rem;
-  --texto-titulo: 2rem;
-  --texto-destaque: 2.75rem;
+  --texto-titulo: 2.1rem;
+  --texto-destaque: 3rem;
 
   --espaco-1: 0.25rem;
   --espaco-2: 0.5rem;
   --espaco-3: 1rem;
   --espaco-4: 1.5rem;
   --espaco-5: 2.5rem;
-  --espaco-6: 4rem;
+  --espaco-6: 4.5rem;
 
-  --raio: 0.5rem;
+  /* Sem cantos arredondados: aplique tem canto vivo, como recorte de tecido. */
+  --raio: 0;
   --largura-conteudo: 68rem;
   --alvo-toque: 2.75rem;   /* 44px - minimo para uso com o polegar */
 }
@@ -38,15 +59,17 @@ html {
 }
 
 /* Alto contraste: os mesmos tokens, redefinidos.
-   Nenhum componente precisa saber que isto existe. */
+   O aplique perde a cor e vira preto solido, para nao competir com o texto. */
 html[data-contraste="alto"] {
   --fundo: #FFFFFF;
+  --cal: #FFFFFF;
   --superficie: #FFFFFF;
   --tinta: #000000;
   --tinta-suave: #000000;
   --borda: #000000;
   --azul-texto: #00327A;
-  --marrom: #4A3520;
-  --amarelo: #8A6500;
+  --azul: #00327A;
+  --marrom: #3A2A18;
+  --amarelo: #FFFFFF;
   --foco: #000000;
 }

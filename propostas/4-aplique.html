@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direção 4: Aplique — Ateliê Afro Cultural</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   DIREÇÃO 4 — APLIQUE
+   Base da direção 2 (peças aplicadas, como no estandarte de juta da ONG)
+   com a paleta sólida da direção 3 (a parede da fachada).
+
+   Uma decisão acima de todas: NENHUMA textura de fundo repetida. Sem trama,
+   sem estampa, sem grade. Toda a personalidade vem de um gesto só — o
+   deslocamento sólido que faz cada peça parecer costurada por cima, em vez
+   de flutuando. Fundos são chapados; tipografia e espaço fazem o resto.
+   ===================================================================== */
+
+:root {
+  --amarelo:    #E0A400;
+  --azul:       #7FA9CE;
+  --azul-forte: #2E5C8A;
+  --marrom:     #8A6A4A;
+  --tinta:      #241C12;
+  --cal:        #FFFDF7;
+  --fundo:      #FAF6EE;
+  --tinta-suave:#5A4A38;
+  --borda:      #E3D9C6;
+
+  --display: "Fraunces", Georgia, serif;
+  --corpo: "Karla", system-ui, sans-serif;
+
+  /* O gesto do sistema: deslocamento sólido, sem desfoque. */
+  --aplique: 8px 8px 0;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+
+.limite { max-width: 68rem; margin: 0 auto; padding: 0 1.5rem; }
+
+/* ---------- Cabeçalho ---------- */
+.topo { background: var(--amarelo); }
+.topo__linha {
+  max-width: 68rem; margin: 0 auto; padding: 1.35rem 1.5rem;
+  display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+}
+.marca {
+  margin-right: auto; text-decoration: none; color: var(--tinta);
+  font-family: var(--display); font-weight: 900;
+  font-size: 1.2rem; line-height: 1.05;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+}
+.acess { display: flex; gap: .4rem; }
+.acess button {
+  min-height: 2.75rem; min-width: 2.75rem;
+  border: 2px solid var(--tinta); background: var(--cal); color: var(--tinta);
+  font-family: var(--corpo); font-weight: 700; font-size: .95rem; cursor: pointer;
+}
+.acess button:hover { background: var(--tinta); color: var(--amarelo); }
+
+.menu { background: var(--tinta); }
+.menu ul {
+  list-style: none; margin: 0 auto; padding: 0 1rem; max-width: 68rem;
+  display: flex; flex-wrap: wrap;
+}
+
+/* São onze destinos. Em vez de apertar todos até caber, a barra distribui o
+   espaço disponível e a densidade cai só o necessário — abaixo de 62rem o
+   menu vira sanduíche, como no site. */
+.menu a {
+  display: block;
+  padding: .8rem clamp(.5rem, 1.1vw, .95rem);
+  color: var(--cal); text-decoration: none;
+  font-weight: 500; font-size: clamp(.84rem, 1.15vw, .95rem);
+  white-space: nowrap;
+}
+.menu a:hover { background: var(--amarelo); color: var(--tinta); }
+.menu a[aria-current="page"] { background: var(--amarelo); color: var(--tinta); font-weight: 700; }
+
+/* ---------- Menu no celular ---------- */
+.menu__alternar {
+  display: none;
+  width: 100%; min-height: 2.75rem;
+  padding: 0 1.5rem; text-align: left;
+  background: var(--tinta); color: var(--cal);
+  border: none; border-top: 2px solid rgba(255,253,247,.2);
+  font-family: var(--corpo); font-weight: 700; font-size: 1rem; cursor: pointer;
+}
+
+@media (max-width: 62rem) {
+  .menu__alternar { display: block; }
+  .menu ul { flex-direction: column; padding: 0; }
+  .menu ul[hidden] { display: none; }
+  .menu a { padding: .85rem 1.5rem; font-size: 1rem; }
+}
+
+/* ---------- O gesto: peça aplicada ---------- */
+.aplique {
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  box-shadow: var(--aplique) var(--tinta);
+}
+.aplique--amarelo { box-shadow: var(--aplique) var(--amarelo); }
+.aplique--azul    { box-shadow: var(--aplique) var(--azul); }
+.aplique--marrom  { box-shadow: var(--aplique) var(--marrom); }
+
+/* ---------- Abertura ---------- */
+.abertura { background: var(--amarelo); padding: 4.5rem 0 5rem; }
+.abertura__peca { padding: 3rem 2.25rem; max-width: 48rem; }
+
+.abertura h1 {
+  font-family: var(--display); font-weight: 900;
+  font-size: clamp(2.1rem, 5.4vw, 3.5rem);
+  line-height: 1.06; letter-spacing: -0.015em;
+  margin: 0 0 1.35rem;
+  font-variation-settings: "SOFT" 60, "WONK" 1;
+}
+.abertura h1 em { font-style: normal; color: var(--marrom); }
+
+.abertura__slogan {
+  font-size: 1.15rem; margin: 0 0 2.25rem; max-width: 42ch; color: var(--tinta-suave);
+}
+
+.acoes { display: flex; gap: 1rem; flex-wrap: wrap; }
+.botao {
+  display: inline-block; padding: .9rem 1.6rem;
+  background: var(--tinta); color: var(--cal);
+  font-weight: 700; text-decoration: none; font-size: 1rem;
+  border: 2px solid var(--tinta);
+}
+.botao:hover { background: var(--cal); color: var(--tinta); }
+.botao--vazado { background: transparent; color: var(--tinta); }
+.botao--vazado:hover { background: var(--tinta); color: var(--cal); }
+
+/* ---------- Seções ---------- */
+.secao { padding: 4.5rem 0; }
+.secao--cal { background: var(--cal); }
+.secao--marrom { background: var(--marrom); color: var(--cal); }
+
+.secao__titulo {
+  font-family: var(--display); font-weight: 900;
+  font-size: clamp(1.7rem, 3.8vw, 2.4rem);
+  line-height: 1.1; margin: 0 0 .5rem;
+  font-variation-settings: "SOFT" 50, "WONK" 1;
+}
+.secao__intro { margin: 0 0 3rem; max-width: 52ch; color: var(--tinta-suave); }
+.secao--marrom .secao__titulo { color: var(--cal); }
+.secao--marrom .secao__intro { color: rgba(255,253,247,.82); }
+
+/* ---------- Setores ---------- */
+.setores { display: grid; gap: 2rem; }
+@media (min-width: 54rem) { .setores { grid-template-columns: repeat(3, 1fr); } }
+
+.setor { padding: 1.9rem 1.6rem; }
+.setor h3 {
+  font-family: var(--display); font-weight: 700; font-size: 1.35rem;
+  margin: 0 0 .7rem; line-height: 1.15;
+}
+.setor p { margin: 0; font-size: .99rem; color: var(--tinta-suave); }
+
+/* ---------- Caminhos ---------- */
+.caminhos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2rem; }
+@media (min-width: 46rem) { .caminhos { grid-template-columns: repeat(2, 1fr); } }
+
+.caminho a { display: block; padding: 1.8rem 1.6rem; text-decoration: none; color: inherit; }
+.caminho a:hover { background: var(--amarelo); }
+.caminho h3 { font-family: var(--display); font-weight: 700; font-size: 1.25rem; margin: 0 0 .45rem; }
+.caminho p { margin: 0; font-size: .97rem; color: var(--tinta-suave); }
+
+/* ---------- Na mídia ---------- */
+.midia { list-style: none; margin: 0; padding: 0; display: grid; gap: 2rem; }
+@media (min-width: 46rem) { .midia { grid-template-columns: repeat(3, 1fr); } }
+.midia li { padding: 1.6rem 1.4rem; color: var(--tinta); }
+.midia strong {
+  font-family: var(--display); font-weight: 900; font-size: 1.1rem;
+  display: block; margin-bottom: .4rem;
+}
+.midia span { font-size: .95rem; color: var(--tinta-suave); }
+
+/* ---------- Franja: aparece uma única vez, na base ----------
+   Numa bandeira de verdade a franja fica só na borda inferior. Repetida a
+   cada seção, viraria padrão decorativo — que é justamente o que evitamos. */
+.franja {
+  height: 16px;
+  background-image: repeating-linear-gradient(90deg, var(--azul) 0 7px, transparent 7px 14px);
+}
+
+/* ---------- Rodapé ---------- */
+.rodape { background: var(--tinta); color: var(--cal); padding: 3.5rem 0 2.25rem; }
+.rodape a { color: var(--cal); }
+.rodape__grade { display: grid; gap: 2.25rem; }
+@media (min-width: 46rem) { .rodape__grade { grid-template-columns: repeat(3, 1fr); } }
+.rodape h3 { font-family: var(--display); font-weight: 700; font-size: 1.05rem; margin: 0 0 .85rem; }
+.rodape ul { list-style: none; margin: 0; padding: 0; }
+.rodape li { margin-bottom: .55rem; }
+
+:focus-visible { outline: 4px solid var(--azul-forte); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<a href="#conteudo" style="position:absolute;left:-9999px">Pular para o conteúdo</a>
+
+<header class="topo">
+  <div class="topo__linha">
+    <a class="marca" href="#">Ateliê<br>Afro Cultural</a>
+    <div class="acess" role="group" aria-label="Acessibilidade">
+      <button type="button">A-</button>
+      <button type="button">A</button>
+      <button type="button">A+</button>
+      <button type="button" style="min-width:auto;padding:0 1rem">Contraste</button>
+    </div>
+  </div>
+</header>
+
+<nav class="menu" aria-label="Principal">
+  <button class="menu__alternar" type="button" aria-expanded="false" aria-controls="lista-menu">
+    Menu
+  </button>
+  <ul id="lista-menu">
+    <li><a href="#" aria-current="page">Início</a></li>
+    <li><a href="#">Quem somos</a></li>
+    <li><a href="#">Projetos</a></li>
+    <li><a href="#">Agenda</a></li>
+    <li><a href="#">Notícias</a></li>
+    <li><a href="#">Galeria</a></li>
+    <li><a href="#">Acervo</a></li>
+    <li><a href="#">Para escolas</a></li>
+    <li><a href="#">Voluntariado</a></li>
+    <li><a href="#">Apoiar</a></li>
+    <li><a href="#">Contato</a></li>
+  </ul>
+</nav>
+
+<main id="conteudo">
+
+  <section class="abertura">
+    <div class="limite">
+      <div class="abertura__peca aplique">
+        <h1>Arte, memória e <em>pertencimento</em> — feitos à mão, todo dia</h1>
+        <p class="abertura__slogan">
+          Espaço educativo de criação, reflexão e valorização da cultura e memória
+          afro brasileira, na Casa Verde, zona norte de São Paulo.
+        </p>
+        <div class="acoes">
+          <a class="botao" href="#">Conhecer os projetos</a>
+          <a class="botao botao--vazado" href="#">Ver a agenda</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao">
+    <div class="limite">
+      <h2 class="secao__titulo">O que fazemos</h2>
+      <p class="secao__intro">
+        Três setores que, na prática, nunca andam separados: uma história puxa
+        uma cantiga, que puxa um figurino feito de retalho.
+      </p>
+
+      <div class="setores">
+        <article class="setor aplique aplique--amarelo">
+          <h3>Literário</h3>
+          <p>Livros de temática negra, leituras, pesquisas e contação de histórias. Exercícios e técnicas de teatro, com todo o conteúdo centrado na temática negra.</p>
+        </article>
+        <article class="setor aplique aplique--azul">
+          <h3>Musical</h3>
+          <p>Cantigas, instrumentos e corporeidade negra, como os movimentos da capoeira. Jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</p>
+        </article>
+        <article class="setor aplique aplique--marrom">
+          <h3>Artístico criativo</h3>
+          <p>Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem — a imaginação da criança como ponto de partida.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao secao--cal">
+    <div class="limite">
+      <h2 class="secao__titulo">Por onde começar</h2>
+      <p class="secao__intro">Escolha o caminho que faz sentido para você agora.</p>
+
+      <ul class="caminhos">
+        <li class="caminho aplique aplique--amarelo"><a href="#"><h3>Conhecer</h3><p>Nossa história, quem idealizou o ateliê e os três setores de atuação.</p></a></li>
+        <li class="caminho aplique aplique--azul"><a href="#"><h3>Participar</h3><p>Oficinas e vivências abertas ao público. A inscrição não exige criar conta.</p></a></li>
+        <li class="caminho aplique aplique--marrom"><a href="#"><h3>Ser voluntário</h3><p>Cinco áreas de atuação, do apoio pedagógico à organização do acervo.</p></a></li>
+        <li class="caminho aplique"><a href="#"><h3>Apoiar</h3><p>Livros, instrumentos musicais, materiais de arte, itens de acervo e recursos.</p></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="secao secao--marrom">
+    <div class="limite">
+      <h2 class="secao__titulo">Na mídia</h2>
+      <p class="secao__intro">Onde já contaram a nossa história.</p>
+
+      <ul class="midia">
+        <li class="aplique">
+          <strong>Folha de S.Paulo</strong>
+          <span>"Como o menino que era caixa de supermercado criou um ateliê para valorizar a cultura negra"</span>
+        </li>
+        <li class="aplique">
+          <strong>Rede Globo</strong>
+          <span>Caldeirão do Huck — participação em rede nacional, 2021</span>
+        </li>
+        <li class="aplique">
+          <strong>Rede Globo</strong>
+          <span>The Wall — participação no programa, 2021</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<div class="franja" aria-hidden="true"></div>
+
+<footer class="rodape">
+  <div class="limite rodape__grade">
+    <div>
+      <h3>Fale com a gente</h3>
+      <ul>
+        <li><a href="tel:+5511953968344">(11) 95396-8344</a></li>
+        <li><a href="#">WhatsApp</a></li>
+        <li><a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Redes</h3>
+      <ul>
+        <li><a href="#">@atelie_afrocultural</a></li>
+        <li><a href="#">@ateli.afro.cultur</a></li>
+        <li><a href="#">Canal no YouTube</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Onde estamos</h3>
+      <p style="margin:0">Rua Dr. Paulo Gatti, 135 — Vila Romero<br>São Paulo/SP — CEP 02468-030</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Menu sanduiche abaixo de 62rem. No site real isso vive no componente
+  // aac-header; aqui e so para o exemplo se comportar como o produto final.
+  (function () {
+    var botao = document.querySelector('.menu__alternar');
+    var lista = document.getElementById('lista-menu');
+    var estreito = window.matchMedia('(max-width: 62rem)');
+
+    function ajustar() {
+      if (estreito.matches) {
+        lista.hidden = botao.getAttribute('aria-expanded') !== 'true';
+      } else {
+        lista.hidden = false;
+        botao.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    botao.addEventListener('click', function () {
+      botao.setAttribute('aria-expanded',
+        botao.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
+      ajustar();
+    });
+
+    estreito.addEventListener('change', ajustar);
+    ajustar();
+  })();
+</script>
+
+</body>
+</html>

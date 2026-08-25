@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direção 1: Adinkra — Ateliê Afro Cultural</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   DIREÇÃO 1 — ADINKRA
+   Sistema gráfico a partir dos símbolos Adinkra do povo Akan, de Gana —
+   a mesma tradição do Sankofa que a ONG reivindica como origem.
+   Os símbolos não são enfeite: cada seção é marcada pelo símbolo cujo
+   significado corresponde ao que ela diz.
+   ===================================================================== */
+
+:root {
+  --amarelo:   #E0A400;
+  --azul:      #7FA9CE;
+  --azul-forte:#2E5C8A;
+  --marrom:    #8A6A4A;
+  --tinta:     #1A1410;
+  --fundo:     #FAF6EE;
+  --creme:     #F2E9D6;
+
+  --display: "Archivo Black", "Arial Black", sans-serif;
+  --corpo: "Archivo", system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+
+.limite { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; }
+
+/* ---------- Faixa de símbolos: o divisor do sistema ---------- */
+.faixa-adinkra {
+  background: var(--tinta);
+  padding: 0.9rem 0;
+  overflow: hidden;
+}
+.faixa-adinkra__trilha {
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.faixa-adinkra svg { width: 26px; height: 26px; display: block; }
+.faixa-adinkra svg * { stroke: var(--amarelo); }
+
+/* ---------- Cabeçalho ---------- */
+.topo { background: var(--amarelo); border-bottom: 4px solid var(--tinta); }
+.topo__linha {
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: 1.1rem 1.5rem; max-width: 72rem; margin: 0 auto; flex-wrap: wrap;
+}
+.marca { display: flex; align-items: center; gap: 0.75rem; margin-right: auto; text-decoration: none; }
+.marca svg { width: 38px; height: 38px; }
+.marca svg * { stroke: var(--tinta); }
+.marca__nome {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  color: var(--tinta);
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+.acess { display: flex; gap: 0.35rem; }
+.acess button {
+  min-height: 2.75rem; min-width: 2.75rem;
+  border: 2px solid var(--tinta); background: transparent;
+  font-family: var(--corpo); font-weight: 600; font-size: 0.9rem;
+  color: var(--tinta); cursor: pointer;
+}
+.acess button:hover { background: var(--tinta); color: var(--amarelo); }
+
+.menu { background: var(--tinta); }
+.menu ul {
+  list-style: none; margin: 0 auto; padding: 0 1.5rem; max-width: 72rem;
+  display: flex; flex-wrap: wrap; gap: 0;
+}
+.menu a {
+  display: block; padding: 0.85rem 1rem;
+  color: var(--creme); text-decoration: none;
+  font-size: 0.9rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.menu a:hover { background: var(--amarelo); color: var(--tinta); }
+.menu a[aria-current="page"] { background: var(--amarelo); color: var(--tinta); }
+
+/* ---------- Abertura: o Sankofa como tese ---------- */
+.abertura {
+  background: var(--amarelo);
+  position: relative;
+  overflow: hidden;
+  border-bottom: 4px solid var(--tinta);
+}
+/* Estampa de fundo: repetição do símbolo, como pano estampado. */
+.abertura::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%231A1410' stroke-width='2.5' opacity='0.13'%3E%3Ccircle cx='60' cy='60' r='10'/%3E%3Ccircle cx='60' cy='60' r='20'/%3E%3Ccircle cx='60' cy='60' r='30'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 120px 120px;
+}
+.abertura__conteudo { position: relative; padding: 4.5rem 1.5rem 5rem; max-width: 72rem; margin: 0 auto; }
+
+.abertura__simbolo { width: 96px; height: 96px; margin-bottom: 1.75rem; }
+.abertura__simbolo * { stroke: var(--tinta); }
+
+.abertura h1 {
+  font-family: var(--display);
+  font-size: clamp(2.75rem, 8vw, 5.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  margin: 0 0 1.5rem;
+  text-transform: uppercase;
+  max-width: 16ch;
+}
+.abertura__slogan {
+  font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+  max-width: 44ch; margin: 0 0 2.25rem; font-weight: 500;
+}
+.acoes { display: flex; gap: 0.85rem; flex-wrap: wrap; }
+.botao {
+  display: inline-block; padding: 0.95rem 1.6rem;
+  background: var(--tinta); color: var(--amarelo);
+  font-weight: 700; text-decoration: none; font-size: 0.95rem;
+  letter-spacing: 0.03em; text-transform: uppercase;
+  border: 3px solid var(--tinta);
+}
+.botao:hover { background: transparent; color: var(--tinta); }
+.botao--vazado { background: transparent; color: var(--tinta); }
+.botao--vazado:hover { background: var(--tinta); color: var(--amarelo); }
+
+/* ---------- Seções com símbolo ---------- */
+.secao { padding: 4.5rem 0; }
+.secao--creme { background: var(--creme); }
+.secao--tinta { background: var(--tinta); color: var(--creme); }
+
+.secao__cabeca { display: flex; gap: 1.25rem; align-items: flex-start; margin-bottom: 2.5rem; }
+.secao__simbolo { width: 52px; height: 52px; flex-shrink: 0; }
+.secao__simbolo * { stroke: var(--tinta); }
+.secao--tinta .secao__simbolo * { stroke: var(--amarelo); }
+
+.secao h2 {
+  font-family: var(--display);
+  font-size: clamp(1.75rem, 4vw, 2.6rem);
+  line-height: 1.02; letter-spacing: -0.025em; margin: 0 0 0.4rem;
+  text-transform: uppercase;
+}
+.secao__nome-adinkra {
+  font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase;
+  font-weight: 700; color: var(--marrom); margin: 0;
+}
+.secao--tinta .secao__nome-adinkra { color: var(--amarelo); }
+
+/* ---------- Setores: blocos de estampa ---------- */
+.setores { display: grid; gap: 3px; background: var(--tinta); border: 3px solid var(--tinta); }
+@media (min-width: 52rem) { .setores { grid-template-columns: repeat(3, 1fr); } }
+
+.setor { background: var(--fundo); padding: 2rem 1.5rem; }
+.setor__num {
+  font-family: var(--display); font-size: 0.85rem;
+  color: var(--amarelo); background: var(--tinta);
+  display: inline-block; padding: 0.2rem 0.55rem; margin-bottom: 1rem;
+}
+.setor h3 {
+  font-family: var(--display); font-size: 1.35rem;
+  margin: 0 0 0.75rem; text-transform: uppercase; letter-spacing: -0.02em;
+}
+.setor p { margin: 0; font-size: 0.97rem; }
+
+/* ---------- Caminhos ---------- */
+.caminhos { display: grid; gap: 1.25rem; list-style: none; margin: 0; padding: 0; }
+@media (min-width: 44rem) { .caminhos { grid-template-columns: repeat(2, 1fr); } }
+.caminho { border: 3px solid var(--tinta); background: var(--fundo); }
+.caminho a { display: block; padding: 1.75rem 1.5rem; text-decoration: none; color: inherit; }
+.caminho a:hover { background: var(--amarelo); }
+.caminho h3 {
+  font-family: var(--display); font-size: 1.3rem; margin: 0 0 0.5rem;
+  text-transform: uppercase; letter-spacing: -0.02em;
+}
+.caminho p { margin: 0; font-size: 0.95rem; }
+.caminho__seta { font-family: var(--display); font-size: 1.3rem; }
+
+/* ---------- Na mídia ---------- */
+.midia { display: grid; gap: 1px; background: rgba(242,233,214,0.25); }
+@media (min-width: 44rem) { .midia { grid-template-columns: repeat(3, 1fr); } }
+.midia__item { background: var(--tinta); padding: 1.75rem 1.25rem; }
+.midia__veiculo {
+  font-family: var(--display); font-size: 1.1rem; color: var(--amarelo);
+  margin: 0 0 0.4rem; text-transform: uppercase;
+}
+.midia__detalhe { margin: 0; font-size: 0.92rem; color: var(--creme); opacity: 0.85; }
+
+/* ---------- Rodapé ---------- */
+.rodape { background: var(--marrom); color: #fff; padding: 3.5rem 0 2rem; }
+.rodape a { color: #fff; }
+.rodape__grade { display: grid; gap: 2rem; }
+@media (min-width: 44rem) { .rodape__grade { grid-template-columns: repeat(3, 1fr); } }
+.rodape h3 {
+  font-family: var(--display); font-size: 0.95rem; text-transform: uppercase;
+  letter-spacing: 0.06em; margin: 0 0 0.85rem;
+}
+.rodape ul { list-style: none; margin: 0; padding: 0; }
+.rodape li { margin-bottom: 0.5rem; }
+
+:focus-visible { outline: 4px solid var(--azul-forte); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<a href="#conteudo" style="position:absolute;left:-9999px">Pular para o conteúdo</a>
+
+<header class="topo">
+  <div class="topo__linha">
+    <a class="marca" href="#">
+      <!-- Sankofa estilizado: o pássaro que volta a cabeça à cauda -->
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d="M10 38c0-14 8-24 18-24 6 0 10 4 10 9s-4 8-8 8c-3 0-5-2-5-4s2-3 3-3" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="28" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+        <path d="M10 38h12" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <span class="marca__nome">Ateliê<br>Afro Cultural</span>
+    </a>
+    <div class="acess" role="group" aria-label="Acessibilidade">
+      <button type="button">A-</button>
+      <button type="button">A</button>
+      <button type="button">A+</button>
+      <button type="button" style="min-width:auto;padding:0 .8rem">Contraste</button>
+    </div>
+  </div>
+</header>
+
+<nav class="menu" aria-label="Principal">
+  <ul>
+    <li><a href="#" aria-current="page">Início</a></li>
+    <li><a href="#">Quem somos</a></li>
+    <li><a href="#">Projetos</a></li>
+    <li><a href="#">Agenda</a></li>
+    <li><a href="#">Acervo</a></li>
+    <li><a href="#">Para escolas</a></li>
+    <li><a href="#">Voluntariado</a></li>
+    <li><a href="#">Apoiar</a></li>
+    <li><a href="#">Contato</a></li>
+  </ul>
+</nav>
+
+<main id="conteudo">
+
+  <section class="abertura">
+    <div class="abertura__conteudo">
+      <svg class="abertura__simbolo" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d="M8 40c0-16 9-28 21-28 7 0 12 5 12 11s-5 10-10 10c-4 0-6-2-6-4.5s2-4 4-4" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="29" cy="10" r="3" fill="#1A1410" stroke="none"/>
+        <path d="M8 40h14" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+
+      <h1>Nunca é tarde para voltar e buscar</h1>
+      <p class="abertura__slogan">
+        Espaço educativo de criação, reflexão e valorização da cultura e memória
+        afro brasileira, na Casa Verde, zona norte de São Paulo.
+      </p>
+      <div class="acoes">
+        <a class="botao" href="#">Conhecer os projetos</a>
+        <a class="botao botao--vazado" href="#">Ver a agenda</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="faixa-adinkra" aria-hidden="true">
+    <div class="faixa-adinkra__trilha">
+      <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="5" stroke-width="2.5"/><circle cx="16" cy="16" r="11" stroke-width="2.5"/></svg>
+      <svg viewBox="0 0 32 32" fill="none"><path d="M4 22l6-12 6 12 6-12 6 12" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 32 32" fill="none"><path d="M16 4v24M4 16h24M8 8l16 16M24 8L8 24" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 32 32" fill="none"><path d="M16 6c-6 0-9 4-9 8s3 6 6 6c2 0 3-1 3-2M16 6c6 0 9 4 9 8s-3 6-6 6c-2 0-3-1-3-2" stroke-width="2.5" stroke-linecap="round"/><path d="M16 20v6" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="5" stroke-width="2.5"/><circle cx="16" cy="16" r="11" stroke-width="2.5"/></svg>
+      <svg viewBox="0 0 32 32" fill="none"><path d="M4 22l6-12 6 12 6-12 6 12" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 32 32" fill="none"><path d="M16 4v24M4 16h24M8 8l16 16M24 8L8 24" stroke-width="2.5" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+
+  <section class="secao">
+    <div class="limite">
+      <div class="secao__cabeca">
+        <svg class="secao__simbolo" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <circle cx="24" cy="24" r="7" stroke-width="3"/>
+          <circle cx="24" cy="24" r="15" stroke-width="3"/>
+        </svg>
+        <div>
+          <p class="secao__nome-adinkra">Adinkrahene · liderança e grandeza</p>
+          <h2>O que fazemos</h2>
+        </div>
+      </div>
+
+      <div class="setores">
+        <article class="setor">
+          <span class="setor__num">01</span>
+          <h3>Literário</h3>
+          <p>Livros de temática negra, leituras, pesquisas, análises e contação de histórias. Exercícios e técnicas de teatro, sempre centrados na temática negra.</p>
+        </article>
+        <article class="setor">
+          <span class="setor__num">02</span>
+          <h3>Musical</h3>
+          <p>Cantigas, instrumentos e corporeidade negra. Jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk — a raiz africana da cultura de resistência brasileira.</p>
+        </article>
+        <article class="setor">
+          <span class="setor__num">03</span>
+          <h3>Artístico criativo</h3>
+          <p>Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem. A imaginação da criança como ponto de partida.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao secao--creme">
+    <div class="limite">
+      <div class="secao__cabeca">
+        <svg class="secao__simbolo" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M6 34l9-18 9 18 9-18 9 18" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <p class="secao__nome-adinkra">Nkyinkyim · a jornada e suas voltas</p>
+          <h2>Por onde começar</h2>
+        </div>
+      </div>
+
+      <ul class="caminhos">
+        <li class="caminho"><a href="#"><h3>Conhecer <span class="caminho__seta">→</span></h3><p>Nossa história, quem idealizou o ateliê e os três setores de atuação.</p></a></li>
+        <li class="caminho"><a href="#"><h3>Participar <span class="caminho__seta">→</span></h3><p>Oficinas e vivências abertas. A inscrição não exige criar conta.</p></a></li>
+        <li class="caminho"><a href="#"><h3>Ser voluntário <span class="caminho__seta">→</span></h3><p>Cinco áreas, do apoio pedagógico à organização do acervo.</p></a></li>
+        <li class="caminho"><a href="#"><h3>Apoiar <span class="caminho__seta">→</span></h3><p>Livros, instrumentos, materiais de arte, itens de acervo e recursos.</p></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="secao secao--tinta">
+    <div class="limite">
+      <div class="secao__cabeca">
+        <svg class="secao__simbolo" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M24 6l4 12 12 0-10 8 4 12-10-8-10 8 4-12-10-8 12 0z" stroke-width="3" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <p class="secao__nome-adinkra">Nsoromma · a estrela, filha do céu</p>
+          <h2>Na mídia</h2>
+        </div>
+      </div>
+
+      <div class="midia">
+        <div class="midia__item">
+          <p class="midia__veiculo">Folha de S.Paulo</p>
+          <p class="midia__detalhe">"Como o menino que era caixa de supermercado criou um ateliê para valorizar a cultura negra"</p>
+        </div>
+        <div class="midia__item">
+          <p class="midia__veiculo">Rede Globo</p>
+          <p class="midia__detalhe">Caldeirão do Huck — participação em rede nacional, 2021</p>
+        </div>
+        <div class="midia__item">
+          <p class="midia__veiculo">Rede Globo</p>
+          <p class="midia__detalhe">The Wall — participação no programa, 2021</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="rodape">
+  <div class="limite rodape__grade">
+    <div>
+      <h3>Fale com a gente</h3>
+      <ul>
+        <li><a href="tel:+5511953968344">(11) 95396-8344</a></li>
+        <li><a href="#">WhatsApp</a></li>
+        <li><a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Redes</h3>
+      <ul>
+        <li><a href="#">@atelie_afrocultural</a></li>
+        <li><a href="#">@ateli.afro.cultur</a></li>
+        <li><a href="#">Canal no YouTube</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Onde estamos</h3>
+      <p style="margin:0">Rua Dr. Paulo Gatti, 135 — Vila Romero<br>São Paulo/SP — CEP 02468-030</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

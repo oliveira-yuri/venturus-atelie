@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direção 3: Fachada — Ateliê Afro Cultural</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   DIREÇÃO 3 — FACHADA
+   A sede tem uma parede amarela com "ATELIE AFRO CULTURAL" em letras
+   brancas de relevo, e uma janela de veneziana branca. É a imagem mais
+   reconhecível da ONG — quem já foi lá reconhece na hora.
+   A página inteira é essa parede: letras com volume, poucos elementos,
+   muito respiro. "Simples e direto ao ponto", que foi o que a ONG pediu.
+   ===================================================================== */
+
+:root {
+  --amarelo:    #E0A400;
+  --amarelo-sol:#EDBB33;
+  --azul:       #7FA9CE;
+  --azul-forte: #2E5C8A;
+  --marrom:     #8A6A4A;
+  --tinta:      #241C12;
+  --cal:        #FFFDF7;
+  --fundo:      #FAF6EE;
+
+  --display: "Bricolage Grotesque", system-ui, sans-serif;
+  --corpo: "Instrument Sans", system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0; background: var(--fundo); color: var(--tinta);
+  font-family: var(--corpo); font-size: 1.0625rem; line-height: 1.7;
+}
+
+.limite { max-width: 70rem; margin: 0 auto; padding: 0 1.5rem; }
+
+/* ---------- Parede: grão de reboco pintado ---------- */
+.parede {
+  background-color: var(--amarelo);
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,.16) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(0,0,0,.05) 0 1px, transparent 1px),
+    radial-gradient(circle at 45% 85%, rgba(255,255,255,.10) 0 1px, transparent 1px),
+    linear-gradient(170deg, var(--amarelo-sol), var(--amarelo) 55%, #CE9500);
+  background-size: 7px 7px, 11px 11px, 9px 9px, 100% 100%;
+}
+
+/* ---------- Cabeçalho ---------- */
+.topo__linha {
+  max-width: 70rem; margin: 0 auto; padding: 1.15rem 1.5rem;
+  display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;
+}
+.marca {
+  margin-right: auto; text-decoration: none;
+  font-family: var(--display); font-weight: 800; font-size: 1.05rem;
+  line-height: 1.05; letter-spacing: -0.02em; text-transform: uppercase;
+  color: var(--cal);
+  /* Relevo: as letras da fachada são apliques com sombra projetada. */
+  text-shadow: 1px 1px 0 rgba(0,0,0,.28), 2px 2px 0 rgba(0,0,0,.16);
+}
+.acess { display: flex; gap: .4rem; }
+.acess button {
+  min-height: 2.75rem; min-width: 2.75rem;
+  border: 2px solid var(--tinta); background: rgba(255,253,247,.9);
+  color: var(--tinta); font-family: var(--corpo); font-weight: 600; cursor: pointer;
+}
+.acess button:hover { background: var(--tinta); color: var(--amarelo); }
+
+.menu { border-top: 2px solid rgba(36,28,18,.25); }
+.menu ul {
+  list-style: none; margin: 0 auto; padding: 0 1.5rem; max-width: 70rem;
+  display: flex; flex-wrap: wrap;
+}
+.menu a {
+  display: block; padding: .75rem 1rem; color: var(--tinta);
+  text-decoration: none; font-weight: 600; font-size: .93rem;
+}
+.menu a:hover { background: rgba(36,28,18,.1); }
+.menu a[aria-current="page"] { background: var(--tinta); color: var(--amarelo); }
+
+/* ---------- Abertura: o letreiro da fachada ---------- */
+.abertura { padding: 5rem 0 4rem; position: relative; overflow: hidden; }
+
+/* Veneziana: o motivo da janela branca, como textura lateral. */
+.abertura::after {
+  content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 26%;
+  background-image: repeating-linear-gradient(
+    180deg, rgba(255,253,247,.42) 0 5px, transparent 5px 13px);
+  border-left: 3px solid rgba(255,253,247,.5);
+  pointer-events: none;
+}
+@media (max-width: 52rem) { .abertura::after { display: none; } }
+
+.abertura__conteudo { position: relative; z-index: 1; max-width: 46rem; }
+
+.letreiro {
+  font-family: var(--display); font-weight: 800;
+  font-size: clamp(2.6rem, 10vw, 6.5rem);
+  line-height: .88; letter-spacing: -0.045em; text-transform: uppercase;
+  margin: 0 0 1.75rem; color: var(--cal);
+  /* O relevo das letras de fachada: sombra curta e dura, sol vindo do alto. */
+  text-shadow:
+    2px 2px 0 rgba(0,0,0,.22),
+    4px 4px 0 rgba(0,0,0,.14),
+    6px 6px 0 rgba(0,0,0,.07);
+}
+
+.abertura__slogan {
+  font-size: clamp(1.05rem, 2.3vw, 1.3rem); max-width: 38ch;
+  margin: 0 0 2.25rem; color: var(--tinta); font-weight: 500;
+}
+
+.acoes { display: flex; gap: .85rem; flex-wrap: wrap; }
+.botao {
+  display: inline-block; padding: .95rem 1.7rem;
+  background: var(--tinta); color: var(--amarelo);
+  font-weight: 600; text-decoration: none; font-size: 1rem;
+}
+.botao:hover { background: #100C08; }
+.botao--claro { background: var(--cal); color: var(--tinta); }
+
+/* ---------- Seções ---------- */
+.secao { padding: 4.5rem 0; }
+.secao h2 {
+  font-family: var(--display); font-weight: 800;
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 .5rem;
+}
+.secao__intro { margin: 0 0 2.5rem; max-width: 50ch; color: #5A4A38; font-size: 1.05rem; }
+
+/* ---------- Setores: sem caixa, só tipografia e régua ---------- */
+.setores { display: grid; gap: 0; }
+.setor {
+  padding: 2rem 0;
+  border-top: 2px solid var(--tinta);
+  display: grid; gap: .5rem 2.5rem;
+}
+.setor:last-child { border-bottom: 2px solid var(--tinta); }
+@media (min-width: 46rem) { .setor { grid-template-columns: 15rem 1fr; } }
+
+.setor h3 {
+  font-family: var(--display); font-weight: 800; font-size: 1.5rem;
+  margin: 0; letter-spacing: -0.02em;
+}
+.setor p { margin: 0; }
+
+/* ---------- Caminhos: listras de tinta ---------- */
+.secao--caminhos { background: var(--tinta); color: var(--cal); }
+.secao--caminhos h2 { color: var(--cal); }
+.secao--caminhos .secao__intro { color: rgba(255,253,247,.75); }
+
+.caminhos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; background: rgba(255,253,247,.2); }
+@media (min-width: 46rem) { .caminhos { grid-template-columns: repeat(2, 1fr); } }
+.caminho a {
+  display: block; padding: 1.9rem 1.5rem; background: var(--tinta);
+  color: var(--cal); text-decoration: none; height: 100%;
+}
+.caminho a:hover { background: var(--amarelo); color: var(--tinta); }
+.caminho h3 { font-family: var(--display); font-weight: 800; font-size: 1.35rem; margin: 0 0 .45rem; }
+.caminho p { margin: 0; font-size: .97rem; opacity: .82; }
+
+/* ---------- Na mídia ---------- */
+.midia { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.midia li {
+  display: grid; gap: .35rem 2rem; padding: 1.6rem 0;
+  border-top: 2px solid rgba(36,28,18,.18);
+}
+.midia li:last-child { border-bottom: 2px solid rgba(36,28,18,.18); }
+@media (min-width: 46rem) { .midia li { grid-template-columns: 14rem 1fr; align-items: baseline; } }
+.midia strong { font-family: var(--display); font-weight: 800; font-size: 1.15rem; }
+.midia span { color: #5A4A38; }
+
+/* ---------- Rodapé ---------- */
+.rodape { background: var(--marrom); color: var(--cal); padding: 3.5rem 0 2rem; }
+.rodape a { color: var(--cal); }
+.rodape__grade { display: grid; gap: 2rem; }
+@media (min-width: 44rem) { .rodape__grade { grid-template-columns: repeat(3, 1fr); } }
+.rodape h3 { font-family: var(--display); font-weight: 800; font-size: 1rem; margin: 0 0 .8rem; }
+.rodape ul { list-style: none; margin: 0; padding: 0; }
+.rodape li { margin-bottom: .5rem; }
+
+:focus-visible { outline: 4px solid var(--azul-forte); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<a href="#conteudo" style="position:absolute;left:-9999px">Pular para o conteúdo</a>
+
+<div class="parede">
+  <header class="topo">
+    <div class="topo__linha">
+      <a class="marca" href="#">Ateliê<br>Afro Cultural</a>
+      <div class="acess" role="group" aria-label="Acessibilidade">
+        <button type="button">A-</button>
+        <button type="button">A</button>
+        <button type="button">A+</button>
+        <button type="button" style="min-width:auto;padding:0 .9rem">Contraste</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="menu" aria-label="Principal">
+    <ul>
+      <li><a href="#" aria-current="page">Início</a></li>
+      <li><a href="#">Quem somos</a></li>
+      <li><a href="#">Projetos</a></li>
+      <li><a href="#">Agenda</a></li>
+      <li><a href="#">Acervo</a></li>
+      <li><a href="#">Para escolas</a></li>
+      <li><a href="#">Voluntariado</a></li>
+      <li><a href="#">Apoiar</a></li>
+      <li><a href="#">Contato</a></li>
+    </ul>
+  </nav>
+
+  <section class="abertura">
+    <div class="limite abertura__conteudo">
+      <h1 class="letreiro">Ateliê<br>Afro<br>Cultural</h1>
+      <p class="abertura__slogan">
+        Espaço educativo de criação, reflexão e valorização da cultura e memória
+        afro brasileira. Casa Verde, zona norte de São Paulo.
+      </p>
+      <div class="acoes">
+        <a class="botao" href="#">Conhecer os projetos</a>
+        <a class="botao botao--claro" href="#">Ver a agenda</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<main id="conteudo">
+
+  <section class="secao">
+    <div class="limite">
+      <h2>O que fazemos</h2>
+      <p class="secao__intro">
+        Três setores, que na prática nunca andam separados.
+      </p>
+
+      <div class="setores">
+        <article class="setor">
+          <h3>Literário</h3>
+          <p>Livros de temática negra, leituras, pesquisas, análises e contação de histórias. Exercícios e técnicas de teatro, com todo o conteúdo centrado na temática negra.</p>
+        </article>
+        <article class="setor">
+          <h3>Musical</h3>
+          <p>Cantigas, instrumentos e corporeidade negra, como os movimentos da capoeira. Jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk — a raiz africana da cultura de resistência brasileira.</p>
+        </article>
+        <article class="setor">
+          <h3>Artístico criativo</h3>
+          <p>Pintura em tela, materiais reciclados para criar figurinos e cenários, desenho, escultura e colagem, para que as crianças desenvolvam habilidades artísticas próprias.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao secao--caminhos">
+    <div class="limite">
+      <h2>Por onde começar</h2>
+      <p class="secao__intro">Escolha o caminho que faz sentido para você agora.</p>
+
+      <ul class="caminhos">
+        <li class="caminho"><a href="#"><h3>Conhecer</h3><p>Nossa história, quem idealizou o ateliê e os três setores de atuação.</p></a></li>
+        <li class="caminho"><a href="#"><h3>Participar</h3><p>Oficinas e vivências abertas ao público. A inscrição não exige criar conta.</p></a></li>
+        <li class="caminho"><a href="#"><h3>Ser voluntário</h3><p>Cinco áreas de atuação, do apoio pedagógico à organização do acervo.</p></a></li>
+        <li class="caminho"><a href="#"><h3>Apoiar</h3><p>Livros, instrumentos musicais, materiais de arte, itens de acervo e recursos.</p></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="secao">
+    <div class="limite">
+      <h2>Na mídia</h2>
+      <p class="secao__intro">Onde já contaram a nossa história.</p>
+
+      <ul class="midia">
+        <li>
+          <strong>Folha de S.Paulo</strong>
+          <span>"Como o menino que era caixa de supermercado criou um ateliê para valorizar a cultura negra"</span>
+        </li>
+        <li>
+          <strong>Rede Globo</strong>
+          <span>Caldeirão do Huck — participação em rede nacional, 2021</span>
+        </li>
+        <li>
+          <strong>Rede Globo</strong>
+          <span>The Wall — participação no programa, 2021</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="rodape">
+  <div class="limite rodape__grade">
+    <div>
+      <h3>Fale com a gente</h3>
+      <ul>
+        <li><a href="tel:+5511953968344">(11) 95396-8344</a></li>
+        <li><a href="#">WhatsApp</a></li>
+        <li><a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Redes</h3>
+      <ul>
+        <li><a href="#">@atelie_afrocultural</a></li>
+        <li><a href="#">@ateli.afro.cultur</a></li>
+        <li><a href="#">Canal no YouTube</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Onde estamos</h3>
+      <p style="margin:0">Rua Dr. Paulo Gatti, 135 — Vila Romero<br>São Paulo/SP — CEP 02468-030</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
