@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layout do painel — banco de teste</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/componentes.css">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+</head>
+<!--
+  Página de apoio para testar o LAYOUT do painel isoladamente.
+
+  Não faz parte do site: monta os mesmos componentes de navegação sem a
+  proteção de sessão. O painel de verdade redireciona quem não está
+  autenticado — comportamento correto, e que tornava impossível medir a
+  posição da barra de navegação num teste sem conta de equipe.
+
+  Autorização é verificada em testes/painel.test.mjs, separadamente.
+-->
+<body class="painel">
+  <a class="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topo-admin">
+    <div class="topo-admin__conteudo">
+      <div>
+        <p class="topo-admin__marca">Ateliê Afro Cultural</p>
+        <h1 class="topo-admin__titulo">Painel</h1>
+      </div>
+      <div class="topo-admin__pessoa">
+        <span>Wil</span>
+        <button type="button">Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="conteudo" class="painel__conteudo">
+    <section aria-labelledby="titulo-acoes">
+      <h2 id="titulo-acoes">O que você quer fazer?</h2>
+      <ul class="acoes-painel">
+        <li class="acao-painel">
+          <a href="/admin/publicacoes.html"><strong>Publicar uma notícia</strong>
+          <span>Com foto e texto, direto do celular</span></a>
+        </li>
+        <li class="acao-painel">
+          <a href="/admin/eventos.html"><strong>Criar um evento</strong>
+          <span>Data, local, vagas e inscrição</span></a>
+        </li>
+        <li class="acao-painel">
+          <a href="/admin/presenca.html"><strong>Marcar presença</strong>
+          <span>No dia do evento, pelo celular</span></a>
+        </li>
+        <li class="acao-painel">
+          <a href="/admin/doacoes.html"><strong>Responder uma doação</strong>
+          <span>Aceitar ou recusar, e combinar a entrega</span></a>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <aac-nav-admin pagina-atual="inicio"></aac-nav-admin>
+
+  <script type="module" src="/assets/js/componentes/aac-nav-admin.js"></script>
+</body>
+</html>

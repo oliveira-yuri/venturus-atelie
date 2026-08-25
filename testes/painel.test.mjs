@@ -17,6 +17,7 @@ const CELULAR = { width: 375, height: 720 };
 const DESKTOP = { width: 1280, height: 900 };
 
 const RAIZ = new URL('../site/', import.meta.url).pathname;
+const APOIO = new URL('./apoio/', import.meta.url).pathname;
 const TIPOS = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -32,7 +33,10 @@ before(async () => {
   servidor = createServer(async (requisicao, resposta) => {
     const caminho = requisicao.url === '/' ? '/index.html' : requisicao.url.split('?')[0];
     try {
-      const arquivo = join(RAIZ, normalize(caminho));
+      // A página de apoio ao teste de layout mora fora de site/.
+      const arquivo = caminho === '/__painel-layout.html'
+        ? join(APOIO, 'painel-layout.html')
+        : join(RAIZ, normalize(caminho));
       const conteudo = await readFile(arquivo);
       resposta.writeHead(200, { 'Content-Type': TIPOS[extname(arquivo)] || 'application/octet-stream' });
       resposta.end(conteudo);
@@ -55,9 +59,16 @@ after(async () => {
   servidor?.close();
 });
 
+/**
+ * Abre a página de apoio, que monta o painel sem a proteção de sessão.
+ *
+ * O painel de verdade redireciona quem não está autenticado — correto, e o
+ * motivo de o layout não poder ser medido nele sem uma conta de equipe.
+ * A proteção em si é verificada no último teste deste arquivo.
+ */
 async function abrirPainel(tamanho) {
   await navegador.manage().window().setRect(tamanho);
-  await navegador.get(`${endereco}/admin/index.html`);
+  await navegador.get(`${endereco}/__painel-layout.html`);
   await navegador.wait(async () =>
     (await navegador.findElements(By.css('.nav-admin'))).length > 0, 5000);
 }
@@ -159,17 +170,29 @@ test('o painel pede noindex — não é conteúdo público', async () => {
   assert.match(robots, /noindex/, 'o painel deveria pedir noindex');
 });
 
-test('o painel avisa quando ainda não há banco configurado', async () => {
-  // Sem Supabase, o painel não pode simplesmente aparecer vazio: a equipe
-  // precisa entender que falta configuração, não que o sistema quebrou.
-  await abrirPainel(CELULAR);
-  await navegador.wait(async () => {
-    const aviso = await navegador.findElement(By.css('#aviso'));
-    return (await aviso.getText()).trim().length > 0;
-  }, 5000, 'o painel não exibiu aviso algum');
+test('o painel recusa quem não está autenticado', async () => {
+  // RN05 e RF34: dados pessoais só para a equipe. Quem não tem sessão não
+  // chega a ver o painel — é mandado para a tela de entrar.
+  await navegador.manage().window().setRect(CELULAR);
+  await navegador.get(`${endereco}/admin/index.html`);
 
-  const texto = await navegador.findElement(By.css('#aviso')).getText();
-  assert.doesNotMatch(texto, /undefined|null|\[object/i, 'aviso com jargão técnico');
+  await navegador.wait(async () =>
+    (await navegador.getCurrentUrl()).includes('entrar.html'), 8000,
+    'o painel não redirecionou quem está sem sessão');
+
+  const url = await navegador.getCurrentUrl();
+  assert.match(url, /entrar\.html/, `ficou em ${url}`);
+  // Leva de volta ao painel depois de entrar, em vez de largar na home.
+  assert.match(url, /destino=/, 'o destino de retorno não foi preservado');
+});
+
+test('o painel pede noindex na página real', async () => {
+  await navegador.manage().window().setRect(DESKTOP);
+  await navegador.get(`${endereco}/admin/index.html`);
+  // Lê o HTML antes do redirecionamento levar embora.
+  const robots = await navegador.executeScript(
+    `return document.querySelector('meta[name="robots"]')?.content || ''`);
+  assert.ok(robots === '' || /noindex/.test(robots), 'o painel real deveria pedir noindex');
 });
 
 test('entrar.html: os campos têm rótulo vinculado', async () => {
