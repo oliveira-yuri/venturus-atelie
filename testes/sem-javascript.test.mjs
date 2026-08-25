@@ -16,7 +16,8 @@ import { Options } from 'selenium-webdriver/firefox.js';
 
 const PAGINAS = [
   'index.html', 'quem-somos.html', 'projetos.html', 'noticias.html',
-  'galeria.html', 'para-escolas.html', 'contato.html', 'entrar.html'
+  'galeria.html', 'para-escolas.html', 'contato.html', 'entrar.html',
+  'agenda.html', 'acervo.html', 'voluntariado.html', 'doar.html', 'privacidade.html'
 ];
 
 const RAIZ = new URL('../site/', import.meta.url).pathname;

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apoiar — Ateliê Afro Cultural</title>
+  <meta name="description" content="Como apoiar o Ateliê Afro Cultural: livros, instrumentos musicais, materiais de arte, itens de acervo e recursos financeiros.">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/componentes.css">
+  <script src="assets/js/preferencias-inicial.js"></script>
+</head>
+<body>
+  <a class="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+  <aac-header pagina-atual="doar"></aac-header>
+
+  <main id="conteudo" class="conteudo">
+    <h1>Apoiar o Ateliê</h1>
+
+    <p class="destaque">
+      O Ateliê Afro Cultural é um espaço de arte, cultura e memória. O que mais nos fortalece
+      são materiais que viram atividade com as crianças — e recursos que sustentam o trabalho.
+    </p>
+
+    <section aria-labelledby="titulo-aceitamos">
+      <h2 id="titulo-aceitamos">O que recebemos</h2>
+      <ul class="lista-simples">
+        <li><strong>Livros</strong> de temática negra, para crianças, jovens e adultos</li>
+        <li><strong>Instrumentos musicais</strong> — percussão, cordas, o que houver</li>
+        <li><strong>Materiais de arte</strong>: tintas, telas, papéis, tecidos, materiais recicláveis</li>
+        <li><strong>Itens de acervo</strong>: peças de memória ancestral, fantasias, figurinos</li>
+        <li><strong>Recursos financeiros</strong>, que ajudam a manter o espaço e as atividades</li>
+      </ul>
+      <p>
+        Não recebemos alimentos nem roupas. Não é falta de reconhecimento pela intenção — é que
+        nosso trabalho é com arte e cultura, e outras organizações fazem esse acolhimento muito
+        melhor do que nós faríamos.
+      </p>
+    </section>
+
+    <section aria-labelledby="titulo-como-doar">
+      <h2 id="titulo-como-doar">Como doar</h2>
+      <p>
+        Conte para a gente o que você pretende doar. Respondemos dizendo se conseguimos receber
+        e combinamos juntos a entrega — se você traz até a sede na Casa Verde, se buscamos, ou
+        se encontramos um meio-termo.
+      </p>
+      <p class="abertura__acoes">
+        <a class="botao" href="https://wa.me/5511953968344" rel="noopener">Falar pelo WhatsApp</a>
+        <a class="botao botao--secundario" href="mailto:atelieafro@gmail.com">Enviar e-mail</a>
+      </p>
+    </section>
+
+    <section aria-labelledby="titulo-financeiro">
+      <h2 id="titulo-financeiro">Doação em dinheiro</h2>
+      <div id="dados-pix"></div>
+    </section>
+
+    <section aria-labelledby="titulo-transparencia">
+      <h2 id="titulo-transparencia">Uma palavra sobre transparência</h2>
+      <p>
+        Este site <strong>não processa pagamentos</strong>. Ele registra o que foi doado e a
+        resposta que demos, para que nada se perca e para que você saiba em que pé está a sua
+        oferta.
+      </p>
+    </section>
+  </main>
+
+  <!-- Navegacao para quem esta sem JavaScript. Precisa ficar no HTML estatico:
+       cabecalho e rodape sao custom elements e nao existem sem script. -->
+  <noscript>
+    <nav class="navegacao-sem-js" aria-label="Navegação">
+      <ul>
+        <li><a href="/index.html">Início</a></li>
+        <li><a href="/quem-somos.html">Quem somos</a></li>
+        <li><a href="/projetos.html">Projetos</a></li>
+        <li><a href="/agenda.html">Agenda</a></li>
+        <li><a href="/noticias.html">Notícias</a></li>
+        <li><a href="/galeria.html">Galeria</a></li>
+        <li><a href="/acervo.html">Acervo</a></li>
+        <li><a href="/para-escolas.html">Para escolas</a></li>
+        <li><a href="/voluntariado.html">Voluntariado</a></li>
+        <li><a href="/doar.html">Apoiar</a></li>
+        <li><a href="/contato.html">Contato</a></li>
+      </ul>
+      <p>
+        Telefone e WhatsApp: <a href="tel:+5511953968344">(11) 95396-8344</a> ·
+        E-mail: <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>
+      </p>
+    </nav>
+  </noscript>
+
+  <aac-rodape></aac-rodape>
+
+  <script type="module" src="assets/js/componentes/aac-header.js"></script>
+  <script type="module" src="assets/js/componentes/aac-rodape.js"></script>
+  <script type="module" src="assets/js/paginas/doar.js"></script>
+</body>
+</html>

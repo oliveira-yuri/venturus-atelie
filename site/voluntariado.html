@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voluntariado — Ateliê Afro Cultural</title>
+  <meta name="description" content="Seja voluntário no Ateliê Afro Cultural: cinco áreas de atuação, do apoio pedagógico à organização do acervo.">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/componentes.css">
+  <script src="assets/js/preferencias-inicial.js"></script>
+</head>
+<body>
+  <a class="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+  <aac-header pagina-atual="voluntariado"></aac-header>
+
+  <main id="conteudo" class="conteudo">
+    <h1>Ser voluntário no Ateliê</h1>
+
+    <p class="destaque">
+      Voluntariar aqui é somar com a gente na criação, na reflexão e na valorização da cultura
+      e memória afro brasileira. Não é preciso experiência prévia — é preciso vontade de
+      participar e compromisso com o que combinamos.
+    </p>
+
+    <section aria-labelledby="titulo-areas">
+      <h2 id="titulo-areas">Onde você pode ajudar</h2>
+      <p>Escolha uma ou mais áreas. Muita gente atua em duas.</p>
+      <div id="lista-areas"></div>
+    </section>
+
+    <section aria-labelledby="titulo-como">
+      <h2 id="titulo-como">Como funciona</h2>
+      <ol class="lista-simples">
+        <li>Você cria uma conta e escolhe suas áreas de interesse</li>
+        <li>A gente lê sua candidatura e entra em contato para conversar</li>
+        <li>Combinamos juntos o que faz sentido para você e para o ateliê</li>
+      </ol>
+      <p>
+        Para criar conta é preciso ter 18 anos ou mais. Crianças e adolescentes participam das
+        atividades por inscrição feita por um responsável.
+      </p>
+      <p class="abertura__acoes">
+        <a class="botao" href="/entrar.html">Quero me candidatar</a>
+        <a class="botao botao--secundario" href="/contato.html">Tenho uma dúvida</a>
+      </p>
+    </section>
+  </main>
+
+  <!-- Navegacao para quem esta sem JavaScript. Precisa ficar no HTML estatico:
+       cabecalho e rodape sao custom elements e nao existem sem script. -->
+  <noscript>
+    <nav class="navegacao-sem-js" aria-label="Navegação">
+      <ul>
+        <li><a href="/index.html">Início</a></li>
+        <li><a href="/quem-somos.html">Quem somos</a></li>
+        <li><a href="/projetos.html">Projetos</a></li>
+        <li><a href="/agenda.html">Agenda</a></li>
+        <li><a href="/noticias.html">Notícias</a></li>
+        <li><a href="/galeria.html">Galeria</a></li>
+        <li><a href="/acervo.html">Acervo</a></li>
+        <li><a href="/para-escolas.html">Para escolas</a></li>
+        <li><a href="/voluntariado.html">Voluntariado</a></li>
+        <li><a href="/doar.html">Apoiar</a></li>
+        <li><a href="/contato.html">Contato</a></li>
+      </ul>
+      <p>
+        Telefone e WhatsApp: <a href="tel:+5511953968344">(11) 95396-8344</a> ·
+        E-mail: <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>
+      </p>
+    </nav>
+  </noscript>
+
+  <aac-rodape></aac-rodape>
+
+  <script type="module" src="assets/js/componentes/aac-header.js"></script>
+  <script type="module" src="assets/js/componentes/aac-rodape.js"></script>
+  <script type="module" src="assets/js/paginas/voluntariado.js"></script>
+</body>
+</html>

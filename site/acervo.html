@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acervo aberto — Ateliê Afro Cultural</title>
+  <meta name="description" content="Materiais educativos produzidos pelo Ateliê Afro Cultural sobre cultura e memória afro-brasileira. Download livre, sem cadastro.">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/componentes.css">
+  <script src="assets/js/preferencias-inicial.js"></script>
+</head>
+<body>
+  <a class="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+  <aac-header pagina-atual="acervo"></aac-header>
+
+  <main id="conteudo" class="conteudo">
+    <h1>Acervo aberto</h1>
+    <p class="destaque">
+      Materiais educativos que produzimos sobre cultura e memória afro-brasileira. Leia na
+      própria página ou baixe — é livre, e não pedimos cadastro para nada disso.
+    </p>
+
+    <form id="filtros-acervo" class="formulario" role="search" aria-label="Buscar no acervo">
+      <aac-form-campo nome="busca" rotulo="Buscar por palavra" tipo="search"
+                      ajuda="Procura no título, na descrição e no tema."></aac-form-campo>
+      <button type="submit">Buscar</button>
+    </form>
+
+    <div id="lista-acervo" class="lista-atividades"></div>
+  </main>
+
+  <!-- Navegacao para quem esta sem JavaScript. Precisa ficar no HTML estatico:
+       cabecalho e rodape sao custom elements e nao existem sem script. -->
+  <noscript>
+    <nav class="navegacao-sem-js" aria-label="Navegação">
+      <ul>
+        <li><a href="/index.html">Início</a></li>
+        <li><a href="/quem-somos.html">Quem somos</a></li>
+        <li><a href="/projetos.html">Projetos</a></li>
+        <li><a href="/agenda.html">Agenda</a></li>
+        <li><a href="/noticias.html">Notícias</a></li>
+        <li><a href="/galeria.html">Galeria</a></li>
+        <li><a href="/acervo.html">Acervo</a></li>
+        <li><a href="/para-escolas.html">Para escolas</a></li>
+        <li><a href="/voluntariado.html">Voluntariado</a></li>
+        <li><a href="/doar.html">Apoiar</a></li>
+        <li><a href="/contato.html">Contato</a></li>
+      </ul>
+      <p>
+        Telefone e WhatsApp: <a href="tel:+5511953968344">(11) 95396-8344</a> ·
+        E-mail: <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>
+      </p>
+    </nav>
+  </noscript>
+
+  <aac-rodape></aac-rodape>
+
+  <script type="module" src="assets/js/componentes/aac-header.js"></script>
+  <script type="module" src="assets/js/componentes/aac-rodape.js"></script>
+  <script type="module" src="assets/js/paginas/acervo.js"></script>
+</body>
+</html>

@@ -20,7 +20,11 @@ const PAGINAS = [
   { arquivo: 'galeria.html',      chave: 'galeria' },
   { arquivo: 'para-escolas.html', chave: 'para-escolas' },
   { arquivo: 'contato.html',      chave: 'contato' },
-  { arquivo: 'entrar.html',       chave: 'entrar' }
+  { arquivo: 'entrar.html',       chave: 'entrar' },
+  { arquivo: 'agenda.html',       chave: 'agenda' },
+  { arquivo: 'acervo.html',       chave: 'acervo' },
+  { arquivo: 'voluntariado.html', chave: 'voluntariado' },
+  { arquivo: 'doar.html',         chave: 'doar' }
 ];
 
 const RAIZ = new URL('../site/', import.meta.url).pathname;
