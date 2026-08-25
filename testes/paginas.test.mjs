@@ -165,6 +165,44 @@ test('a prova social carrega na home e em para-escolas', async () => {
   }
 });
 
+test('nenhum texto escapa da caixa que o contém', async () => {
+  // O CSS pode ser escrito para uma estrutura de HTML que não é a que existe.
+  // Foi o que aconteceu com os cartões da home: o preenchimento ficou no link
+  // do título, e o parágrafo encostou na borda, saindo do cartão.
+  const escapando = [];
+
+  for (const pagina of PAGINAS) {
+    await navegador.manage().window().setRect({ width: 1280, height: 900 });
+    await navegador.get(`${endereco}/${pagina.arquivo}`);
+    await navegador.sleep(400);
+
+    const fugitivos = await navegador.executeScript(`
+      const caixas = document.querySelectorAll(
+        '.caminho, .setor, .atividade, .clipping__item, .aviso, .abertura__peca, .estado');
+      const falhas = [];
+
+      for (const caixa of caixas) {
+        const limite = caixa.getBoundingClientRect();
+        for (const filho of caixa.querySelectorAll('p, h2, h3, dl, ul')) {
+          const c = filho.getBoundingClientRect();
+          if (c.width === 0) continue;
+          // Meio pixel de folga para arredondamento do navegador.
+          if (c.left < limite.left - 0.5 || c.right > limite.right + 0.5) {
+            falhas.push(
+              (caixa.className || caixa.tagName) + ' > ' + filho.tagName +
+              ': ' + (filho.textContent || '').trim().slice(0, 30));
+          }
+        }
+      }
+      return falhas;
+    `);
+
+    fugitivos.forEach((f) => escapando.push(`${pagina.arquivo}: ${f}`));
+  }
+
+  assert.deepEqual(escapando, [], 'conteúdo saindo da caixa');
+});
+
 test('nenhuma página pública usa linguagem assistencialista', async () => {
   // Seção 3.1 do escopo: o Ateliê é organização de arte, cultura e identidade,
   // não de assistência social. Linguagem de caridade invalida a entrega.

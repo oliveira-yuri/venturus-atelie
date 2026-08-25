@@ -17,11 +17,18 @@ h1, h2, h3 {
   line-height: 1.1;
   margin: 0 0 var(--espaco-3);
   letter-spacing: -0.015em;
-  /* Portugues tem palavras longas — "pertencimento", "afro-brasileira". Em
-     tela de celular com a fonte no maior degrau, uma delas sozinha excede a
-     largura e empurra a pagina para o lado. Hifeniza em vez de vazar. */
-  hyphens: auto;
+  /* Portugues tem palavras longas — "pertencimento", "afro-brasileira". Sem
+     isto, uma delas sozinha pode exceder a largura da tela e empurrar a
+     pagina para o lado. Quebra apenas quando a palavra nao cabe de jeito
+     nenhum; havendo espaco, ela vai inteira para a linha seguinte. */
   overflow-wrap: break-word;
+}
+
+/* O hifen so entra onde ele resolve um problema real: tela estreita, onde
+   uma palavra longa sozinha ocupa a linha toda. Em tela larga hifenizar seria
+   ruido — foi o que aconteceu com "pertencimen-to" na primeira versao. */
+@media (max-width: 34rem) {
+  h1, h2, h3 { hyphens: auto; }
 }
 
 h1 { font-size: var(--texto-titulo); font-weight: 900; }
