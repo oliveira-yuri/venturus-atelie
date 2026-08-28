@@ -1,0 +1,7 @@
+Correções Web Ateliê
+
+Seria legal ter uma conta de administrador, onde ele pode adicionar e remover e atualizar: projetos, agenda, notícias, galeria.
+
+Seria legal colocar um popup do whatsapp no canto inferior direito da página. Para ficar como destaque e caso a pessoa queira entrar em contato ela já vê o ícone do whatsapp.
+
+

@@ -47,20 +47,52 @@ if (!configurado) {
 
 // ---------------------------------------------------------------------
 // 2. A service role key nunca pode estar no que vai ser publicado
+//
+// Anon key e service role key sao os dois JWT e se parecem. Procurar pelo
+// formato acusaria a anon key legitima em config.js — e um verificador que
+// grita a toa vira um verificador ignorado. Entao decodificamos o payload e
+// olhamos o papel: "anon" pode ser publicado, "service_role" nunca.
 // ---------------------------------------------------------------------
-const busca = spawnSync('grep', [
-  '-rIl', '--exclude-dir=node_modules',
-  '-E', 'service_role|SUPABASE_SERVICE_ROLE|eyJ[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+',
-  'site/'
-], { encoding: 'utf8' });
+function papelDoToken(token) {
+  try {
+    const payload = token.split('.')[1];
+    const bruto = Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString();
+    return JSON.parse(bruto).role || null;
+  } catch {
+    return null;
+  }
+}
 
-const suspeitos = (busca.stdout || '').trim().split('\n').filter(Boolean);
-if (suspeitos.length > 0) {
+const arquivosPublicados = spawnSync('sh', ['-c',
+  'grep -rIl --exclude-dir=node_modules --exclude-dir=fontes -E "eyJ[A-Za-z0-9_-]{10,}\\." site/ || true'
+], { encoding: 'utf8' }).stdout.trim().split('\n').filter(Boolean);
+
+for (const arquivo of arquivosPublicados) {
+  const conteudo = await readFile(arquivo, 'utf8');
+  const tokens = conteudo.match(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g) || [];
+
+  for (const token of tokens) {
+    const papel = papelDoToken(token);
+    if (papel && papel !== 'anon') {
+      relatar(
+        `Chave de papel "${papel}" em arquivo publicado`,
+        `Encontrada em: ${arquivo}\n`
+        + '  Somente a anon key pode ser publicada. Qualquer outra ignora a RLS\n'
+        + '  e daria acesso total aos dados de inscritos, doadores e contatos.'
+      );
+    }
+  }
+}
+
+// Palavras que denunciam a chave secreta mesmo fora do formato JWT.
+const segredosPorNome = spawnSync('sh', ['-c',
+  'grep -rIl --exclude-dir=node_modules -E "service_role|SUPABASE_SERVICE_ROLE|sb_secret_" site/ || true'
+], { encoding: 'utf8' }).stdout.trim().split('\n').filter(Boolean);
+
+if (segredosPorNome.length > 0) {
   relatar(
-    'Possível chave secreta em arquivo publicado',
-    `Encontrada em:\n  ${suspeitos.join('\n  ')}\n`
-    + '  A anon key é pública por construção e pode ficar em site/config.js.\n'
-    + '  A service role key NUNCA pode: ela ignora a RLS inteira.'
+    'Referencia a chave secreta em arquivo publicado',
+    `Encontrada em:\n  ${segredosPorNome.join('\n  ')}`
   );
 }
 
