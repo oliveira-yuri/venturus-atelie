@@ -11,6 +11,6 @@
   },
   "devDependencies": {
     "selenium-webdriver": "^4.27.0",
-    "embedded-postgres": "^17.0.0"
+    "embedded-postgres": "18.4.0-beta.17"
   }
 }

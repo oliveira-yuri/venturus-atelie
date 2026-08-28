@@ -14,9 +14,12 @@
   command = "echo 'Site estatico: nada a construir.'"
 
 [build.environment]
-  # Nao instalar nada: nao ha dependencia de producao.
-  NETLIFY_SKIP_NPM_INSTALL = "true"
-  NPM_FLAGS = "--no-optional"
+  # Nao instalar as dependencias de desenvolvimento. Todas as dependencias
+  # deste projeto sao dev — ferramentas de teste — entao nada e instalado.
+  #
+  # NETLIFY_SKIP_NPM_INSTALL foi tentado antes e o build ignorou; --omit=dev
+  # e a flag do proprio npm e funciona sempre.
+  NPM_FLAGS = "--omit=dev"
 
 [[headers]]
   for = "/*"
