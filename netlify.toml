@@ -23,10 +23,16 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# TEMPORARIO: a Tarefa 6 move estes cabecalhos para o middleware.ts, que e
-# onde eles precisam ficar (o CSP exige nonce por requisicao, e arquivo
-# estatico nao gera nonce). Ate la eles ficam aqui, porque sem o noindex uma
-# previa publicada seria indexada pelo Google.
+# Este bloco e o middleware.ts SE COMPLEMENTAM, nao se substituem.
+#
+# O `matcher` de middleware.ts exclui _next/static, _next/image, favicon.ico
+# e fontes — caminhos que o Next serve como arquivo estatico, sem passar
+# pelo middleware. Se estes cabecalhos saissem daqui, esses caminhos
+# ficariam sem cabecalho nenhum.
+#
+# middleware.ts repete os mesmos cabecalhos para as paginas, e acrescenta o
+# Content-Security-Policy com nonce — que so faz sentido por requisicao
+# (precisa de um valor novo a cada visita), por isso nao da para gerar aqui.
 [[headers]]
   for = "/*"
   [headers.values]
