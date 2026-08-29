@@ -24,12 +24,32 @@ funcionando.
 
 ## Comandos
 
+**Na branch `migracao-nextjs`** (Next.js — ver "Estado da migração" abaixo):
+
+```bash
+npm test                        # suíte completa, modo offline (235 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (236)
+npm run test:supabase-degradado # prova que falha de consulta não vira silêncio
+npm run verificar-deploy        # guardião: barra deploy inseguro
+npm run rls                     # políticas de segurança contra Postgres real
+npx next dev                    # servir o site
+npx @axe-core/cli http://localhost:3000/ --browser firefox   # acessibilidade
+```
+
+O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.local`, e é
+determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
+ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
+
+**Na branch `main`** (site estático, o que está no ar hoje):
+
 ```bash
 node --test                  # suíte completa (217 testes)
-npm run verificar-deploy     # guardião: barra deploy inseguro
-npm run rls                  # políticas de segurança contra Postgres real
-python3 -m http.server 8080 --directory site   # servir o site
-npx @axe-core/cli http://localhost:8080/ --browser firefox   # acessibilidade
+python3 -m http.server 8080 --directory site
+```
+
+Comuns às duas:
+
+```bash
 node ferramentas/gerar-seed.mjs      # regenera supabase/seed.sql dos JSON
 ./ferramentas/gerar-sql-completo.sh  # junta migrations + seed num arquivo
 ```
@@ -154,7 +174,67 @@ Atualizado em 28/08/2026.
 
 ---
 
+## Estado da migração para Next.js
+
+**Decidida pelo grupo em 28/08/2026**, contra a recomendação técnica registrada na spec.
+Spec: `docs/superpowers/specs/2026-08-28-migracao-nextjs-design.md`
+Portão go/no-go: `docs/superpowers/plans/2026-08-28-resultado-do-portao.md` — **GO**
+
+**Duas versões do site coexistem, e é preciso saber em qual se está mexendo:**
+
+| | `main` | `migracao-nextjs` |
+|---|---|---|
+| O que é | site estático em `site/` | Next.js 16 + TypeScript |
+| Está no ar | **sim** | não — nunca publicada |
+| Páginas | 15 | **3** (`/quem-somos`, `/privacidade`, `/para-escolas`) + home casca |
+| Testes | 217 | 235 (offline) / 236 (com banco) |
+
+**Os 12 requisitos que só existem em `main`:** RF01 (home), RF03 (projetos), RF04, RF05,
+RF06 (contato), RF08–RF12 (contas e acesso), RF14 (agenda), RF23 (doar), RF24
+(voluntariado), RF33 (painel), RF35 (acervo). Na branch nova essas rotas dão **404**.
+
+Os 404 são intencionais nesta fase e vigiados por `testes/links-menu.test.mjs`, que
+separa `ROTAS_PRONTAS` de `ROTAS_PENDENTES` e falha nos dois sentidos — cada página
+migrada obriga a mover a rota de lista.
+
+### O que a fase 1 entregou além das 3 páginas
+
+- **O navegador não fala com o Supabase**, garantido em três camadas: `import 'server-only'`
+  (erro de build, provado), variáveis sem `NEXT_PUBLIC_` não embutidas, e o `connect-src`
+  da CSP sem o Supabase
+- **Política de conteúdo com nonce**, medida caminho a caminho contra o VLibras — cinco
+  hosts, todos com uso demonstrado. Nenhuma diretiva ali é dedutível: veio de medição
+- **VLibras traduzindo sob a política**, incluindo o Dicionário. Duas vezes ele passou por
+  toda a suíte carregando o ícone sem traduzir
+- **Foco e anúncio na navegação do roteador** — o que o carregamento de página inteira dava
+  de graça e o roteador não dá
+
+---
+
 ## O que trava hoje
+
+**Da migração (branch `migracao-nextjs`):**
+
+0. **A branch nunca foi publicada.** O `netlify.toml` foi reescrito por inteiro — o build
+   passa a existir, `publish` muda de `site` para `.next`, entra o plugin do Next — **sem
+   uma única execução real na Netlify**. Não há `engines` no `package.json` nem
+   `NODE_VERSION` fixado, e o TypeScript 7.0.2 nunca foi exercitado fora da máquina de
+   desenvolvimento. É o maior risco de cronograma e resolve em 30 minutos.
+0b. **A chave do Supabase não saiu do repositório.** A que está em `.env.local` é byte a
+   byte a mesma de `site/config.js`, ainda no formato JWT antigo. Enquanto não for
+   rotacionada, o ganho declarado na spec §4.3 é nominal.
+0c. **`X-Robots-Tag: noindex` está em DOIS lugares** — `middleware.ts` e `netlify.toml`,
+   ambos marcados "PRÉVIA". Se só um for removido no lançamento, o site entra no ar
+   invisível para buscadores.
+0d. **A suíte fica vermelha sem `.env.local`** — o teste de vazamento falha de propósito:
+   um teste que não sabe o que procurar não prova nada. Quem clonar o repositório precisa
+   do arquivo, ou usar só o que não depende dele.
+0e. **Decisão pendente: o VLibras roda no layout raiz**, e a CSP usa `strict-dynamic`, que
+   dá confiança em cadeia a tudo que ele carregar. Quando o painel existir (RF33), isso
+   significa código de terceiro com confiança total na tela que mostra nome, telefone e
+   responsável de crianças. O caminho barato é não montar o VLibras em `/admin`.
+
+**Do projeto, válidos para as duas branches:**
 
 1. **Limite de e-mail do Supabase bloqueia todo cadastro.** `over_email_send_rate_limit` — o envio
    nativo tem cota baixíssima. Enquanto não for resolvido, ninguém cria conta. Saída definitiva:
