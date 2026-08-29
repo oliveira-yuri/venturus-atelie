@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const RAIZ = new URL('../site/assets/dados-iniciais/', import.meta.url);
+const RAIZ = new URL('../dados-iniciais/', import.meta.url);
 
 async function carregar(arquivo) {
   return JSON.parse(await readFile(new URL(arquivo, RAIZ), 'utf8'));

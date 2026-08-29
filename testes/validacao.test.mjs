@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   validarCadastro, validarEntrada, formatarTelefone, apenasDigitos
-} from '../site/assets/js/util/validacao.js';
+} from '../compartilhado/validacao.ts';
 
 const CADASTRO_VALIDO = {
   nome: 'Maria da Silva',

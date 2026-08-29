@@ -1,0 +1,18 @@
+[
+  { "id": "folha-materia", "tipo": "midia", "titulo": "Folha de S.Paulo", "detalhe": "Como o menino que era caixa de supermercado criou um ateliê para valorizar a cultura negra", "ano": null },
+  { "id": "globo-caldeirao", "tipo": "midia", "titulo": "Rede Globo — Caldeirão do Huck", "detalhe": "Participação em rede nacional", "ano": 2021 },
+  { "id": "globo-the-wall", "tipo": "midia", "titulo": "Rede Globo — The Wall", "detalhe": "Participação no programa", "ano": 2021 },
+
+  { "id": "sesc-interlagos", "tipo": "instituicao", "titulo": "SESC Interlagos", "detalhe": null, "ano": null },
+  { "id": "sesc-santo-amaro", "tipo": "instituicao", "titulo": "SESC Santo Amaro", "detalhe": null, "ano": null },
+  { "id": "fabricas-de-cultura", "tipo": "instituicao", "titulo": "Fábricas de Cultura", "detalhe": "Jaçanã", "ano": null },
+  { "id": "casas-de-cultura", "tipo": "instituicao", "titulo": "Casas de Cultura de São Paulo", "detalhe": "Inclui a Casa de Cultura São Rafael", "ano": null },
+  { "id": "teatro-adelia-lorenzetti", "tipo": "instituicao", "titulo": "Teatro Municipal Adélia Lorenzetti", "detalhe": null, "ano": null },
+  { "id": "pracas-da-cultura", "tipo": "instituicao", "titulo": "Praças da Cultura", "detalhe": "Subprefeitura Pirituba/Jaraguá", "ano": null },
+  { "id": "espaco-malungo", "tipo": "instituicao", "titulo": "Espaço Malungo", "detalhe": null, "ano": null },
+  { "id": "ambev-campinas", "tipo": "instituicao", "titulo": "Ambev", "detalhe": "Ação de Dia das Crianças, Campinas", "ano": 2021 },
+  { "id": "igualdade-racial", "tipo": "instituicao", "titulo": "Subsecretaria de Igualdade Racial", "detalhe": "II Festa Preta, Parque Bosque Maia", "ano": null },
+
+  { "id": "consciencia-negra", "tipo": "programacao", "titulo": "Mês da Consciência Negra", "detalhe": "Programação recorrente", "ano": null },
+  { "id": "reexistencia", "tipo": "programacao", "titulo": "(Re)Existência do Povo Negro", "detalhe": "SESC", "ano": null }
+]

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mensagemDeErro } from '../site/assets/js/util/erros.js';
+import { mensagemDeErro } from '../compartilhado/erros.ts';
 
 test('falha de rede diz o que fazer', () => {
   const resultado = mensagemDeErro(new TypeError('Failed to fetch'), 'a agenda');

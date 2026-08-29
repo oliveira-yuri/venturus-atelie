@@ -43,13 +43,13 @@ test('sem JavaScript, os 11 links do menu chegam no HTML cru e o nav nao vem ocu
 });
 
 test('o cabecalho monta com os 11 itens e marca a pagina atual', async () => {
-  // O brief original testava em /quem-somos, mas essa rota ainda nao existe
-  // nesta fase (so / existe — as outras dez ficam para tarefas futuras). A
+  // O brief original testava em /quem-somos, mas essa rota ainda nao existia
+  // nesta fase (so / existia — as outras ficavam para tarefas futuras). A
   // pagina 404 padrao do Next, sem app/not-found.tsx proprio, e servida
   // estaticamente e nao carrega o pathname real da requisicao: usePathname()
   // nao reflete "/quem-somos" nela, entao nenhum item fica com aria-current
   // ali — nao e defeito do cabecalho, e uma caracteristica do 404 generico.
-  // Por isso o teste verifica a marcacao na unica rota real que existe hoje.
+  // Por isso o teste verificava a marcacao so na unica rota real de entao.
   await navegador.get(`${BASE}/`);
   const montou = await navegador.executeScript(`return {
     menu: Boolean(document.querySelector('#menu-principal')),
@@ -59,6 +59,17 @@ test('o cabecalho monta com os 11 itens e marca a pagina atual', async () => {
   assert.ok(montou.menu, 'o menu nao montou');
   assert.equal(montou.itens, 11);
   assert.equal(montou.atual, 'Início');
+});
+
+test('em /quem-somos, o item "Quem somos" do menu marca a pagina atual', async () => {
+  // Cobertura recuperada agora que /quem-somos existe de verdade (Tarefa 9):
+  // essa rota deixa de cair no 404 generico do teste acima, entao
+  // usePathname() aqui reflete o caminho real da requisicao.
+  await navegador.get(`${BASE}/quem-somos`);
+  const atual = await navegador.executeScript(
+    `return document.querySelector('[aria-current="page"]')?.textContent.trim() || null`
+  );
+  assert.equal(atual, 'Quem somos');
 });
 
 test('Esc fecha o menu mesmo sem sair do botao, e devolve o foco a ele', async () => {

@@ -2,46 +2,21 @@
  * Verificações que só um navegador real responde: foco, escala de fonte,
  * contraste, persistência de preferência e largura de celular.
  *
- * Roda em Firefox headless. Sobe um servidor estático próprio, então não
- * depende de nada estar no ar.
+ * Roda em Firefox headless contra o servidor da suíte inteira (URL_BASE) —
+ * quem sobe e derruba o Next é ferramentas/rodar-testes.mjs.
  *
- * Executar com: npm run verificar
+ * Executar com: npm test
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
 import { Builder, By, Key } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
 
-const RAIZ = new URL('../site/', import.meta.url).pathname;
-const TIPOS = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8'
-};
+const endereco = process.env.URL_BASE || 'http://localhost:3123';
 
-let servidor;
 let navegador;
-let endereco;
 
 before(async () => {
-  servidor = createServer(async (requisicao, resposta) => {
-    const caminho = requisicao.url === '/' ? '/index.html' : requisicao.url.split('?')[0];
-    try {
-      const arquivo = join(RAIZ, normalize(caminho));
-      const conteudo = await readFile(arquivo);
-      resposta.writeHead(200, { 'Content-Type': TIPOS[extname(arquivo)] || 'application/octet-stream' });
-      resposta.end(conteudo);
-    } catch {
-      resposta.writeHead(404).end('nao encontrado');
-    }
-  });
-
-  await new Promise((pronto) => servidor.listen(0, pronto));
-  endereco = `http://localhost:${servidor.address().port}`;
-
   navegador = await new Builder()
     .forBrowser('firefox')
     .setFirefoxOptions(new Options().addArguments('-headless'))
@@ -50,7 +25,6 @@ before(async () => {
 
 after(async () => {
   await navegador?.quit();
-  servidor?.close();
 });
 
 /** Escala em % que o navegador está aplicando ao elemento raiz. */
