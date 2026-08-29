@@ -33,9 +33,38 @@ export function lerEnvLocal() {
     if (!limpa || limpa.startsWith('#')) continue;
     const posicaoIgual = limpa.indexOf('=');
     if (posicaoIgual === -1) continue;
-    const chave = limpa.slice(0, posicaoIgual).trim();
-    const valor = limpa.slice(posicaoIgual + 1).trim();
-    variaveis[chave] = valor;
+    // `export FOO=bar` é sintaxe válida de .env em ferramentas como o
+    // dotenv (serve para permitir `source .env.local` num shell) — sem
+    // remover o prefixo, a chave vira "export SUPABASE_URL" e nunca bate
+    // com o `process.env.SUPABASE_URL` que os chamadores procuram.
+    const chave = limpa.slice(0, posicaoIgual).trim().replace(/^export\s+/, '');
+    const valorBruto = limpa.slice(posicaoIgual + 1).trim();
+    variaveis[chave] = removerAspasEnvolventes(valorBruto);
   }
   return variaveis;
+}
+
+/**
+ * Remove um par de aspas (simples ou duplas) que envolva o valor inteiro —
+ * as duas formas são sintaxe válida de .env.
+ *
+ * Sem isto, `SUPABASE_CHAVE_PUBLICAVEL="ey..."` vira a string 'ey..."'
+ * (aspa de abertura já consumida pelo split em "=", aspa de fechamento
+ * ainda dentro do valor) — testes/vazamento.test.mjs passaria a procurar
+ * por uma chave com uma aspa a mais, que não bate com a chave de verdade
+ * em lugar nenhum. Falso-verde a um caractere de distância, num teste cuja
+ * única razão de existir é não dar falso-verde. Achado na Rodada de
+ * correção 2 da Tarefa 10 (o .env.local deste projeto não usa aspas, então
+ * não doeu na prática — mas o parser não podia continuar contando com
+ * isso).
+ */
+function removerAspasEnvolventes(valor) {
+  if (valor.length < 2) return valor;
+
+  const primeira = valor[0];
+  const ultima = valor[valor.length - 1];
+  const aspaDupla = primeira === '"' && ultima === '"';
+  const aspaSimples = primeira === "'" && ultima === "'";
+
+  return aspaDupla || aspaSimples ? valor.slice(1, -1) : valor;
 }

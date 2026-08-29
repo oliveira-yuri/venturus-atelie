@@ -25,19 +25,21 @@ function relatar(titulo, detalhe) {
 //
 // Ate a Rodada de correcao 1, esta secao apenas conferia se
 // SUPABASE_URL/SUPABASE_ANON_KEY estavam no ambiente e, se nao, caia para
-// ler site/config.js — arquivo do site antigo que continuou existindo
-// depois da migracao para Next.js. Resultado medido: com .env.local
-// ausente e a variavel com o nome novo (SUPABASE_CHAVE_PUBLICAVEL, nao
+// ler site/config.js. Resultado medido: com .env.local ausente e a
+// variavel com o nome novo (SUPABASE_CHAVE_PUBLICAVEL, nao
 // SUPABASE_ANON_KEY), testes/seguranca.test.mjs pulava em silencio E este
-// guardiao ainda achava "tudo certo" lendo o config.js morto — exatamente
-// o falso verde que o cabecalho deste arquivo promete impedir.
+// guardiao ainda achava "tudo certo" lendo aquele arquivo — exatamente o
+// falso verde que o cabecalho deste arquivo promete impedir.
 //
 // A correcao: nao duplicar a logica de configuracao aqui. Rodar o proprio
 // teste, com o sinal EXIGIR_SUPABASE=1 (que faz aquele arquivo FALHAR, nao
 // pular, quando a configuracao nao aparece — ver o skipSemConfiguracao()
 // de la) e conferir o codigo de saida de verdade. Sem fallback para
-// site/config.js: aquele arquivo pertence ao site estatico anterior e nao
-// existe mais no Next.
+// site/config.js AQUI: o arquivo em si continua existindo de verdade (e
+// e por isso que as secoes mais abaixo, neste mesmo guardiao, continuam
+// varrendo site/ atras de chave secreta vazada) — ele so deixou de ser
+// fonte de configuracao para o aceite bloqueante, que fala com o Supabase
+// exclusivamente por variavel de ambiente.
 // ---------------------------------------------------------------------
 const aceite = spawnSync(
   process.execPath,

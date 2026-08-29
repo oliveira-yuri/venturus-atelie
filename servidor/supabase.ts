@@ -57,8 +57,18 @@ export async function obterCliente() {
       // fora do ar de verdade (nao so DNS falhando rapido).
       db: { retry: false },
       global: {
-        fetch: (entrada, init) =>
-          fetch(entrada, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) })
+        // AbortSignal.any (não sobrescrita direta): o postgrest-js preenche
+        // init.signal quando alguém chama .abortSignal() na query. Ninguém
+        // usa isso hoje, mas sobrescrever silenciosamente quebraria essa
+        // chamada na primeira vez que a fase 2 precisar dela — o abort do
+        // chamador simplesmente nunca abortaria nada. Combinando os dois,
+        // a requisição desiste no que vier primeiro: o timeout daqui ou um
+        // abort explícito de quem chamou.
+        fetch: (entrada, init) => {
+          const sinais = [AbortSignal.timeout(TIMEOUT_MS)];
+          if (init?.signal) sinais.push(init.signal);
+          return fetch(entrada, { ...init, signal: AbortSignal.any(sinais) });
+        }
       }
     }
   );

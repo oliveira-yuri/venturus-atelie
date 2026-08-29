@@ -40,8 +40,12 @@ const URL_SUPABASE_COMPLETA = process.env.SUPABASE_URL || doArquivo.SUPABASE_URL
 const CHAVE_SUPABASE = process.env.SUPABASE_CHAVE_PUBLICAVEL || doArquivo.SUPABASE_CHAVE_PUBLICAVEL;
 
 // Só o domínio: a URL completa (com "https://") não aparece assim em bundle
-// nenhum — o SDK do Supabase monta a URL a partir das partes.
-const URL_SUPABASE = URL_SUPABASE_COMPLETA?.replace(/^https?:\/\//, '');
+// nenhum — o SDK do Supabase monta a URL a partir das partes. Barra final
+// também sai (ex.: .env.local com "https://xxx.supabase.co/"): mantida,
+// ela deixaria de bater com uma referência ao domínio "nu", sem path
+// nenhum atrás — o oposto do que se quer num teste de vazamento, que
+// precisa do padrão mais abrangente possível, não do mais específico.
+const URL_SUPABASE = URL_SUPABASE_COMPLETA?.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
 /**
  * Falha ALTO e CEDO se não há o que procurar — nunca pula. Ao contrário do
