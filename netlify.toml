@@ -23,6 +23,14 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Os cabecalhos de seguranca saem daqui: a partir da Tarefa 6 quem os aplica
-# e o middleware.ts, porque o CSP precisa de nonce por requisicao e arquivo
-# estatico nao gera nonce.
+# TEMPORARIO: a Tarefa 6 move estes cabecalhos para o middleware.ts, que e
+# onde eles precisam ficar (o CSP exige nonce por requisicao, e arquivo
+# estatico nao gera nonce). Ate la eles ficam aqui, porque sem o noindex uma
+# previa publicada seria indexada pelo Google.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    X-Robots-Tag = "noindex, nofollow"
