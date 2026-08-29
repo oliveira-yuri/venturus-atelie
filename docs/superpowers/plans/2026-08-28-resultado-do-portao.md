@@ -22,17 +22,26 @@ Suíte completa: **212 testes, 209 passando, 0 falhas, 3 `todo` declarados.**
 - O critério 5 nomeava `/`, `/entrar` e `/quem-somos`. `/entrar` não existe nesta fase; as rotas medidas foram `/`, `/quem-somos`, `/privacidade` e `/para-escolas` — as quatro que existem.
 - O critério 3 pedia a home. Foram medidas as quatro rotas.
 
-## Parte humana — pendente
+## Parte humana — feita em 29/08/2026 pelo usuário
 
 Nenhum agente enxerga tela nem ouve leitor de tela. Estes itens não têm substituto automático:
 
-| Item | Por que precisa de olhos |
+| Item | Resultado |
 |---|---|
-| Abrir o VLibras e traduzir | 4 rodadas de correção e 3 medições convergiram para "funciona". Ninguém viu o avatar se mexer |
-| A+ e o texto do menu | O menu usa `clamp()` com `vw`, herdado do site atual. `vw` ignora o controle de fonte; os limites são em `rem`, então deveria crescer com teto |
-| Faixa âmbar perto de "Início" | Flagrada por screenshot, provada pré-existente. Ninguém sabe se é defeito ou artefato de captura headless |
-| As três páginas no celular | Dois defeitos visuais deste projeto passaram por 216 testes verdes |
-| Leitor de tela na navegação | Único jeito de validar o foco no `<h1>` e a região `aria-live` da Tarefa 7 |
+| Abrir o VLibras e traduzir | **passa** |
+| A+ e o texto do menu | **passa** |
+| Faixa âmbar perto de "Início" | **passa** — era artefato de captura headless, não defeito |
+| As três páginas no celular | **dois defeitos reportados**, corrigidos em `dfded22` |
+
+### Os dois defeitos que só olhos humanos pegaram
+
+1. **Espaços sumidos entre texto e link** (`/privacidade` e `/para-escolas`) — **regressão da migração**. Em HTML a quebra de linha entre texto e elemento vira um espaço; em JSX ela é removida. Resultado: "e-mailatelieafro@gmail.com", "com ninguémpara fins", "Falar pelo WhatsAppEnviar e-mail".
+
+   Passou por 212 testes e pela verificação de fidelidade de conteúdo, que comparava **palavras** — e todas estavam presentes. O que sumia era o espaço entre elas.
+
+   Corrigido, e coberto por `testes/paridade-texto.test.mjs`, que compara o texto renderizado do `<main>` de cada rota com o do HTML original, com espaços normalizados. Esse teste encontrou uma quinta ocorrência que o mapeamento manual não pegou (elemento adjacente a elemento, não texto adjacente a elemento). Protege as 12 páginas da fase 2.
+
+2. **Ficha "Formato e duração" com alinhamento inconsistente no celular** — **não é regressão**: o CSS é idêntico ao do site atual. `.ficha > div` é flex com `flex-wrap` e `dt` com `min-width: 9rem`, então valor curto cabe ao lado e valor longo desce. Empilhado no celular; `.atividade__ficha` tinha o mesmo defeito e foi corrigida junto.
 
 ## Riscos residuais que sobrevivem ao portão
 
@@ -44,6 +53,10 @@ Nenhum agente enxerga tela nem ouve leitor de tela. Estes itens não têm substi
 6. **Telemetria PostHog referenciada no bundle do VLibras** — não disparada nas medições e hoje bloqueada pela política. Merece decisão de privacidade: o público da ONG começa aos 10 anos.
 7. **A convenção `middleware` está depreciada** no Next 16.3.3 em favor de `proxy`.
 
-## Decisão
+## Decisão: **GO**
 
-Pendente da parte humana.
+Seis critérios automáticos verdes, quatro julgamentos humanos aprovados, dois defeitos
+encontrados e corrigidos. Suíte final: **215 testes, 212 passando, 0 falhas, 3 `todo`**.
+
+A migração segue para a Tarefa 10 (camada de dados) e depois para o plano da fase 2.
+`main` permanece intacta e publicável até a fase 2 terminar.
