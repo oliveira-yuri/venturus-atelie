@@ -1,14 +1,15 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 declare global { interface Window { VLibras?: { Widget: new (url: string) => unknown } } }
 
 /**
  * VLibras e widget gratuito do gov.br. Se nao carregar, o rodape segue inteiro.
  *
- * O container fica fora da arvore que o React reconcilia: o widget injeta DOM
- * por fora, e sem suppressHydrationWarning a reconciliacao arranca os nos dele
- * em alguma navegacao.
+ * Este componente nao renderiza nenhum DOM proprio: o widget se anexa
+ * sozinho a `document.body` (`script.onload` -> `new window.VLibras.Widget`),
+ * por fora de qualquer arvore que o React conheca. Um container aqui seria
+ * codigo morto — o widget nunca toca nele.
  *
  * O <script> recebe o nonce da propria requisicao: sob 'strict-dynamic' (ver
  * middleware.ts), liberar https://vlibras.gov.br no script-src nao valeria
@@ -17,8 +18,6 @@ declare global { interface Window { VLibras?: { Widget: new (url: string) => unk
  * proprio carregar.
  */
 export default function VLibras({ nonce }: { nonce?: string }) {
-  const caixa = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (document.querySelector('script[data-vlibras]')) return;
 
@@ -38,7 +37,7 @@ export default function VLibras({ nonce }: { nonce?: string }) {
     document.body.appendChild(script);
   }, [nonce]);
 
-  return <div ref={caixa} suppressHydrationWarning />;
+  return null;
 }
 
 /**
