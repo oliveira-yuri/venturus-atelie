@@ -156,3 +156,53 @@ test('o botao voltar do navegador tambem move o foco para o h1 de cada rota', as
   assert.equal(foco.tag, 'H1', `voltando para /, o foco ficou em ${foco.tag}`);
   assert.equal(foco.texto, 'Ateliê Afro Cultural');
 });
+
+test('a escala de fonte e o alto contraste sobrevivem a navegacao do roteador, nao so a recarga', async () => {
+  // Todos os testes de persistencia em navegador.test.mjs usam
+  // navegador.navigate().refresh() — recarga completa, onde o script
+  // anti-piscada de app/layout.tsx roda de novo e reaplica a preferencia ao
+  // <html>. Numa navegacao do roteador esse script nao roda: a persistencia
+  // passa a depender de nada limpar --escala-fonte/data-contraste do
+  // documentElement durante a troca de rota, e de Acessibilidade.tsx (que e
+  // de cliente e sobrevive a troca, por estar no layout raiz) manter o
+  // estado do React sincronizado com o que ja esta no documento.
+  await navegador.get(`${BASE}/`);
+  await navegador.sleep(500);
+
+  const aumentar = await navegador.findElement(By.css('[data-acao="aumentar"]'));
+  await aumentar.click();
+  await navegador.sleep(200);
+  await aumentar.click();
+  await navegador.sleep(200);
+
+  const escalaAntes = await navegador.executeScript(
+    'return getComputedStyle(document.documentElement).getPropertyValue("--escala-fonte").trim()'
+  );
+  assert.equal(escalaAntes, '125%', `esperava 125% depois de dois cliques em aumentar, veio ${escalaAntes}`);
+
+  const contraste = await navegador.findElement(By.css('[data-acao="contraste"]'));
+  await contraste.click();
+  await navegador.sleep(200);
+  assert.equal(
+    await navegador.executeScript('return document.documentElement.getAttribute("data-contraste")'),
+    'alto',
+    'o alto contraste deveria estar ligado antes de navegar'
+  );
+
+  // Navegacao do roteador de verdade: clicar no link do menu, nunca
+  // navegador.get() nem refresh() — e exatamente o caminho que o script
+  // anti-piscada nao cobre.
+  await navegador.findElement(By.css('#menu-principal a[href="/quem-somos"]')).click();
+  await navegador.sleep(800);
+
+  const depois = await navegador.executeScript(`return {
+    escala: getComputedStyle(document.documentElement).getPropertyValue('--escala-fonte').trim(),
+    contraste: document.documentElement.getAttribute('data-contraste'),
+    pressionado: document.querySelector('[data-acao="contraste"]')?.getAttribute('aria-pressed')
+  }`);
+
+  assert.equal(depois.escala, '125%', `a escala nao sobreviveu a navegacao do roteador, veio ${depois.escala}`);
+  assert.equal(depois.contraste, 'alto', 'o alto contraste nao sobreviveu a navegacao do roteador');
+  assert.equal(depois.pressionado, 'true',
+    'o botao de contraste nao reflete o estado apos a navegacao — se Acessibilidade remontasse do zero, isto voltaria a "false"');
+});
