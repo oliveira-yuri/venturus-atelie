@@ -15,7 +15,7 @@
 // programação) mora em componentes/SecaoOndeEstivemos.ts, testado à parte em
 // testes/prova-social.test.mjs.
 import Link from 'next/link';
-import { listarClipping } from '@/servidor/dados/conteudo';
+import { listarClippingComOrigem } from '@/servidor/dados/conteudo';
 import { SecaoOndeEstivemos } from '@/componentes/SecaoOndeEstivemos';
 
 export const metadata = {
@@ -24,10 +24,22 @@ export const metadata = {
 };
 
 export default async function ParaEscolas() {
-  const clipping = await listarClipping();
+  const { registros: clipping, origem } = await listarClippingComOrigem();
 
   return (
-    <main id="conteudo" className="conteudo">
+    // data-origem-clipping é o único lugar do site onde dá para VER, de
+    // fora, se o conteúdo veio do banco ou do JSON versionado. As duas
+    // fontes carregam o mesmo conteúdo real da ONG (o seed nasce do JSON),
+    // então a página é idêntica nos dois casos — e era exatamente por isso
+    // que uma queda do Supabase, uma chave errada ou um grant faltando
+    // passavam despercebidos em produção (CRÍTICO 1 da revisão final).
+    //
+    // Um atributo data-* não é conteúdo, não muda o texto lido por leitor de
+    // tela e não revela credencial nenhuma: só diz "banco" ou "json". Quem
+    // publicar o site pode abrir o código-fonte de /para-escolas e conferir
+    // num segundo. testes/origem-dos-dados.test.mjs afirma "json" no modo
+    // offline e "banco" no modo com credenciais.
+    <main id="conteudo" className="conteudo" data-origem-clipping={origem}>
       <h1>Para escolas e instituições</h1>
 
       <p className="destaque">

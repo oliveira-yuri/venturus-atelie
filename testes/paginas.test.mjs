@@ -120,12 +120,14 @@ for (const pagina of PAGINAS) {
 // - /projetos ainda não existe no Next — migra na fase 2 (plano próprio,
 //   ainda não escrito; ver "Ao terminar" em
 //   docs/superpowers/plans/2026-08-28-migracao-nextjs-fundacao.md).
-// - A prova social ("Na mídia" na home, "Onde já estivemos" em para-escolas)
-//   depende de `listarClipping()`, que a Tarefa 10 cria em
-//   `servidor/dados/conteudo.ts` — mas nenhuma página desta tarefa ainda o
-//   consome. app/page.tsx segue mínimo (só h1) e o
-//   <div id="lista-instituicoes"> de para-escolas fica vazio de propósito,
-//   como no HTML de origem antes do script `prova-social.js` rodar.
+// - A prova social depende de `listarClipping()`
+//   (`servidor/dados/conteudo.ts`). METADE disto já existe: "Onde já
+//   estivemos" em /para-escolas consome a função de verdade e tem teste
+//   próprio (testes/pagina-para-escolas.test.mjs, mais a procedência do dado
+//   em testes/origem-dos-dados.test.mjs). O que falta é "Na mídia" na home:
+//   app/page.tsx segue mínimo (só h1). O texto do `todo` abaixo diz
+//   exatamente isso — na revisão final ele ainda prometia as duas metades, e
+//   prometer o que já existe faz o relatório de `todo` valer menos.
 //
 // `test.todo` em vez de comentar o código: assim os três casos continuam
 // contados (aparecem como `ℹ todo 3` em toda rodada) em vez de somem do
@@ -135,7 +137,7 @@ for (const pagina of PAGINAS) {
 // motivo certo.
 test.todo('projetos.html mostra as onze atividades — falta /projetos (fase 2, plano ainda não escrito)');
 test.todo('as atividades sem sinopse não exibem bloco vazio — falta /projetos (fase 2)');
-test.todo('a prova social carrega na home e em para-escolas — falta listarClipping() consumida por alguma página (pós-Tarefa 10)');
+test.todo('a prova social carrega na HOME — /para-escolas já está coberta por testes/pagina-para-escolas.test.mjs; falta a home consumir listarClipping() para "Na mídia" (fase 2)');
 
 test('nenhum texto escapa da caixa que o contém', async () => {
   // O CSS pode ser escrito para uma estrutura de HTML que não é a que existe.

@@ -13,12 +13,26 @@
  *    HTML, sem nunca encostar em `.next/static`.
  *
  * Requer `next build` já rodado — `ferramentas/rodar-testes.mjs` faz isso
- * antes de subir o servidor e chamar a suíte. Desde a Rodada de correção 1
- * da Tarefa 10, esse build roda com NODE_ENV=test (o Next ignora
- * .env.local nesse modo, de propósito — ver comentário em
- * ferramentas/rodar-testes.mjs), então este arquivo NÃO pode contar com
- * process.env sozinho para saber o que procurar: lê .env.local direto,
- * como testes/seguranca.test.mjs já fazia.
+ * antes de subir o servidor e chamar a suíte.
+ *
+ * QUAL BUILD ESTE ARQUIVO VARRE (CRÍTICO 2 da revisão final). No modo
+ * offline — o padrão do `npm test` — o build roda com NODE_ENV=test e sem
+ * nenhuma variável do Supabase no ambiente. Varrer esse build prova pouco:
+ * uma variável que não existia no build não poderia ter sido embutida nele,
+ * e o caso do payload RSC chegava a ser tautológico (sem Supabase no
+ * servidor, nenhum dado do Supabase pode aparecer no self.__next_f.push).
+ * Um NEXT_PUBLIC_SUPABASE_URL configurado no painel da Netlify seria
+ * embutido num bundle que este teste nunca examinava.
+ *
+ * Por isso `npm run test:supabase` (COM_SUPABASE=1) existe: ele constrói COM
+ * as variáveis presentes — o build parecido com o que a Netlify produz — e
+ * roda esta mesma suíte contra ele. É nesse modo que os dois testes abaixo
+ * passam a significar alguma coisa. O modo offline continua rodando-os, e
+ * eles continuam válidos ali como rede contra regressão barata.
+ *
+ * Como o build da suíte pode rodar sem as variáveis, este arquivo NÃO pode
+ * contar com process.env sozinho para saber o que procurar: lê .env.local
+ * direto, como testes/seguranca.test.mjs já fazia.
  *
  * A URL e a chave usadas na busca são as REAIS do projeto (derivadas de
  * .env.local), não uma string cravada no código: uma URL fixa continuaria

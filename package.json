@@ -1,9 +1,11 @@
 {
   "name": "atelie-afro-cultural",
   "private": true,
-  "description": "Site do Ateliê Afro Cultural. O site em si nao tem build: selenium-webdriver serve apenas as verificacoes de navegador.",
+  "description": "Site do Ateliê Afro Cultural — Next.js 16, sem bundler extra. `next build` é obrigatório antes de servir; selenium-webdriver roda as verificações de navegador.",
   "scripts": {
     "test": "node ferramentas/rodar-testes.mjs",
+    "test:supabase": "COM_SUPABASE=1 node ferramentas/rodar-testes.mjs",
+    "test:supabase-degradado": "COM_SUPABASE=chave-errada node ferramentas/rodar-testes.mjs testes/origem-dos-dados.test.mjs",
     "verificar": "node ferramentas/rodar-testes.mjs testes/navegador.test.mjs",
     "verificar-deploy": "node ferramentas/verificar-antes-do-deploy.mjs",
     "seed": "node ferramentas/gerar-seed.mjs",
