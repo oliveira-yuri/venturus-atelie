@@ -46,12 +46,49 @@ import { NextResponse, type NextRequest } from 'next/server';
  * icone aparecer e nao tinha acionado a traducao — esse era o ponto cego,
  * corrigido na rodada 1 com um clique de verdade no botao.
  *
- * `traducao2.vlibras.gov.br` fica na lista por REFERENCIA NO BUNDLE (o
- * codigo do widget chama `/translate` e `/review` nesse host) — nao por
- * requisicao observada: em toda medicao feita ate agora, zero chamadas a
- * esse host apareceram de fato. Mantido porque o custo de te-lo na lista e
- * baixo e o bundle o referencia claramente, mas e importante nao confundir
- * isto com os hosts abaixo, que FORAM vistos em requisicao real.
+ * MECANISMO FRAGIL, achado na rodada 3 — NAO MEXER em script-src sem ler
+ * isto: cada painel do menu (`dictionary-*.js`, `translator-*.js`,
+ * `guide-*.js`, `about-*.js`, `settings-*.js` e outros) baixa o PROPRIO
+ * bundle de `cdn.jsdelivr.net` SOB DEMANDA, so quando a pessoa abre aquele
+ * painel. Isso passa pela politica sem NENHUM host em `script-src` — nao
+ * ha `cdn.jsdelivr.net` nem `vlibras.gov.br` ali, de proposito. Funciona
+ * porque `'strict-dynamic'` propaga a confianca do nonce a partir do
+ * script inicial (`vlibras-plugin.js`, que TEM o nonce): qualquer script
+ * que ELE carregar — e qualquer script que os scripts carregados por ele
+ * carregarem, em cadeia — herda a mesma confianca, nao importa o host.
+ *
+ * Duas consequencias praticas: (1) acrescentar `cdn.jsdelivr.net` ou
+ * qualquer outro host a `script-src` NAO faz nada de util — sob
+ * 'strict-dynamic' esses hosts sao ignorados, exatamente como o `frame-src`
+ * ja documentado acima nao precisa deles para os scripts, so para o iframe.
+ * (2) remover `'strict-dynamic'` (ou trocar por uma lista de hosts) QUEBRA
+ * todo painel carregado sob demanda, em silencio — o script do painel
+ * deixaria de ter qualquer credencial de confianca. Se um dia alguem
+ * precisar apertar `script-src`, meça de novo abrindo cada painel do menu
+ * antes de mudar qualquer coisa aqui.
+ *
+ * `traducao2.vlibras.gov.br` E MEDIDO — RODADA 2 TINHA ERRADO AQUI, corrigido
+ * na rodada 3. O comentario da rodada 2 dizia "por referencia no bundle,
+ * nunca visto em requisicao real" — texto perigoso, porque instruiria quem
+ * viesse depois a tirar o host da lista achando que era so teoria.
+ *
+ * Medido de verdade, em sessoes ISOLADAS (paginas novas, `performance.
+ * getEntriesByType('resource')` com linha de base tirada 25s apos abrir o
+ * widget — tempo de sobra pra qualquer chamada automatica de saudacao ja
+ * ter acontecido — e so entao comparada com o que aparece depois de CADA
+ * caminho, sozinho):
+ *
+ *   duplo clique num texto real da pagina  -> +2 chamadas a /translate
+ *   Menu -> Tradutor -> digitar -> Traduzir -> +1 chamada a /translate
+ *
+ * Os DOIS caminhos chamam o host de verdade — nao so o Tradutor. Faz sentido
+ * mecanicamente: um duplo clique seleciona a palavra sob o cursor, e esse
+ * widget trata qualquer selecao de texto como um pedido de traducao,
+ * chamando o mesmo endpoint que o painel Tradutor chama para o texto
+ * digitado. (Uma correcao anterior desta mesma rodada tinha chegado a
+ * escrever que so o Tradutor chamava o host — essa versao foi substituida
+ * por esta, depois de medir de novo com sessoes isoladas; ver relatorio da
+ * Tarefa 6, rodada 3, para o historico completo da divergencia.)
  *
  * `dicionario2.vlibras.gov.br` e `repositorio.vlibras.gov.br`: A RODADA 1
  * TINHA UM ERRO DE MODELO MENTAL AQUI, corrigido na rodada 2. O comentario
@@ -83,16 +120,19 @@ export function middleware(requisicao: NextRequest) {
     `style-src 'self' 'unsafe-inline'`,
     // vlibras.gov.br redireciona (302) pra cdn.jsdelivr.net em tudo — ver
     // comentario grande no topo do arquivo. Os dois hosts sao necessarios
-    // aqui pelo mesmo motivo.
+    // aqui pelo mesmo motivo. Sem `data:`: a rodada 3 varreu o DOM, os dois
+    // shadow roots do widget e o nosso codigo-fonte atras de um data:image
+    // e nao achou nenhum uso — removido, e a suite inteira continuou verde.
     `img-src 'self' data: https://vlibras.gov.br https://cdn.jsdelivr.net`,
-    // vlibras.gov.br: usado por assets redirecionados (ver topo) e por
-    // chamadas do proprio menu do player, que roda na pagina-mae.
-    // traducao2.vlibras.gov.br: por referencia no bundle (/translate,
-    // /review) — nunca visto em requisicao real ate agora, mas o custo de
-    // manter e baixo. dicionario2.vlibras.gov.br e repositorio.vlibras.gov.br:
-    // MEDIDOS de verdade — Menu -> Dicionario, dentro do shadow root de
-    // #vlibras-app-root na pagina-mae, busca categorias nesses dois hosts;
-    // sem eles o Dicionario abre vazio, em silencio.
+    // Todos os quatro MEDIDOS de verdade (ver comentario grande no topo do
+    // arquivo). vlibras.gov.br: assets redirecionados e chamadas do menu do
+    // player, que roda na pagina-mae. traducao2.vlibras.gov.br: acionado
+    // por QUALQUER traducao de texto real — tanto duplo clique numa palavra
+    // da pagina quanto Menu -> Tradutor -> Traduzir (medido nos dois,
+    // isoladamente). dicionario2.vlibras.gov.br e repositorio.vlibras.gov.br:
+    // Menu -> Dicionario busca categorias nesses dois. Sem qualquer um dos
+    // quatro, o painel correspondente degrada em silencio — cada um ja foi
+    // visto quebrando assim numa rodada desta tarefa.
     `connect-src 'self' https://vlibras.gov.br https://traducao2.vlibras.gov.br https://dicionario2.vlibras.gov.br https://repositorio.vlibras.gov.br`,
     // Mesmo motivo do img-src: as fontes do widget (rawline-*.woff2) tambem
     // passam pelo redirect de vlibras.gov.br para cdn.jsdelivr.net.

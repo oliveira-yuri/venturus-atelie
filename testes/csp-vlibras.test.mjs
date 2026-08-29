@@ -16,6 +16,11 @@
  *   - rodada 2: abrir o player funcionava, mas Menu -> Dicionario nunca
  *     tinha sido clicado — o Dicionario abria vazio em silencio
  *     (connect-src sem dicionario2.vlibras.gov.br/repositorio.vlibras.gov.br).
+ *   - rodada 3: a rodada 2 tinha presumido `traducao2.vlibras.gov.br` "por
+ *     referencia no bundle", nunca medido — e por isso nao tinha teste
+ *     nenhum o defendendo. Medido de verdade (sessoes isoladas): tanto o
+ *     duplo clique quanto Menu -> Tradutor -> Traduzir chamam esse host de
+ *     verdade — os dois defendem essa entrada da politica agora.
  *
  * A pergunta que guia este arquivo é sempre "o que ainda nao foi clicado?".
  *
@@ -178,9 +183,14 @@ test('abrir o VLibras e traduzir um texto real da pagina chega a "playing", sem 
   );
 
   // Duplo clique de verdade (Actions do WebDriver, nao dispatchEvent
-  // isolado) num texto real da pagina — o gesto que este widget escuta
-  // pra pedir a traducao de uma palavra/frase. So esse clique aciona a
-  // chamada de rede a traducao2.vlibras.gov.br.
+  // isolado) num texto real da pagina — seleciona a palavra sob o cursor,
+  // e este widget trata selecao de texto como pedido de traducao. Isso
+  // tambem leva o avatar a "playing". MEDIDO em sessao isolada (pagina
+  // nova, performance.getEntriesByType('resource'), linha de base tirada
+  // 25s apos abrir o widget): este duplo clique de fato chama
+  // traducao2.vlibras.gov.br/translate (+2 chamadas). O teste 'Menu >
+  // Tradutor', logo abaixo, mede o outro caminho que chama o mesmo host —
+  // os dois defendem essa entrada da politica, cada um a sua maneira.
   const h1 = await navegador.findElement(By.css('h1'));
   await navegador.actions({ bridge: true }).doubleClick(h1).perform();
 
@@ -245,7 +255,7 @@ test('Menu > Dicionario carrega as categorias, sem bloqueio de politica', async 
   // ou nao a lista de categorias. O container que so existe quando as
   // categorias de fato renderizam e 'ul.flex.flex-col li' — confirmado
   // medindo contra a politica sem dicionario2/repositorio (fica em 0 os
-  // 10s inteiros) e contra a politica corrigida (vai a 40).
+  // 10s inteiros) e contra a politica corrigida (vai a 27).
   await navegador.wait(async () => {
     const quantidade = await navegador.executeScript(`
       const sr = document.getElementById('vlibras-app-root').shadowRoot;
@@ -257,4 +267,64 @@ test('Menu > Dicionario carrega as categorias, sem bloqueio de politica', async 
   const recusas = mensagensConsole.filter(contemRecusaDePolitica);
   assert.deepEqual(recusas, [],
     `a politica recusou algo ao abrir o Dicionario: ${JSON.stringify(recusas)}`);
+});
+
+test('Menu > Tradutor > digitar texto > Traduzir chega a "playing", sem bloqueio de politica', async () => {
+  if (erroInspetor) {
+    assert.fail(
+      `captura de log indisponivel: este teste nao pode verificar nada (${erroInspetor.message})`
+    );
+  }
+
+  mensagensConsole.length = 0;
+  await navegador.get(`${BASE}/`);
+  await navegador.sleep(3000);
+
+  // Ate a rodada 2, traducao2.vlibras.gov.br so tinha o duplo clique
+  // defendendo sua entrada na politica. Este e o caminho mais direto e
+  // deliberado para o mesmo host — digitar um texto de verdade e pedir a
+  // traducao pelo painel, em vez de depender de selecionar uma palavra que
+  // ja esteja na pagina.
+  //
+  // Usa getShadowRoot()/findElement/sendKeys do proprio WebDriver (Selenium
+  // 4.47+ atravessa shadow root aberto nativamente) em vez de
+  // executeScript com dispatchEvent — mais fiel ao que uma pessoa de
+  // verdade faz: clicar, ver o campo, digitar de verdade.
+  const wrapper = await navegador.findElement(By.css('#vlibras-access-wrapper'));
+  const srAcesso = await wrapper.getShadowRoot();
+  await (await srAcesso.findElement(By.css('#vlibras-button'))).click();
+  await navegador.sleep(5000);
+
+  const appRoot = await navegador.findElement(By.css('#vlibras-app-root'));
+  const srApp = await appRoot.getShadowRoot();
+
+  await (await srApp.findElement(By.css('#header-menu-button'))).click();
+  await navegador.sleep(500);
+  await (await srApp.findElement(By.css('button[aria-label="Tradutor"]'))).click();
+  await navegador.sleep(1500);
+
+  const campoTexto = await srApp.findElement(By.css('#translator-text'));
+  await campoTexto.sendKeys('CASA VERDE');
+  await navegador.sleep(500);
+
+  // O botao "Traduzir" nao tem aria-label proprio nem id — so o texto
+  // visivel o identifica (medido no HTML do painel). Fica desabilitado
+  // (disabled) ate o campo ter conteudo.
+  const botoes = await srApp.findElements(By.css('button'));
+  let botaoTraduzir = null;
+  for (const botao of botoes) {
+    if ((await botao.getText()).trim() === 'Traduzir') { botaoTraduzir = botao; break; }
+  }
+  assert.ok(botaoTraduzir, 'nao encontrou o botao "Traduzir" no painel do Tradutor');
+  await botaoTraduzir.click();
+
+  await navegador.wait(
+    async () => (await statusDoPlayer(navegador)) === 'playing',
+    10000,
+    'o VLibras nao chegou a "playing" apos Menu > Tradutor > Traduzir — a traducao nao foi acionada'
+  );
+
+  const recusas = mensagensConsole.filter(contemRecusaDePolitica);
+  assert.deepEqual(recusas, [],
+    `a politica recusou algo ao usar o painel Tradutor: ${JSON.stringify(recusas)}`);
 });
