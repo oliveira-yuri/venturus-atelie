@@ -6,6 +6,11 @@ node_modules/
 .env.*
 supabase/.temp/
 
+# Gerados pelo Next.js a cada build/dev — nao versionar.
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
 # A service role key nunca entra no repositorio: ela vive como secret da
 # Edge Function. Se algum arquivo com ela aparecer aqui, e engano.
 **/service-role*

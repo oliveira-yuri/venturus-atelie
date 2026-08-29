@@ -3,14 +3,26 @@
   "private": true,
   "description": "Site do Ateliê Afro Cultural. O site em si nao tem build: selenium-webdriver serve apenas as verificacoes de navegador.",
   "scripts": {
-    "test": "node --test",
+    "test": "node ferramentas/rodar-testes.mjs",
     "verificar": "node --test testes/navegador.test.mjs",
     "verificar-deploy": "node ferramentas/verificar-antes-do-deploy.mjs",
     "seed": "node ferramentas/gerar-seed.mjs",
     "rls": "node --test testes/rls.test.mjs"
   },
   "devDependencies": {
-    "selenium-webdriver": "^4.27.0",
-    "embedded-postgres": "18.4.0-beta.17"
+    "embedded-postgres": "18.4.0-beta.17",
+    "selenium-webdriver": "^4.27.0"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.5",
+    "@supabase/supabase-js": "^2.112.4",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "next": "^16.3.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "server-only": "^0.0.1",
+    "typescript": "^7.0.2"
   }
 }

@@ -1,38 +1,28 @@
 # =====================================================================
 # Publicacao do site do Ateliê Afro Cultural.
 #
-# O site e estatico puro: HTML, CSS e JavaScript servidos como estao, sem
-# etapa de construcao. As dependencias do package.json (selenium-webdriver
-# e embedded-postgres) sao ferramentas de teste que rodam na maquina de
-# desenvolvimento — o embedded-postgres inclusive baixa os binarios do
-# PostgreSQL, o que faz a instalacao falhar aqui e nao serve para nada em
-# producao. Por isso a instalacao e pulada.
+# Migracao para Next.js 16: o build agora existe (next build) e publica
+# .next via @netlify/plugin-nextjs.
 # =====================================================================
 
 [build]
-  publish = "site"
-  command = "echo 'Site estatico: nada a construir.'"
+  command = "next build"
+  publish = ".next"
 
 [build.environment]
-  # Nao instalar as dependencias de desenvolvimento. Todas as dependencias
-  # deste projeto sao dev — ferramentas de teste — entao nada e instalado.
-  #
-  # NETLIFY_SKIP_NPM_INSTALL foi tentado antes e o build ignorou; --omit=dev
-  # e a flag do proprio npm e funciona sempre.
+  # Mantido: e o que impede o embedded-postgres (devDependency) de baixar os
+  # binarios do PostgreSQL e derrubar o build, como ja aconteceu. Por isso
+  # typescript e @types/* estao em dependencies — ver spec §7.2.
   NPM_FLAGS = "--omit=dev"
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    X-Frame-Options = "DENY"
-    # PREVIA: impede que buscadores indexem o rascunho. Remover no lancamento,
-    # junto com o Disallow de site/robots.txt.
-    X-Robots-Tag = "noindex, nofollow"
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
-# As fontes sao versionadas e nunca mudam de conteudo sem mudar de nome.
 [[headers]]
-  for = "/assets/fontes/*"
+  for = "/fontes/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Os cabecalhos de seguranca saem daqui: a partir da Tarefa 6 quem os aplica
+# e o middleware.ts, porque o CSP precisa de nonce por requisicao e arquivo
+# estatico nao gera nonce.
