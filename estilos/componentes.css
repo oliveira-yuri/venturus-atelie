@@ -101,6 +101,12 @@
     padding: var(--espaco-2) var(--espaco-3);
     font-size: var(--texto-base);
   }
+
+  /* Recolhimento e so desta classe, aplicada pelo componente de cliente
+     depois de hidratar (ver componentes/MenuMovel.tsx). O servidor nunca
+     manda essa classe: sem JavaScript o menu fica aberto, mesmo no celular —
+     pior esteticamente, infinitamente melhor que navegacao nenhuma. */
+  .cabecalho__menu--fechado { display: none; }
 }
 
 /* ---------- Controles de acessibilidade ---------- */

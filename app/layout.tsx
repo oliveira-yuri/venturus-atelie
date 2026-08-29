@@ -2,7 +2,7 @@ import '@/estilos/fontes.css';
 import '@/estilos/tokens.css';
 import '@/estilos/base.css';
 import '@/estilos/componentes.css';
-import Acessibilidade from '@/componentes/Acessibilidade';
+import Cabecalho from '@/componentes/Cabecalho';
 
 export const metadata = {
   title: 'Ateliê Afro Cultural',
@@ -33,8 +33,8 @@ export default function LayoutRaiz({ children }: { children: React.ReactNode }) 
     }catch(x){}})();`
           }}
         />
-        {/* Provisorio aqui: a Tarefa 5 move para dentro do cabeçalho. */}
-        <Acessibilidade />
+        <a className="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+        <Cabecalho />
         {children}
       </body>
     </html>
