@@ -1,3 +1,8 @@
+import '@/estilos/fontes.css';
+import '@/estilos/tokens.css';
+import '@/estilos/base.css';
+import '@/estilos/componentes.css';
+
 export const metadata = {
   title: 'Ateliê Afro Cultural',
   description: 'Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira, na Casa Verde, zona norte de São Paulo.'

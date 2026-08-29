@@ -1,0 +1,31 @@
+/* =====================================================================
+   Fontes hospedadas no proprio site.
+
+   Servidas localmente de proposito, e nao pelo Google Fonts: assim o
+   visitante nao faz requisicao a um terceiro so por abrir a pagina — o que
+   teria de constar na politica de privacidade — e nao ha uma segunda conexao
+   a estabelecer em rede movel (RNF11).
+
+   Sao fontes variaveis: um arquivo cobre toda a faixa de peso, entao basta
+   uma declaracao por familia. Somente o subset latino, que cobre o portugues.
+
+   Fraunces  65 KB  — display. Desenho levemente irregular, com serifas que
+                      lembram letreiro pintado a mao.
+   Karla     23 KB  — corpo. Grotesca humanista, boa em tamanho pequeno.
+   ===================================================================== */
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fontes/fraunces-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Karla';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fontes/karla-latin.woff2') format('woff2');
+}

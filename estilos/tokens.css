@@ -1,0 +1,89 @@
+/* =====================================================================
+   Sistema visual — direcao "Aplique"
+
+   A partir de dois objetos reais da ONG: o estandarte de juta com letras
+   recortadas e aplicadas, e a parede amarela da sede com o nome em relevo.
+
+   Uma regra acima das outras: NENHUMA textura de fundo repetida. Sem trama,
+   sem estampa, sem grade. Toda a personalidade vem de um gesto so — o
+   deslocamento solido que faz cada peca parecer costurada por cima. Fundos
+   sao chapados; tipografia e espaco fazem o resto.
+   ===================================================================== */
+
+:root {
+  /* Paleta declarada pela ONG (secao 3.4 do escopo). Nao alterar. */
+  --amarelo: #E0A400;      /* luz, sabedoria, criatividade, ancestralidade */
+  --azul: #7FA9CE;         /* ceu, esperanca, serenidade, conhecimento */
+  --azul-texto: #2E5C8A;   /* variante do azul com contraste para texto */
+  --marrom: #8A6A4A;       /* terra, mae Africa, raizes, memoria */
+  --tinta: #241C12;        /* texto */
+  --fundo: #FAF6EE;        /* fundo claro levemente quente */
+
+  --cal: #FFFDF7;          /* o branco de cal da fachada; superficie das pecas */
+  --superficie: #FFFDF7;
+  --borda: var(--tinta);   /* as pecas tem contorno, nao borda apagada */
+  --tinta-suave: #5A4A38;
+  --foco: #2E5C8A;
+
+  /* O gesto do sistema: deslocamento solido, sem desfoque. */
+  --aplique: 8px 8px 0;
+  --aplique-curto: 4px 4px 0;
+
+  --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --corpo: 'Karla', system-ui, -apple-system, sans-serif;
+
+  /* Escala tipografica, toda em rem para responder a --escala-fonte */
+  --texto-pequeno: 0.875rem;
+  --texto-base: 1.0625rem;
+  --texto-medio: 1.15rem;
+  --texto-grande: 1.5rem;
+  --texto-titulo: 2.1rem;
+  --texto-destaque: 3rem;
+
+  /* Nao usar vw aqui: com vw o texto para de responder ao botao A+, e a
+     acessibilidade e requisito, nao preferencia. Em rem, o titulo encolhe na
+     tela estreita E continua crescendo quando a pessoa aumenta a fonte. */
+
+  --espaco-1: 0.25rem;
+  --espaco-2: 0.5rem;
+  --espaco-3: 1rem;
+  --espaco-4: 1.5rem;
+  --espaco-5: 2.5rem;
+  --espaco-6: 4.5rem;
+
+  /* Sem cantos arredondados: aplique tem canto vivo, como recorte de tecido. */
+  --raio: 0;
+  --largura-conteudo: 68rem;
+  --alvo-toque: 2.75rem;   /* 44px - minimo para uso com o polegar */
+}
+
+/* Em tela de celular o titulo de abertura precisa caber sem hifenizar:
+   48px de altura numa largura util de ~290px nao cabe de jeito nenhum. */
+@media (max-width: 34rem) {
+  :root {
+    --texto-destaque: 1.85rem;
+    --texto-titulo: 1.6rem;
+    --texto-grande: 1.3rem;
+  }
+}
+
+/* O controle A- / A / A+ altera apenas esta linha. */
+html {
+  font-size: var(--escala-fonte, 100%);
+}
+
+/* Alto contraste: os mesmos tokens, redefinidos.
+   O aplique perde a cor e vira preto solido, para nao competir com o texto. */
+html[data-contraste="alto"] {
+  --fundo: #FFFFFF;
+  --cal: #FFFFFF;
+  --superficie: #FFFFFF;
+  --tinta: #000000;
+  --tinta-suave: #000000;
+  --borda: #000000;
+  --azul-texto: #00327A;
+  --azul: #00327A;
+  --marrom: #3A2A18;
+  --amarelo: #FFFFFF;
+  --foco: #000000;
+}
