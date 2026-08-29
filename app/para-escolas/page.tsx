@@ -4,7 +4,8 @@
 // saiu — a navegação agora chega pronta no HTML do servidor (Cabecalho e
 // Rodape em app/layout.tsx). O link do catálogo perdeu o ".html"
 // (/projetos.html -> /projetos) para casar com o esquema de rotas do Next;
-// a página em si ainda não existe (fase futura).
+// a página em si ainda não existe (fase futura). Esse link usa next/link, não
+// <a> cru — ver o comentário equivalente em app/quem-somos/page.tsx.
 //
 // "Onde já estivemos" era populada no cliente por
 // assets/js/paginas/prova-social.js, lendo listarClipping(). Agora que a
@@ -13,6 +14,7 @@
 // desenhar a seção (ou omiti-la, se não houver registro de instituição ou
 // programação) mora em componentes/SecaoOndeEstivemos.ts, testado à parte em
 // testes/prova-social.test.mjs.
+import Link from 'next/link';
 import { listarClipping } from '@/servidor/dados/conteudo';
 import { SecaoOndeEstivemos } from '@/componentes/SecaoOndeEstivemos';
 
@@ -39,7 +41,7 @@ export default async function ParaEscolas() {
           Nosso catálogo reúne contações de história performáticas, apresentações com fantoches e
           música ao vivo, e vivências de brincadeiras da cultura popular.
         </p>
-        <p><a className="botao" href="/projetos">Ver o catálogo completo</a></p>
+        <p><Link className="botao" href="/projetos">Ver o catálogo completo</Link></p>
       </section>
 
       <section aria-labelledby="titulo-formato">

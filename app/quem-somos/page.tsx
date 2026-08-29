@@ -5,6 +5,14 @@
 // servidor (Cabecalho e Rodape em app/layout.tsx). O link para o catálogo
 // perdeu o ".html" (/projetos.html -> /projetos) para casar com o esquema
 // de rotas do Next; a página em si ainda não existe (chega em fase futura).
+//
+// Esse link usa next/link, nao <a> cru (revisao final da fase 1). Um <a> cru
+// para rota interna faz carga de pagina inteira e passa ao largo de
+// componentes/FocoNaNavegacao.tsx — hoje seria inocuo, porque /projetos cai
+// no 404 e o Next recarrega a pagina de qualquer jeito, mas as 12 paginas da
+// fase 2 vao copiar o padrao que virem aqui.
+import Link from 'next/link';
+
 export const metadata = {
   title: 'Quem somos — Ateliê Afro Cultural',
   description: 'A história do Ateliê Afro Cultural, seus idealizadores e os três setores de atuação: literário, musical e artístico criativo.'
@@ -102,7 +110,7 @@ export default function QuemSomos() {
       </section>
 
       <p className="chamada-final">
-        <a className="botao" href="/projetos">Conhecer nossos projetos</a>
+        <Link className="botao" href="/projetos">Conhecer nossos projetos</Link>
       </p>
     </main>
   );
