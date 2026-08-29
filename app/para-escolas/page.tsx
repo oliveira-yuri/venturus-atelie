@@ -69,7 +69,7 @@ export default function ParaEscolas() {
           período você tem em mente. Respondemos pelo mesmo canal que você escolher.
         </p>
         <p className="abertura__acoes">
-          <a className="botao" href="https://wa.me/5511953968344" rel="noopener">Falar pelo WhatsApp</a>
+          <a className="botao" href="https://wa.me/5511953968344" rel="noopener">Falar pelo WhatsApp</a>{' '}
           <a className="botao botao--secundario" href="mailto:atelieafro@gmail.com">Enviar e-mail</a>
         </p>
       </section>

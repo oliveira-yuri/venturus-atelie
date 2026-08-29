@@ -84,6 +84,14 @@ main section { margin-bottom: var(--espaco-6); }
 /* No celular a sombra encolhe: 8px comem largura util numa tela de 375px. */
 @media (max-width: 34rem) {
   :root { --aplique: 5px 5px 0; }
+
+  /* Ficha em coluna: rotulo sempre acima do valor. Lado a lado (regra da
+     linha 143), um valor curto ("Livre") cabe ao lado do rotulo e um valor
+     longo ("Criancas, jovens e adultos...") quebra sozinho para baixo -
+     mesma estrutura, alinhamento inconsistente entre as linhas. Empilhando
+     sempre, toda linha fica igual. */
+  .ficha > div { flex-direction: column; gap: var(--espaco-1); }
+  .ficha dt { min-width: 0; }
 }
 
 /* ---------- Conteudo editorial ---------- */

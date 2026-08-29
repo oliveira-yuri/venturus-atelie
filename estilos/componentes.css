@@ -277,6 +277,15 @@
 .atividade__ficha dt { font-weight: 700; min-width: 8rem; }
 .atividade__ficha dd { margin: 0; color: var(--tinta-suave); }
 
+/* Mesmo defeito e mesma correcao do .ficha em base.css: no celular um valor
+   curto fica ao lado do rotulo e um longo quebra sozinho para baixo. Rotulo
+   sempre acima do valor resolve para as duas paginas da fase 2 que usam
+   este cartao. */
+@media (max-width: 34rem) {
+  .atividade__ficha > div { flex-direction: column; gap: var(--espaco-1); }
+  .atividade__ficha dt { min-width: 0; }
+}
+
 /* ---------- Abertura da home ---------- */
 
 .abertura { background: var(--amarelo); padding: var(--espaco-6) var(--espaco-3); }

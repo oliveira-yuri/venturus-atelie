@@ -28,8 +28,8 @@ export default function Privacidade() {
           Rua Dr. Paulo Gatti, 135 — Vila Romero, São Paulo/SP — CEP 02468-030
         </p>
         <p>
-          Para qualquer pedido sobre seus dados, fale conosco pelo e-mail
-          <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a> ou pelo WhatsApp
+          Para qualquer pedido sobre seus dados, fale conosco pelo e-mail{' '}
+          <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a> ou pelo WhatsApp{' '}
           <a href="https://wa.me/5511953968344" rel="noopener">(11) 95396-8344</a>.
         </p>
       </section>
@@ -81,7 +81,7 @@ export default function Privacidade() {
           <li>Contar quantas pessoas participaram, para prestação de contas e editais — nesse caso usamos apenas números totais, sem nomes</li>
         </ul>
         <p>
-          <strong>Não vendemos, não trocamos e não compartilhamos seus dados com ninguém</strong>
+          <strong>Não vendemos, não trocamos e não compartilhamos seus dados com ninguém</strong>{' '}
           para fins de publicidade.
         </p>
       </section>
@@ -129,7 +129,7 @@ export default function Privacidade() {
           <li>Retirar uma autorização de uso de imagem que já tenha dado</li>
         </ul>
         <p>
-          É só escrever para <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>.
+          É só escrever para <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>.{' '}
           Respondemos assim que conseguirmos — somos uma equipe pequena, mas ninguém fica sem
           resposta.
         </p>
