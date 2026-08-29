@@ -23,6 +23,17 @@ const servidor = spawn('npx', ['next', 'start', '--port', String(porta)], {
   detached: true
 });
 
+// Um SIGINT/SIGTERM no orquestrador (Ctrl+C durante a suite, ou um `kill`)
+// derruba o `node --test` em execucao e encerra este processo antes que o
+// `finally` la embaixo rode — o mesmo vazamento de porta que o detached+kill
+// de grupo resolveu para o caminho normal, so que pelo caminho do sinal.
+for (const sinal of ['SIGINT', 'SIGTERM']) {
+  process.on(sinal, () => {
+    try { process.kill(-servidor.pid, 'SIGTERM'); } catch { /* ja encerrado */ }
+    process.exit(130);
+  });
+}
+
 const pronto = new Promise((resolve, reject) => {
   const limite = setTimeout(() => reject(new Error('servidor nao subiu em 60s')), 60_000);
   servidor.stdout.on('data', (bloco) => {
