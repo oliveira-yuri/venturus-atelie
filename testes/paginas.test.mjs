@@ -50,6 +50,7 @@ for (const pagina of PAGINAS) {
         titulo: document.title,
         descricao: document.querySelector('meta[name="description"]')?.content || '',
         h1: document.querySelectorAll('h1').length,
+        h1DentroDoMain: document.querySelectorAll('main#conteudo h1').length,
         main: Boolean(document.querySelector('main#conteudo')),
         skip: Boolean(document.querySelector('.pular-para-conteudo')),
         idioma: document.documentElement.lang
@@ -60,6 +61,13 @@ for (const pagina of PAGINAS) {
     assert.ok(estrutura.descricao.length > 30, 'meta description ausente ou curta');
     assert.equal(estrutura.h1, 1, 'a página precisa de exatamente um h1');
     assert.ok(estrutura.main, 'falta <main id="conteudo">');
+    // As duas asserções acima, isoladas, não pegam um h1 fora do <main>: um
+    // h1 solto no <body> e um <main> sem h1 nenhum passariam nas duas juntas
+    // (achado da rodada de correção 1 da Tarefa 7 — FocoNaNavegacao.tsx
+    // procura "main h1", e um h1 fora do main faz o foco na navegação
+    // quebrar em silêncio, sem que este teste percebesse). Por isso a
+    // asserção junta os dois seletores num só.
+    assert.equal(estrutura.h1DentroDoMain, 1, 'o h1 precisa estar dentro de <main id="conteudo">');
     assert.ok(estrutura.skip, 'falta o link de pular para o conteúdo');
     assert.equal(estrutura.idioma, 'pt-BR');
   });

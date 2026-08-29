@@ -95,3 +95,64 @@ test('o h1 recebe tabindex="-1" mas nao entra na ordem de Tab', async () => {
   }
   assert.equal(encontrouH1, false, 'o h1 apareceu na ordem de Tab — tabindex="-1" nao deveria permitir isso');
 });
+
+test('a navegacao atualiza uma regiao aria-live com o nome da pagina nova', async () => {
+  // Foco no h1 e necessario mas nao suficiente: a troca de document.title
+  // sozinha nao e anunciada por leitor de tela nenhum sem foco associado, e
+  // "focar um elemento tabindex=-1 gera anuncio de cabecalho" varia entre
+  // pares de leitor e navegador. A regiao aria-live cobre o anuncio sonoro
+  // independente dessa variacao.
+  await navegador.get(`${BASE}/`);
+  await navegador.sleep(500);
+
+  // A regiao precisa existir no DOM antes da troca de rota, vazia — uma
+  // regiao criada e preenchida no mesmo ciclo costuma nao ser anunciada.
+  const antes = await navegador.executeScript(`
+    const regiao = document.querySelector('[aria-live="polite"]');
+    return regiao ? { existe: true, texto: regiao.textContent.trim() } : { existe: false, texto: null };
+  `);
+  assert.ok(antes.existe, 'a regiao aria-live deveria existir antes de qualquer navegacao');
+  assert.equal(antes.texto, '', 'a regiao nao deveria ter texto no carregamento inicial');
+
+  await navegador.findElement(By.css('#menu-principal a[href="/quem-somos"]')).click();
+  await navegador.sleep(800);
+
+  const depois = await navegador.executeScript(`
+    const regiao = document.querySelector('[aria-live="polite"]');
+    return regiao ? regiao.textContent.trim() : null;
+  `);
+  assert.match(depois ?? '', /Quem somos/,
+    `a regiao aria-live deveria anunciar a pagina nova, veio "${depois}"`);
+});
+
+test('o botao voltar do navegador tambem move o foco para o h1 de cada rota', async () => {
+  // Confirmado a mao na rodada de correcao 1: popstate muda usePathname(),
+  // o efeito roda de novo, e o foco vai ao h1 de cada rota no caminho de
+  // volta. Sem teste isso dependia de alguem lembrar de verificar de novo.
+  await navegador.get(`${BASE}/`);
+  await navegador.sleep(500);
+
+  await navegador.findElement(By.css('#menu-principal a[href="/quem-somos"]')).click();
+  await navegador.sleep(800);
+
+  await navegador.findElement(By.css('#menu-principal a[href="/para-escolas"]')).click();
+  await navegador.sleep(800);
+
+  await navegador.navigate().back();
+  await navegador.sleep(800);
+  let foco = await navegador.executeScript(`return {
+    tag: document.activeElement.tagName,
+    texto: (document.activeElement.textContent || '').trim()
+  }`);
+  assert.equal(foco.tag, 'H1', `voltando para /quem-somos, o foco ficou em ${foco.tag}`);
+  assert.equal(foco.texto, 'Quem somos');
+
+  await navegador.navigate().back();
+  await navegador.sleep(800);
+  foco = await navegador.executeScript(`return {
+    tag: document.activeElement.tagName,
+    texto: (document.activeElement.textContent || '').trim()
+  }`);
+  assert.equal(foco.tag, 'H1', `voltando para /, o foco ficou em ${foco.tag}`);
+  assert.equal(foco.texto, 'Ateliê Afro Cultural');
+});
