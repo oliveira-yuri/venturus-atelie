@@ -14,7 +14,26 @@ export default function LayoutRaiz({ children }: { children: React.ReactNode }) 
     // script anti-piscada, que altera atributos deste elemento antes da
     // hidratação. Sem isto, o React acusaria divergência.
     <html lang="pt-BR" suppressHydrationWarning>
-      <body>{children}</body>
+      <body>
+        {/*
+          Script classico e sincrono de proposito: um modulo seria adiado e a
+          pagina piscaria no tamanho/contraste errado a cada navegacao.
+          Duplica a leitura minima do armazenamento pelo mesmo motivo — nao
+          pode depender de import. Unico script inline do projeto; a Tarefa 6
+          da nonce a ele.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{
+      var g=localStorage.getItem('aac-preferencias'); if(!g)return;
+      var p=JSON.parse(g), e=[87.5,100,112.5,125,137.5];
+      if(e.indexOf(p.escala)!==-1)document.documentElement.style.setProperty('--escala-fonte',p.escala+'%');
+      if(p.contraste==='alto')document.documentElement.setAttribute('data-contraste','alto');
+    }catch(x){}})();`
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

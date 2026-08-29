@@ -14,8 +14,13 @@ if (spawnSync('npx', ['next', 'build'], { stdio: 'inherit' }).status !== 0) {
 }
 
 console.log(`Subindo em :${porta}...`);
+// detached: true para que o servidor vire lider do proprio grupo de
+// processos. O `npx` sobe o `next-server` como filho; matar so o invólucro
+// do npx deixa o next-server orfao segurando a porta. Encerrando o grupo
+// inteiro (process.kill com pid negativo) os dois caem juntos.
 const servidor = spawn('npx', ['next', 'start', '--port', String(porta)], {
-  stdio: ['ignore', 'pipe', 'inherit']
+  stdio: ['ignore', 'pipe', 'inherit'],
+  detached: true
 });
 
 const pronto = new Promise((resolve, reject) => {
@@ -36,5 +41,5 @@ try {
   console.error(erro.message);
   process.exitCode = 1;
 } finally {
-  servidor.kill();
+  try { process.kill(-servidor.pid, 'SIGTERM'); } catch { /* ja encerrado */ }
 }

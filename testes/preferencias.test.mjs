@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   ESCALAS, PADRAO, CHAVE_ARMAZENAMENTO,
   proximaEscala, lerPreferencias, gravarPreferencias
-} from '../site/assets/js/util/preferencias.js';
+} from '../compartilhado/preferencias.ts';
 
 /** Dublê de localStorage. Aceita falhar de propósito para testar o modo anônimo. */
 function armazenamentoFalso({ conteudo = {}, quebrado = false } = {}) {
