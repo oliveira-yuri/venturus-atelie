@@ -12,7 +12,7 @@
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { Builder } from 'selenium-webdriver';
+import { Builder, By, Key } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
@@ -59,4 +59,40 @@ test('o cabecalho monta com os 11 itens e marca a pagina atual', async () => {
   assert.ok(montou.menu, 'o menu nao montou');
   assert.equal(montou.itens, 11);
   assert.equal(montou.atual, 'Início');
+});
+
+test('Esc fecha o menu mesmo sem sair do botao, e devolve o foco a ele', async () => {
+  // Caminho mais comum de quem navega por teclado: abre pelo botao e desiste
+  // sem nunca dar Tab para dentro do <nav>. Uma versao anterior prendia o
+  // onKeyDown so no <nav>, entao Esc so funcionava depois de focar um link —
+  // apertar Esc logo apos abrir, com o foco ainda no botao, nao fazia nada.
+  await navegador.manage().window().setRect({ width: 375, height: 720 });
+  await navegador.get(`${BASE}/`);
+
+  const botao = await navegador.findElement(By.css('.cabecalho__alternar'));
+  await botao.click();
+  assert.equal(await botao.getAttribute('aria-expanded'), 'true', 'o clique deveria abrir o menu');
+
+  // Esc sem nunca ter saido do botao: o foco do navegador, apos um clique,
+  // fica naturalmente no proprio botao.
+  await botao.sendKeys(Key.ESCAPE);
+
+  assert.equal(await botao.getAttribute('aria-expanded'), 'false',
+    'Esc no botao deveria fechar o menu, sem precisar focar o nav antes');
+
+  const nav = await navegador.findElement(By.css('#menu-principal'));
+  assert.match(await nav.getAttribute('class'), /cabecalho__menu--fechado/,
+    'a classe de recolhido deveria voltar');
+
+  const classeAtiva = await navegador.executeScript('return document.activeElement.className');
+  assert.equal(classeAtiva, 'cabecalho__alternar',
+    'o foco deveria estar no botao Menu — sem isso ele fica preso num menu invisivel');
+});
+
+test('o alvo do link de pular para o conteudo existe na pagina', async () => {
+  const html = await fetch(`${BASE}/`).then((resposta) => resposta.text());
+  assert.match(html, /<a class="pular-para-conteudo" href="#conteudo">/,
+    'falta o link de pular para o conteudo');
+  assert.match(html, /id="conteudo"/,
+    'o link de pular aponta para #conteudo, mas nenhum elemento tem esse id');
 });

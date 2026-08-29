@@ -48,6 +48,14 @@
    Sao onze destinos. Em vez de apertar todos ate caber, o espacamento
    acompanha a largura da tela; abaixo de 62rem vira sanduiche. */
 
+/* Botao e nav moram dentro de um <div> comum, so para o listener de Esc
+   (ver componentes/MenuMovel.tsx) conseguir capturar o evento partindo de
+   qualquer um dos dois. display:contents tira esse <div> da arvore de
+   renderizacao: para o layout flex de .cabecalho__topo, botao e nav
+   continuam se comportando exatamente como itens diretos dela — nenhuma
+   regra abaixo precisou mudar. */
+.cabecalho__menu-grupo { display: contents; }
+
 .cabecalho__alternar {
   display: none;
   width: 100%;

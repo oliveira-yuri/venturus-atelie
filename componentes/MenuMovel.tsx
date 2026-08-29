@@ -34,6 +34,15 @@ export const ITENS = [
  * entra depois de hidratar. Antes disso — sem JS, ou no instante entre o HTML
  * chegar e o React assumir — o menu fica do jeito que o servidor mandou:
  * aberto.
+ *
+ * Botao e nav ficam dentro de um <div class="cabecalho__menu-grupo"> comum.
+ * Rodada de correcao: o onKeyDown do Esc morava so no <nav>, entao so
+ * funcionava depois que o foco ja tinha entrado nele (Tab a partir do botao).
+ * No caminho mais comum — abrir pelo botao e desistir sem dar Tab — o foco
+ * fica no proprio botao, fora do <nav>, e o evento nunca chegava la. Prender
+ * o listener no grupo cobre os dois. `display: contents` no grupo (ver CSS)
+ * garante que ele nao interfere no layout flex de .cabecalho__topo — botao e
+ * nav continuam se comportando como se fossem itens diretos dela.
  */
 export default function MenuMovel() {
   const [aberto, setAberto] = useState(false);
@@ -47,7 +56,16 @@ export default function MenuMovel() {
   const recolhido = hidratado && !aberto;
 
   return (
-    <>
+    <div className="cabecalho__menu-grupo"
+      // Esc fecha e devolve o foco ao botao, venha o evento de onde vier
+      // dentro do grupo (botao ou qualquer link do nav) — sem isso o foco
+      // fica preso num menu invisivel para quem navega por teclado.
+      onKeyDown={(evento) => {
+        if (evento.key === 'Escape' && aberto) {
+          setAberto(false);
+          document.querySelector<HTMLButtonElement>('.cabecalho__alternar')?.focus();
+        }
+      }}>
       {/*
         Visibilidade do botao e so CSS (display:none no desktop, ver
         estilos/componentes.css) — nao depende de JavaScript detectar a
@@ -58,15 +76,7 @@ export default function MenuMovel() {
         onClick={() => setAberto((atual) => !atual)}>Menu</button>
 
       <nav id="menu-principal" aria-label="Principal"
-        className={recolhido ? 'cabecalho__menu cabecalho__menu--fechado' : 'cabecalho__menu'}
-        // Esc fecha e devolve o foco ao botao: sem isso o foco fica preso num
-        // menu invisivel para quem navega por teclado.
-        onKeyDown={(evento) => {
-          if (evento.key === 'Escape' && aberto) {
-            setAberto(false);
-            document.querySelector<HTMLButtonElement>('.cabecalho__alternar')?.focus();
-          }
-        }}>
+        className={recolhido ? 'cabecalho__menu cabecalho__menu--fechado' : 'cabecalho__menu'}>
         <ul>
           {ITENS.map((item) => (
             <li key={item.href}>
@@ -77,6 +87,6 @@ export default function MenuMovel() {
           ))}
         </ul>
       </nav>
-    </>
+    </div>
   );
 }
