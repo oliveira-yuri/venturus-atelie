@@ -23,13 +23,15 @@ export default function Acessibilidade() {
     setHidratado(true);
   }, []);
 
+  // So aplica ao documento; gravar e responsabilidade de executar(), e so por
+  // clique — visitante que nunca tocou nos botoes nao grava preferencia
+  // nenhuma (senao fica preso ao PADRAO de hoje se ele mudar no futuro).
   useEffect(() => {
     if (!hidratado) return;
     const raiz = document.documentElement;
     raiz.style.setProperty('--escala-fonte', `${preferencias.escala}%`);
     if (preferencias.contraste === 'alto') raiz.setAttribute('data-contraste', 'alto');
     else raiz.removeAttribute('data-contraste');
-    gravarPreferencias(window.localStorage, preferencias);
   }, [preferencias, hidratado]);
 
   function executar(acao: string) {
@@ -44,6 +46,10 @@ export default function Acessibilidade() {
       setAnuncio(acao === 'contraste'
         ? (novo.contraste === 'alto' ? 'Alto contraste ativado' : 'Alto contraste desativado')
         : `Texto em ${novo.escala}%`);
+
+      // Grava o objeto novo que acabamos de calcular, nao o estado antigo:
+      // so por clique, nunca no mount.
+      gravarPreferencias(window.localStorage, novo);
       return novo;
     });
   }
