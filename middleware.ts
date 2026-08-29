@@ -20,31 +20,52 @@ import { NextResponse, type NextRequest } from 'next/server';
  * do host explicito na lista.
  *
  * O QUE O VLIBRAS REALMENTE PEDE (medido, nao suposto — ver relatorio da
- * Tarefa 6, rodada de correcao 1):
+ * Tarefa 6, rodadas de correcao 1 e 2):
  *
- * `https://vlibras.gov.br/app/*` responde 302 redirecionando para
- * `https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/vlibras-portal@v7.8.0/app/*`
- * para TUDO — o script principal, os icones, as fontes. O widget nao busca
- * do jsDelivr por conta propria: e o gov.br quem redireciona pra la. A CSP
- * valida o destino final do redirecionamento, entao toda diretiva que toque
- * asset do widget (img-src, font-src) precisa dos dois hosts — so
- * `vlibras.gov.br` nao basta, porque o navegador reavalia a politica contra
- * a URL de destino do redirect.
+ * NEM TUDO redireciona igual — confirmado com `curl -I` direto nas URLs,
+ * sem depender do navegador:
+ *
+ *   - `vlibras-plugin.js`, `vlibras-plugin-app.js`, os icones
+ *     (`vlibras-access.svg`, `vlibras-popup.webp`) e as fontes
+ *     (`rawline-*.woff2`) respondem 302, redirecionando para
+ *     `https://cdn.jsdelivr.net/gh/spbgovbr-vlibras/vlibras-portal@v7.8.0/...`.
+ *     O navegador reavalia a CSP contra o destino final do redirect, entao
+ *     `img-src` e `font-src` precisam dos DOIS hosts — so `vlibras.gov.br`
+ *     nao basta.
+ *   - `https://vlibras.gov.br/app/unity/index.html` (o alvo do iframe do
+ *     avatar) responde 200 DIRETO, sem redirecionar. Por isso `frame-src`
+ *     lista so `vlibras.gov.br` — acrescentar `cdn.jsdelivr.net` aqui seria
+ *     afrouxar a politica sem necessidade real.
  *
  * O icone abre um popup; clicar nele carrega `vlibras-plugin-app.js`, que
- * monta um `<iframe>` para `https://vlibras.gov.br/app/unity/index.html`
- * (precisa de `frame-src`, que cai em `default-src` se nao for listado) e
- * fala com `https://traducao2.vlibras.gov.br/translate` para buscar a
- * traducao de verdade (precisa de `connect-src`). Sem esses dois, o icone
- * ate aparece, mas a traducao em si falha — o widget nunca chega a servir
- * pra quem precisa dele. Uma medicao anterior desta tarefa tinha clicado so
- * ate o icone aparecer e nao tinha acionado a traducao — esse era o ponto
- * cego, corrigido nesta rodada com um clique de verdade no botao.
+ * monta o `<iframe>` do avatar (precisa de `frame-src`) e fala com
+ * `https://traducao2.vlibras.gov.br/translate` para buscar a traducao de
+ * verdade (precisa de `connect-src`). Sem esses dois, o icone ate aparece,
+ * mas a traducao em si falha — o widget nunca chega a servir pra quem
+ * precisa dele. Uma medicao anterior desta tarefa tinha clicado so ate o
+ * icone aparecer e nao tinha acionado a traducao — esse era o ponto cego,
+ * corrigido na rodada 1 com um clique de verdade no botao.
  *
- * NAO acrescentado: `dicionario2.vlibras.gov.br`. Ele aparece no bundle do
- * widget, mas e baixado de dentro do `<iframe>` Unity, que tem documento e
- * politica proprios — nao herda a nossa. Sem medir aquele documento
- * separadamente, acrescentar esse host aqui seria suposicao, nao medicao.
+ * `traducao2.vlibras.gov.br` fica na lista por REFERENCIA NO BUNDLE (o
+ * codigo do widget chama `/translate` e `/review` nesse host) — nao por
+ * requisicao observada: em toda medicao feita ate agora, zero chamadas a
+ * esse host apareceram de fato. Mantido porque o custo de te-lo na lista e
+ * baixo e o bundle o referencia claramente, mas e importante nao confundir
+ * isto com os hosts abaixo, que FORAM vistos em requisicao real.
+ *
+ * `dicionario2.vlibras.gov.br` e `repositorio.vlibras.gov.br`: A RODADA 1
+ * TINHA UM ERRO DE MODELO MENTAL AQUI, corrigido na rodada 2. O comentario
+ * antigo dizia que o menu do player (Menu -> Dicionario) rodava dentro do
+ * iframe Unity, com documento e politica proprios, e por isso nao precisava
+ * entrar na nossa lista. Falso: o menu do player inteiro mora no shadow
+ * root de `#vlibras-app-root`, NA PAGINA-MAE — so o avatar (a animacao 3D)
+ * fica de fato dentro do iframe Unity. Clicar em Menu -> Dicionario dispara,
+ * a partir da pagina-mae, sob a NOSSA politica:
+ *   - `https://dicionario2.vlibras.gov.br/static/TREES/2018.3.1.json`
+ *   - `https://repositorio.vlibras.gov.br/api/tags`
+ * Sem os dois em `connect-src`, o Dicionario abre vazio — degradacao
+ * silenciosa identica a de img-src/font-src na rodada 1, um nivel abaixo.
+ * Confirmado clicando de verdade em Menu -> Dicionario, nao por suposicao.
  */
 export function middleware(requisicao: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
@@ -64,10 +85,15 @@ export function middleware(requisicao: NextRequest) {
     // comentario grande no topo do arquivo. Os dois hosts sao necessarios
     // aqui pelo mesmo motivo.
     `img-src 'self' data: https://vlibras.gov.br https://cdn.jsdelivr.net`,
-    // vlibras.gov.br: redirect dos assets (ver topo). traducao2.vlibras.gov.br:
-    // e para onde o widget manda o texto pra traduzir de verdade, acionado
-    // só depois do clique no icone — sem isso a traducao falha em silencio.
-    `connect-src 'self' https://vlibras.gov.br https://traducao2.vlibras.gov.br`,
+    // vlibras.gov.br: usado por assets redirecionados (ver topo) e por
+    // chamadas do proprio menu do player, que roda na pagina-mae.
+    // traducao2.vlibras.gov.br: por referencia no bundle (/translate,
+    // /review) — nunca visto em requisicao real ate agora, mas o custo de
+    // manter e baixo. dicionario2.vlibras.gov.br e repositorio.vlibras.gov.br:
+    // MEDIDOS de verdade — Menu -> Dicionario, dentro do shadow root de
+    // #vlibras-app-root na pagina-mae, busca categorias nesses dois hosts;
+    // sem eles o Dicionario abre vazio, em silencio.
+    `connect-src 'self' https://vlibras.gov.br https://traducao2.vlibras.gov.br https://dicionario2.vlibras.gov.br https://repositorio.vlibras.gov.br`,
     // Mesmo motivo do img-src: as fontes do widget (rawline-*.woff2) tambem
     // passam pelo redirect de vlibras.gov.br para cdn.jsdelivr.net.
     `font-src 'self' https://vlibras.gov.br https://cdn.jsdelivr.net`,

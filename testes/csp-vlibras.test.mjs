@@ -1,14 +1,23 @@
 /**
  * Portao de risco da migracao: politica de conteudo (CSP) com nonce e o
- * widget VLibras carregando E TRADUZINDO sob ela.
+ * widget VLibras carregando E FUNCIONANDO de ponta a ponta sob ela.
  *
- * `vlibras-plugin.js` so monta o icone. A traducao de verdade
- * (`vlibras-plugin-app.js`, iframe Unity, chamada a `/translate`) so carrega
- * no clique do botao — por isso este arquivo tem um teste que clica de
- * verdade (dentro do shadow root do widget), nao so verifica o icone
- * fechado. Uma rodada anterior desta tarefa media só o icone e passava
- * verde com a traducao de fato bloqueada — o ponto cego que este teste
- * existe para fechar.
+ * MODELO MENTAL DO WIDGET (corrigido na rodada 2, depois de medir errado na
+ * rodada 1): so o AVATAR (a animacao 3D) mora dentro do `<iframe>` Unity,
+ * com documento e politica proprios. O PLAYER INTEIRO — cabecalho, menu de
+ * opcoes, Dicionario — mora no shadow root de `#vlibras-app-root`, NA
+ * PAGINA-MAE, e portanto obedece a NOSSA politica de conteudo. Cada nivel
+ * desse player tem seu proprio ponto cego, e cada rodada desta tarefa
+ * fechou um:
+ *
+ *   - rodada 1: o icone fechado carregava, mas o clique que abre o player
+ *     nunca tinha sido testado — a traducao de verdade falhava em silencio
+ *     (frame-src e as fontes bloqueados).
+ *   - rodada 2: abrir o player funcionava, mas Menu -> Dicionario nunca
+ *     tinha sido clicado — o Dicionario abria vazio em silencio
+ *     (connect-src sem dicionario2.vlibras.gov.br/repositorio.vlibras.gov.br).
+ *
+ * A pergunta que guia este arquivo é sempre "o que ainda nao foi clicado?".
  *
  * A API classica `manage().logs().get('browser')` nao existe neste
  * geckodriver para Firefox (responde "HTTP method not allowed" — mesmo
@@ -23,7 +32,7 @@
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { Builder } from 'selenium-webdriver';
+import { Builder, By } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
 import getLogInspector from 'selenium-webdriver/bidi/logInspector.js';
 
@@ -43,6 +52,23 @@ function contemRecusaDePolitica(texto) {
     || (/Content-Security-Policy/i.test(texto) && /bloque|blocked/i.test(texto));
 }
 
+/** Abre o icone fechado do VLibras — o clique que so acontece na primeira interacao. */
+async function abrirWidget(navegador) {
+  await navegador.executeScript(`
+    document.getElementById('vlibras-access-wrapper').shadowRoot
+      .getElementById('vlibras-button')
+      .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+  `);
+}
+
+/** Le data-status do player (#vlibras-app-root), na pagina-mae — null se ele ainda nao existe. */
+async function statusDoPlayer(navegador) {
+  return navegador.executeScript(`
+    const raiz = document.getElementById('vlibras-app-root');
+    return raiz ? raiz.dataset.status : null;
+  `);
+}
+
 test('a resposta traz nonce e a politica cobre o VLibras', async () => {
   const resposta = await fetch(`${BASE}/`);
   const politica = resposta.headers.get('content-security-policy');
@@ -53,6 +79,10 @@ test('a resposta traz nonce e a politica cobre o VLibras', async () => {
   // A traducao de verdade precisa do iframe Unity: sem frame-src, ele cai em
   // default-src 'self' e e bloqueado assim que alguem clica no icone.
   assert.match(politica, /frame-src[^;]*vlibras\.gov\.br/, 'frame-src sem o VLibras — o iframe de traducao seria bloqueado');
+  // O Dicionario roda no shadow root da pagina-mae (nao no iframe) e busca
+  // categorias nesses dois hosts — achado da rodada 2 desta tarefa.
+  assert.match(politica, /connect-src[^;]*dicionario2\.vlibras\.gov\.br/, 'connect-src sem dicionario2 — o Dicionario abriria vazio');
+  assert.match(politica, /connect-src[^;]*repositorio\.vlibras\.gov\.br/, 'connect-src sem repositorio — o Dicionario abriria vazio');
 });
 
 let navegador;
@@ -114,7 +144,7 @@ test('o widget VLibras monta e recebe a correcao de acessibilidade', async () =>
   assert.equal(estado.imagensSemAlt, 0, 'ainda ha imagem sem alt dentro do shadow root do VLibras');
 });
 
-test('clicar no botao do VLibras aciona a traducao de verdade, sem bloqueio de politica', async () => {
+test('abrir o VLibras e traduzir um texto real da pagina chega a "playing", sem bloqueio de politica', async () => {
   if (erroInspetor) {
     assert.fail(
       `captura de log indisponivel: este teste nao pode verificar nada (${erroInspetor.message})`
@@ -129,22 +159,102 @@ test('clicar no botao do VLibras aciona a traducao de verdade, sem bloqueio de p
   // um seletor comum, de fora, nao alcanca. Dispara um clique de verdade
   // (MouseEvent), nao so chama .click() num proxy: e o mesmo caminho que o
   // handler do widget escuta.
-  await navegador.executeScript(`
-    document.getElementById('vlibras-access-wrapper').shadowRoot
-      .getElementById('vlibras-button')
-      .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-  `);
+  await abrirWidget(navegador);
 
-  // Só depois deste clique o widget carrega vlibras-plugin-app.js, abre o
-  // iframe Unity (https://vlibras.gov.br/app/unity/index.html, dentro do
-  // shadow root de #vlibras-app-root) e chama traducao2.vlibras.gov.br —
-  // os dois recursos que a medição anterior desta tarefa nunca exercitou.
-  await navegador.wait(async () => navegador.executeScript(`
-    const raiz = document.getElementById('vlibras-app-root');
-    return Boolean(raiz && raiz.shadowRoot && raiz.shadowRoot.querySelector('iframe'));
-  `), 15000, 'o iframe de traducao (#vlibras-app-root) nao apareceu em 15s');
+  // So esperar o <iframe> existir NAO prova que a traducao funciona — a
+  // rodada 1 desta tarefa provou isso: sob a politica antiga, com
+  // frame-src bloqueado, o elemento <iframe> continuava no DOM mesmo
+  // com o carregamento recusado. A prova de verdade e o avatar
+  // efetivamente tocando uma animacao: data-status virando "playing".
+  //
+  // Logo apos abrir, o player toca uma animacao de boas-vindas que TAMBEM
+  // marca "playing" — por isso espera primeiro assentar em "idle" antes do
+  // duplo clique. Sem essa espera, um "playing" pos-clique nao provaria
+  // nada: podia ser so a animacao de abertura ainda rodando.
+  await navegador.wait(
+    async () => (await statusDoPlayer(navegador)) === 'idle',
+    20000,
+    'o VLibras nao assentou em "idle" apos abrir, em 20s'
+  );
+
+  // Duplo clique de verdade (Actions do WebDriver, nao dispatchEvent
+  // isolado) num texto real da pagina — o gesto que este widget escuta
+  // pra pedir a traducao de uma palavra/frase. So esse clique aciona a
+  // chamada de rede a traducao2.vlibras.gov.br.
+  const h1 = await navegador.findElement(By.css('h1'));
+  await navegador.actions({ bridge: true }).doubleClick(h1).perform();
+
+  await navegador.wait(
+    async () => (await statusDoPlayer(navegador)) === 'playing',
+    10000,
+    'o VLibras nao chegou a "playing" apos o duplo clique — a traducao nao foi acionada de verdade'
+  );
 
   const recusas = mensagensConsole.filter(contemRecusaDePolitica);
   assert.deepEqual(recusas, [],
-    `a politica recusou algo ao acionar a traducao de verdade: ${JSON.stringify(recusas)}`);
+    `a politica recusou algo ao traduzir um texto de verdade: ${JSON.stringify(recusas)}`);
+});
+
+test('Menu > Dicionario carrega as categorias, sem bloqueio de politica', async () => {
+  if (erroInspetor) {
+    assert.fail(
+      `captura de log indisponivel: este teste nao pode verificar nada (${erroInspetor.message})`
+    );
+  }
+
+  mensagensConsole.length = 0;
+  await navegador.get(`${BASE}/`);
+  await navegador.sleep(3000);
+
+  await abrirWidget(navegador);
+  await navegador.sleep(5000); // da tempo do player montar antes de procurar o menu dentro dele
+
+  // O menu de opcoes ("Menu de opções", #header-menu-button) e o botao
+  // "Dicionário" moram no shadow root de #vlibras-app-root, NA PAGINA-MAE
+  // — nao no iframe Unity (o erro de modelo mental corrigido nesta rodada).
+  const abriuMenu = await navegador.executeScript(`
+    const sr = document.getElementById('vlibras-app-root')?.shadowRoot;
+    if (!sr) return false;
+    const botaoMenu = sr.getElementById('header-menu-button');
+    if (!botaoMenu) return false;
+    botaoMenu.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    return true;
+  `);
+  assert.ok(abriuMenu, 'nao encontrou #header-menu-button no shadow root de #vlibras-app-root');
+
+  await navegador.sleep(500);
+
+  const clicouDicionario = await navegador.executeScript(`
+    const sr = document.getElementById('vlibras-app-root').shadowRoot;
+    const botaoDicionario = sr.querySelector('button[aria-label="Dicionário"]');
+    if (!botaoDicionario) return false;
+    botaoDicionario.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    return true;
+  `);
+  assert.ok(clicouDicionario, 'nao encontrou o botao "Dicionário" no menu do VLibras');
+
+  // As categorias vem de dicionario2.vlibras.gov.br (e o repositorio de
+  // tags de repositorio.vlibras.gov.br). Sem esses hosts em connect-src, o
+  // painel abre e fica vazio, em silencio — exatamente o Critico desta
+  // rodada. Espera a lista de categorias renderizar de verdade, nao so o
+  // painel aparecer.
+  //
+  // 'li button' generico NAO SERVE: medido — o proprio player mantem uma
+  // barra de botoes persistente (Dicionario, Configuracoes etc, cada um
+  // dentro do seu <li>) que fica em 21 elementos o tempo todo, carregando
+  // ou nao a lista de categorias. O container que so existe quando as
+  // categorias de fato renderizam e 'ul.flex.flex-col li' — confirmado
+  // medindo contra a politica sem dicionario2/repositorio (fica em 0 os
+  // 10s inteiros) e contra a politica corrigida (vai a 40).
+  await navegador.wait(async () => {
+    const quantidade = await navegador.executeScript(`
+      const sr = document.getElementById('vlibras-app-root').shadowRoot;
+      return sr.querySelectorAll('ul.flex.flex-col li').length;
+    `);
+    return quantidade > 0;
+  }, 10000, 'o Dicionario nao chegou a mostrar nenhuma categoria em 10s — abriu vazio');
+
+  const recusas = mensagensConsole.filter(contemRecusaDePolitica);
+  assert.deepEqual(recusas, [],
+    `a politica recusou algo ao abrir o Dicionario: ${JSON.stringify(recusas)}`);
 });
