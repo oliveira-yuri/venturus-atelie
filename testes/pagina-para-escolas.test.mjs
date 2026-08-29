@@ -20,37 +20,66 @@
  * testes/paridade-texto.test.mjs — e confere um título real do JSON
  * versionado (a mesma fonte que alimenta o fallback local e que espelha o
  * conteúdo real semeado no Supabase).
+ *
+ * Rodada de correção 3: a primeira versão fazia `assert.ok(instituicoes
+ * .length > 0, ...)`, e isso tratava dois cenários bem diferentes como o
+ * mesmo — "dado existe e a página não mostra" (defeito real, deve falhar)
+ * e "dado não existe e a seção some" (a regra 2 do CLAUDE.md funcionando,
+ * não deveria derrubar suíte nenhuma). Um `clipping.json` sem nenhum
+ * registro de instituição/programação fazia este teste falhar por engano.
+ * Corrigido seguindo o precedente que testes/seguranca.test.mjs já usa
+ * para a mesma situação (`describe(..., { skip: skipSemConfiguracao() })`):
+ * sem o que verificar, pula de forma VISÍVEL, com o motivo dito — nunca
+ * falha e nunca passa em silêncio.
  */
-import { test } from 'node:test';
+import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
-test('/para-escolas mostra pelo menos um título real de instituição/programação, quando o JSON tem algum', async () => {
-  const clipping = JSON.parse(
-    await readFile(new URL('../dados-iniciais/clipping.json', import.meta.url), 'utf8')
-  );
-  const instituicoes = clipping.filter(
-    (registro) => registro.tipo === 'instituicao' || registro.tipo === 'programacao'
-  );
+// SÍNCRONO e no topo do módulo, de propósito: o `skip` do describe() logo
+// abaixo é avaliado antes de qualquer before()/teste assíncrono rodar —
+// mesma razão pela qual testes/seguranca.test.mjs lê sua configuração de
+// forma síncrona no topo do arquivo.
+const clipping = JSON.parse(
+  readFileSync(new URL('../dados-iniciais/clipping.json', import.meta.url), 'utf8')
+);
+const instituicoes = clipping.filter(
+  (registro) => registro.tipo === 'instituicao' || registro.tipo === 'programacao'
+);
 
-  // Se um dia o JSON ficar sem nenhum desses dois tipos, este teste não tem
-  // mais o que exigir — mas precisa dizer isso alto, não passar por engano.
-  assert.ok(
-    instituicoes.length > 0,
-    'dados-iniciais/clipping.json não tem nenhum registro de instituição/programação — '
-    + 'este teste não tem título nenhum para exigir na página'
-  );
+/**
+ * Sem nenhum registro de instituição/programação no JSON, não há título
+ * nenhum para exigir na página — e a seção sumir, nesse caso, é o produto
+ * acertando (regra 2 do CLAUDE.md), não um defeito. Pula com o motivo
+ * visível, em vez de falhar (falso-vermelho) ou de passar sem dizer nada
+ * (esconderia que este teste não verificou coisa alguma desta vez).
+ */
+function skipSemRegistroDeInstituicao() {
+  return instituicoes.length > 0
+    ? false
+    : 'dados-iniciais/clipping.json não tem nenhum registro de instituição/programação agora — '
+      + 'este teste não tem título nenhum para exigir na página. Sem dado, a seção "Onde já '
+      + 'estivemos" deve mesmo sumir (regra 2 do CLAUDE.md); isso não é o defeito que este '
+      + 'teste existe para pegar.';
+}
 
-  const resposta = await fetch(`${BASE}/para-escolas`);
-  assert.equal(resposta.status, 200, '/para-escolas não respondeu 200');
-  const html = await resposta.text();
+describe(
+  '/para-escolas mostra os registros reais de "Onde já estivemos"',
+  { skip: skipSemRegistroDeInstituicao() },
+  () => {
+    test('pelo menos um título real de instituição/programação aparece no HTML', async () => {
+      const resposta = await fetch(`${BASE}/para-escolas`);
+      assert.equal(resposta.status, 200, '/para-escolas não respondeu 200');
+      const html = await resposta.text();
 
-  const apareceu = instituicoes.some((registro) => html.includes(registro.titulo));
-  assert.ok(
-    apareceu,
-    'nenhum título real de instituição/programação apareceu no HTML de /para-escolas — '
-    + 'a seção pode ter parado de receber o dado de verdade (ver comentário no topo deste arquivo)'
-  );
-});
+      const apareceu = instituicoes.some((registro) => html.includes(registro.titulo));
+      assert.ok(
+        apareceu,
+        'nenhum título real de instituição/programação apareceu no HTML de /para-escolas — '
+        + 'a seção pode ter parado de receber o dado de verdade (ver comentário no topo deste arquivo)'
+      );
+    });
+  }
+);
