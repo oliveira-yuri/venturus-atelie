@@ -1,6 +1,19 @@
 /**
  * Guardiao do deploy.
  *
+ * SETE secoes, nesta ordem: (1) o aceite bloqueante da secao 12 do escopo
+ * roda de verdade; (2) o teste de vazamento roda contra um build feito COM
+ * as credenciais; (3) os diretorios que vao ao ar sao varridos atras de
+ * chave secreta; (4) nenhum .html solto em public/; (5) os VALORES das
+ * variaveis de ambiente; (6) RLS em toda tabela; (7) grant em toda tabela.
+ * As secoes 2 a 5 nasceram na revisao final da fase 1 — as tres ultimas
+ * estavam previstas na spec §7.3 e nunca tinham sido feitas, e a varredura
+ * ainda olhava `site/`, que deixou de ser o que a Netlify publica.
+ *
+ * Este script CONSTROI o site (secao 2, via ferramentas/rodar-testes.mjs
+ * com COM_SUPABASE=1) e fala com a rede. Demora mais que antes, de
+ * proposito: e um portao de deploy, nao um linter.
+ *
  * O teste de acesso indevido (testes/seguranca.test.mjs) se PULA quando nao
  * ha Supabase configurado — e teste pulado deixa a suite verde. Verde sem
  * verificacao e exatamente como um vazamento chega a producao.
@@ -11,7 +24,9 @@
  * Executar com: npm run verificar-deploy
  */
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { lerEnvLocal } from '../testes/apoio/env-local.mjs';
 
 const problemas = [];
 
@@ -67,12 +82,66 @@ if (aceite.status !== 0) {
 }
 
 // ---------------------------------------------------------------------
-// 2. A service role key nunca pode estar no que vai ser publicado
+// 2. O teste de vazamento precisa RODAR, e contra o build que vai ao ar
+//
+// Ate a revisao final da fase 1 este guardiao nem chamava
+// testes/vazamento.test.mjs. Chamar nao basta: aquele teste varre
+// `.next/static` e o HTML entregue, e no modo offline da suite o build roda
+// com NODE_ENV=test e SEM nenhuma variavel do Supabase — varrer um build
+// onde a credencial nem existia nao prova que ela nao vaza do build em que
+// existe. Por isso aqui e COM_SUPABASE=1: constroi com as variaveis
+// presentes (o build parecido com o da Netlify), sobe, varre, e derruba o
+// deploy se sujar.
+//
+// Efeito colateral desejado: e este passo que produz o `.next` que a secao 3
+// varre logo abaixo.
+// ---------------------------------------------------------------------
+const vazamento = spawnSync(
+  process.execPath,
+  ['ferramentas/rodar-testes.mjs', 'testes/vazamento.test.mjs'],
+  { encoding: 'utf8', env: { ...process.env, COM_SUPABASE: '1' } }
+);
+
+if (vazamento.status !== 0) {
+  relatar(
+    'O teste de vazamento de credencial NÃO passou',
+    '`COM_SUPABASE=1 node ferramentas/rodar-testes.mjs testes/vazamento.test.mjs` falhou.\n'
+    + '  Ele constrói COM as variáveis do Supabase — o mesmo tipo de build que a\n'
+    + '  Netlify produz — e procura a URL e a chave reais dentro de .next/static e\n'
+    + '  do HTML entregue. Se falhou, ou a credencial vazou para o navegador, ou o\n'
+    + '  build/servidor não subiu (o que também impede a seção 3 abaixo de varrer\n'
+    + '  o que vai ao ar).\n\n'
+    + '  Saída:\n'
+    + String(vazamento.stdout + vazamento.stderr)
+        .trim()
+        .split('\n')
+        .slice(-40)
+        .map((linha) => `    ${linha}`)
+        .join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------
+// 3. A chave secreta nunca pode estar no que vai ser publicado
 //
 // Anon key e service role key sao os dois JWT e se parecem. Procurar pelo
-// formato acusaria a anon key legitima em config.js — e um verificador que
-// grita a toa vira um verificador ignorado. Entao decodificamos o payload e
-// olhamos o papel: "anon" pode ser publicado, "service_role" nunca.
+// formato acusaria a anon key legitima — e um verificador que grita a toa
+// vira um verificador ignorado. Entao decodificamos o payload e olhamos o
+// papel: "anon" pode ser publicado, "service_role" nunca.
+//
+// O QUE MUDOU NA REVISAO FINAL DA FASE 1. Esta secao varria SO `site/` — o
+// site estatico antigo. A Netlify publica `.next` desde a migracao
+// (netlify.toml), e nada varria nem `.next` nem `public/`: o guardiao
+// vigiava um diretorio que nao e mais o que vai ao ar. Pior, os `|| true`
+// no fim de cada grep faziam o comando devolver vazio quando o diretorio
+// sumisse, e o guardiao respondia "tudo certo" — a MESMA falha silenciosa
+// que a Rodada 1 da Tarefa 10 corrigiu na secao 1 deste arquivo. Como
+// `site/` vai ser apagado na fase 2, isso estava a um `git rm` de acontecer.
+//
+// Agora: diretorio esperado que nao existe FALHA (se obrigatorio) ou aparece
+// dito em voz alta (se opcional), nunca vira silencio; e erro do proprio
+// grep (codigo de saida >= 2) tambem falha, em vez de virar "nenhum
+// resultado".
 // ---------------------------------------------------------------------
 function papelDoToken(token) {
   try {
@@ -84,41 +153,245 @@ function papelDoToken(token) {
   }
 }
 
-const arquivosPublicados = spawnSync('sh', ['-c',
-  'grep -rIl --exclude-dir=node_modules --exclude-dir=fontes -E "eyJ[A-Za-z0-9_-]{10,}\\." site/ || true'
-], { encoding: 'utf8' }).stdout.trim().split('\n').filter(Boolean);
+/**
+ * Diretorios que vao ao ar, ou que ainda convivem com o que vai.
+ *
+ * `.next` e `public/` sao o que a Netlify publica hoje. `site/` e o site
+ * estatico antigo, ainda versionado durante a migracao (54 arquivos em
+ * `git ls-files site/`) e ainda contendo config.js com a anon key — por
+ * isso continua sendo varrido enquanto existir.
+ */
+const DIRETORIOS_PUBLICADOS = [
+  {
+    caminho: '.next',
+    obrigatorio: true,
+    porque: 'é o que netlify.toml publica',
+    // .next empacota bibliotecas de terceiros. O @supabase/supabase-js
+    // carrega, no proprio codigo, `e.startsWith("sb_secret_")` e a mensagem
+    // "Double check your Supabase `anon` or `service_role` API key" — o
+    // padrao amplo acusava esses arquivos, medido. Um verificador que grita
+    // a toa vira um verificador ignorado, entao aqui a busca por NOME exige
+    // uma chave de verdade (prefixo mais o corpo), nao a palavra solta. A
+    // busca por FORMATO (decodificar o JWT e olhar o papel) continua igual
+    // e nao tem esse problema: ela nao acusa mencao, so credencial.
+    codigoDeTerceiros: true
+  },
+  { caminho: 'public', obrigatorio: true, porque: 'vai inteiro para a raiz do site' },
+  {
+    caminho: 'site',
+    obrigatorio: false,
+    porque: 'site estático antigo, ainda versionado durante a migração — some na fase 2'
+  }
+];
 
-for (const arquivo of arquivosPublicados) {
-  const conteudo = await readFile(arquivo, 'utf8');
-  const tokens = conteudo.match(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g) || [];
+/** Roda um grep e distingue "nada encontrado" (1) de "o grep falhou" (>=2). */
+function grepArquivos(padrao, diretorio) {
+  const resultado = spawnSync('sh', ['-c',
+    `grep -rIl --exclude-dir=node_modules --exclude-dir=fontes --exclude-dir=cache `
+    + `-E ${JSON.stringify(padrao)} ${JSON.stringify(diretorio)}`
+  ], { encoding: 'utf8' });
 
-  for (const token of tokens) {
-    const papel = papelDoToken(token);
-    if (papel && papel !== 'anon') {
-      relatar(
-        `Chave de papel "${papel}" em arquivo publicado`,
-        `Encontrada em: ${arquivo}\n`
-        + '  Somente a anon key pode ser publicada. Qualquer outra ignora a RLS\n'
-        + '  e daria acesso total aos dados de inscritos, doadores e contatos.'
-      );
-    }
+  if (resultado.status === 0) return { arquivos: resultado.stdout.trim().split('\n').filter(Boolean) };
+  if (resultado.status === 1) return { arquivos: [] };
+  return { erro: (resultado.stderr || `grep saiu com ${resultado.status}`).trim() };
+}
+
+/**
+ * Palavras que denunciam a chave secreta mesmo fora do formato JWT.
+ *
+ * Em codigo que escrevemos, a MENCAO ja e suspeita. Em codigo empacotado de
+ * terceiros, so a chave inteira.
+ */
+const PADRAO_POR_NOME = {
+  nosso: 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_',
+  terceiros: 'SUPABASE_SERVICE_ROLE|sb_secret_[A-Za-z0-9_-]{16,}'
+};
+
+const diretoriosParaVarrer = [];
+
+for (const { caminho, obrigatorio, porque, codigoDeTerceiros } of DIRETORIOS_PUBLICADOS) {
+  if (existsSync(caminho)) {
+    diretoriosParaVarrer.push({ caminho, codigoDeTerceiros: Boolean(codigoDeTerceiros) });
+    continue;
+  }
+
+  if (obrigatorio) {
+    relatar(
+      `Diretório publicado ausente: ${caminho}/`,
+      `${caminho}/ não existe, e ${porque}.\n`
+      + '  O guardião NÃO pode responder "tudo certo" sobre um diretório que não\n'
+      + '  varreu. Rodar `next build` antes, ou corrigir netlify.toml se o que vai\n'
+      + '  ao ar mudou de lugar.'
+    );
+  } else {
+    console.log(`  · ${caminho}/ não existe — nada a varrer ali (${porque}).`);
   }
 }
 
-// Palavras que denunciam a chave secreta mesmo fora do formato JWT.
-const segredosPorNome = spawnSync('sh', ['-c',
-  'grep -rIl --exclude-dir=node_modules -E "service_role|SUPABASE_SERVICE_ROLE|sb_secret_" site/ || true'
-], { encoding: 'utf8' }).stdout.trim().split('\n').filter(Boolean);
+for (const { caminho: diretorio, codigoDeTerceiros } of diretoriosParaVarrer) {
+  const porFormato = grepArquivos('eyJ[A-Za-z0-9_-]{10,}\\.', diretorio);
+  if (porFormato.erro) {
+    relatar(`Não foi possível varrer ${diretorio}/`, porFormato.erro);
+    continue;
+  }
 
-if (segredosPorNome.length > 0) {
-  relatar(
-    'Referencia a chave secreta em arquivo publicado',
-    `Encontrada em:\n  ${segredosPorNome.join('\n  ')}`
+  for (const arquivo of porFormato.arquivos) {
+    const conteudo = await readFile(arquivo, 'utf8');
+    const tokens = conteudo.match(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g) || [];
+
+    for (const token of tokens) {
+      const papel = papelDoToken(token);
+      if (papel && papel !== 'anon') {
+        relatar(
+          `Chave de papel "${papel}" em arquivo publicado`,
+          `Encontrada em: ${arquivo}\n`
+          + '  Somente a anon key pode ser publicada. Qualquer outra ignora a RLS\n'
+          + '  e daria acesso total aos dados de inscritos, doadores e contatos.'
+        );
+      }
+    }
+  }
+
+  const porNome = grepArquivos(
+    codigoDeTerceiros ? PADRAO_POR_NOME.terceiros : PADRAO_POR_NOME.nosso,
+    diretorio
   );
+  if (porNome.erro) {
+    relatar(`Não foi possível varrer ${diretorio}/`, porNome.erro);
+  } else if (porNome.arquivos.length > 0) {
+    relatar(
+      'Referencia a chave secreta em arquivo publicado',
+      `Encontrada em:\n  ${porNome.arquivos.join('\n  ')}`
+    );
+  }
 }
 
 // ---------------------------------------------------------------------
-// 3. Toda tabela criada precisa ter RLS habilitada na mesma migration
+// 4. Nenhum .html solto em public/
+//
+// Previsto na spec §7.3 e nunca feito. `public/` vai inteiro para a raiz do
+// site publicado, e um arquivo la tem precedencia sobre a rota do Next de
+// mesmo nome. Um `public/quem-somos.html` esquecido da migracao serviria a
+// pagina ANTIGA, sem cabecalho, sem os controles de acessibilidade e sem a
+// camada de dados — e a rota /quem-somos do Next, testada e verde, nunca
+// seria alcancada. Falha silenciosa perfeita: tudo passa, o visitante ve
+// outro site.
+// ---------------------------------------------------------------------
+if (existsSync('public')) {
+  const html = spawnSync('sh', ['-c', 'find public -type f -name "*.html"'], { encoding: 'utf8' });
+  const soltos = (html.stdout || '').trim().split('\n').filter(Boolean);
+
+  if (html.status !== 0) {
+    relatar('Não foi possível listar os .html de public/', (html.stderr || '').trim());
+  } else if (soltos.length > 0) {
+    relatar(
+      'Arquivo .html solto em public/',
+      `Encontrado:\n  ${soltos.join('\n  ')}\n`
+      + '  public/ é servido na raiz e tem precedência sobre a rota do Next de\n'
+      + '  mesmo caminho: esses arquivos esconderiam páginas migradas atrás das\n'
+      + '  versões antigas, sem erro nenhum.'
+    );
+  }
+}
+
+// ---------------------------------------------------------------------
+// 5. Os VALORES das variaveis de ambiente, nao so a presenca delas
+//
+// Tambem previsto na spec §7.3 e nunca feito. Sao tres perguntas
+// diferentes, e so a primeira era feita em algum lugar:
+//   - existe? (a secao 1 responde, rodando o aceite de verdade)
+//   - a chave publicavel e mesmo publicavel, ou alguem colou a secreta?
+//   - sobrou alguma variavel que nao devia existir neste projeto?
+//
+// Le .env.local e process.env: sao as duas fontes que alimentam o build.
+// Na Netlify o painel vira process.env; aqui na maquina, .env.local.
+// ---------------------------------------------------------------------
+const ambiente = { ...lerEnvLocal(), ...process.env };
+
+/** Uma chave do Supabase e publicavel? Cobre o formato JWT e o formato novo. */
+function chaveEhPublicavel(valor) {
+  if (valor.startsWith('sb_secret_')) return { publicavel: false, papel: 'sb_secret_' };
+  if (valor.startsWith('sb_publishable_')) return { publicavel: true, papel: 'sb_publishable_' };
+  const papel = papelDoToken(valor);
+  if (papel) return { publicavel: papel === 'anon', papel };
+  return { publicavel: null, papel: null };
+}
+
+if (!ambiente.SUPABASE_URL) {
+  relatar('SUPABASE_URL ausente', 'Sem ela o site não fala com o banco: nem em .env.local, nem no ambiente.');
+} else if (!ambiente.SUPABASE_URL.startsWith('https://')) {
+  relatar(
+    'SUPABASE_URL não é https',
+    `Valor: ${ambiente.SUPABASE_URL}\n`
+    + '  A anon key viaja em todo pedido. Sem TLS ela vai em claro.'
+  );
+}
+
+if (!ambiente.SUPABASE_CHAVE_PUBLICAVEL) {
+  relatar('SUPABASE_CHAVE_PUBLICAVEL ausente', 'Nem em .env.local, nem no ambiente.');
+} else {
+  const { publicavel, papel } = chaveEhPublicavel(ambiente.SUPABASE_CHAVE_PUBLICAVEL);
+  if (publicavel === false) {
+    relatar(
+      `SUPABASE_CHAVE_PUBLICAVEL carrega uma chave de papel "${papel}"`,
+      '  Essa variável alimenta servidor/supabase.ts, que é o cliente usado para\n'
+      + '  TODA leitura do site. Uma chave que ignora a RLS ali entrega, de uma vez,\n'
+      + '  as tabelas de inscritos, voluntários, doações e contatos — e o aceite\n'
+      + '  bloqueante da seção 12 passaria assim mesmo, porque ele testa a política,\n'
+      + '  não qual chave o site usa.'
+    );
+  } else if (publicavel === null) {
+    relatar(
+      'SUPABASE_CHAVE_PUBLICAVEL não parece uma chave do Supabase',
+      '  Não é JWT decodificável nem começa com sb_publishable_/sb_secret_.\n'
+      + '  O guardião não consegue dizer se ela é publicável, e chave que o\n'
+      + '  verificador não entende não vai ao ar.'
+    );
+  }
+}
+
+for (const [nome, valor] of Object.entries(ambiente)) {
+  if (typeof valor !== 'string' || !valor) continue;
+
+  // Restrição global da spec: nenhuma variável NEXT_PUBLIC_. Esse prefixo é
+  // o que faz o Next EMBUTIR o valor no bundle do navegador — é a porta
+  // exata pela qual a credencial iria parar no cliente, e testes/
+  // vazamento.test.mjs só veria depois de acontecer.
+  if (nome.startsWith('NEXT_PUBLIC_')) {
+    relatar(
+      `Variável com prefixo NEXT_PUBLIC_: ${nome}`,
+      '  Esse prefixo manda o Next embutir o valor no JavaScript que o navegador\n'
+      + '  baixa. Este projeto não tem nenhuma variável que deva ir para o cliente:\n'
+      + '  todo acesso a dado é do servidor (servidor/dados/). Remover — inclusive\n'
+      + '  do painel de variáveis da Netlify, que não aparece no repositório.'
+    );
+  }
+
+  if (/SUPABASE/i.test(nome) && /SERVICE_ROLE|SECRET/i.test(nome)) {
+    relatar(
+      `Variável de chave secreta configurada: ${nome}`,
+      '  A spec §4.2 é explícita: não existe cliente com chave que ignora a RLS\n'
+      + '  neste projeto, e nenhuma variável com chave secreta em lugar nenhum.\n'
+      + '  Enquanto ela existir, basta um import errado para furar todas as políticas.'
+    );
+    continue;
+  }
+
+  // Pelo VALOR, não pelo nome: uma chave secreta guardada numa variável de
+  // nome inocente não seria pega pela regra acima.
+  const suspeita = valor.startsWith('sb_secret_')
+    || (valor.startsWith('eyJ') && papelDoToken(valor) && papelDoToken(valor) !== 'anon');
+  if (suspeita) {
+    relatar(
+      `Variável ${nome} contém uma chave que ignora a RLS`,
+      `  Papel: ${valor.startsWith('sb_secret_') ? 'sb_secret_' : papelDoToken(valor)}\n`
+      + '  O nome da variável não denuncia, o valor sim.'
+    );
+  }
+}
+
+// ---------------------------------------------------------------------
+// 6. Toda tabela criada precisa ter RLS habilitada na mesma migration
 // ---------------------------------------------------------------------
 const migrations = spawnSync('sh', ['-c', 'cat supabase/migrations/*.sql'], { encoding: 'utf8' }).stdout || '';
 
@@ -138,7 +411,7 @@ if (semRls.length > 0) {
 }
 
 // ---------------------------------------------------------------------
-// 4. Toda tabela precisa de grant explicito
+// 7. Toda tabela precisa de grant explicito
 //
 // O projeto Supabase foi criado sem exposicao automatica de tabelas. Uma
 // tabela sem grant nao chega a API: o sintoma e uma tela vazia, e o risco e
