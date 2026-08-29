@@ -2,8 +2,9 @@
  * Guardiao do deploy.
  *
  * SETE secoes, nesta ordem: (1) o aceite bloqueante da secao 12 do escopo
- * roda de verdade; (2) o teste de vazamento roda contra um build feito COM
- * as credenciais; (3) os diretorios que vao ao ar sao varridos atras de
+ * roda de verdade; (2) o teste de vazamento E o de procedencia do dado
+ * rodam contra um build feito COM as credenciais; (3) os diretorios que
+ * vao ao ar sao varridos atras de
  * chave secreta; (4) nenhum .html solto em public/; (5) os VALORES das
  * variaveis de ambiente; (6) RLS em toda tabela; (7) grant em toda tabela.
  * As secoes 2 a 5 nasceram na revisao final da fase 1 — as tres ultimas
@@ -82,37 +83,60 @@ if (aceite.status !== 0) {
 }
 
 // ---------------------------------------------------------------------
-// 2. O teste de vazamento precisa RODAR, e contra o build que vai ao ar
+// 2. Os dois testes que so significam alguma coisa contra o build de verdade
 //
-// Ate a revisao final da fase 1 este guardiao nem chamava
-// testes/vazamento.test.mjs. Chamar nao basta: aquele teste varre
-// `.next/static` e o HTML entregue, e no modo offline da suite o build roda
-// com NODE_ENV=test e SEM nenhuma variavel do Supabase — varrer um build
-// onde a credencial nem existia nao prova que ela nao vaza do build em que
-// existe. Por isso aqui e COM_SUPABASE=1: constroi com as variaveis
-// presentes (o build parecido com o da Netlify), sobe, varre, e derruba o
-// deploy se sujar.
+// Ate a revisao final da fase 1 este guardiao nao chamava nenhum dos dois.
+// Chamar nao basta: os dois precisam do build COM as variaveis do Supabase
+// presentes — o build parecido com o que a Netlify produz —, e o modo
+// offline da suite constroi com NODE_ENV=test e SEM elas. Por isso aqui e
+// COM_SUPABASE=1.
+//
+//   - testes/vazamento.test.mjs varre `.next/static` e o HTML entregue atras
+//     da URL e da chave reais. Varrer um build onde a credencial nem existia
+//     nao prova que ela nao vaza do build em que existe.
+//
+//   - testes/origem-dos-dados.test.mjs exige que o conteudo venha do BANCO
+//     quando ha credencial valida. Ele entrou aqui na re-revisao da fase 1,
+//     e o motivo e concreto: com o guardiao rodando so o de vazamento, uma
+//     consulta quebrada (coluna inexistente no select, grant faltando, RLS
+//     apertada) fazia a camada de dados cair para o JSON versionado, a
+//     pagina ficava IDENTICA a pagina certa e o guardiao respondia
+//     "tudo certo", saida 0. O defeito exato que o CRITICO 1 nomeia —
+//     publicar com o Supabase configurado servindo JSON o tempo todo —
+//     passava pelo portao sem um ruido. O teste que existe para isso ja
+//     existia; ninguem o estava chamando.
+//
+// Os dois numa invocacao so, de proposito: o passo ja constroi e sobe o
+// servidor, entao o segundo arquivo custa perto de zero.
 //
 // Efeito colateral desejado: e este passo que produz o `.next` que a secao 3
 // varre logo abaixo.
 // ---------------------------------------------------------------------
-const vazamento = spawnSync(
+const ARQUIVOS_CONTRA_O_BUILD_REAL = [
+  'testes/vazamento.test.mjs',
+  'testes/origem-dos-dados.test.mjs'
+];
+
+const contraOBuildReal = spawnSync(
   process.execPath,
-  ['ferramentas/rodar-testes.mjs', 'testes/vazamento.test.mjs'],
+  ['ferramentas/rodar-testes.mjs', ...ARQUIVOS_CONTRA_O_BUILD_REAL],
   { encoding: 'utf8', env: { ...process.env, COM_SUPABASE: '1' } }
 );
 
-if (vazamento.status !== 0) {
+if (contraOBuildReal.status !== 0) {
   relatar(
-    'O teste de vazamento de credencial NÃO passou',
-    '`COM_SUPABASE=1 node ferramentas/rodar-testes.mjs testes/vazamento.test.mjs` falhou.\n'
-    + '  Ele constrói COM as variáveis do Supabase — o mesmo tipo de build que a\n'
-    + '  Netlify produz — e procura a URL e a chave reais dentro de .next/static e\n'
-    + '  do HTML entregue. Se falhou, ou a credencial vazou para o navegador, ou o\n'
-    + '  build/servidor não subiu (o que também impede a seção 3 abaixo de varrer\n'
-    + '  o que vai ao ar).\n\n'
+    'Vazamento de credencial ou procedência do dado: NÃO passou',
+    `\`COM_SUPABASE=1 node ferramentas/rodar-testes.mjs ${ARQUIVOS_CONTRA_O_BUILD_REAL.join(' ')}\` falhou.\n`
+    + '  Esse passo constrói COM as variáveis do Supabase — o mesmo tipo de build\n'
+    + '  que a Netlify produz — e verifica duas coisas que só existem ali:\n'
+    + '    · a URL e a chave reais NÃO aparecem em .next/static nem no HTML entregue;\n'
+    + '    · o conteúdo servido vem mesmo do BANCO, e não do JSON versionado.\n'
+    + '  Se a segunda falhou, o site está de pé e correto, mas servindo dado que\n'
+    + '  ninguém consegue atualizar pelo painel: a consulta caiu e a página ficou\n'
+    + '  idêntica à página certa. Ver o aviso "[dados]" na saída abaixo.\n'
+    + '  Se nem subiu, a seção 3 também não terá o que varrer.\n\n'
     + '  Saída:\n'
-    + String(vazamento.stdout + vazamento.stderr)
+    + String(contraOBuildReal.stdout + contraOBuildReal.stderr)
         .trim()
         .split('\n')
         .slice(-40)
