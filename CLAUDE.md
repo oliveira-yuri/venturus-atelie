@@ -5,6 +5,8 @@ zona norte de São Paulo. Fatec Innovation Challenge.
 
 **Fonte de verdade do escopo:** `PLANO-PROJETO-ATELIE-AFRO-CULTURAL.md`
 **Decisões de implementação:** `docs/superpowers/specs/2026-08-24-atelie-afro-cultural-design.md`
+**Migração para Next.js (decidida em 28/08/2026):** `docs/superpowers/specs/2026-08-28-migracao-nextjs-design.md`
+— até o portão go/no-go do passo 2 ser vencido, `main` continua sendo o site que vai ao ar
 **Conteúdo real da ONG:** `docs/conteudo-real.md` — nunca inventar texto; se falta, perguntar
 
 ---
