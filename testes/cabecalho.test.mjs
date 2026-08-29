@@ -100,6 +100,39 @@ test('Esc fecha o menu mesmo sem sair do botao, e devolve o foco a ele', async (
     'o foco deveria estar no botao Menu — sem isso ele fica preso num menu invisivel');
 });
 
+test('abre pelo botao, da Tab ate um link do menu, e Esc fecha e devolve o foco ao botao', async () => {
+  // Pendente desde a Tarefa 5: o caso acima cobre Esc apertado direto no
+  // botao, mas quem navega por teclado tambem pode dar Tab para dentro do
+  // <nav> antes de desistir. O onKeyDown mora no <div class="cabecalho__
+  // menu-grupo"> que envolve botao e nav (ver comentario no topo de
+  // MenuMovel.tsx), entao o evento deveria borbulhar dali tambem — mas isso
+  // nunca tinha sido provado contra o app Next, so verificado a mao.
+  await navegador.manage().window().setRect({ width: 375, height: 720 });
+  await navegador.get(`${BASE}/`);
+
+  const botao = await navegador.findElement(By.css('.cabecalho__alternar'));
+  await botao.click();
+  assert.equal(await botao.getAttribute('aria-expanded'), 'true', 'o clique deveria abrir o menu');
+
+  // Um Tab a partir do botao entra no primeiro link do nav ("Inicio").
+  await navegador.actions().sendKeys(Key.TAB).perform();
+  const focoAntes = await navegador.executeScript('return document.activeElement.tagName');
+  assert.equal(focoAntes, 'A', 'o Tab deveria ter entrado num link do menu');
+
+  await navegador.actions().sendKeys(Key.ESCAPE).perform();
+
+  assert.equal(await botao.getAttribute('aria-expanded'), 'false',
+    'Esc dado a partir de um link do menu tambem deveria fechar o menu');
+
+  const nav = await navegador.findElement(By.css('#menu-principal'));
+  assert.match(await nav.getAttribute('class'), /cabecalho__menu--fechado/,
+    'a classe de recolhido deveria voltar');
+
+  const classeAtiva = await navegador.executeScript('return document.activeElement.className');
+  assert.equal(classeAtiva, 'cabecalho__alternar',
+    'o foco deveria voltar ao botao Menu mesmo vindo de um link do menu');
+});
+
 test('o alvo do link de pular para o conteudo existe na pagina', async () => {
   const html = await fetch(`${BASE}/`).then((resposta) => resposta.text());
   assert.match(html, /<a class="pular-para-conteudo" href="#conteudo">/,

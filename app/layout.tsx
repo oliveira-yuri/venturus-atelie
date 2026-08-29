@@ -6,6 +6,7 @@ import '@/estilos/componentes.css';
 import Cabecalho from '@/componentes/Cabecalho';
 import Rodape from '@/componentes/Rodape';
 import VLibras from '@/componentes/VLibras';
+import FocoNaNavegacao from '@/componentes/FocoNaNavegacao';
 
 export const metadata = {
   title: 'Ateliê Afro Cultural',
@@ -45,6 +46,7 @@ export default async function LayoutRaiz({ children }: { children: React.ReactNo
           }}
         />
         <a className="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+        <FocoNaNavegacao />
         <Cabecalho />
         {children}
         <Rodape />
