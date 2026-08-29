@@ -12,12 +12,44 @@
  * a Row Level Security. Este arquivo é a prova de que ela está no lugar.
  *
  * Executar com: node --test testes/seguranca.test.mjs
- * Requer SUPABASE_URL e SUPABASE_ANON_KEY no ambiente, ou site/config.js
- * preenchido.
+ * Requer SUPABASE_URL e SUPABASE_CHAVE_PUBLICAVEL no ambiente, ou em
+ * .env.local (não versionado — ver servidor/supabase.ts).
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+
+/**
+ * Carrega .env.local no process.env, se as variáveis ainda não estiverem
+ * definidas.
+ *
+ * Precisa ser SÍNCRONO e rodar no topo do módulo, antes do describe() lá
+ * embaixo: o `skip` do describe é avaliado antes de qualquer before()
+ * rodar, então um carregamento assíncrono deixaria o aceite pulando mesmo
+ * com o projeto configurado — foi exatamente assim que este teste ficou
+ * silenciosamente pulado uma vez. `next dev`/`next build` carregam
+ * .env.local sozinhos; um `node --test` direto neste arquivo, não.
+ */
+function carregarEnvLocal() {
+  let bruto;
+  try {
+    bruto = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
+  } catch {
+    return;
+  }
+
+  for (const linha of bruto.split('\n')) {
+    const limpa = linha.trim();
+    if (!limpa || limpa.startsWith('#')) continue;
+    const posicaoIgual = limpa.indexOf('=');
+    if (posicaoIgual === -1) continue;
+    const chave = limpa.slice(0, posicaoIgual).trim();
+    const valor = limpa.slice(posicaoIgual + 1).trim();
+    if (!(chave in process.env)) process.env[chave] = valor;
+  }
+}
+
+carregarEnvLocal();
 
 /** Tabelas cuja leitura sem autenticação precisa voltar vazia. */
 const PROTEGIDAS = ['inscricoes', 'voluntarios', 'doacoes', 'contatos', 'presencas'];
@@ -29,25 +61,20 @@ const PUBLICAS = ['atividades', 'clipping', 'eventos', 'publicacoes', 'acervo'];
 const COLUNAS_SENSIVEIS = ['email', 'telefone', 'cpf', 'responsavel_nome', 'responsavel_telefone'];
 
 /**
- * Lê a configuração de forma SÍNCRONA, no carregamento do módulo.
+ * Lê a configuração de forma SÍNCRONA, no carregamento do módulo (mesmo
+ * motivo do carregarEnvLocal() acima: o skip do describe roda antes de
+ * qualquer before()).
  *
- * O `skip` do describe é avaliado antes de qualquer before() rodar: se a
- * leitura fosse assíncrona, o aceite pularia mesmo com o projeto configurado
- * — que foi exatamente o que aconteceu na primeira versão deste arquivo.
+ * site/config.js deixou de existir com a migração para Next.js — a página
+ * agora fala com o Supabase só do servidor, via servidor/supabase.ts, que lê
+ * as mesmas duas variáveis de ambiente.
  */
 function lerConfiguracao() {
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-    return { url: process.env.SUPABASE_URL, chave: process.env.SUPABASE_ANON_KEY };
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_CHAVE_PUBLICAVEL) {
+    return { url: process.env.SUPABASE_URL, chave: process.env.SUPABASE_CHAVE_PUBLICAVEL };
   }
 
-  try {
-    const bruto = readFileSync(new URL('../site/config.js', import.meta.url), 'utf8');
-    const url = bruto.match(/supabaseUrl:\s*'([^']*)'/)?.[1];
-    const chave = bruto.match(/supabaseAnonKey:\s*'([^']*)'/)?.[1];
-    return url && chave ? { url, chave } : null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 const configuracao = lerConfiguracao();
@@ -141,7 +168,7 @@ describe('acesso indevido às tabelas com dados pessoais', { skip: skipSemConfig
 function skipSemConfiguracao() {
   return configuracao
     ? false
-    : 'Supabase ainda não configurado. Defina SUPABASE_URL e SUPABASE_ANON_KEY, '
-      + 'ou preencha site/config.js. ATENÇÃO: enquanto isso, o aceite bloqueante '
+    : 'Supabase ainda não configurado. Defina SUPABASE_URL e SUPABASE_CHAVE_PUBLICAVEL '
+      + 'no ambiente, ou em .env.local. ATENÇÃO: enquanto isso, o aceite bloqueante '
       + 'da seção 12 NÃO foi verificado.';
 }

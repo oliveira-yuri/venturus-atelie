@@ -6,19 +6,24 @@
 // (/projetos.html -> /projetos) para casar com o esquema de rotas do Next;
 // a página em si ainda não existe (fase futura).
 //
-// "Onde já estivemos" ficava populada por assets/js/paginas/prova-social.js,
-// que buscava listarClipping() da camada de dados antiga. Essa camada só
-// nasce no servidor na Tarefa 10 (servidor/dados/conteudo.ts) e nenhuma
-// página ainda a consome — por isso esta é uma das "três páginas sem dados"
-// e a div fica vazia de propósito, como no HTML de origem antes do script
-// rodar. Reativar quando uma tarefa de fase 2 ligar esta seção a
-// listarClipping().
+// "Onde já estivemos" era populada no cliente por
+// assets/js/paginas/prova-social.js, lendo listarClipping(). Agora que a
+// camada de dados existe no servidor (Tarefa 10, servidor/dados/conteudo.ts)
+// a página busca direto — sem round-trip nenhum no navegador. A decisão de
+// desenhar a seção (ou omiti-la, se não houver registro de instituição ou
+// programação) mora em servidor/dados/prova-social.ts, testado à parte em
+// testes/prova-social.test.mjs.
+import { listarClipping } from '@/servidor/dados/conteudo';
+import { SecaoOndeEstivemos } from '@/servidor/dados/prova-social';
+
 export const metadata = {
   title: 'Para escolas — Ateliê Afro Cultural',
   description: 'Contações de história e vivências brincantes para escolas e instituições, com faixas etárias, duração e o que a escola precisa providenciar.'
 };
 
-export default function ParaEscolas() {
+export default async function ParaEscolas() {
+  const clipping = await listarClipping();
+
   return (
     <main id="conteudo" className="conteudo">
       <h1>Para escolas e instituições</h1>
@@ -57,10 +62,7 @@ export default function ParaEscolas() {
         <p>A ficha técnica de cada atividade traz o que ela pede em detalhe.</p>
       </section>
 
-      <section aria-labelledby="titulo-onde-estivemos">
-        <h2 id="titulo-onde-estivemos">Onde já estivemos</h2>
-        <div id="lista-instituicoes"></div>
-      </section>
+      <SecaoOndeEstivemos registros={clipping} />
 
       <section aria-labelledby="titulo-solicitar">
         <h2 id="titulo-solicitar">Solicitar uma atividade</h2>

@@ -36,18 +36,49 @@ const BASE = process.env.URL_BASE || 'http://localhost:3123';
 const PAGINAS = [
   { rota: '/quem-somos', arquivoOriginal: 'site/quem-somos.html' },
   { rota: '/privacidade', arquivoOriginal: 'site/privacidade.html' },
-  { rota: '/para-escolas', arquivoOriginal: 'site/para-escolas.html' }
+  {
+    rota: '/para-escolas',
+    arquivoOriginal: 'site/para-escolas.html',
+    // "Onde já estivemos" já era dinâmica no HTML estático original: o
+    // <div id="lista-instituicoes"> chegava vazio e era preenchido no
+    // cliente por assets/js/paginas/prova-social.js, lendo os mesmos
+    // registros de clipping que a Tarefa 10 passou a buscar no servidor
+    // (servidor/dados/conteudo.ts). Comparar o texto bruto do HTML estático
+    // contra o HTML já renderizado com esses registros acusaria uma
+    // divergência, mas ela é legítima — o site antigo também mostrava essa
+    // lista, só que via script, depois da carga da página. Por isso esta
+    // seção sai da comparação de string aqui; a omissão dela quando não há
+    // registro, e o conteúdo dela quando há, são provados à parte, de
+    // verdade, em testes/prova-social.test.mjs. O resto de <main> — que não
+    // vem de dado nenhum — continua comparado byte a byte por este teste.
+    idsExcluidos: ['titulo-onde-estivemos']
+  }
 ];
 
-function extrairTextoDoMain(html) {
-  const abre = html.match(/<main\b[^>]*id=["']conteudo["'][^>]*>/i);
+// Remove do HTML bruto a <section aria-labelledby="ID">...</section> cujo id
+// está em `idsExcluidos`, antes de extrair o texto — ver comentário acima.
+function removerSecoesExcluidas(html, idsExcluidos) {
+  return idsExcluidos.reduce((resultado, id) => {
+    const secao = new RegExp(
+      `<section\\b[^>]*aria-labelledby=["']${id}["'][^>]*>[\\s\\S]*?<\\/section>`,
+      'i'
+    );
+    assert.match(resultado, secao, `seção "${id}" a excluir não foi encontrada no documento`);
+    return resultado.replace(secao, '');
+  }, html);
+}
+
+function extrairTextoDoMain(html, idsExcluidos = []) {
+  const semSecoesExcluidas = removerSecoesExcluidas(html, idsExcluidos);
+
+  const abre = semSecoesExcluidas.match(/<main\b[^>]*id=["']conteudo["'][^>]*>/i);
   assert.ok(abre, 'não achou <main id="conteudo"> no documento');
 
   const inicio = abre.index + abre[0].length;
-  const fim = html.indexOf('</main>', inicio);
+  const fim = semSecoesExcluidas.indexOf('</main>', inicio);
   assert.ok(fim !== -1, 'não achou </main> no documento');
 
-  const miolo = html.slice(inicio, fim);
+  const miolo = semSecoesExcluidas.slice(inicio, fim);
   return normalizarEspacos(decodificarEntidades(removerTags(miolo)));
 }
 
@@ -93,13 +124,15 @@ function normalizarEspacos(texto) {
 
 for (const pagina of PAGINAS) {
   test(`${pagina.rota}: texto visível do <main> é idêntico ao HTML original`, async () => {
+    const idsExcluidos = pagina.idsExcluidos ?? [];
+
     const htmlOriginal = readFileSync(path.join(RAIZ, pagina.arquivoOriginal), 'utf-8');
-    const textoOriginal = extrairTextoDoMain(htmlOriginal);
+    const textoOriginal = extrairTextoDoMain(htmlOriginal, idsExcluidos);
 
     const resposta = await fetch(`${BASE}${pagina.rota}`);
     assert.equal(resposta.status, 200, `${pagina.rota} não respondeu 200`);
     const htmlRenderizado = await resposta.text();
-    const textoRenderizado = extrairTextoDoMain(htmlRenderizado);
+    const textoRenderizado = extrairTextoDoMain(htmlRenderizado, idsExcluidos);
 
     assert.equal(textoRenderizado, textoOriginal);
   });
