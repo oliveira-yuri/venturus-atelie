@@ -9,7 +9,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 
-const RAIZ = new URL('../site/assets/dados-iniciais/', import.meta.url);
+const RAIZ = new URL('../dados-iniciais/', import.meta.url);
 
 /** Escapa um valor para literal SQL. Null vira NULL, nunca a string "null". */
 function sql(valor) {

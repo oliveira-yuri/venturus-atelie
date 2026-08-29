@@ -60,7 +60,7 @@ test('nenhum aviso de divergencia de hidratacao', async () => {
     );
   }
 
-  for (const rota of ['/', '/quem-somos', '/privacidade']) {
+  for (const rota of ['/', '/quem-somos', '/privacidade', '/para-escolas']) {
     avisos.length = 0;
     await navegador.get(`${BASE}${rota}`);
     await navegador.sleep(600);

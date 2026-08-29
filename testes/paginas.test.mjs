@@ -5,17 +5,18 @@
  * como testes/navegador.test.mjs. Cada página nova entra na lista PAGINAS e
  * ganha toda a bateria de graça.
  *
- * Só as rotas já migradas para o Next entram aqui. As demais — projetos,
- * agenda, notícias, galeria, acervo, voluntariado, doar, contato, entrar —
- * ainda não existem no app novo; migram em tarefas futuras e voltam para
- * esta lista quando existirem.
+ * Só as rotas já migradas para o Next entram aqui: a home (`/`) e as três
+ * desta tarefa. As outras nove do menu — projetos, agenda, notícias,
+ * galeria, acervo, voluntariado, doar, contato, entrar — ainda não existem
+ * no app novo; migram na fase 2 e voltam para esta lista quando existirem.
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { Builder, By } from 'selenium-webdriver';
+import { Builder } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
 
 const PAGINAS = [
+  { arquivo: '',             chave: 'inicio' },
   { arquivo: 'quem-somos',   chave: 'quem-somos' },
   // Privacidade nao e item do menu principal (o mesmo valia no site antigo:
   // <aac-header pagina-atual=""> em site/privacidade.html) — por isso
@@ -24,7 +25,7 @@ const PAGINAS = [
   { arquivo: 'para-escolas', chave: 'para-escolas' }
 ];
 
-const BASE = process.env.URL_BASE;
+const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
 let navegador;
 
@@ -78,6 +79,8 @@ for (const pagina of PAGINAS) {
     assert.ok(montou.menu, 'o menu não montou');
     if (!pagina.semItemDeMenu) {
       assert.ok(montou.atual, 'nenhum item marcado como página atual');
+    } else {
+      assert.equal(montou.atual, null, 'privacidade não deveria ter item de menu marcado como atual');
     }
     assert.ok(montou.contatos >= 5, 'o rodapé precisa dos cinco contatos do RF06');
     assert.equal(montou.acessibilidade, 4, 'faltam controles de acessibilidade');
@@ -103,7 +106,7 @@ for (const pagina of PAGINAS) {
   });
 }
 
-// As duas suítes abaixo (catálogo de projetos e prova social) dependem de
+// As três suítes abaixo (catálogo de projetos e prova social) dependem de
 // páginas ou de dados que esta tarefa não constrói:
 //
 // - /projetos ainda não existe no Next — migra na fase 2 (plano próprio,
@@ -116,45 +119,15 @@ for (const pagina of PAGINAS) {
 //   <div id="lista-instituicoes"> de para-escolas fica vazio de propósito,
 //   como no HTML de origem antes do script `prova-social.js` rodar.
 //
-// Reativar quando essas páginas existirem de fato — não antes, para não
-// mascarar com um `skip` um teste que hoje falharia pelo motivo certo.
-//
-// test('projetos.html mostra as onze atividades', async () => {
-//   await navegador.manage().window().setRect({ width: 1280, height: 900 });
-//   await navegador.get(`${BASE}/projetos`);
-//
-//   // O catálogo carrega por fetch: espera o primeiro cartão aparecer.
-//   await navegador.wait(async () =>
-//     (await navegador.findElements(By.css('aac-card-atividade'))).length > 0, 5000);
-//
-//   const cartoes = await navegador.findElements(By.css('aac-card-atividade'));
-//   assert.equal(cartoes.length, 11, 'o escopo lista 11 atividades');
-// });
-//
-// test('as atividades sem sinopse não exibem bloco vazio', async () => {
-//   await navegador.get(`${BASE}/projetos`);
-//   await navegador.wait(async () =>
-//     (await navegador.findElements(By.css('aac-card-atividade'))).length > 0, 5000);
-//
-//   const vazios = await navegador.executeScript(`
-//     return [...document.querySelectorAll('.atividade')]
-//       .filter((a) => [...a.querySelectorAll('p')].some((p) => p.textContent.trim() === ''))
-//       .map((a) => a.id);
-//   `);
-//   assert.deepEqual(vazios, [], 'atividades com parágrafo vazio');
-// });
-//
-// test('a prova social carrega na home e em para-escolas', async () => {
-//   for (const [rota, seletor] of [['', '#lista-midia'], ['para-escolas', '#lista-instituicoes']]) {
-//     await navegador.get(`${BASE}/${rota}`);
-//     await navegador.wait(async () =>
-//       (await navegador.findElements(By.css(`${seletor} .clipping__item`))).length > 0, 5000,
-//       `a prova social não carregou em ${rota || 'home'}`);
-//
-//     const itens = await navegador.findElements(By.css(`${seletor} .clipping__item`));
-//     assert.ok(itens.length >= 3, `${rota || 'home'}: só ${itens.length} registros`);
-//   }
-// });
+// `test.todo` em vez de comentar o código: assim os três casos continuam
+// contados (aparecem como `ℹ todo 3` em toda rodada) em vez de somem do
+// relatório. O corpo de cada um — asserções e seletores — está no histórico
+// do git (commit da Tarefa 9). Reativar quando as páginas existirem de
+// fato — não antes, para não mascarar um teste que hoje falharia pelo
+// motivo certo.
+test.todo('projetos.html mostra as onze atividades — falta /projetos (fase 2, plano ainda não escrito)');
+test.todo('as atividades sem sinopse não exibem bloco vazio — falta /projetos (fase 2)');
+test.todo('a prova social carrega na home e em para-escolas — falta listarClipping() consumida por alguma página (pós-Tarefa 10)');
 
 test('nenhum texto escapa da caixa que o contém', async () => {
   // O CSS pode ser escrito para uma estrutura de HTML que não é a que existe.

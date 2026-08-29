@@ -1,10 +1,16 @@
 /**
- * Constroi o site uma vez, sobe um servidor e roda a suite inteira contra ele.
+ * Constroi o site uma vez, sobe um servidor e roda a suite (inteira, ou so
+ * os arquivos passados em argv) contra ele.
  *
  * Os testes de navegador leem a URL de URL_BASE. Sem esta orquestracao, cada
  * arquivo de teste subiria o proprio Next — cinco builds por rodada.
+ *
+ * `npm run verificar` usa isto para rodar so testes/navegador.test.mjs sem
+ * duplicar a orquestracao do servidor.
  */
 import { spawn, spawnSync } from 'node:child_process';
+
+const arquivosPedidos = process.argv.slice(2);
 
 const porta = 3123;
 
@@ -43,7 +49,7 @@ const pronto = new Promise((resolve, reject) => {
 
 try {
   await pronto;
-  const testes = spawnSync('node', ['--test'], {
+  const testes = spawnSync('node', ['--test', ...arquivosPedidos], {
     stdio: 'inherit',
     env: { ...process.env, URL_BASE: `http://localhost:${porta}` }
   });
