@@ -68,27 +68,40 @@ import { NextResponse, type NextRequest } from 'next/server';
  * antes de mudar qualquer coisa aqui.
  *
  * `traducao2.vlibras.gov.br` E MEDIDO — RODADA 2 TINHA ERRADO AQUI, corrigido
- * na rodada 3. O comentario da rodada 2 dizia "por referencia no bundle,
- * nunca visto em requisicao real" — texto perigoso, porque instruiria quem
- * viesse depois a tirar o host da lista achando que era so teoria.
+ * nas rodadas 3 e 4. O comentario da rodada 2 dizia "por referencia no
+ * bundle, nunca visto em requisicao real" — texto perigoso, porque
+ * instruiria quem viesse depois a tirar o host da lista achando que era so
+ * teoria.
  *
- * Medido de verdade, em sessoes ISOLADAS (paginas novas, `performance.
- * getEntriesByType('resource')` com linha de base tirada 25s apos abrir o
- * widget — tempo de sobra pra qualquer chamada automatica de saudacao ja
- * ter acontecido — e so entao comparada com o que aparece depois de CADA
- * caminho, sozinho):
+ * O widget toca uma ANIMACAO DE SAUDACAO automatica uns +4,3s depois de
+ * abrir, que TAMBEM marca `data-status="playing"` mas SEM NENHUMA
+ * requisicao de rede — achado da rodada 4, depois de duas medicoes daquela
+ * mesma tabela darem respostas diferentes (rodada 3 evitou a saudacao sem
+ * saber, esperando 25s antes de clicar; uma re-medicao clicou logo apos o
+ * widget assentar em "idle", ~220ms, e pegou a saudacao em vez da
+ * traducao). Tabela medida (espera apos o idle x status no clique x
+ * chamadas a /translate):
  *
- *   duplo clique num texto real da pagina  -> +2 chamadas a /translate
- *   Menu -> Tradutor -> digitar -> Traduzir -> +1 chamada a /translate
+ *   1000ms / 3000ms de espera            -> idle,    0 chamadas
+ *   5000/8000/12000/20000/25000ms        -> playing, 2 chamadas
  *
- * Os DOIS caminhos chamam o host de verdade — nao so o Tradutor. Faz sentido
- * mecanicamente: um duplo clique seleciona a palavra sob o cursor, e esse
- * widget trata qualquer selecao de texto como um pedido de traducao,
- * chamando o mesmo endpoint que o painel Tradutor chama para o texto
- * digitado. (Uma correcao anterior desta mesma rodada tinha chegado a
- * escrever que so o Tradutor chamava o host — essa versao foi substituida
- * por esta, depois de medir de novo com sessoes isoladas; ver relatorio da
- * Tarefa 6, rodada 3, para o historico completo da divergencia.)
+ * Ou seja: clicar MUITO cedo apos o idle cai numa janela morta sem efeito
+ * de rede; esperar alguns segundos (a partir de uns 5s) garante traducao
+ * de verdade. Com essa condicao respeitada (ver testes/csp-vlibras.test.mjs,
+ * que agora espera ~7s apos o idle antes do duplo clique), MEDIDO em
+ * sessoes ISOLADAS (paginas novas, `performance.getEntriesByType('resource')`,
+ * linha de base tirada 25s apos abrir o widget):
+ *
+ *   duplo clique, com o player ja carregado ha uns 5s+  -> +2 chamadas a /translate
+ *   Menu -> Tradutor -> digitar -> Traduzir              -> +1 chamada a /translate
+ *
+ * Os DOIS caminhos chamam o host de verdade, DESDE QUE o duplo clique
+ * aconteça depois da janela morta — nao e "qualquer duplo clique, a
+ * qualquer momento". (Duas correcoes anteriores desta mesma diretiva
+ * chegaram a escrever, primeiro, que so o Tradutor chamava o host, depois
+ * que qualquer duplo clique chamava sem condicao nenhuma — as duas foram
+ * substituidas por esta, apos arbitragem entre medicoes conflitantes; ver
+ * relatorio da Tarefa 6, rodadas 3 e 4, para o historico completo.)
  *
  * `dicionario2.vlibras.gov.br` e `repositorio.vlibras.gov.br`: A RODADA 1
  * TINHA UM ERRO DE MODELO MENTAL AQUI, corrigido na rodada 2. O comentario
@@ -120,19 +133,30 @@ export function middleware(requisicao: NextRequest) {
     `style-src 'self' 'unsafe-inline'`,
     // vlibras.gov.br redireciona (302) pra cdn.jsdelivr.net em tudo — ver
     // comentario grande no topo do arquivo. Os dois hosts sao necessarios
-    // aqui pelo mesmo motivo. Sem `data:`: a rodada 3 varreu o DOM, os dois
-    // shadow roots do widget e o nosso codigo-fonte atras de um data:image
-    // e nao achou nenhum uso — removido, e a suite inteira continuou verde.
+    // aqui pelo mesmo motivo. `data:` FICA — necessario de verdade,
+    // confirmado na rodada 3: rodar so a suite (que nao exercita o fluxo
+    // de traducao) continuava verde sem `data:`, mas exercitando duplo
+    // clique + Menu -> Tradutor -> Traduzir com o console armado, a
+    // remocao reproduziu ao vivo um bloqueio de
+    // `data:image/png;base64,...`. O no exato do DOM que carrega essa
+    // imagem nao foi localizado (provavel miniatura/quadro transitorio do
+    // avatar durante a traducao, substituido antes de dar tempo de
+    // inspecionar) — mas o bloqueio ao vivo, reproduzido, e evidencia
+    // suficiente. NAO REMOVER sem repetir essa medicao (rodar a suite
+    // sozinha nao basta).
     `img-src 'self' data: https://vlibras.gov.br https://cdn.jsdelivr.net`,
     // Todos os quatro MEDIDOS de verdade (ver comentario grande no topo do
     // arquivo). vlibras.gov.br: assets redirecionados e chamadas do menu do
-    // player, que roda na pagina-mae. traducao2.vlibras.gov.br: acionado
-    // por QUALQUER traducao de texto real — tanto duplo clique numa palavra
-    // da pagina quanto Menu -> Tradutor -> Traduzir (medido nos dois,
-    // isoladamente). dicionario2.vlibras.gov.br e repositorio.vlibras.gov.br:
-    // Menu -> Dicionario busca categorias nesses dois. Sem qualquer um dos
-    // quatro, o painel correspondente degrada em silencio — cada um ja foi
-    // visto quebrando assim numa rodada desta tarefa.
+    // player, que roda na pagina-mae. traducao2.vlibras.gov.br: acionado por
+    // Menu -> Tradutor -> Traduzir, e tambem por duplo clique num texto da
+    // pagina — mas so com o player ja carregado ha uns 5s+ (clicar logo
+    // apos abrir cai numa janela sem chamada de rede, que uma animacao de
+    // saudacao automatica pode confundir com traducao de verdade — ver
+    // comentario grande no topo). dicionario2.vlibras.gov.br e
+    // repositorio.vlibras.gov.br: Menu -> Dicionario busca categorias
+    // nesses dois. Sem qualquer um dos quatro, o painel correspondente
+    // degrada em silencio — cada um ja foi visto quebrando assim numa
+    // rodada desta tarefa.
     `connect-src 'self' https://vlibras.gov.br https://traducao2.vlibras.gov.br https://dicionario2.vlibras.gov.br https://repositorio.vlibras.gov.br`,
     // Mesmo motivo do img-src: as fontes do widget (rawline-*.woff2) tambem
     // passam pelo redirect de vlibras.gov.br para cdn.jsdelivr.net.

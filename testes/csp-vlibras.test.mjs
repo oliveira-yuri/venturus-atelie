@@ -20,7 +20,19 @@
  *     referencia no bundle", nunca medido — e por isso nao tinha teste
  *     nenhum o defendendo. Medido de verdade (sessoes isoladas): tanto o
  *     duplo clique quanto Menu -> Tradutor -> Traduzir chamam esse host de
- *     verdade — os dois defendem essa entrada da politica agora.
+ *     verdade.
+ *   - rodada 4: a afirmacao acima ("os dois defendem a entrada") era
+ *     falsa NA SEQUENCIA em que o teste do duplo clique estava escrito —
+ *     ele clicava soh ~220ms apos o widget assentar em "idle", uma janela
+ *     "morta" em que o clique nao chega a chamar o host (a saudacao
+ *     automatica do widget, que comeca uns +4,3s depois do idle e nao usa
+ *     rede nenhuma, e quem marcava "playing" ali — nao a traducao). Com
+ *     `traducao2` fora da politica, so o teste do Tradutor falhava; o do
+ *     duplo clique passava — um teste placebo. Corrigido com uma espera de
+ *     ~7s apos o idle antes do clique (dentro da janela que sempre produz
+ *     traducao real, medida pela arbitragem). Com a correcao, os dois
+ *     testes de fato defendem essa entrada da politica — reconfirmado
+ *     removendo o host e vendo os dois falharem.
  *
  * A pergunta que guia este arquivo é sempre "o que ainda nao foi clicado?".
  *
@@ -172,25 +184,44 @@ test('abrir o VLibras e traduzir um texto real da pagina chega a "playing", sem 
   // com o carregamento recusado. A prova de verdade e o avatar
   // efetivamente tocando uma animacao: data-status virando "playing".
   //
-  // Logo apos abrir, o player toca uma animacao de boas-vindas que TAMBEM
-  // marca "playing" — por isso espera primeiro assentar em "idle" antes do
-  // duplo clique. Sem essa espera, um "playing" pos-clique nao provaria
-  // nada: podia ser so a animacao de abertura ainda rodando.
+  // Espera primeiro assentar em "idle" — logo apos abrir, o player passa
+  // por "idle" quase de imediato (~200ms). CORRECAO DA RODADA 4: o
+  // comentario anterior dizia que esperava "idle" porque a animacao de
+  // boas-vindas TAMBEM marca "playing", dando a entender que a saudacao
+  // vinha ANTES do idle — invertido. Medido pela arbitragem da rodada 4: a
+  // saudacao comeca DEPOIS do idle, em torno de +4,3s, sem nenhuma
+  // requisicao de rede, e clicar demasiado cedo apos o idle cai numa
+  // janela "morta" em que o duplo clique nao chega a chamar
+  // traducao2.vlibras.gov.br — o teste antigo (sem a espera abaixo)
+  // clicava ~220ms apos o idle, caia nessa janela, e o "playing" que ele
+  // detectava era so a saudacao automatica, sem chamada de rede nenhuma:
+  // um teste placebo, que passava mesmo com traducao2 fora da politica.
   await navegador.wait(
     async () => (await statusDoPlayer(navegador)) === 'idle',
     20000,
     'o VLibras nao assentou em "idle" apos abrir, em 20s'
   );
 
+  // Espera adicional de ~7s DEPOIS do idle — e o conserto real desta
+  // rodada. Tabela medida pela arbitragem (espera apos o idle x status no
+  // clique x chamadas a /translate observadas): 1000ms e 3000ms -> idle,
+  // 0 chamadas (janela morta); 5000/8000/12000/20000/25000ms -> playing,
+  // 2 chamadas (traducao de verdade). 7s fica dentro da faixa que sempre
+  // produziu traducao real nas medicoes.
+  await navegador.sleep(7000);
+
   // Duplo clique de verdade (Actions do WebDriver, nao dispatchEvent
   // isolado) num texto real da pagina — seleciona a palavra sob o cursor,
-  // e este widget trata selecao de texto como pedido de traducao. Isso
-  // tambem leva o avatar a "playing". MEDIDO em sessao isolada (pagina
-  // nova, performance.getEntriesByType('resource'), linha de base tirada
-  // 25s apos abrir o widget): este duplo clique de fato chama
-  // traducao2.vlibras.gov.br/translate (+2 chamadas). O teste 'Menu >
-  // Tradutor', logo abaixo, mede o outro caminho que chama o mesmo host —
-  // os dois defendem essa entrada da politica, cada um a sua maneira.
+  // e este widget trata selecao de texto como pedido de traducao. Com a
+  // espera de 7s acima, este clique cai fora da janela morta: MEDIDO em
+  // sessao isolada (pagina nova, performance.getEntriesByType('resource'),
+  // linha de base tirada 25s apos abrir o widget, clique so entao) que
+  // este duplo clique de fato chama traducao2.vlibras.gov.br/translate
+  // (+2 chamadas). O teste 'Menu > Tradutor', logo abaixo, mede o outro
+  // caminho que chama o mesmo host — com a espera de 7s, os dois defendem
+  // essa entrada da politica de verdade (confirmado removendo o host da
+  // politica e vendo os dois testes falharem — ver relatorio da Tarefa 6,
+  // rodada 4).
   const h1 = await navegador.findElement(By.css('h1'));
   await navegador.actions({ bridge: true }).doubleClick(h1).perform();
 
