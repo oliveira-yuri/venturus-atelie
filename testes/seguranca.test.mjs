@@ -14,10 +14,17 @@
  * Executar com: node --test testes/seguranca.test.mjs
  * Requer SUPABASE_URL e SUPABASE_CHAVE_PUBLICAVEL no ambiente, ou em
  * .env.local (não versionado — ver servidor/supabase.ts).
+ *
+ * EXIGIR_SUPABASE=1 faz este arquivo FALHAR (não pular) quando a
+ * configuração não for encontrada — usado por
+ * ferramentas/verificar-antes-do-deploy.mjs, que precisa de uma prova de
+ * verdade de que o aceite RODOU E PASSOU, não de uma inferência de "parece
+ * configurado". Sem o sinal, continua pulando (com o motivo visível) fora
+ * do guardião de deploy, para quem roda a suíte num ambiente sem Supabase.
  */
-import { test, describe } from 'node:test';
+import { test, describe, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { lerEnvLocal } from './apoio/env-local.mjs';
 
 /**
  * Carrega .env.local no process.env, se as variáveis ainda não estiverem
@@ -28,23 +35,12 @@ import { readFileSync } from 'node:fs';
  * rodar, então um carregamento assíncrono deixaria o aceite pulando mesmo
  * com o projeto configurado — foi exatamente assim que este teste ficou
  * silenciosamente pulado uma vez. `next dev`/`next build` carregam
- * .env.local sozinhos; um `node --test` direto neste arquivo, não.
+ * .env.local sozinhos quando não rodam com NODE_ENV=test (ver
+ * ferramentas/rodar-testes.mjs); um `node --test` direto neste arquivo,
+ * nunca.
  */
 function carregarEnvLocal() {
-  let bruto;
-  try {
-    bruto = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
-  } catch {
-    return;
-  }
-
-  for (const linha of bruto.split('\n')) {
-    const limpa = linha.trim();
-    if (!limpa || limpa.startsWith('#')) continue;
-    const posicaoIgual = limpa.indexOf('=');
-    if (posicaoIgual === -1) continue;
-    const chave = limpa.slice(0, posicaoIgual).trim();
-    const valor = limpa.slice(posicaoIgual + 1).trim();
+  for (const [chave, valor] of Object.entries(lerEnvLocal())) {
     if (!(chave in process.env)) process.env[chave] = valor;
   }
 }
@@ -67,7 +63,9 @@ const COLUNAS_SENSIVEIS = ['email', 'telefone', 'cpf', 'responsavel_nome', 'resp
  *
  * site/config.js deixou de existir com a migração para Next.js — a página
  * agora fala com o Supabase só do servidor, via servidor/supabase.ts, que lê
- * as mesmas duas variáveis de ambiente.
+ * as mesmas duas variáveis de ambiente. Não há fallback para arquivo
+ * nenhum: um arquivo do site antigo sendo lido aqui é exatamente o que
+ * permitiu, na Rodada de correção 1, o guardião de deploy dar falso verde.
  */
 function lerConfiguracao() {
   if (process.env.SUPABASE_URL && process.env.SUPABASE_CHAVE_PUBLICAVEL) {
@@ -78,6 +76,7 @@ function lerConfiguracao() {
 }
 
 const configuracao = lerConfiguracao();
+const exigir = process.env.EXIGIR_SUPABASE === '1';
 
 /**
  * Consulta o PostgREST diretamente, sem supabase-js.
@@ -101,6 +100,19 @@ async function lerSemAutenticar(tabela) {
 }
 
 describe('acesso indevido às tabelas com dados pessoais', { skip: skipSemConfiguracao() }, () => {
+  // Só entra aqui sem `configuracao` quando EXIGIR_SUPABASE=1 pulou o skip
+  // de propósito (ver skipSemConfiguracao()). Falha alto e cedo, com
+  // mensagem clara, em vez de deixar cada teste estourar depois com um
+  // "Cannot read properties of null" sem contexto nenhum.
+  before(() => {
+    assert.ok(
+      configuracao,
+      'EXIGIR_SUPABASE=1 mas SUPABASE_URL/SUPABASE_CHAVE_PUBLICAVEL não foram encontradas '
+      + '(nem no ambiente, nem em .env.local). O aceite bloqueante da seção 12 não pode '
+      + 'ser verificado — e não pode, por isso, ser dado como cumprido.'
+    );
+  });
+
   for (const tabela of PROTEGIDAS) {
     test(`${tabela}: leitura sem autenticação volta vazia`, async () => {
       const { status, corpo } = await lerSemAutenticar(tabela);
@@ -161,14 +173,20 @@ describe('acesso indevido às tabelas com dados pessoais', { skip: skipSemConfig
 });
 
 /**
- * Sem projeto Supabase configurado não há o que testar — mas o teste não
- * pode passar silenciosamente, ou a suíte ficaria verde sem ter verificado
- * nada. Marca como pulado, com o motivo visível.
+ * Sem projeto Supabase configurado, e sem EXIGIR_SUPABASE=1, não há o que
+ * testar — mas o teste não pode passar silenciosamente, ou a suíte ficaria
+ * verde sem ter verificado nada. Marca como pulado, com o motivo visível.
+ *
+ * Com EXIGIR_SUPABASE=1, NÃO pula: entra no describe e o before() acima
+ * falha com uma mensagem explícita. Verde teria significado "não sei", e
+ * quem chama com esse sinal (o guardião de deploy) quer saber "sim" ou
+ * "não", nunca "não sei".
  */
 function skipSemConfiguracao() {
-  return configuracao
-    ? false
-    : 'Supabase ainda não configurado. Defina SUPABASE_URL e SUPABASE_CHAVE_PUBLICAVEL '
-      + 'no ambiente, ou em .env.local. ATENÇÃO: enquanto isso, o aceite bloqueante '
-      + 'da seção 12 NÃO foi verificado.';
+  if (configuracao) return false;
+  if (exigir) return false;
+
+  return 'Supabase ainda não configurado. Defina SUPABASE_URL e SUPABASE_CHAVE_PUBLICAVEL '
+    + 'no ambiente, ou em .env.local. ATENÇÃO: enquanto isso, o aceite bloqueante '
+    + 'da seção 12 NÃO foi verificado.';
 }

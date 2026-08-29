@@ -27,7 +27,7 @@ export type Atividade = {
  * Um registro de "prova social" (RF39): onde o Ateliê já se apresentou ou
  * foi noticiado. "midia" alimenta "Na mídia"; "instituicao" e "programacao"
  * alimentam "Onde já estivemos" em /para-escolas (ver
- * servidor/dados/prova-social.ts).
+ * componentes/SecaoOndeEstivemos.ts).
  */
 export type RegistroClipping = {
   id: string;
@@ -52,8 +52,43 @@ function temSupabase(): boolean {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_CHAVE_PUBLICAVEL);
 }
 
+/**
+ * Aplica no JSON local o mesmo filtro e a mesma ordenação que a consulta
+ * remota recebe da RLS (`publicado or eh_equipe()`, migration
+ * 002_conteudo.sql) e do `.order('titulo')` — Rodada de correção 1 da
+ * Tarefa 10.
+ *
+ * Sem isto, o fallback offline devolvia o arquivo cru: se a equipe
+ * despublicasse um registro pelo painel e o Supabase caísse logo depois, o
+ * JSON versionado (que ninguém atualiza automaticamente a partir do painel)
+ * fazia esse registro "ressuscitar" na página pública.
+ *
+ * dados-iniciais/atividades.json carrega o campo `publicado` de verdade —
+ * aqui o filtro faz diferença real assim que alguém marcar uma atividade
+ * como `false` nesse arquivo. Já dados-iniciais/clipping.json NÃO modela
+ * esse campo hoje (nenhum registro o carrega). Escolha, documentada aqui
+ * porque é exatamente o tipo de decisão que se perde se só ficar no
+ * histórico do commit: ausência do campo é tratada como "publicado" — o
+ * mesmo default (`not null default true`) da coluna real —, não como
+ * "esconder". Consequência aceita conscientemente: para o clipping
+ * especificamente, a proteção contra "registro despublicado ressuscita"
+ * só existe enquanto o Supabase estiver no ar (a RLS filtra lá); o JSON
+ * local não tem como saber sozinho. Corrigir de verdade exigiria o JSON
+ * também carregar `publicado` por registro, o que fica para quando/se
+ * ferramentas/gerar-seed.mjs ganhar um caminho de exportação nesse sentido.
+ */
+function filtrarEOrdenarLocal<T extends { titulo: string; publicado?: boolean }>(
+  registros: T[]
+): T[] {
+  return registros
+    .filter((registro) => registro.publicado !== false)
+    .sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'));
+}
+
 export async function listarAtividades(): Promise<Atividade[]> {
-  if (!temSupabase()) return atividadesLocais as Atividade[];
+  if (!temSupabase()) {
+    return filtrarEOrdenarLocal(atividadesLocais as Array<Atividade & { publicado?: boolean }>);
+  }
 
   try {
     const { data, error } = await (await obterCliente())
@@ -63,17 +98,19 @@ export async function listarAtividades(): Promise<Atividade[]> {
 
     // Banco fora do ar nao pode derrubar a pagina institucional: cai para o
     // JSON versionado, que e o mesmo conteudo real da ONG.
-    if (error) return atividadesLocais as Atividade[];
+    if (error) return filtrarEOrdenarLocal(atividadesLocais as Array<Atividade & { publicado?: boolean }>);
     return data as Atividade[];
   } catch {
     // Falha de rede/DNS chega como excecao, nao como { error }: mesmo
     // tratamento, mesma rede de seguranca.
-    return atividadesLocais as Atividade[];
+    return filtrarEOrdenarLocal(atividadesLocais as Array<Atividade & { publicado?: boolean }>);
   }
 }
 
 export async function listarClipping(): Promise<RegistroClipping[]> {
-  if (!temSupabase()) return clippingLocal as RegistroClipping[];
+  if (!temSupabase()) {
+    return filtrarEOrdenarLocal(clippingLocal as Array<RegistroClipping & { publicado?: boolean }>);
+  }
 
   try {
     const { data, error } = await (await obterCliente())
@@ -81,9 +118,9 @@ export async function listarClipping(): Promise<RegistroClipping[]> {
       .select('id, tipo, titulo, detalhe, ano')
       .order('titulo');
 
-    if (error) return clippingLocal as RegistroClipping[];
+    if (error) return filtrarEOrdenarLocal(clippingLocal as Array<RegistroClipping & { publicado?: boolean }>);
     return data as RegistroClipping[];
   } catch {
-    return clippingLocal as RegistroClipping[];
+    return filtrarEOrdenarLocal(clippingLocal as Array<RegistroClipping & { publicado?: boolean }>);
   }
 }

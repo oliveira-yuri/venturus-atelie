@@ -11,10 +11,10 @@
 // camada de dados existe no servidor (Tarefa 10, servidor/dados/conteudo.ts)
 // a página busca direto — sem round-trip nenhum no navegador. A decisão de
 // desenhar a seção (ou omiti-la, se não houver registro de instituição ou
-// programação) mora em servidor/dados/prova-social.ts, testado à parte em
+// programação) mora em componentes/SecaoOndeEstivemos.ts, testado à parte em
 // testes/prova-social.test.mjs.
 import { listarClipping } from '@/servidor/dados/conteudo';
-import { SecaoOndeEstivemos } from '@/servidor/dados/prova-social';
+import { SecaoOndeEstivemos } from '@/componentes/SecaoOndeEstivemos';
 
 export const metadata = {
   title: 'Para escolas — Ateliê Afro Cultural',

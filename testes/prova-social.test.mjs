@@ -11,18 +11,20 @@
  * arquivo prova, forçando a lista vazia, que a <section> inteira some, não
  * só os itens de dentro dela.
  *
- * `servidor/dados/prova-social.ts` é testado aqui por import direto, sem
- * subir o Next: o módulo não tem `import 'server-only'` nem depende de
+ * `componentes/SecaoOndeEstivemos.ts` é testado aqui por import direto,
+ * sem subir o Next: o módulo não tem `import 'server-only'` nem depende de
  * `next/headers` (ao contrário de servidor/dados/conteudo.ts, que faz a
  * consulta ao Supabase) — só recebe a lista de registros já carregada e
  * decide o que desenhar. É essa separação que torna a omissão testável sem
- * precisar de rede nem de servidor.
+ * precisar de rede nem de servidor. Ele mora em componentes/, não em
+ * servidor/dados/, porque é apresentação, não acesso a dado — ver o
+ * comentário no topo do próprio arquivo (Rodada de correção 1 da Tarefa 10).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { selecionarInstituicoes, SecaoOndeEstivemos } from '../servidor/dados/prova-social.ts';
+import { selecionarInstituicoes, SecaoOndeEstivemos } from '../componentes/SecaoOndeEstivemos.ts';
 
 test('lista vazia: selecionarInstituicoes não sobra nenhum registro', () => {
   assert.deepEqual(selecionarInstituicoes([]), []);
@@ -72,4 +74,25 @@ test('detalhe e ano só aparecem quando existem, nunca como texto vazio', () => 
   // O registro sem detalhe/ano não pode deixar um <span> vazio no lugar.
   assert.doesNotMatch(html, /<span class="clipping__detalhe"><\/span>/);
   assert.doesNotMatch(html, /<span class="clipping__ano"><\/span>/);
+});
+
+test('strong e span do item ficam colados, sem espaço solto entre eles', () => {
+  // O site antigo (assets/js/paginas/prova-social.js) separava <strong> e
+  // <span> por quebra de linha no template; aqui saem colados
+  // (`</strong><span`). Na tela não muda nada — o CSS aplica
+  // `display: block` nos três elementos do item (.clipping__item,
+  // .clipping__detalhe, .clipping__ano; ver estilos/componentes.css) — mas
+  // é exatamente a classe de defeito que testes/paridade-texto.test.mjs
+  // existe para pegar (documentado no cabeçalho daquele arquivo: um espaço
+  // que sumiu entre texto e elemento). Essa seção específica sai da
+  // comparação de testes/paridade-texto.test.mjs (ver o comentário sobre
+  // idsExcluidos lá), por bater conteúdo real contra um <div> vazio no HTML
+  // estático original — então esta asserção aqui é o que cobre essa
+  // fronteira, já que nenhum outro teste cobriria.
+  const registros = [
+    { id: 'ambev', tipo: 'instituicao', titulo: 'Ambev', detalhe: 'Ação de Dia das Crianças', ano: 2021 }
+  ];
+  const html = renderToStaticMarkup(createElement(SecaoOndeEstivemos, { registros }));
+
+  assert.match(html, /<\/strong><span/);
 });

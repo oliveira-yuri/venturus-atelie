@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import type { RegistroClipping } from './conteudo';
+import type { RegistroClipping } from '@/servidor/dados/conteudo';
 
 /**
  * Registros de clipping que alimentam "Onde já estivemos" em /para-escolas:
@@ -22,8 +22,19 @@ export function selecionarInstituicoes(registros: RegistroClipping[]): RegistroC
  * /para-escolas (o <div id="lista-instituicoes"> chegava vazio do servidor
  * porque quem o preenchia era o JavaScript de cliente do site antigo).
  *
+ * Mora em componentes/, não em servidor/dados/, de propósito (Rodada de
+ * correção 1 da Tarefa 10): este arquivo é apresentação — decide o que
+ * desenhar a partir de uma lista já carregada — não acesso a dado. Todo
+ * módulo de servidor/dados/ carrega `import 'server-only'`, e esse era o
+ * único que não carregava; a revisão comprovou que dava pra importar este
+ * componente de um Client Component sem erro nenhum, quebrando em silêncio
+ * a regra "tudo em servidor/dados/ é barrado no cliente". Aqui, sem
+ * `server-only`, a ausência é a normalidade do diretório, não uma exceção
+ * escondida.
+ *
  * Escrito com createElement em vez de JSX, de propósito: assim este módulo
- * é um .ts puro, sem `import 'server-only'` nem `next/headers`, e
+ * é um .ts puro, sem `next/headers` nem nenhuma outra dependência que só
+ * funcione dentro de uma requisição do Next, e
  * testes/prova-social.test.mjs consegue importá-lo direto pelo runtime do
  * Node (que despe os tipos nativamente) e provar a omissão renderizando de
  * verdade com react-dom/server — sem precisar subir o Next nem o Supabase.

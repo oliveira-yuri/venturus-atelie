@@ -7,15 +7,27 @@
  *
  * `npm run verificar` usa isto para rodar so testes/navegador.test.mjs sem
  * duplicar a orquestracao do servidor.
+ *
+ * NODE_ENV=test no build e no servidor (Rodada de correcao 1 da Tarefa 10):
+ * o Next IGNORA .env.local quando NODE_ENV=test, de proposito, por design
+ * documentado do proprio framework. Isso faz temSupabase()
+ * (servidor/dados/conteudo.ts) devolver false aqui, e a suite inteira —
+ * paridade de texto, vazamento, renderizacao — roda contra o JSON
+ * versionado, deterministico e offline, que e exatamente pra isso que a
+ * fonte dupla foi desenhada. testes/seguranca.test.mjs nao depende disto:
+ * ele le .env.local por conta propria (ver testes/apoio/env-local.mjs),
+ * entao continua verificando contra o banco real mesmo com o servidor
+ * principal da suite rodando sem essas variaveis.
  */
 import { spawn, spawnSync } from 'node:child_process';
 
 const arquivosPedidos = process.argv.slice(2);
 
 const porta = 3123;
+const envSemSupabase = { ...process.env, NODE_ENV: 'test' };
 
 console.log('Construindo...');
-if (spawnSync('npx', ['next', 'build'], { stdio: 'inherit' }).status !== 0) {
+if (spawnSync('npx', ['next', 'build'], { stdio: 'inherit', env: envSemSupabase }).status !== 0) {
   process.exit(1);
 }
 
@@ -26,7 +38,8 @@ console.log(`Subindo em :${porta}...`);
 // inteiro (process.kill com pid negativo) os dois caem juntos.
 const servidor = spawn('npx', ['next', 'start', '--port', String(porta)], {
   stdio: ['ignore', 'pipe', 'inherit'],
-  detached: true
+  detached: true,
+  env: envSemSupabase
 });
 
 // Um SIGINT/SIGTERM no orquestrador (Ctrl+C durante a suite, ou um `kill`)

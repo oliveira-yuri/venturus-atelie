@@ -57,19 +57,32 @@ const PAGINAS = [
 
 // Remove do HTML bruto a <section aria-labelledby="ID">...</section> cujo id
 // está em `idsExcluidos`, antes de extrair o texto — ver comentário acima.
-function removerSecoesExcluidas(html, idsExcluidos) {
+//
+// `exigirPresenca` cobre só o lado ORIGINAL (site/*.html): aquele arquivo é
+// estático e versionado, a seção alvo tem que existir nele sempre — se
+// sumir, é sinal de erro de digitação no id, ou de o HTML de origem ter
+// mudado sem avisar este teste. Do lado RENDERIZADO a ausência é legítima:
+// a decisão 1 da Tarefa 10 manda a <section> inteira sumir quando não há
+// nenhum registro (clipping vazio no banco, ou tudo despublicado — ver
+// filtrarEOrdenarLocal em servidor/dados/conteudo.ts), e essa omissão já
+// tem teste dedicado em testes/prova-social.test.mjs. Cobrar presença aqui
+// faria este teste falhar exatamente quando o produto acerta — reproduzido
+// forçando listarClipping() a devolver [] antes desta correção.
+function removerSecoesExcluidas(html, idsExcluidos, exigirPresenca) {
   return idsExcluidos.reduce((resultado, id) => {
     const secao = new RegExp(
       `<section\\b[^>]*aria-labelledby=["']${id}["'][^>]*>[\\s\\S]*?<\\/section>`,
       'i'
     );
-    assert.match(resultado, secao, `seção "${id}" a excluir não foi encontrada no documento`);
+    if (exigirPresenca) {
+      assert.match(resultado, secao, `seção "${id}" a excluir não foi encontrada no HTML original`);
+    }
     return resultado.replace(secao, '');
   }, html);
 }
 
-function extrairTextoDoMain(html, idsExcluidos = []) {
-  const semSecoesExcluidas = removerSecoesExcluidas(html, idsExcluidos);
+function extrairTextoDoMain(html, idsExcluidos = [], exigirPresenca = false) {
+  const semSecoesExcluidas = removerSecoesExcluidas(html, idsExcluidos, exigirPresenca);
 
   const abre = semSecoesExcluidas.match(/<main\b[^>]*id=["']conteudo["'][^>]*>/i);
   assert.ok(abre, 'não achou <main id="conteudo"> no documento');
@@ -127,12 +140,12 @@ for (const pagina of PAGINAS) {
     const idsExcluidos = pagina.idsExcluidos ?? [];
 
     const htmlOriginal = readFileSync(path.join(RAIZ, pagina.arquivoOriginal), 'utf-8');
-    const textoOriginal = extrairTextoDoMain(htmlOriginal, idsExcluidos);
+    const textoOriginal = extrairTextoDoMain(htmlOriginal, idsExcluidos, /* exigirPresenca */ true);
 
     const resposta = await fetch(`${BASE}${pagina.rota}`);
     assert.equal(resposta.status, 200, `${pagina.rota} não respondeu 200`);
     const htmlRenderizado = await resposta.text();
-    const textoRenderizado = extrairTextoDoMain(htmlRenderizado, idsExcluidos);
+    const textoRenderizado = extrairTextoDoMain(htmlRenderizado, idsExcluidos, /* exigirPresenca */ false);
 
     assert.equal(textoRenderizado, textoOriginal);
   });

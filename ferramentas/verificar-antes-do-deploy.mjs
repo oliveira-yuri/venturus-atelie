@@ -20,28 +20,47 @@ function relatar(titulo, detalhe) {
 }
 
 // ---------------------------------------------------------------------
-// 1. Supabase precisa estar configurado
+// 1. O aceite bloqueante da secao 12 precisa ter RODADO e PASSADO — nao
+// "parecer configurado".
+//
+// Ate a Rodada de correcao 1, esta secao apenas conferia se
+// SUPABASE_URL/SUPABASE_ANON_KEY estavam no ambiente e, se nao, caia para
+// ler site/config.js — arquivo do site antigo que continuou existindo
+// depois da migracao para Next.js. Resultado medido: com .env.local
+// ausente e a variavel com o nome novo (SUPABASE_CHAVE_PUBLICAVEL, nao
+// SUPABASE_ANON_KEY), testes/seguranca.test.mjs pulava em silencio E este
+// guardiao ainda achava "tudo certo" lendo o config.js morto — exatamente
+// o falso verde que o cabecalho deste arquivo promete impedir.
+//
+// A correcao: nao duplicar a logica de configuracao aqui. Rodar o proprio
+// teste, com o sinal EXIGIR_SUPABASE=1 (que faz aquele arquivo FALHAR, nao
+// pular, quando a configuracao nao aparece — ver o skipSemConfiguracao()
+// de la) e conferir o codigo de saida de verdade. Sem fallback para
+// site/config.js: aquele arquivo pertence ao site estatico anterior e nao
+// existe mais no Next.
 // ---------------------------------------------------------------------
-let configurado = Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY);
-
-if (!configurado) {
-  try {
-    const bruto = await readFile(new URL('../site/config.js', import.meta.url), 'utf8');
-    const url = bruto.match(/supabaseUrl:\s*'([^']*)'/)?.[1];
-    const chave = bruto.match(/supabaseAnonKey:\s*'([^']*)'/)?.[1];
-    configurado = Boolean(url && chave);
-  } catch {
-    configurado = false;
+const aceite = spawnSync(
+  process.execPath,
+  ['--test', 'testes/seguranca.test.mjs'],
+  {
+    encoding: 'utf8',
+    env: { ...process.env, EXIGIR_SUPABASE: '1' }
   }
-}
+);
 
-if (!configurado) {
+if (aceite.status !== 0) {
   relatar(
-    'O aceite bloqueante da seção 12 NÃO foi verificado',
-    'Não há projeto Supabase configurado, então o teste de acesso indevido foi pulado.\n'
+    'O aceite bloqueante da seção 12 NÃO passou',
+    '`node --test testes/seguranca.test.mjs` (com EXIGIR_SUPABASE=1) não terminou com sucesso.\n'
     + '  Sem ele, ninguém sabe se as tabelas de inscritos, voluntários, doações e\n'
     + '  contatos estão protegidas. O escopo é explícito: enquanto esse teste não\n'
-    + '  passar, o sistema não vai ao ar.'
+    + '  passar, o sistema não vai ao ar.\n\n'
+    + '  Saída do teste:\n'
+    + String(aceite.stdout + aceite.stderr)
+        .trim()
+        .split('\n')
+        .map((linha) => `    ${linha}`)
+        .join('\n')
   );
 }
 
