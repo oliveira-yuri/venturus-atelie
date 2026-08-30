@@ -47,10 +47,14 @@ const PAGINAS = [
     // (servidor/dados/conteudo.ts, via componentes/SecaoNaMidia.ts).
     // Comparar o texto bruto do HTML estático (div vazio) contra o HTML já
     // renderizado com os registros de verdade acusaria uma divergência
-    // ilegítima — por isso a seção sai desta comparação de string; a
-    // omissão dela sem registro de mídia, e o conteúdo dela com registro,
-    // são provados à parte em testes/pagina-home.test.mjs e
-    // testes/prova-social.test.mjs.
+    // ilegítima — por isso a seção sai desta comparação de string. O
+    // conteúdo dela COM registro é provado à parte, contra a página
+    // renderizada de verdade, em testes/pagina-home.test.mjs e
+    // testes/paginas.test.mjs; a omissão dela SEM nenhum registro de
+    // mídia é provada por unidade, direto no componente, em
+    // testes/secao-na-midia.test.mjs (Rodada de correção 1 da Tarefa A2 —
+    // antes dela nada exercitava esse caminho: comentar o `return null`
+    // de componentes/SecaoNaMidia.ts não derrubava teste nenhum).
     idsExcluidos: ['titulo-midia-home']
   },
   { rota: '/quem-somos', arquivoOriginal: 'site/quem-somos.html' },
