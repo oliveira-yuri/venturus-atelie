@@ -26,9 +26,9 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (403 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (404)
-npm run test:supabase-degradado # prova que falha de consulta não vira silêncio
+npm test                        # suíte completa, modo offline (405 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (406)
+npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
 npm run seed                    # regenera supabase/seed.sql dos JSON de dados-iniciais/
@@ -41,8 +41,16 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 403 são 393 passando, 1 pulado com motivo declarado e 9 `test.todo` — os do painel
-(RF33), que descrevem requisitos válidos cuja forma de verificar só existe no Bloco B.
+Os 405 são 393 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
+(RF33), que descrevem requisitos válidos cuja forma de verificar só existe no Bloco B. Dois
+dos pulados nasceram na revisão final do Bloco A: `ROTAS_PENDENTES` está vazia desde a A6, e
+os testes que iteravam sobre ela passavam sem verificar nada — pular com motivo escrito é a
+contagem honesta.
+
+`test:supabase-degradado` roda dois arquivos, não um: `origem-dos-dados` (a fonte dupla cai
+para o JSON e diz que caiu) e `degradacao` (as três rotas sem JSON irmão respondem 200 com
+o layout inteiro em vez de 500). Para exercitar o caminho de EXCEÇÃO (rede/DNS, não `{error}`):
+`COM_SUPABASE=chave-errada SUPABASE_URL=https://host-que-nao-existe.invalid node ferramentas/rodar-testes.mjs testes/degradacao.test.mjs`.
 
 ## Regras invioláveis
 
@@ -82,6 +90,13 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   `supabase-js` direto, e todo módulo de `servidor/` começa com `import 'server-only'`.
 - **Fonte dupla:** `servidor/dados/conteudo.ts` lê o JSON versionado de `dados-iniciais/` quando não
   há Supabase e a tabela quando há.
+- **Uma política de erro só, em `servidor/dados/degradacao.ts`:** nenhum módulo de dados lança
+  para cima. Banco fora do ar degrada — `conteudo.ts` para o JSON versionado (que tem o mesmo
+  conteúdo real e carimba a procedência), `eventos`/`acervo`/`voluntariado` para lista vazia,
+  onde o estado vazio já é texto escrito. Sempre com aviso `[dados]` no log, porque a tela
+  não distingue "não há registro" de "não deu para perguntar". `app/error.tsx` e
+  `app/not-found.tsx` são a rede para o que escapar, e os dois trazem o layout inteiro —
+  cabeçalho, rodapé, `<main id="conteudo">`, link de pular, A+/contraste, VLibras.
 - **Insert público sem `.select()`:** em `inscricoes` e `contatos` a leitura é negada; pedir a linha
   de volta faz a inserção *parecer* que falhou.
 - **Design "Aplique":** um gesto só — deslocamento sólido que simula peça costurada. Nenhuma
@@ -170,7 +185,9 @@ teste. Todo o envio é Bloco B.
 | Acervo tratado (233 MB → 27 MB) | **pronto** |
 | Política de privacidade | **pronto** |
 | Repositório no GitHub | **pronto** |
-| Deploy Netlify | em configuração |
+| Deploy Netlify | **nunca rodou** — config pronta e pinada (Node 24.15.0, plugin 5.15.13); falta publicar |
+| Página de erro 500 (`app/error.tsx`) | **pronto** — com o layout inteiro, como o 404 |
+| `/robots.txt` (`app/robots.ts`) | **pronto** — em modo prévia, ver "O que trava hoje" 0c |
 | Edge Function de e-mail | **falta** |
 | Manual da ONG (RNF07) | **falta** |
 
@@ -224,25 +241,57 @@ obrigar a revisitar a decisão do redirect.
 
 0. **A branch nunca foi publicada.** O `netlify.toml` foi reescrito por inteiro — o build
    passa a existir, `publish` muda de `site` para `.next`, entra o plugin do Next — **sem
-   uma única execução real na Netlify**. Não há `engines` no `package.json` nem
-   `NODE_VERSION` fixado, e o TypeScript 7.0.2 nunca foi exercitado fora da máquina de
-   desenvolvimento. É o maior risco de cronograma e resolve em 30 minutos.
+   uma única execução real na Netlify**. Continua sendo o maior risco de cronograma, e só
+   o usuário fecha: publicar. Duas das três incógnitas foram fechadas na revisão final do
+   Bloco A e **não** precisam ser refeitas: Node fixado em 24.15.0 (`.nvmrc`, `engines` no
+   `package.json` e `NODE_VERSION` no `netlify.toml` — os três dizem a mesma versão, mudou
+   uma mudar as três) e `@netlify/plugin-nextjs` pinado em 5.15.13 em `dependencies` (não
+   em `devDependencies`: `NPM_FLAGS="--omit=dev"` não a instalaria).
+   **A terceira fica aberta de propósito:** `middleware.ts` está deprecado no Next 16 (o
+   caminho novo é `proxy.ts`) e na Netlify roda como Edge Function, que **nunca foi
+   exercitada** — a suíte inteira mede `next start` local. Migrar a cinco dias da entrega
+   é risco maior que o benefício; a decisão é reavaliar depois do primeiro deploy real, com
+   o `X-Robots-Tag`, a CSP com nonce e os 14 redirects verificados no ar. O TypeScript
+   7.0.2 também nunca foi exercitado fora da máquina de desenvolvimento.
 0b. **A chave do Supabase não saiu do repositório.** A que está em `.env.local` é byte a
    byte a mesma que ficou versionada em `site/config.js` — arquivo que a Tarefa A8 apagou
    desta branch, mas que continua no histórico do git e na branch `main`. Apagar não
    rotaciona: enquanto a chave não for trocada no Supabase, o ganho declarado na spec §4.3
    é nominal.
-0c. **`X-Robots-Tag: noindex` está em DOIS lugares** — `middleware.ts` e `netlify.toml`,
-   ambos marcados "PRÉVIA". Se só um for removido no lançamento, o site entra no ar
-   invisível para buscadores. **Eram três guarda-corpos:** o `site/robots.txt` sumiu com a
-   Tarefa A8 e não ganhou equivalente — não existe `app/robots.ts` nem `public/robots.txt`
-   nesta branch. Não é regressão de produção (a Netlify publica `.next`, e o `X-Robots-Tag`
-   é mais forte que o robots.txt), mas no lançamento alguém precisa decidir se quer um
-   `robots.txt` de verdade em vez de nenhum.
+0c. **O `noindex` sai em TRÊS lugares, e fazer só um não produz erro visível.** Para o
+   lançamento é preciso remover, no mesmo commit:
+   1. `X-Robots-Tag` em **`middleware.ts`** (procure por `PREVIA`) — vale para as páginas
+      renderizadas;
+   2. `X-Robots-Tag` em **`netlify.toml`** — vale para o que a CDN serve direto, inclusive
+      os caminhos que o `matcher` do middleware exclui;
+   3. **`app/robots.ts`** — trocar o `disallow: '/'` por `allow: '/'`.
+
+   Esquecer qualquer um deles **não quebra nada que se veja**: o site sobe, as pessoas
+   navegam, a suíte fica verde, e só o buscador some. Um `X-Robots-Tag: noindex` que
+   sobreviva vence o `robots.ts` (robots.txt controla o rastreio; o cabeçalho controla a
+   indexação). Os três arquivos carregam a mesma advertência, cada um citando os outros
+   dois — foi a correção do BLOQUEADOR 2 da revisão final, depois que a instrução original,
+   que vivia em `site/robots.txt`, morreu junto com o diretório na Tarefa A8 e sobrou uma
+   marca só, em `middleware.ts`. Quando os três saírem, apagar este item.
 0d. **A suíte fica vermelha sem `.env.local`** — o teste de vazamento falha de propósito:
    um teste que não sabe o que procurar não prova nada. Quem clonar o repositório precisa
    do arquivo, ou usar só o que não depende dele.
-0e. **Decisão pendente: o VLibras roda no layout raiz**, e a CSP usa `strict-dynamic`, que
+0e. **Publicar sem as variáveis do Supabase não dá erro nenhum.** Sem `SUPABASE_URL`/
+   `SUPABASE_CHAVE_PUBLICAVEL` no painel da Netlify, `temSupabase()`
+   (`servidor/dados/degradacao.ts`) devolve false, nenhuma consulta sai, e as **cinco áreas
+   reais de `/voluntariado`** — que só existem no seed do Postgres, sem JSON irmão — viram o
+   estado vazio. O site sobe bonito e incompleto. Desde a revisão final isso pelo menos
+   **aparece no log** do servidor (`[dados] "areas_voluntariado": ... não estão no ambiente`),
+   só em produção. Conferir as duas variáveis no painel antes de anunciar o endereço.
+0f. **Herdada, não corrigida: `vw` em texto no menu.** `estilos/componentes.css:93`,
+   `.cabecalho__menu a { font-size: clamp(0.84rem, 1.15vw, 0.95rem) }` (e o `padding` da
+   linha 87). Contra a regra 8 e contra o aviso escrito em `estilos/tokens.css:43` — dentro
+   de `clamp()` o `vw` fica preso entre dois `rem`, então o dano é menor que um `vw` solto,
+   mas o item do menu ainda deixa de responder ao A+ na faixa do meio. Veio do site
+   estático, não da migração. **Não foi mexida na revisão final do Bloco A**: trocar por
+   `rem` muda a largura do menu em telas grandes, e isso é decisão de desenho, não de
+   unidade — precisa de olho humano na tela, não de um commit.
+0g. **Decisão pendente: o VLibras roda no layout raiz**, e a CSP usa `strict-dynamic`, que
    dá confiança em cadeia a tudo que ele carregar. Quando o painel existir (RF33), isso
    significa código de terceiro com confiança total na tela que mostra nome, telefone e
    responsável de crianças. O caminho barato é não montar o VLibras em `/admin`.
