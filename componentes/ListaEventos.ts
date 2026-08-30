@@ -39,16 +39,44 @@ import type { Evento } from '@/servidor/dados/eventos';
  */
 
 /**
+ * O FUSO DE SÃO PAULO É EXPLÍCITO AQUI, e essa linha é a correção de um
+ * defeito real da migração.
+ *
+ * No site estático esta função rodava no NAVEGADOR de quem visitava, então
+ * "o fuso do processo" era o fuso da pessoa — que, para o público de uma ONG
+ * da Casa Verde, é São Paulo. Ao virar Server Component o mesmo código
+ * passou a rodar no fuso do PROCESSO DO SERVIDOR, e função da Netlify roda
+ * em UTC.
+ *
+ * MEDIDO na revisão final do Bloco A, com `TZ=UTC`: um evento marcado para
+ * as 19h de São Paulo (`2026-11-05T19:00:00.000Z` no banco é 16h de São
+ * Paulo; um evento das 19h locais é gravado como 22:00Z) saía com a hora
+ * errada em três horas. Para atividade de fim de noite isso vira o DIA
+ * seguinte — muda a data e o dia da semana impressos, não só o relógio: a
+ * pessoa vai no dia errado.
+ *
+ * Por que um fuso fixo e não o da pessoa: o dado é a agenda presencial de um
+ * ateliê em São Paulo. A hora certa de uma oficina na Casa Verde é a hora de
+ * São Paulo, independentemente de onde a página é aberta ou renderizada.
+ *
+ * Não bloqueava a entrega de 04/09 (a tabela `eventos` está vazia hoje), mas
+ * estouraria na primeira coisa que a ONG publicasse — por isso foi corrigido
+ * antes de existir dado.
+ */
+const FUSO_DA_ONG = 'America/Sao_Paulo';
+
+/**
  * Data e hora por extenso, como uma pessoa escreveria — mesma função de
- * site/assets/js/paginas/agenda.js. Usa o fuso do processo que renderiza
- * (sem `timeZone` explícito, igual ao original): NÃO MEDIDO qual fuso o
- * servidor de produção usa: assumir UTC do host seria inventar um dado que
- * este porte não verificou.
+ * site/assets/js/paginas/agenda.js, agora com o fuso preso.
  */
 function quando(iso: string): string {
   const data = new Date(iso);
-  const dia = data.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-  const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dia = data.toLocaleDateString('pt-BR', {
+    weekday: 'long', day: 'numeric', month: 'long', timeZone: FUSO_DA_ONG
+  });
+  const hora = data.toLocaleTimeString('pt-BR', {
+    hour: '2-digit', minute: '2-digit', timeZone: FUSO_DA_ONG
+  });
   return `${dia}, às ${hora}`;
 }
 
