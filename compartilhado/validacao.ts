@@ -7,6 +7,22 @@
  *
  * Toda validação devolve TODOS os erros de uma vez. Formulário que revela um
  * erro por vez faz a pessoa tentar várias vezes até acertar.
+ *
+ * VIVE EM compartilhado/, NÃO EM servidor/, e isso é decisão, não acaso:
+ *
+ *  - `acoes/autenticacao.ts` (Server Action) valida com estas funções. Spec
+ *    §4.5: Server Action é endpoint HTTP público, qualquer pessoa manda
+ *    qualquer corpo — a validação do servidor é a única que conta;
+ *  - o formulário de /entrar é Client Component, e a Tarefa 3 vai querer as
+ *    MESMAS regras no navegador para avisar antes de enviar. Um módulo em
+ *    servidor/ começa com `import 'server-only'` e quebraria essa importação
+ *    de propósito (é o que a linha existe para fazer);
+ *  - `testes/validacao.test.mjs` importa este arquivo direto no `node --test`,
+ *    o que também é impossível com a barreira de servidor/ no topo (ver
+ *    testes/servidor-so-no-servidor.test.mjs, que documenta isso: "importar
+ *    estes modulos aqui e impossivel por construcao").
+ *
+ * Duas regras, dois lugares seria a forma de as duas divergirem em silêncio.
  */
 
 const SENHA_MINIMA = 8;
@@ -59,7 +75,29 @@ export type DadosCadastro = {
 
 export type ResultadoValidacao = { valido: boolean; erros: Record<string, string> };
 
-export function validarCadastro(dados: DadosCadastro): ResultadoValidacao {
+export type OpcoesCadastro = {
+  /**
+   * Exigir ao menos um papel (voluntário e/ou doador)?
+   *
+   * `true` é o padrão e é o comportamento do site antigo
+   * (site/assets/js/paginas/entrar.js), preservado aqui para não mudar regra
+   * por efeito colateral.
+   *
+   * `acoes/autenticacao.ts` passa `false`, de propósito: no formulário que
+   * está no ar (componentes/AbasEntrar.tsx) as duas caixas do grupo "Como
+   * você quer participar?" NÃO são marcadas como obrigatórias — não têm o
+   * asterisco nem o `required` que os outros campos têm. Recusar o cadastro
+   * por causa delas seria o servidor cobrar uma exigência que a tela nunca
+   * anunciou. Se o grupo decidir que escolher um papel é obrigatório, o
+   * conserto são duas linhas: marcar as caixas na tela e apagar este `false`.
+   */
+  exigirPapel?: boolean;
+};
+
+export function validarCadastro(
+  dados: DadosCadastro,
+  { exigirPapel = true }: OpcoesCadastro = {}
+): ResultadoValidacao {
   const erros: Record<string, string> = {};
 
   if (!dados.nome || dados.nome.trim().length === 0) {
@@ -96,7 +134,7 @@ export function validarCadastro(dados: DadosCadastro): ResultadoValidacao {
   const papeis = Array.isArray(dados.papeis) ? dados.papeis : [];
   const papeisValidos = papeis.filter((papel) => PAPEIS_PERMITIDOS.includes(papel));
 
-  if (papeisValidos.length === 0) {
+  if (exigirPapel && papeisValidos.length === 0) {
     erros.papeis = 'Escolha ao menos uma forma de participar: voluntariado, doação, ou as duas.';
   }
 
@@ -117,4 +155,106 @@ export function validarEntrada(dados: DadosEntrada): ResultadoValidacao {
   }
 
   return { valido: Object.keys(erros).length === 0, erros };
+}
+
+export function validarRecuperacao(dados: { email?: string }): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!dados.email || !FORMATO_EMAIL.test(dados.email.trim())) {
+    erros.email = 'Confira o e-mail.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+// =====================================================================
+// Leitura do FormData
+//
+// Server Action recebe FormData, e FormData é entrada hostil: spec §4.5 —
+// a Action é um endpoint HTTP, qualquer pessoa manda qualquer corpo, com ou
+// sem o formulário. Daí as três precauções abaixo, que parecem paranoia e
+// não são:
+//
+//  1. `dados.get()` devolve `string | File | null`. Um File enviado no
+//     campo "senha" viraria "[object File]" num `String(...)` distraído —
+//     uma senha de 15 caracteres que ninguém digitou. Aqui, o que não é
+//     string vira string vazia e é recusado pela validação.
+//  2. Cada campo é lido POR NOME, um a um. Nada de espalhar objeto: é a
+//     regra 6 do CLAUDE.md (`eh_equipe` nunca vem do cadastro), e ela só
+//     vale se não houver caminho pelo qual um campo inventado no corpo da
+//     requisição chegue inteiro ao banco. Campo que não está nesta lista
+//     não existe para o resto do sistema.
+//  3. Caixa de marcar não tem valor confiável: o navegador manda "on"
+//     quando marcada e OMITE o campo quando não. Quem chama a Action à mão
+//     pode mandar "false". Por isso marcado() olha o conteúdo, e não só a
+//     presença.
+// =====================================================================
+
+/** Texto de um campo, já sem espaço nas pontas. Nunca `undefined`. */
+function texto(dados: FormData, nome: string): string {
+  const valor = dados.get(nome);
+  return typeof valor === 'string' ? valor.trim() : '';
+}
+
+/**
+ * Senha: o único campo lido SEM trim.
+ *
+ * Espaço no começo ou no fim é caractere de senha como qualquer outro, e
+ * quem gerou a senha num gerenciador pode ter um. Aparar aqui produziria o
+ * pior defeito possível de autenticação: cadastro e entrada aparando de
+ * formas diferentes, e a pessoa trancada fora da própria conta sem
+ * explicação.
+ */
+function senhaBruta(dados: FormData, nome: string): string {
+  const valor = dados.get(nome);
+  return typeof valor === 'string' ? valor : '';
+}
+
+/** Uma caixa de marcar está marcada? Ver a precaução 3 acima. */
+function marcado(dados: FormData, nome: string): boolean {
+  const valor = dados.get(nome);
+  if (typeof valor !== 'string') return false;
+
+  const normalizado = valor.trim().toLowerCase();
+  return normalizado !== ''
+    && normalizado !== 'false'
+    && normalizado !== '0'
+    && normalizado !== 'off'
+    && normalizado !== 'nao'
+    && normalizado !== 'não';
+}
+
+/**
+ * Campos do formulário "Criar conta" (componentes/AbasEntrar.tsx).
+ *
+ * Os nomes são os atributos `name` daquele formulário — o `prefixo` de
+ * CampoFormulario muda só o `id`, nunca o `name` (ver o componente).
+ */
+export function lerCadastro(dados: FormData): DadosCadastro {
+  const papeis: string[] = [];
+  if (marcado(dados, 'voluntario')) papeis.push('voluntario');
+  if (marcado(dados, 'doador')) papeis.push('doador');
+
+  return {
+    nome: texto(dados, 'nome'),
+    email: texto(dados, 'email'),
+    telefone: texto(dados, 'telefone'),
+    senha: senhaBruta(dados, 'senha'),
+    maioridade: marcado(dados, 'maioridade'),
+    consentimento: marcado(dados, 'consentimento'),
+    papeis
+  };
+}
+
+/** Campos do formulário "Entrar". */
+export function lerEntrada(dados: FormData): DadosEntrada {
+  return {
+    email: texto(dados, 'email'),
+    senha: senhaBruta(dados, 'senha')
+  };
+}
+
+/** Campo do formulário de /recuperar-acesso. */
+export function lerRecuperacao(dados: FormData): { email: string } {
+  return { email: texto(dados, 'email') };
 }

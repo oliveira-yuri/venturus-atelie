@@ -27,11 +27,30 @@ export async function obterCliente() {
             lista.forEach(({ name, value, options }) =>
               armazenamento.set(name, value, options));
           } catch {
-            // Chamado de um Server Component, onde nao se escreve cookie.
-            // Nenhum mecanismo deste projeto renova a sessao a partir daqui
-            // hoje — o middleware (middleware.ts) so cuida de CSP/nonce, nao
-            // fala com o Supabase. Quando a fase 2 trouxer autenticacao de
-            // verdade, revisitar este bloco.
+            // Chamado de um Server Component, onde `cookies().set()` lanca:
+            // a resposta ja comecou a ser montada, nao ha mais cabecalho
+            // para escrever. E o unico caso em que este catch corre.
+            //
+            // ESCREVER COOKIE FUNCIONA nos dois lugares onde este projeto
+            // precisa escrever, e nenhum deles passa por aqui:
+            //
+            //  - Server Action — `acoes/autenticacao.ts`. signInWithPassword
+            //    e signOut gravam e apagam a sessao de verdade;
+            //  - Route Handler — a rota `/auth/confirm`, que troca o codigo
+            //    do link do e-mail pela sessao.
+            //
+            // O que ESTE catch engole, portanto, e so a RENOVACAO de token
+            // tentada durante a renderizacao de uma pagina: o cliente
+            // renova, nao consegue gravar o token novo, e a pagina renderiza
+            // com a sessao que veio no cookie. Nada quebra na hora; na
+            // proxima Action ou Route Handler a gravacao acontece.
+            //
+            // O middleware (middleware.ts) continua sem falar com o
+            // Supabase: so cuida de CSP/nonce e dos redirects antigos. Se um
+            // dia a renovacao no meio da navegacao passar a importar (sessao
+            // expirando durante o uso do painel, RF33), o lugar de fazer
+            // isso e la — um `getUser()` no middleware, que responde por
+            // requisicao e pode escrever cabecalho.
           }
         }
       },

@@ -86,6 +86,11 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   cabeçalho e rodapé vivem em `app/layout.tsx` (`componentes/Cabecalho.tsx`, `Rodape.tsx`).
 - **Navegação sem JavaScript** chega pronta no HTML que o servidor entrega — não depende mais de
   `<noscript>`, e `testes/sem-javascript.test.mjs` mede isso rota a rota.
+- **Escrita fica em `acoes/`, leitura em `servidor/dados/`.** Server Action é endpoint HTTP
+  público (spec §4.5): qualquer pessoa chama com qualquer corpo, sem passar pelo formulário.
+  Por isso toda validação de envio roda lá dentro, e o FormData é lido campo a campo por nome
+  (`compartilhado/validacao.ts`) — nunca espalhado num objeto, que é como `eh_equipe` voltaria
+  a entrar pela porta da frente.
 - **Camada de dados isolada e só do servidor:** páginas falam com `servidor/dados/*.ts`, nunca com
   `supabase-js` direto, e todo módulo de `servidor/` começa com `import 'server-only'`.
 - **Fonte dupla:** `servidor/dados/conteudo.ts` lê o JSON versionado de `dados-iniciais/` quando não
@@ -115,10 +120,14 @@ Atualizado em 30/08/2026 (fim do Bloco A da fase 2, rodada de correção 1). O s
 existe aqui, não contra o que existia na `main`.
 
 **`pronto` = existe nesta branch e foi verificado rodando.** Tela que não envia nada não é
-`pronto`: nesta branch **não há autenticação nenhuma** (grep por `signInWithPassword`/`signUp` em
-`app/`, `componentes/` e `servidor/` não devolve uma linha), e `compartilhado/validacao.ts`, que
-guarda as regras de cadastro, não é importado por nenhum código de aplicação — só pelo próprio
-teste. Todo o envio é Bloco B.
+`pronto`. A camada de servidor da autenticação passou a existir em 30/08/2026 (Tarefa 1 do Bloco
+B): `acoes/autenticacao.ts` tem `entrar`, `criarConta`, `solicitarRecuperacao` e `sair` como
+Server Actions, e `compartilhado/validacao.ts` — que antes nenhum código de aplicação importava —
+é o que elas usam para validar. **Nenhum formulário chama essas funções ainda**: os campos de
+`/entrar` e `/recuperar-acesso` continuam `disabled`, ligar os dois é a Tarefa 3. E nada disso
+foi exercitado contra o Supabase de verdade: a suíte não autentica (não há como, sem conta de
+teste e com o limite de envio de e-mail travando o cadastro), então o que está provado é a
+validação, a tradução de erro e a compilação — não o ida-e-volta com o Auth.
 
 ### M1 — Site institucional
 
@@ -138,11 +147,11 @@ teste. Todo o envio é Bloco B.
 
 | Req | O quê | Status |
 |---|---|---|
-| RF08 | Cadastro de voluntário | tela pronta, **sem envio** — Bloco B |
-| RF09 | Cadastro de doador | tela pronta, **sem envio** — Bloco B |
-| RF10 | Autenticação, papéis acumuláveis | **falta** — não existe autenticação nesta branch; só a regra de papéis acumuláveis, em `compartilhado/validacao.ts`, testada e ainda não usada |
+| RF08 | Cadastro de voluntário | tela pronta e **Server Action pronta** (`criarConta`); falta o formulário chamá-la — Tarefa 3 |
+| RF09 | Cadastro de doador | idem RF08: é o mesmo formulário, com a caixa "Quero doar ou apoiar" virando `eh_doador` |
+| RF10 | Autenticação, papéis acumuláveis | **parcial** — `entrar`/`sair`/`solicitarRecuperacao` existem em `acoes/autenticacao.ts`, com a validação e a tradução de erro testadas; falta ligar os formulários (Tarefa 3), a rota `/auth/confirm` que troca o link do e-mail pela sessão (Tarefa 2) e qualquer tela que leia a sessão |
 | RF11 | Área do usuário | **falta** — Bloco B |
-| RF12 | Confirmação de maioridade | caixa obrigatória na tela e regra (RN01) testada, **sem envio** — Bloco B |
+| RF12 | Confirmação de maioridade | caixa obrigatória na tela, regra (RN01) testada e **recusada no servidor** (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo); falta o envio da tela — Tarefa 3 |
 | RF33 | Painel administrativo | **falta** — Bloco B. A casca que existia no site antigo não foi portada; `/admin` dá 404 de propósito |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
@@ -314,6 +323,19 @@ obrigar a revisitar a decisão do redirect.
    é ruído aceito de propósito, porque não há filtro por ambiente que funcione aqui: o
    servidor de um build do Next lê `NODE_ENV=production` mesmo quando a suíte pede `test`.
    Conferir as duas variáveis no painel da Netlify antes de anunciar o endereço.
+0e2. **Falta cadastrar `URL_DO_SITE` na Netlify, e a falta também não dá erro.** Nasceu com
+   a Tarefa 1 do Bloco B (`acoes/autenticacao.ts`): é dela que sai o endereço que vai DENTRO
+   do e-mail de confirmação de conta e de recuperação de senha (`redirectTo`/
+   `emailRedirectTo`, apontando para `/auth/confirm`). Sem prefixo `NEXT_PUBLIC_`, de
+   propósito — é lida só no servidor. Sem ela, o código cai em `DEPLOY_PRIME_URL` e `URL`,
+   que a própria Netlify injeta, e só depois no cabeçalho `Host` da requisição; ou seja, o
+   site não quebra, e é justamente por isso que a falta passa despercebida. **Cadastrar com
+   o endereço público, sem barra no fim.** E há uma segunda ponta, esta no painel do
+   Supabase: *Authentication → URL Configuration → Redirect URLs* precisa listar
+   `<endereço>/auth/confirm` dos três ambientes (local, branch deploy, produção) — o Supabase
+   IGNORA em silêncio qualquer `redirectTo` fora dessa lista e manda a pessoa para o Site
+   URL, o que faz o link do e-mail parecer defeito do código quando é configuração.
+
 0f. **`app/error.tsx` não protege quem está sem JavaScript, e não tem teste.** Duas coisas
    separadas, as duas medidas em 30/08/2026 com um `throw` proposital num Server Component:
    (a) o boundary de erro do React não roda na renderização do servidor, então um erro que
