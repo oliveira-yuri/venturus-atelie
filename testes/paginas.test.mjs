@@ -7,9 +7,8 @@
  *
  * Só as rotas já migradas para o Next entram aqui: a home (`/`), as três da
  * Tarefa A1, /projetos (Tarefa A3), agenda/notícias/galeria/acervo (Tarefa
- * A4) e voluntariado/doar (Tarefa A5). As outras duas do menu — contato,
- * entrar — ainda não existem no app novo; migram no restante da fase 2 e
- * voltam para esta lista quando existirem.
+ * A4), voluntariado/doar (Tarefa A5) e contato/entrar/recuperar-acesso
+ * (Tarefa A6) — a fase 2 esgota o menu principal com esta tarefa.
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -39,7 +38,19 @@ const PAGINAS = [
   // testes/pagina-voluntariado.test.mjs e testes/pagina-doar.test.mjs —
   // aqui elas só ganham a bateria estrutural genérica, igual às outras.
   { arquivo: 'voluntariado', chave: 'voluntariado' },
-  { arquivo: 'doar',         chave: 'doar' }
+  { arquivo: 'doar',         chave: 'doar' },
+  // Tarefa A6: contato (sem formulário — RF07 continua "falta", ver o
+  // comentário de app/contato/page.tsx) e entrar (RF08–RF10, abas e campos
+  // desabilitados, envio desligado até o Bloco B). Recuperar-acesso não é
+  // item do menu (nunca foi, nem no site antigo) — não entra nesta lista,
+  // mesma situação de privacidade abaixo.
+  { arquivo: 'contato', chave: 'contato' },
+  { arquivo: 'entrar',  chave: 'entrar' },
+  // Recuperar-acesso não é item de menu (nunca foi, nem no site antigo —
+  // só o link "Esqueci minha senha" de /entrar leva até ela), mas marca
+  // "Entrar" como página atual, igual a /entrar — ver o `itemAtualEsperado`
+  // no teste "cabeçalho e rodapé montam" abaixo.
+  { arquivo: 'recuperar-acesso', chave: 'recuperar-acesso', semItemDeMenu: true, itemAtualEsperado: 'Entrar' }
 ];
 
 // As 11 atividades reais (dados-iniciais/atividades.json, mesmo conteúdo
@@ -111,8 +122,18 @@ for (const pagina of PAGINAS) {
     assert.ok(montou.menu, 'o menu não montou');
     if (!pagina.semItemDeMenu) {
       assert.ok(montou.atual, 'nenhum item marcado como página atual');
+    } else if (pagina.itemAtualEsperado) {
+      // Tarefa A6: /recuperar-acesso não é item de menu, mas marca "Entrar"
+      // como atual — mesmo comportamento de site/assets/js/componentes/
+      // aac-header.js, que tratava entrar.html e recuperar-acesso.html como
+      // a mesma "página atual" (ver o comentário de componentes/
+      // Cabecalho.tsx). Sem este ramo, o `else` abaixo (herdado da Tarefa
+      // A1, escrito só pensando em /privacidade) acusaria falso positivo
+      // aqui.
+      assert.equal(montou.atual, pagina.itemAtualEsperado,
+        `${pagina.chave}: esperava "${pagina.itemAtualEsperado}" marcado como página atual`);
     } else {
-      assert.equal(montou.atual, null, 'privacidade não deveria ter item de menu marcado como atual');
+      assert.equal(montou.atual, null, `${pagina.chave} não deveria ter item de menu marcado como atual`);
     }
     assert.ok(montou.contatos >= 5, 'o rodapé precisa dos cinco contatos do RF06');
     assert.equal(montou.acessibilidade, 4, 'faltam controles de acessibilidade');

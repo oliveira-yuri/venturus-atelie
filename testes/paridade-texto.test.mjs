@@ -12,8 +12,10 @@
  * Por isso a comparação aqui é de string completa (espaços normalizados),
  * não de presença de palavra: é o único jeito de um espaço que sumiu doer.
  *
- * Este teste protege as 12 páginas que ainda faltam migrar na fase 2 — é o
- * que impede este defeito de se repetir a cada página nova.
+ * Protege cada página migrada nesta fase 2 — a Tarefa A6 fecha o menu
+ * principal (contato, entrar) mais recuperar-acesso; o que resta migrar
+ * (painel, área do usuário) é Bloco B e ganha entrada aqui quando existir.
+ * É o que impede este defeito de se repetir a cada página nova.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -184,6 +186,51 @@ const PAGINAS = [
     // Só o <div id="dados-pix"> sai (não a <section> inteira): o h2
     // "Doação em dinheiro" continua comparado byte a byte.
     idsExcluidos: ['dados-pix']
+  },
+  // Tarefa A6. /contato não ganhou formulário nenhum nesta tarefa (ver o
+  // comentário de app/contato/page.tsx) — é uma migração 1:1 sem seção
+  // dinâmica, por isso não precisa de idsExcluidos.
+  { rota: '/contato', arquivoOriginal: 'site/contato.html' },
+  {
+    rota: '/entrar',
+    arquivoOriginal: 'site/entrar.html',
+    // Tarefa A6. Três exclusões:
+    //
+    // "aviso": no HTML estático original é `<div id="aviso" class="aviso"
+    // hidden></div>`, vazio — só ganhava texto em runtime, escrito por
+    // site/assets/js/paginas/entrar.js (mostrarAviso), depois de uma
+    // tentativa de envio. Aqui o aviso não reage a envio nenhum (não há
+    // envio) e fica sempre visível, com o texto novo aprovado para esta
+    // tarefa ("envio ainda não está ativo...") — comparar o estático (div
+    // vazia) contra o renderizado acusaria divergência ilegítima, mesma
+    // classe de "dados-pix" acima.
+    //
+    // "painel-entrar"/"painel-criar": no HTML estático original, cada
+    // campo era um <aac-form-campo rotulo="..." ajuda="...">, custom
+    // element sem filho — rótulo e ajuda eram ATRIBUTOS, não texto (só
+    // viravam texto depois que o script do componente rodava no
+    // navegador), mesma situação de "filtros-acervo" em /acervo.
+    // componentes/AbasEntrar.tsx expande cada campo em
+    // componentes/CampoFormulario.ts, que desenha <label>/<p>/<input> de
+    // verdade — introduzindo texto (rótulos, textos de ajuda) que nunca
+    // existiu como texto no arquivo .html original. As duas <section>
+    // saem inteiras (não só os campos) porque os dois <form> inteiros
+    // vivem dentro delas.
+    idsExcluidos: ['aviso', 'painel-entrar', 'painel-criar']
+  },
+  {
+    rota: '/recuperar-acesso',
+    arquivoOriginal: 'site/recuperar-acesso.html',
+    // Tarefa A6. Mesma dupla situação de /entrar acima: "aviso" chegava
+    // vazio e escondido no estático (mesmo motivo); "form-recuperar" saiu
+    // inteiro porque o único campo do formulário (e-mail) era um
+    // <aac-form-campo> sem texto no estático, e vira <label>/<input> de
+    // verdade aqui — mesma classe de "filtros-acervo"/"painel-entrar". O
+    // botão "Enviar link" e o link "Voltar para entrar", que SÃO texto
+    // literal nos dois lados, saem junto por estarem dentro do mesmo
+    // <form> — cobertos à parte, por igualdade, em
+    // testes/pagina-recuperar-acesso.test.mjs.
+    idsExcluidos: ['aviso', 'form-recuperar']
   }
 ];
 
@@ -397,6 +444,29 @@ const COBERTURA_DAS_EXCLUSOES = {
   'dados-pix': {
     arquivo: 'testes/pagina-doar.test.mjs',
     nota: 'achado desta rodada — "o aviso sem chave Pix é a frase inteira..." compara por igualdade, tags fora.'
+  },
+  'aviso': {
+    arquivo: 'testes/pagina-entrar.test.mjs',
+    nota: 'Tarefa A6 — "o aviso de envio desligado é a frase inteira..." compara por igualdade, tags fora, '
+      + 'mesmo padrão de dados-pix. Usado por /entrar E /recuperar-acesso (mesmo id nas duas páginas); a '
+      + 'segunda tem seu próprio teste irmão em testes/pagina-recuperar-acesso.test.mjs.'
+  },
+  'painel-entrar': {
+    arquivo: 'testes/campo-formulario.test.mjs',
+    nota: 'Tarefa A6 — a única fronteira texto-elemento de CampoFormulario.ts é rótulo + espaço + '
+      + '<span class="campo__obrigatorio">*</span>, coberta por "campo obrigatório recebe required e a '
+      + 'marca visual" (regex com o espaço literal). O resto do painel é <label>/<p>/<input> em blocos '
+      + 'próprios, sem concatenação (mesma situação de lista-atividades/lista-areas acima).'
+  },
+  'painel-criar': {
+    arquivo: 'testes/campo-formulario.test.mjs',
+    nota: 'mesmo componente (CampoFormulario.ts) e mesma fronteira de painel-entrar — cobertura idêntica.'
+  },
+  'form-recuperar': {
+    arquivo: 'testes/campo-formulario.test.mjs',
+    nota: 'mesmo componente e mesma fronteira de painel-entrar/painel-criar (um só campo obrigatório, '
+      + 'e-mail). "Enviar link" e "Voltar para entrar" — texto literal que sai junto por estarem dentro '
+      + 'do mesmo <form> — são cobertos por igualdade em testes/pagina-recuperar-acesso.test.mjs.'
   }
 };
 

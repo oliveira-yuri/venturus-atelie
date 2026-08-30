@@ -20,16 +20,37 @@
  * código comentado não aparece em relatório nenhum.
  *
  * Reativação: nove dos doze dependem de uma tela de PAINEL que só existe no
- * Bloco B, ainda sem plano escrito. Três NÃO — "rótulo vinculado", "as duas
- * abas funcionam pelo teclado" e "RF12: a caixa de maioridade" verificam
- * marcação e interação de teclado em `/entrar`, que a Tarefa A6 (desta
- * semana) já porta, sem precisar de autenticação nenhuma. Prender os doze ao
- * Bloco B (achado da rodada de correção 1 desta tarefa) teria deixado essas
- * três verificações — uma delas regra de negócio (RF12: só maior de 18 anos
- * cria conta) — esquecidas por um bloco inteiro além do necessário. Cada
- * `test.todo` abaixo diz contra qual tarefa reativar.
+ * Bloco B, ainda sem plano escrito, e continuam `test.todo`. Três NÃO —
+ * "rótulo vinculado", "as duas abas funcionam pelo teclado" e "RF12: a
+ * caixa de maioridade" verificavam marcação e interação de teclado em
+ * `/entrar`, sem precisar de autenticação nenhuma — e a Tarefa A6 (que
+ * porta essa tela, app/entrar/page.tsx + componentes/AbasEntrar.tsx) os
+ * reativa como testes de verdade no fim deste arquivo, contra a rota nova.
+ * Prender os doze ao Bloco B (achado da rodada de correção 1 desta tarefa)
+ * teria deixado essas três verificações — uma delas regra de negócio (RF12:
+ * só maior de 18 anos cria conta) — esquecidas por um bloco inteiro além do
+ * necessário. Cada `test.todo` que resta diz contra qual tarefa reativar.
  */
-import { test } from 'node:test';
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { Builder, By } from 'selenium-webdriver';
+import { Options } from 'selenium-webdriver/firefox.js';
+
+const BASE = process.env.URL_BASE || 'http://localhost:3123';
+
+let navegador;
+
+// `before`/`after` deste arquivo rodam uma vez por execução da suíte,
+// mesmo que a maioria dos testes abaixo continue `test.todo` (que não
+// executa corpo nenhum) — só os três reativados no fim do arquivo usam
+// `navegador`.
+before(async () => {
+  navegador = await new Builder().forBrowser('firefox')
+    .setFirefoxOptions(new Options().addArguments('-headless'))
+    .build();
+});
+
+after(async () => { await navegador?.quit(); });
 
 test.todo('a navegação fica na parte de baixo no celular — zona do polegar '
   + '(RNF08: painel mobile-first; reativar contra a tela nova do Bloco B)');
@@ -61,14 +82,70 @@ test.todo('o painel recusa quem não está autenticado — redireciona para /ent
 test.todo('o painel pede noindex na página real '
   + '(RF33; reativar contra a tela nova do Bloco B)');
 
-test.todo('entrar.html: os campos têm rótulo vinculado '
-  + '(acessibilidade, regra 8 do CLAUDE.md; é marcação, não depende de autenticação — '
-  + 'reativar contra /entrar já na Tarefa A6, que porta a tela)');
+// =====================================================================
+// Reativados pela Tarefa A6 contra /entrar de verdade (app/entrar/page.tsx
+// + componentes/AbasEntrar.tsx). Corpo adaptado do commit histórico
+// (`git show effe333:testes/painel.test.mjs`): mesma verificação, mesmo
+// seletor onde o HTML se manteve igual (`#form-entrar input`, `#aba-criar`,
+// `#painel-criar`, `#campo-maioridade`) — só o endereço muda, de um
+// servidor estático próprio servindo site/entrar.html para BASE + '/entrar'
+// no Next. Os três continuam válidos com todo campo desabilitado (a
+// decisão "sem envio" da Tarefa A6): rótulo vinculado, alternância de aba e
+// o atributo `required` não dependem de o campo estar habilitado.
+test('entrar.html: os campos têm rótulo vinculado', async () => {
+  await navegador.manage().window().setRect({ width: 375, height: 720 });
+  await navegador.get(`${BASE}/entrar`);
+  await navegador.wait(async () =>
+    (await navegador.findElements(By.css('#form-entrar input'))).length > 0, 5000);
 
-test.todo('entrar.html: as duas abas funcionam pelo teclado '
-  + '(RF10: papéis acumuláveis, entrar/criar conta; é marcação e interação de teclado, não '
-  + 'depende de autenticação — reativar contra /entrar já na Tarefa A6, que porta a tela)');
+  const semRotulo = await navegador.executeScript(`
+    return [...document.querySelectorAll('input')]
+      .filter((campo) => {
+        if (!campo.id) return true;
+        return !document.querySelector('label[for="' + campo.id + '"]');
+      })
+      .map((campo) => campo.name || campo.type);
+  `);
 
-test.todo('RF12: a caixa de maioridade existe e é obrigatória '
-  + '(RF12 + RN01: conta é só para quem tem 18 anos ou mais; a caixa e o rótulo são marcação, '
-  + 'não dependem de autenticação — reativar contra /entrar já na Tarefa A6, que porta a tela)');
+  assert.deepEqual(semRotulo, [], 'campos sem rótulo vinculado');
+});
+
+test('entrar.html: as duas abas funcionam pelo teclado', async () => {
+  await navegador.get(`${BASE}/entrar`);
+  await navegador.wait(async () =>
+    (await navegador.findElements(By.css('#aba-criar'))).length > 0, 5000);
+
+  await navegador.findElement(By.css('#aba-criar')).click();
+
+  const estado = await navegador.executeScript(`
+    return {
+      criarVisivel: !document.querySelector('#painel-criar').hidden,
+      entrarEscondido: document.querySelector('#painel-entrar').hidden,
+      selecionada: document.querySelector('#aba-criar').getAttribute('aria-selected')
+    };
+  `);
+
+  assert.equal(estado.criarVisivel, true, 'o painel de criar conta não apareceu');
+  assert.equal(estado.entrarEscondido, true, 'os dois painéis ficaram visíveis');
+  assert.equal(estado.selecionada, 'true', 'a aba não foi marcada como selecionada');
+});
+
+test('RF12: a caixa de maioridade existe e é obrigatória', async () => {
+  await navegador.get(`${BASE}/entrar`);
+  await navegador.wait(async () =>
+    (await navegador.findElements(By.css('#aba-criar'))).length > 0, 5000);
+  await navegador.findElement(By.css('#aba-criar')).click();
+
+  const caixa = await navegador.executeScript(`
+    const campo = document.querySelector('#campo-maioridade');
+    if (!campo) return null;
+    return {
+      obrigatoria: campo.required,
+      rotulo: document.querySelector('label[for="campo-maioridade"]')?.textContent.trim() || ''
+    };
+  `);
+
+  assert.ok(caixa, 'a caixa de maioridade não existe — RF12 e RN01');
+  assert.equal(caixa.obrigatoria, true, 'a caixa de maioridade não é obrigatória');
+  assert.match(caixa.rotulo, /18/, 'o rótulo precisa dizer a idade');
+});

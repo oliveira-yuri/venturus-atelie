@@ -43,18 +43,23 @@ export const ROTAS_PRONTAS_MENU = [
   // Tarefa A5: voluntariado (RF24, com as cinco áreas reais do banco — ver
   // componentes/ListaAreas.ts) e doar (RF23, sem chave Pix — decisão D7
   // pendente, ver app/doar/page.tsx).
-  '/voluntariado', '/doar'
-];
-
-// Itens do menu (mais o "Entrar" do cabeçalho) que ainda não têm página no
-// app novo. Migram nas Tarefas A2 em diante.
-export const ROTAS_PENDENTES = [
+  '/voluntariado', '/doar',
+  // Tarefa A6: contato (RF06 — sem formulário, ver app/contato/page.tsx) e
+  // entrar (RF08–RF10, tela pronta, envio desligado até o Bloco B — ver
+  // app/entrar/page.tsx e componentes/AbasEntrar.tsx).
   '/contato', '/entrar'
 ];
 
-// Páginas prontas que NÃO são item do menu principal — hoje só a política de
-// privacidade, alcançada pelo rodapé.
-export const PAGINAS_PRONTAS_FORA_DO_MENU = ['/privacidade'];
+// Itens do menu (mais o "Entrar" do cabeçalho) que ainda não têm página no
+// app novo. A fase 2 esgota esta lista tarefa a tarefa — Tarefa A6 é quem
+// zera ela.
+export const ROTAS_PENDENTES = [];
+
+// Páginas prontas que NÃO são item do menu principal — a política de
+// privacidade (rodapé) e, desde a Tarefa A6, recuperar-acesso (alcançada só
+// pelo link "Esqueci minha senha" de /entrar — nunca foi item de menu, nem
+// no site antigo).
+export const PAGINAS_PRONTAS_FORA_DO_MENU = ['/privacidade', '/recuperar-acesso'];
 
 // Toda página que já existe de verdade no Next, item de menu ou não.
 export const PAGINAS_PRONTAS = [...ROTAS_PRONTAS_MENU, ...PAGINAS_PRONTAS_FORA_DO_MENU];
