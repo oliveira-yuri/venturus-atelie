@@ -94,6 +94,28 @@ export type OpcoesCadastro = {
   exigirPapel?: boolean;
 };
 
+/**
+ * A regra de força da senha, num lugar só.
+ *
+ * Extraída de validarCadastro() na Tarefa 2, quando `definirNovaSenha`
+ * (acoes/autenticacao.ts) passou a precisar exatamente da mesma exigência.
+ * Duas cópias da regra seria o cenário em que criar conta aceita uma senha
+ * que trocar a senha recusa — a pessoa presa fora da própria conta por uma
+ * divergência de uma linha. Devolve a mensagem, ou null quando está boa.
+ *
+ * O QUE ELA NÃO FAZ: força de verdade (dicionário, repetição, sequência)
+ * quem mede é o Supabase, com a política do projeto — e o erro dele chega
+ * traduzido por `weak_password` em compartilhado/erros.ts. Aqui é só o
+ * mínimo que dá para checar sem rede, para a pessoa não descobrir depois
+ * de uma ida ao servidor.
+ */
+export function erroDeSenha(senha: string | undefined): string | null {
+  if (!senha || senha.length < SENHA_MINIMA) {
+    return `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`;
+  }
+  return null;
+}
+
 export function validarCadastro(
   dados: DadosCadastro,
   { exigirPapel = true }: OpcoesCadastro = {}
@@ -108,9 +130,8 @@ export function validarCadastro(
     erros.email = 'Confira o e-mail: ele precisa ter um endereço completo, como nome@exemplo.com.';
   }
 
-  if (!dados.senha || dados.senha.length < SENHA_MINIMA) {
-    erros.senha = `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`;
-  }
+  const erroSenha = erroDeSenha(dados.senha);
+  if (erroSenha) erros.senha = erroSenha;
 
   // Telefone é opcional (coleta mínima), mas se vier, vem completo.
   if (dados.telefone && dados.telefone.trim().length > 0) {
@@ -155,6 +176,49 @@ export function validarEntrada(dados: DadosEntrada): ResultadoValidacao {
   }
 
   return { valido: Object.keys(erros).length === 0, erros };
+}
+
+export type DadosNovaSenha = { senha?: string; confirmacao?: string };
+
+/**
+ * A senha nova de /nova-senha, pedida DUAS VEZES.
+ *
+ * O site antigo pedia uma vez só. Numa tela sem "mostrar senha" — e esta
+ * não tem, porque o celular da equipe muitas vezes está sendo usado de pé,
+ * no meio de um evento, com gente ao lado (regra 4 do CLAUDE.md) — um erro
+ * de digitação vira a pessoa trancada fora da conta, sem nada na tela que
+ * indique o que houve. Pedir duas vezes é o que transforma isso num erro
+ * de formulário em vez de uma senha desconhecida.
+ *
+ * A ORDEM DOS ERROS IMPORTA: se a senha em si já é curta demais, o erro de
+ * "não são iguais" não aparece. Duas mensagens vermelhas ao mesmo tempo,
+ * uma delas consequência da outra, é o tipo de tela que faz a pessoa achar
+ * que errou duas coisas.
+ */
+export function validarNovaSenha(dados: DadosNovaSenha): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  const erroSenha = erroDeSenha(dados.senha);
+  if (erroSenha) erros.senha = erroSenha;
+
+  if (!dados.confirmacao) {
+    erros.confirmacao = 'Escreva a senha nova de novo, para conferirmos.';
+  } else if (!erroSenha && dados.confirmacao !== dados.senha) {
+    erros.confirmacao = 'As duas senhas não são iguais. Confira e escreva as duas de novo.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/** Campos do formulário de /nova-senha (componentes/FormularioNovaSenha.tsx). */
+export function lerNovaSenha(dados: FormData): DadosNovaSenha {
+  // Os dois SEM trim, pelo mesmo motivo de sempre (ver senhaBruta acima):
+  // aparar aqui e não aparar no cadastro é como se cria uma senha que a
+  // pessoa consegue definir e nunca mais consegue digitar.
+  return {
+    senha: senhaBruta(dados, 'senha'),
+    confirmacao: senhaBruta(dados, 'confirmacao')
+  };
 }
 
 export function validarRecuperacao(dados: { email?: string }): ResultadoValidacao {

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  validarCadastro, validarEntrada, validarRecuperacao,
-  lerCadastro, lerEntrada, lerRecuperacao,
-  formatarTelefone, apenasDigitos
+  validarCadastro, validarEntrada, validarRecuperacao, validarNovaSenha,
+  lerCadastro, lerEntrada, lerRecuperacao, lerNovaSenha,
+  formatarTelefone, apenasDigitos, erroDeSenha
 } from '../compartilhado/validacao.ts';
 
 const CADASTRO_VALIDO = {
@@ -318,4 +318,96 @@ test('exigirPapel: o padrão continua exigindo, a Action pede para não exigir',
   assert.equal(validarCadastro(semPapel).valido, false);
   // Como acoes/autenticacao.ts chama: as caixas não são obrigatórias na tela.
   assert.equal(validarCadastro(semPapel, { exigirPapel: false }).valido, true);
+});
+
+// =====================================================================
+// Senha nova (/nova-senha, Tarefa 2 da autenticação)
+//
+// A tela pede a senha DUAS VEZES. O site antigo pedia uma só, e nesta —
+// que não tem "mostrar senha" — um erro de digitação viraria a pessoa
+// trancada fora da conta, com a senha errada gravada de verdade e nada na
+// tela indicando o que houve.
+// =====================================================================
+
+test('senha nova: as duas iguais e longas o bastante são aceitas', () => {
+  const { valido, erros } = validarNovaSenha(
+    lerNovaSenha(formulario({ senha: 'senha bem comprida', confirmacao: 'senha bem comprida' }))
+  );
+  assert.equal(valido, true, `erros inesperados: ${JSON.stringify(erros)}`);
+});
+
+test('senha nova: duas senhas diferentes são recusadas, e o erro cai na confirmação', () => {
+  const { valido, erros } = validarNovaSenha(
+    lerNovaSenha(formulario({ senha: 'senha bem comprida', confirmacao: 'senha bem compridA' }))
+  );
+  assert.equal(valido, false, 'aceitou duas senhas diferentes');
+  assert.ok(erros.confirmacao, 'faltou o erro no campo de confirmação');
+  assert.equal(erros.senha, undefined,
+    'a senha em si está boa — marcar os dois campos faria parecer que houve dois erros');
+});
+
+test('senha nova: um espaço a mais no fim já conta como senha diferente', () => {
+  // Se a leitura aparasse espaços, este caso passaria — e a pessoa gravaria
+  // uma senha que ela nunca conseguiria digitar de novo do mesmo jeito.
+  const { valido } = validarNovaSenha(
+    lerNovaSenha(formulario({ senha: 'senha bem comprida', confirmacao: 'senha bem comprida ' }))
+  );
+  assert.equal(valido, false);
+});
+
+test('senha nova: senha curta é recusada, e sem acusar a confirmação junto', () => {
+  const { valido, erros } = validarNovaSenha(
+    lerNovaSenha(formulario({ senha: 'curta', confirmacao: 'curta' }))
+  );
+  assert.equal(valido, false);
+  assert.ok(erros.senha, 'faltou o erro de senha curta');
+  assert.equal(erros.confirmacao, undefined,
+    'as duas são iguais: acusar a confirmação também seria um erro inventado');
+});
+
+test('senha nova: formulário vazio é recusado nos dois campos', () => {
+  const { valido, erros } = validarNovaSenha(lerNovaSenha(formulario({})));
+  assert.equal(valido, false);
+  assert.ok(erros.senha);
+  assert.ok(erros.confirmacao);
+});
+
+test('senha nova: confirmação em branco é recusada mesmo com a senha boa', () => {
+  const { valido, erros } = validarNovaSenha(
+    lerNovaSenha(formulario({ senha: 'senha bem comprida' }))
+  );
+  assert.equal(valido, false);
+  assert.ok(erros.confirmacao);
+});
+
+test('senha nova: um File no campo senha não vira senha', () => {
+  const dados = new FormData();
+  dados.set('senha', new File(['conteúdo qualquer bem longo'], 'senha.txt'));
+  dados.set('confirmacao', new File(['conteúdo qualquer bem longo'], 'senha.txt'));
+
+  const lido = lerNovaSenha(dados);
+  assert.equal(lido.senha, '');
+  assert.equal(lido.confirmacao, '');
+  assert.equal(validarNovaSenha(lido).valido, false);
+});
+
+test('a regra de força da senha é a MESMA no cadastro e na senha nova', () => {
+  // erroDeSenha() foi extraída na Tarefa 2 justamente para não haver duas
+  // cópias da regra: criar conta aceitando o que trocar senha recusa (ou o
+  // contrário) trancaria a pessoa fora da conta por uma divergência de uma
+  // linha. Este teste é o que acusa se uma das duas passar a chamar outra
+  // coisa.
+  const curta = 'sete123';
+  assert.ok(erroDeSenha(curta), 'a regra deixou de recusar uma senha de 7 caracteres');
+
+  const noCadastro = validarCadastro(
+    lerCadastro(formulario({ ...CADASTRO_ENVIADO, senha: curta })),
+    { exigirPapel: false }
+  ).erros.senha;
+  const naSenhaNova = validarNovaSenha(
+    lerNovaSenha(formulario({ senha: curta, confirmacao: curta }))
+  ).erros.senha;
+
+  assert.equal(noCadastro, naSenhaNova);
+  assert.equal(noCadastro, erroDeSenha(curta));
 });

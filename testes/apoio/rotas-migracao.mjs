@@ -59,7 +59,20 @@ export const ROTAS_PENDENTES = [];
 // privacidade (rodapé) e, desde a Tarefa A6, recuperar-acesso (alcançada só
 // pelo link "Esqueci minha senha" de /entrar — nunca foi item de menu, nem
 // no site antigo).
-export const PAGINAS_PRONTAS_FORA_DO_MENU = ['/privacidade', '/recuperar-acesso'];
+// Tarefa 2 da autenticação acrescenta /nova-senha: ela não é, e não pode
+// ser, item de menu — só se chega nela pelo link que o Supabase manda por
+// e-mail, através de /auth/confirm, que é quem verifica o token e grava a
+// sessão. Um item de menu apontando para cá levaria toda visita à tela de
+// "esta página abre pelo link do e-mail".
+//
+// `/auth/confirm` NÃO entra em lista nenhuma daqui, e não precisa: é Route
+// Handler (`route.ts`), e rotasReaisDoApp() abaixo só cataloga diretório com
+// `page.tsx` dentro — MEDIDO nesta tarefa, rodando a função com a rota já
+// criada: ela devolve as 15 páginas e nenhuma menção a /auth/confirm, igual
+// ao que já acontece com /diagnostico/origem-dos-dados. Acrescentá-la aqui
+// quebraria os dois testes de reconciliação, que comparam esta lista com o
+// que a varredura encontra.
+export const PAGINAS_PRONTAS_FORA_DO_MENU = ['/privacidade', '/recuperar-acesso', '/nova-senha'];
 
 // Toda página que já existe de verdade no Next, item de menu ou não.
 export const PAGINAS_PRONTAS = [...ROTAS_PRONTAS_MENU, ...PAGINAS_PRONTAS_FORA_DO_MENU];

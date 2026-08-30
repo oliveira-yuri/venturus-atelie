@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (407 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (408)
+npm test                        # suíte completa, modo offline (460 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (461)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,7 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 407 são 395 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
+Os 460 são 448 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
 (RF33), que descrevem requisitos válidos cuja forma de verificar só existe no Bloco B. Dois
 dos pulados nasceram na revisão final do Bloco A: `ROTAS_PENDENTES` está vazia desde a A6, e
 os testes que iteravam sobre ela passavam sem verificar nada — pular com motivo escrito é a
@@ -91,6 +91,14 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   Por isso toda validação de envio roda lá dentro, e o FormData é lido campo a campo por nome
   (`compartilhado/validacao.ts`) — nunca espalhado num objeto, que é como `eh_equipe` voltaria
   a entrar pela porta da frente.
+- **Quem está autenticado se pergunta ao Supabase, não ao cookie.** `servidor/sessao.ts`
+  (`usuarioAtual()`) usa `getUser()`, que verifica o token no servidor de autenticação;
+  `getSession()` devolveria o que estiver escrito no cookie, que é dado do navegador. Página e
+  Server Action usam a MESMA função — se divergissem, a diferença entre as duas seria o buraco.
+- **Link de e-mail entra por `/auth/confirm` (Route Handler), nunca por uma página.** É
+  `verifyOtp()` que grava o cookie de sessão, e escrever cookie durante a renderização de um
+  Server Component é impossível (ver o `catch` do `setAll` em `servidor/supabase.ts`). O `type`
+  da URL passa por lista fechada em `compartilhado/links-de-email.ts` — é entrada de usuário.
 - **Camada de dados isolada e só do servidor:** páginas falam com `servidor/dados/*.ts`, nunca com
   `supabase-js` direto, e todo módulo de `servidor/` começa com `import 'server-only'`.
 - **Fonte dupla:** `servidor/dados/conteudo.ts` lê o JSON versionado de `dados-iniciais/` quando não
@@ -123,11 +131,15 @@ existe aqui, não contra o que existia na `main`.
 `pronto`. A camada de servidor da autenticação passou a existir em 30/08/2026 (Tarefa 1 do Bloco
 B): `acoes/autenticacao.ts` tem `entrar`, `criarConta`, `solicitarRecuperacao` e `sair` como
 Server Actions, e `compartilhado/validacao.ts` — que antes nenhum código de aplicação importava —
-é o que elas usam para validar. **Nenhum formulário chama essas funções ainda**: os campos de
-`/entrar` e `/recuperar-acesso` continuam `disabled`, ligar os dois é a Tarefa 3. E nada disso
-foi exercitado contra o Supabase de verdade: a suíte não autentica (não há como, sem conta de
-teste e com o limite de envio de e-mail travando o cadastro), então o que está provado é a
-validação, a tradução de erro e a compilação — não o ida-e-volta com o Auth.
+é o que elas usam para validar. A Tarefa 2 acrescentou `definirNovaSenha`, a rota
+`/auth/confirm` (que troca o link do e-mail pela sessão) e a página `/nova-senha`, que é **o
+primeiro formulário do site a chamar uma Server Action de verdade** — inclusive sem
+JavaScript, medido. Os campos de `/entrar` e `/recuperar-acesso` continuam `disabled`; ligar
+os dois é a Tarefa 3. O que ainda NÃO foi exercitado é o caminho do SUCESSO contra o Auth:
+sem conta de teste e com o limite de envio de e-mail travando o cadastro, ninguém recebeu um
+link de verdade. O que está provado contra o Supabase real (`npm run test:supabase`) é o
+caminho da FALHA — token recusado vira `/nova-senha?erro=expirado` — e a recusa de
+`definirNovaSenha` sem sessão.
 
 ### M1 — Site institucional
 
@@ -149,7 +161,7 @@ validação, a tradução de erro e a compilação — não o ida-e-volta com o 
 |---|---|---|
 | RF08 | Cadastro de voluntário | tela pronta e **Server Action pronta** (`criarConta`); falta o formulário chamá-la — Tarefa 3 |
 | RF09 | Cadastro de doador | idem RF08: é o mesmo formulário, com a caixa "Quero doar ou apoiar" virando `eh_doador` |
-| RF10 | Autenticação, papéis acumuláveis | **parcial** — `entrar`/`sair`/`solicitarRecuperacao` existem em `acoes/autenticacao.ts`, com a validação e a tradução de erro testadas; falta ligar os formulários (Tarefa 3), a rota `/auth/confirm` que troca o link do e-mail pela sessão (Tarefa 2) e qualquer tela que leia a sessão |
+| RF10 | Autenticação, papéis acumuláveis | **parcial** — `entrar`/`sair`/`solicitarRecuperacao`/`definirNovaSenha` em `acoes/autenticacao.ts`; `/auth/confirm` (Tarefa 2) verifica o link do e-mail e grava a sessão; `/nova-senha` é a única tela que lê sessão (`servidor/sessao.ts`, com `getUser()`, nunca `getSession()`) e envia. Falta ligar os formulários de `/entrar` e `/recuperar-acesso` (Tarefa 3) |
 | RF11 | Área do usuário | **falta** — Bloco B |
 | RF12 | Confirmação de maioridade | caixa obrigatória na tela, regra (RN01) testada e **recusada no servidor** (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo); falta o envio da tela — Tarefa 3 |
 | RF33 | Painel administrativo | **falta** — Bloco B. A casca que existia no site antigo não foi portada; `/admin` dá 404 de propósito |

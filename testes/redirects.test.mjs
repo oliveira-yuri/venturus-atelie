@@ -71,6 +71,25 @@ const DIRETORIO_HTML_ORIGINAL = fileURLToPath(new URL('./apoio/html-original/', 
 const SEM_REDIRECT_DE_PROPOSITO = ['admin/index.html'];
 
 /**
+ * Páginas de `app/` que NUNCA existiram no site antigo, e por isso não têm
+ * — nem podem ter — URL `.html` apontando para elas.
+ *
+ * Até a Tarefa 2 da autenticação toda página do app novo era o port de uma
+ * página antiga, e a reconciliação do fim deste arquivo podia exigir
+ * igualdade exata entre destinos configurados e páginas reais. `/nova-senha`
+ * é a primeira página genuinamente nova: ela recebe quem clicou no link de
+ * recuperação de senha (rota `/auth/confirm`), um fluxo que o site estático
+ * não tinha como ter — ali a autenticação era JavaScript no navegador.
+ * Cobrar um redirect de uma URL antiga que jamais circulou seria inventar
+ * história.
+ *
+ * A lista é explícita, e não um "ignore o que não bater", justamente para
+ * que uma página PORTADA que ficasse sem redirect continue quebrando o
+ * teste. Toda entrada aqui precisa de um motivo escrito.
+ */
+const PAGINAS_SEM_URL_ANTIGA = ['/nova-senha'];
+
+/**
  * Varre recursivamente os `.html` congelados do site antigo — a fonte das
  * URLs antigas que já circularam. `LEIA-ME.txt` e qualquer outro arquivo
  * que não termine em `.html` ficam de fora pelo filtro abaixo.
@@ -191,13 +210,24 @@ test('a query string do link antigo sobrevive ao redirect', async () => {
  */
 test('todo destino de compartilhado/redirects-antigos.ts é uma página real de app/, sem sobra de nenhum lado', async () => {
   const destinosConfigurados = REDIRECTS_ANTIGOS.map((redirect) => redirect.destino).sort();
-  const rotasReais = (await rotasReaisDoApp()).sort();
+  const rotasReais = (await rotasReaisDoApp())
+    .filter((rota) => !PAGINAS_SEM_URL_ANTIGA.includes(rota))
+    .sort();
 
   assert.deepEqual(
     destinosConfigurados, rotasReais,
     'os destinos configurados e as páginas reais de app/ divergem — um redirect aponta para '
-    + 'página que não existe, ou uma página real ficou sem nenhum redirect apontando para ela'
+    + 'página que não existe, ou uma página PORTADA do site antigo ficou sem nenhum redirect '
+    + 'apontando para ela. Página que nasceu no app novo entra em PAGINAS_SEM_URL_ANTIGA, '
+    + 'no topo deste arquivo, com o motivo escrito'
   );
+
+  // A lista de exceções não pode envelhecer em silêncio: uma entrada que
+  // deixe de corresponder a uma página real é lixo que afrouxa o teste.
+  const rotasTodas = await rotasReaisDoApp();
+  const sobrando = PAGINAS_SEM_URL_ANTIGA.filter((rota) => !rotasTodas.includes(rota));
+  assert.deepEqual(sobrando, [],
+    `PAGINAS_SEM_URL_ANTIGA cita página que não existe mais em app/: ${sobrando.join(', ')}`);
 });
 
 /**

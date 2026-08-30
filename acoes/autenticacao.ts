@@ -53,9 +53,10 @@ import { headers } from 'next/headers';
 import { obterCliente } from '@/servidor/supabase';
 import { temSupabase } from '@/servidor/dados/degradacao';
 import { mensagemDeErroDeAutenticacao } from '@/compartilhado/erros';
+import { usuarioAtual } from '@/servidor/sessao';
 import {
-  lerCadastro, lerEntrada, lerRecuperacao,
-  validarCadastro, validarEntrada, validarRecuperacao,
+  lerCadastro, lerEntrada, lerRecuperacao, lerNovaSenha,
+  validarCadastro, validarEntrada, validarRecuperacao, validarNovaSenha,
   apenasDigitos
 } from '@/compartilhado/validacao';
 
@@ -76,6 +77,19 @@ export type EstadoFormulario = {
 
 /** Mensagem única para "o formulário voltou com campo errado". */
 const CONFIRA_OS_CAMPOS = 'Confira o que está marcado abaixo e envie de novo.';
+
+/**
+ * A recusa de `definirNovaSenha` quando não há sessão.
+ *
+ * Diz o que houve (o link deixou de valer) e o que fazer (pedir outro), sem
+ * jargão e sem culpar quem está lendo — seção 11 do escopo. Não é `erros`
+ * de campo nenhum: o problema não está no que a pessoa digitou.
+ */
+const SEM_SESSAO_PARA_TROCAR_SENHA: EstadoFormulario = {
+  ok: false,
+  mensagem: 'O link que abriu esta página não vale mais — eles duram pouco tempo e servem uma '
+    + 'vez só. Peça um link novo em "Esqueci minha senha" e abra o mais recente que chegar.'
+};
 
 const MENSAGEM_CONTA_CRIADA =
   'Conta criada. Enviamos um e-mail com um link de confirmação: abra o link e depois volte '
@@ -329,6 +343,64 @@ export async function solicitarRecuperacao(
   } catch (erro) {
     return estadoDeFalha(erro, 'solicitarRecuperacao (exceção)');
   }
+}
+
+/**
+ * RF10 — gravar a senha nova, depois de chegar pelo link do e-mail.
+ *
+ * O CAMINHO INTEIRO, porque esta função só faz sentido no meio dele: a
+ * pessoa pede o link em /recuperar-acesso (`solicitarRecuperacao`), o
+ * Supabase manda um e-mail apontando para `/auth/confirm?token_hash=...&
+ * type=recovery`, aquela rota chama `verifyOtp` — que É o que grava o
+ * cookie de sessão — e manda para /nova-senha. Quando esta Action roda, a
+ * pessoa JÁ TEM SESSÃO; é essa sessão que autoriza a troca.
+ *
+ * E É POR ISSO QUE A SESSÃO É CONFERIDA AQUI, e não só na página. Server
+ * Action é endpoint HTTP público (spec §4.5): qualquer pessoa pode fazer
+ * POST nesta função sem nunca ter aberto /nova-senha e sem ter clicado em
+ * link nenhum. A página não mostrar o formulário é conveniência de tela; o
+ * que impede uma troca de senha sem autorização é a linha `if (!usuario)`
+ * abaixo. Removê-la não quebra tela nenhuma — quebra o site inteiro.
+ *
+ * O `updateUser` troca a senha de QUEM ESTÁ NA SESSÃO, sempre: não existe
+ * parâmetro de "qual usuário". Não há como esta Action alterar a senha de
+ * outra pessoa, mesmo com o corpo da requisição inteiro sob controle de
+ * quem chama — o alvo vem do cookie verificado, nunca do FormData.
+ */
+export async function definirNovaSenha(
+  _anterior: EstadoFormulario,
+  dados: FormData
+): Promise<EstadoFormulario> {
+  const campos = lerNovaSenha(dados);
+  const { valido, erros } = validarNovaSenha(campos);
+  if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros };
+
+  if (!temSupabase()) return semSupabase();
+
+  // redirect() FORA do try — mesmo motivo de `entrar` acima: ele lança para
+  // funcionar, e o catch o engoliria.
+  let falha: EstadoFormulario | null = null;
+
+  try {
+    // A GUARDA. usuarioAtual() pergunta ao Supabase (getUser), não confia no
+    // cookie — ver servidor/sessao.ts.
+    const usuario = await usuarioAtual();
+    if (!usuario) return SEM_SESSAO_PARA_TROCAR_SENHA;
+
+    const supabase = await obterCliente();
+    const { error } = await supabase.auth.updateUser({ password: campos.senha! });
+    if (error) falha = estadoDeFalha(error, 'definirNovaSenha');
+  } catch (erro) {
+    falha = estadoDeFalha(erro, 'definirNovaSenha (exceção)');
+  }
+
+  if (falha) return falha;
+
+  // Vai para `/` e não para /entrar: a sessão continua válida depois da
+  // troca — a pessoa está autenticada, mandá-la para a tela de entrar seria
+  // pedir de novo a senha que ela acabou de criar. Quando a área do usuário
+  // existir (RF11, Bloco B), é aqui que o destino muda.
+  redirect('/');
 }
 
 /**
