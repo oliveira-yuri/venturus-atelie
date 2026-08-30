@@ -38,10 +38,10 @@
  * vez.
  *
  * Ou seja: a simetria é um PONTO CEGO conhecido deste arquivo, não uma
- * garantia dele. Quem mexer em normalizarEspacos, removerTags ou
- * decodificarEntidades não tem aqui rede nenhuma — a verificação daquelas
- * funções precisa vir de fora (um caso com o resultado escrito à mão), ou
- * de abrir a página e olhar, que é a regra 10 do CLAUDE.md.
+ * garantia dele. Por isso as três funções deixaram de morar aqui: vivem em
+ * testes/apoio/texto-visivel.mjs e são verificadas DE FORA, com resultado
+ * escrito à mão, em testes/texto-visivel.test.mjs (rodada de correção 2 da
+ * Tarefa A8). Quem mexer nelas tem rede lá, não aqui.
  *
  * O que se perde, dito em voz alta: uma fotografia não diverge mais de
  * nada, então este teste deixa de acusar "o original mudou". Não há o que
@@ -69,6 +69,12 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+// As três funções que viram "texto que a pessoa vê" saíram deste arquivo na
+// rodada de correção 2 da Tarefa A8: aplicadas aos DOIS lados, elas ficavam
+// cegas a defeito nelas mesmas (medido — ver o cabeçalho do módulo). Agora
+// testes/texto-visivel.test.mjs as verifica de fora, com resultado escrito
+// à mão.
+import { removerTags, decodificarEntidades, normalizarEspacos } from './apoio/texto-visivel.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(__dirname, '..');
@@ -366,46 +372,6 @@ function extrairTextoDoMain(html, idsExcluidos = [], exigirPresenca = false) {
 
   const miolo = semSecoesExcluidas.slice(inicio, fim);
   return normalizarEspacos(decodificarEntidades(removerTags(miolo)));
-}
-
-// Elementos de bloco sempre quebram linha na tela, com ou sem espaço em
-// branco no HTML fonte entre eles — por isso viram espaço aqui mesmo quando
-// estão colados na tag vizinha (ex.: "</h1><p>" sem espaço nenhum no
-// arquivo). Elementos em linha (a, strong...) não: se o texto some colado
-// neles, é porque coisa nenhuma teria feito a tela mostrar espaço ali — é
-// exatamente o Defeito 1 que este teste existe para pegar.
-const BLOCOS = new Set([
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'section', 'article',
-  'ul', 'ol', 'li', 'dl', 'dt', 'dd', 'header', 'footer', 'nav', 'main',
-  'blockquote', 'pre', 'table', 'tr', 'td', 'th', 'form', 'fieldset',
-  'figure', 'figcaption', 'br', 'hr'
-]);
-
-function removerTags(html) {
-  return html
-    // Comentários primeiro: o React usa `<!--$-->` como marcador interno de
-    // hidratação, e o formato deles ("<!--...-->") não bate com o padrão de
-    // tag abaixo (não começa com letra) — ficariam no texto se não saírem
-    // aqui, sem inserir espaço, por não corresponderem a conteúdo nenhum.
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (_match, tag) =>
-      BLOCOS.has(tag.toLowerCase()) ? ' ' : '');
-}
-
-function decodificarEntidades(texto) {
-  return texto
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, '\'')
-    .replace(/&nbsp;/g, ' ');
-}
-
-// Uma quebra de linha entre texto e elemento vale um espaço em HTML — é a
-// regra que a normalização replica aqui, dos dois lados da comparação.
-function normalizarEspacos(texto) {
-  return texto.replace(/\s+/g, ' ').trim();
 }
 
 for (const pagina of PAGINAS) {

@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (391 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (392)
+npm test                        # suíte completa, modo offline (403 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (404)
 npm run test:supabase-degradado # prova que falha de consulta não vira silêncio
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,7 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 391 são 381 passando, 1 pulado com motivo declarado e 9 `test.todo` — os do painel
+Os 403 são 393 passando, 1 pulado com motivo declarado e 9 `test.todo` — os do painel
 (RF33), que descrevem requisitos válidos cuja forma de verificar só existe no Bloco B.
 
 ## Regras invioláveis
