@@ -13,12 +13,35 @@
  * LEIA-ME.txt.
  *
  * Por que congelar o HTML BRUTO, e não extrair o texto de uma vez para um
- * arquivo de referência: assim os dois lados da comparação continuam
- * passando pelo MESMO código (removerTags, decodificarEntidades,
- * normalizarEspacos). Com o texto pré-extraído, o lado original sairia
- * desse caminho — e um erro na própria normalização deixaria de aparecer
- * como divergência, porque só o lado renderizado ainda seria normalizado.
- * A simetria é o que dá teto a este teste.
+ * arquivo de referência. Dois motivos, os dois sobre o HTML de origem, não
+ * sobre a comparação:
+ *
+ *   1. `idsExcluidos` e removerElementoPorId() trabalham sobre TAG e `id`
+ *      do HTML bruto — contando profundidade de aninhamento, inclusive.
+ *      Sem as tags não há como excluir uma seção, e as quinze exclusões
+ *      reconciliadas por COBERTURA_DAS_EXCLUSOES (no fim deste arquivo)
+ *      perderiam o ponto de apoio.
+ *   2. Uma referência pré-extraída teria de ser REGERADA a cada exclusão
+ *      nova — e regerar a referência a partir do que o teste mede é como
+ *      este tipo de teste vira tautologia: passa sempre, porque o esperado
+ *      é definido pelo obtido.
+ *
+ * O QUE A SIMETRIA NÃO DÁ (medido na rodada de correção 1 da Tarefa A8, e
+ * o contrário do que este comentário afirmava antes). Os dois lados passam
+ * pelo mesmo removerTags/decodificarEntidades/normalizarEspacos, e é
+ * tentador concluir que isso protege contra erro nessas funções. NÃO
+ * protege: um erro ali se aplica aos DOIS lados e a diferença se cancela.
+ * A revisão trocou normalizarEspacos por uma versão mascarante E
+ * reintroduziu o defeito real do e-mail colado em
+ * /privacidade ao mesmo tempo: 15 testes, 15 verdes, com o defeito na
+ * tela. Sob referência pré-extraída, as 14 páginas teriam falhado de uma
+ * vez.
+ *
+ * Ou seja: a simetria é um PONTO CEGO conhecido deste arquivo, não uma
+ * garantia dele. Quem mexer em normalizarEspacos, removerTags ou
+ * decodificarEntidades não tem aqui rede nenhuma — a verificação daquelas
+ * funções precisa vir de fora (um caso com o resultado escrito à mão), ou
+ * de abrir a página e olhar, que é a regra 10 do CLAUDE.md.
  *
  * O que se perde, dito em voz alta: uma fotografia não diverge mais de
  * nada, então este teste deixa de acusar "o original mudou". Não há o que
@@ -265,7 +288,8 @@ const PAGINAS = [
 // `exigirPresenca` cobre só o lado ORIGINAL (testes/apoio/html-original/
 // *.html): aquele arquivo é uma cópia congelada e versionada, o elemento
 // alvo tem que existir nele sempre — se sumir, é sinal de erro de digitação
-// no id, ou de alguém ter editado a cópia congelada, que não deve mudar. Do lado RENDERIZADO a ausência é legítima:
+// no id, ou de alguém ter editado a cópia congelada, que não deve mudar.
+// Do lado RENDERIZADO a ausência é legítima:
 // a decisão 1 da Tarefa 10 manda a <section> inteira sumir quando não há
 // nenhum registro (clipping vazio no banco, ou tudo despublicado — ver
 // filtrarEOrdenarLocal em servidor/dados/conteudo.ts), e essa omissão já

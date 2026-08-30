@@ -7,15 +7,14 @@
  *
  * Marcados como `test.todo` na Tarefa A1 da fase 2: o painel é RF33/Bloco B,
  * e as telas serão inteiramente reescritas no app Next — a implementação
- * abaixo falava com o `admin/*.html` do site estático por um servidor
- * próprio e com `testes/apoio/painel-layout.html`. A Tarefa A8 apagou
- * `site/`; a cópia congelada do painel antigo, para consulta, é
- * `testes/apoio/html-original/admin/index.html` (e o original ao vivo está
- * em `git show main:site/admin/index.html`). Não haveria o que "reapontar":
- * a página que
- * este arquivo mediu nunca existiu no Next, e o HTML que vier no Bloco B pode
- * ter marcação, classes e fluxo de autenticação diferentes dos que os
- * seletores abaixo assumiam (`.nav-admin`, `#form-entrar`, `#aba-criar`...).
+ * abaixo falava com o `admin/*.html` do site estático, por um servidor
+ * próprio. A Tarefa A8 apagou `site/`; a referência de consulta para o
+ * Bloco B é a cópia congelada do painel real,
+ * `testes/apoio/html-original/admin/index.html`. Não haveria o que
+ * "reapontar": a página que este arquivo mediu nunca existiu no Next, e o
+ * HTML que vier no Bloco B pode ter marcação, classes e fluxo de
+ * autenticação diferentes dos que os seletores abaixo assumiam
+ * (`.nav-admin`, `#form-entrar`, `#aba-criar`...).
  *
  * `test.todo` em vez de apagar ou comentar o código: os 12 casos descrevem
  * requisitos do RF33/RNF08/RN01/RN05 que continuam valendo — só a forma de

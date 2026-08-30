@@ -2,7 +2,11 @@
  * As URLs antigas com `.html` já circularam — matéria da Folha, links
  * compartilhados no WhatsApp, posts no Instagram — e a versão nova do site
  * usa rota limpa (`/quem-somos`, não `/quem-somos.html`). Sem redirect, cada
- * uma dessas 15 URLs vira 404 no dia do deploy.
+ * uma dessas URLs vira 404 no dia do deploy.
+ *
+ * São 14 redirects, não 15 (correção de contagem herdada da Tarefa A7): o
+ * site antigo tinha 15 `.html`, e o 15º — `/admin/index.html` — fica de
+ * fora por decisão explícita, registrada no fim deste arquivo.
  *
  * 301, não 308: todo acesso aqui é navegação simples — clique em link
  * salvo, favorito de navegador, indexação de buscador — nunca um POST cujo

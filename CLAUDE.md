@@ -46,7 +46,7 @@ Os 391 são 381 passando, 1 pulado com motivo declarado e 9 `test.todo` — os d
 
 ## Regras invioláveis
 
-Cada uma vem do escopo e violá-la invalida a entrega.
+Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotada na 7.
 
 1. **Não é ONG assistencialista.** É arte, cultura e identidade do povo negro. Nada de estética de
    pena, linguagem de caridade ou contador de "vidas salvas". Há teste que recusa isso.
@@ -91,8 +91,15 @@ Cada uma vem do escopo e violá-la invalida a entrega.
 
 ## Status por módulo
 
-Atualizado em 30/08/2026 (fim do Bloco A da fase 2). O status descreve **esta branch**, já sem
-o `site/` estático.
+Atualizado em 30/08/2026 (fim do Bloco A da fase 2, rodada de correção 1). O status descreve
+**esta branch**, já sem o `site/` estático — e por isso foi conferido linha a linha contra o que
+existe aqui, não contra o que existia na `main`.
+
+**`pronto` = existe nesta branch e foi verificado rodando.** Tela que não envia nada não é
+`pronto`: nesta branch **não há autenticação nenhuma** (grep por `signInWithPassword`/`signUp` em
+`app/`, `componentes/` e `servidor/` não devolve uma linha), e `compartilhado/validacao.ts`, que
+guarda as regras de cadastro, não é importado por nenhum código de aplicação — só pelo próprio
+teste. Todo o envio é Bloco B.
 
 ### M1 — Site institucional
 
@@ -112,13 +119,13 @@ o `site/` estático.
 
 | Req | O quê | Status |
 |---|---|---|
-| RF08 | Cadastro de voluntário | **pronto** — mas veja "trava" abaixo |
-| RF09 | Cadastro de doador | **pronto** — mesma trava |
-| RF10 | Autenticação, papéis acumuláveis | **pronto** |
-| RF11 | Área do usuário | **falta** |
-| RF12 | Confirmação de maioridade | **pronto** |
+| RF08 | Cadastro de voluntário | tela pronta, **sem envio** — Bloco B |
+| RF09 | Cadastro de doador | tela pronta, **sem envio** — Bloco B |
+| RF10 | Autenticação, papéis acumuláveis | **falta** — não existe autenticação nesta branch; só a regra de papéis acumuláveis, em `compartilhado/validacao.ts`, testada e ainda não usada |
+| RF11 | Área do usuário | **falta** — Bloco B |
+| RF12 | Confirmação de maioridade | caixa obrigatória na tela e regra (RN01) testada, **sem envio** — Bloco B |
 | RF33 | Painel administrativo | **falta** — Bloco B. A casca que existia no site antigo não foi portada; `/admin` dá 404 de propósito |
-| RF34 | Perfis e permissões | **pronto** e testado |
+| RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
 ### M3 — Eventos
 
@@ -145,13 +152,13 @@ o `site/` estático.
 
 | Req | O quê | Status |
 |---|---|---|
-| RF35 | Catálogo com busca | página pronta, **sem dados** |
+| RF35 | Catálogo com busca | página e busca por `?busca` prontas, **sem dados** |
 | RF36 | Visualização e download | **falta** |
 | RF37 | Publicação de material | **falta** |
 | RF27 | Mural de avisos | **falta** |
 | RF28 | Mensagem para grupo | **falta** |
 | RF29 | Registro central de contatos | **falta** |
-| RF30–RF32 | Indicadores, CSV, PDF | **falta** — indicadores da home do painel prontos |
+| RF30–RF32 | Indicadores, CSV, PDF | **falta** — os indicadores da home do painel existiam no site antigo e **não foram portados**; só na `main` |
 
 ### Infraestrutura
 
@@ -227,7 +234,11 @@ obrigar a revisitar a decisão do redirect.
    é nominal.
 0c. **`X-Robots-Tag: noindex` está em DOIS lugares** — `middleware.ts` e `netlify.toml`,
    ambos marcados "PRÉVIA". Se só um for removido no lançamento, o site entra no ar
-   invisível para buscadores.
+   invisível para buscadores. **Eram três guarda-corpos:** o `site/robots.txt` sumiu com a
+   Tarefa A8 e não ganhou equivalente — não existe `app/robots.ts` nem `public/robots.txt`
+   nesta branch. Não é regressão de produção (a Netlify publica `.next`, e o `X-Robots-Tag`
+   é mais forte que o robots.txt), mas no lançamento alguém precisa decidir se quer um
+   `robots.txt` de verdade em vez de nenhum.
 0d. **A suíte fica vermelha sem `.env.local`** — o teste de vazamento falha de propósito:
    um teste que não sabe o que procurar não prova nada. Quem clonar o repositório precisa
    do arquivo, ou usar só o que não depende dele.
