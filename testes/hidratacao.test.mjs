@@ -60,7 +60,16 @@ test('nenhum aviso de divergencia de hidratacao', async () => {
     );
   }
 
-  for (const rota of ['/', '/quem-somos', '/privacidade', '/para-escolas']) {
+  // Tarefa A6, Rodada de correção 1: componentes/Cabecalho.tsx virou
+  // Client Component (usePathname, para o aria-current de "Entrar") e passa
+  // a hidratar em TODA página, não só nesta amostra — e /entrar acrescenta
+  // componentes/AbasEntrar.tsx (estado de aba), o Client Component mais
+  // novo do projeto. As três rotas da Tarefa A6 entram aqui para cobrir os
+  // dois.
+  for (const rota of [
+    '/', '/quem-somos', '/privacidade', '/para-escolas',
+    '/contato', '/entrar', '/recuperar-acesso'
+  ]) {
     avisos.length = 0;
     await navegador.get(`${BASE}${rota}`);
     await navegador.sleep(600);

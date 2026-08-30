@@ -455,12 +455,18 @@ const COBERTURA_DAS_EXCLUSOES = {
     arquivo: 'testes/campo-formulario.test.mjs',
     nota: 'Tarefa A6 — a única fronteira texto-elemento de CampoFormulario.ts é rótulo + espaço + '
       + '<span class="campo__obrigatorio">*</span>, coberta por "campo obrigatório recebe required e a '
-      + 'marca visual" (regex com o espaço literal). O resto do painel é <label>/<p>/<input> em blocos '
-      + 'próprios, sem concatenação (mesma situação de lista-atividades/lista-areas acima).'
+      + 'marca visual" (regex com o espaço literal). Correção (Rodada de correção 1): a nota anterior '
+      + 'dizia que "o resto do painel é <label>/<p>/<input> em blocos próprios" — incompleto, porque '
+      + 'o link "Esqueci minha senha" (componentes/AbasEntrar.tsx) NÃO vem de CampoFormulario e é '
+      + 'texto literal do HTML estático original; ficou sem cobertura nenhuma até esta rodada. Coberto '
+      + 'agora, por igualdade, em testes/pagina-entrar.test.mjs ("os dois textos literais que '
+      + 'sobrevivem à expansão de CampoFormulario...").'
   },
   'painel-criar': {
     arquivo: 'testes/campo-formulario.test.mjs',
-    nota: 'mesmo componente (CampoFormulario.ts) e mesma fronteira de painel-entrar — cobertura idêntica.'
+    nota: 'mesmo componente (CampoFormulario.ts) e mesma fronteira de painel-entrar. Mesma correção: a '
+      + '<legend>Como você quer participar?</legend> (componentes/AbasEntrar.tsx) também não vem de '
+      + 'CampoFormulario — coberta pelo mesmo teste novo de testes/pagina-entrar.test.mjs.'
   },
   'form-recuperar': {
     arquivo: 'testes/campo-formulario.test.mjs',

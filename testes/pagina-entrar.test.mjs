@@ -72,3 +72,23 @@ test('/entrar: todo input, textarea e select dos dois formulários vem desabilit
     assert.deepEqual(semDisabled, [], `${nomeForm}: controle sem disabled — ${semDisabled.join(', ')}`);
   }
 });
+
+// Rodada de correção 1 da Tarefa A6 — achado da revisão: "painel-entrar" e
+// "painel-criar" saem inteiros de testes/paridade-texto.test.mjs (a
+// expansão de CampoFormulario introduz rótulo/ajuda que não existiam como
+// texto no HTML estático original — restrição global #3). Mas dentro
+// dessas duas <section> há DOIS textos que são literais dos dois lados,
+// não vêm de CampoFormulario nenhum, e por isso não têm cobertura em lugar
+// algum: o link "Esqueci minha senha" e a <legend> do grupo de papéis.
+// Provado: trocar os dois de propósito e rodar `npm test` inteiro (364
+// testes) não acusava nada antes desta rodada — mesma classe de achado que
+// a Tarefa A5 fechou para "dados-pix".
+test('/entrar: os dois textos literais que sobrevivem à expansão de CampoFormulario continuam exatos', async () => {
+  const pagina = await html();
+  assert.match(pagina, /<a[^>]*href="\/recuperar-acesso"[^>]*>Esqueci minha senha<\/a>/,
+    '"Esqueci minha senha" sumiu, mudou de texto ou perdeu o link — não vem de CampoFormulario, '
+    + 'nada mais cobre esta frase');
+  assert.match(pagina, /<legend>Como você quer participar\?<\/legend>/,
+    'a legenda "Como você quer participar?" sumiu ou mudou de texto — não vem de CampoFormulario, '
+    + 'nada mais cobre esta frase');
+});

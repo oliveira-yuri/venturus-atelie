@@ -1,11 +1,13 @@
 /**
  * A rota que nao existe e um destino de verdade, nao um beco.
  *
- * Ate o restante da fase 2 migrar, clicar em "Agenda", "Notícias",
- * "Galeria", "Acervo", "Voluntariado", "Doar", "Contato" ou "Entrar" leva a
- * pessoa ao 404 (ver ROTAS_PENDENTES em testes/apoio/rotas-migracao.mjs —
- * "/projetos" saiu dessa lista na Tarefa A3). A pagina de erro e, hoje, um
- * dos destinos mais visitados do site.
+ * Ate o restante da fase 2 migrar, clicar num item de menu ainda pendente
+ * levava a pessoa ao 404 (ver ROTAS_PENDENTES em
+ * testes/apoio/rotas-migracao.mjs — a Tarefa A6 zerou essa lista: o menu
+ * principal terminou de migrar). A pagina de erro continua existindo — o
+ * Next sempre pode cair nela por um link quebrado, um id de recurso que
+ * nao existe mais, digitação errada — so deixou de ser, hoje, um destino
+ * batido pelo menu.
  *
  * Medido ao vivo antes da correcao original, num clique real em "Projetos"
  * (sem recarga, quando ainda era rota pendente): document.title continuava
@@ -20,20 +22,30 @@
  * de estrutura da pagina (como testes/paginas.test.mjs) e o comportamento na
  * navegacao do roteador (como testes/foco-navegacao.test.mjs).
  *
- * ROTA_PENDENTE nao e mais fixa (Tarefa A3): vinha crava "/projetos", que e
- * justamente a rota que aquela tarefa portou — o comentario antigo mandava
- * "trocar por outra manualmente" a cada migracao, o que envelhece do mesmo
- * jeito que a lista que a Tarefa A1 teve de consertar. Agora deriva da
- * primeira entrada de ROTAS_PENDENTES (testes/apoio/rotas-migracao.mjs), a
- * mesma fonte que links.test.mjs e sem-javascript.test.mjs usam — uma rota
- * migra, a lista encolhe, e este arquivo acompanha sozinho.
+ * DUAS FONTES DE ROTA INEXISTENTE, PARA DUAS PERGUNTAS DIFERENTES —
+ * distincao que faltava antes da Rodada de correção 1 da Tarefa A6, e que
+ * apagou os tres primeiros testes deste arquivo em silencio quando
+ * ROTAS_PENDENTES esvaziou:
  *
- * Quando ROTAS_PENDENTES esvaziar (esperado depois da Tarefa A7, quando o
- * menu inteiro tiver migrado), nao ha mais rota pendente nenhuma para medir
- * o 404 com um clique real de menu — a suite inteira abaixo pula, com o
- * motivo visivel (skipSemRotaPendente()), em vez de falhar por uma causa
- * que nao e a que este arquivo existe para pegar, ou de passar em silencio
- * sem medir nada.
+ *   - "o HTML do 404 obedece as regras do projeto?" (os tres primeiros
+ *     testes) so precisa de QUALQUER caminho que devolva 404 — nao importa
+ *     se esse caminho e um item de menu. ROTA_PARA_404_GENERICO cobre isso:
+ *     usa a primeira entrada de ROTAS_PENDENTES enquanto ela existir, e cai
+ *     para a constante fixa ROTA_INEXISTENTE quando a lista esvaziar. Estes
+ *     tres testes NUNCA pulam.
+ *   - "clicar num link real do MENU para uma rota pendente cai no 404 sem
+ *     recarga quebrar foco/anuncio?" (o quarto teste) so faz sentido contra
+ *     um href que de fato existe dentro de `#menu-principal` — inventar um
+ *     href que nao esta no menu faria o `findElement` falhar por elemento
+ *     ausente, motivo errado. Sem nenhuma rota pendente de menu, ESTE teste
+ *     especifico pula sozinho (semRotaDeMenuPendente()), motivo visivel,
+ *     sem arrastar os outros quatro junto — o defeito da versao anterior
+ *     era o skip estar no describe() inteiro, quando so um teste dos cinco
+ *     de fato dependia de ROTA_PENDENTE ser um link de menu.
+ *
+ * O quinto teste ("sem main h1...") nunca dependeu de ROTA_PENDENTE — usa
+ * um clique fixo em "/quem-somos" para simular ausência de `main h1` — e
+ * por isso nunca deveria ter ficado preso ao skip do describe() antigo.
  */
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -43,25 +55,31 @@ import { ROTAS_PENDENTES } from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
-// SÍNCRONO e no topo do módulo, de propósito: o `skip` do describe() logo
-// abaixo é avaliado antes de qualquer before()/teste assíncrono rodar —
-// mesmo motivo de testes/pagina-para-escolas.test.mjs e
-// testes/seguranca.test.mjs.
 const ROTA_PENDENTE = ROTAS_PENDENTES[0];
 
-function skipSemRotaPendente() {
+// Fallback fixo — nunca aponta para uma rota real (o primeiro teste abaixo
+// confirma isso a cada rodada). Só serve aos testes que precisam de
+// QUALQUER 404, não de um link de menu de verdade.
+const ROTA_INEXISTENTE = '/rota-que-nao-existe';
+
+const ROTA_PARA_404_GENERICO = ROTA_PENDENTE || ROTA_INEXISTENTE;
+
+// SÍNCRONO e no topo do módulo, de propósito: o `skip` do test() que usa
+// isto é avaliado antes de qualquer before()/teste assíncrono rodar — mesmo
+// motivo de testes/pagina-para-escolas.test.mjs e testes/seguranca.test.mjs.
+function semRotaDeMenuPendente() {
   return ROTA_PENDENTE
     ? false
-    : 'ROTAS_PENDENTES (testes/apoio/rotas-migracao.mjs) esta vazia — nao ha mais rota do menu '
-      + 'sem pagina no Next. Este arquivo mede o 404 com uma rota pendente de verdade, alcancada '
-      + 'por um clique real de menu; sem uma, nao ha o que medir aqui. Se app/not-found.tsx '
-      + 'precisar de cobertura depois disso, criar uma rota fixa que nao exista de proposito, '
-      + 'fora do menu.';
+    : 'ROTAS_PENDENTES (testes/apoio/rotas-migracao.mjs) esta vazia — nao ha mais link do MENU '
+      + 'apontando para rota inexistente, entao nao ha como clicar um link REAL do menu para uma '
+      + 'rota pendente (inventar um href que nao esta no menu faria o findElement falhar por '
+      + 'elemento ausente, motivo errado). Os outros quatro testes deste arquivo nao dependem '
+      + 'disso e continuam rodando — ver ROTA_PARA_404_GENERICO no topo do arquivo.';
 }
 
 let navegador;
 
-describe('a rota pendente cai num 404 de verdade, nao num beco', { skip: skipSemRotaPendente() }, () => {
+describe('a rota pendente cai num 404 de verdade, nao num beco', () => {
 
 before(async () => {
   navegador = await new Builder().forBrowser('firefox')
@@ -72,17 +90,17 @@ before(async () => {
 after(async () => { await navegador?.quit(); });
 
 test('a rota escolhida para medir o 404 realmente ainda nao existe', async () => {
-  const resposta = await fetch(`${BASE}${ROTA_PENDENTE}`);
+  const resposta = await fetch(`${BASE}${ROTA_PARA_404_GENERICO}`);
   assert.equal(
     resposta.status, 404,
-    `${ROTA_PENDENTE} respondeu ${resposta.status}: se migrou, ROTAS_PENDENTES ja deveria ter `
-    + 'encolhido (ver testes/links.test.mjs) — este teste so falharia se a lista e a realidade '
-    + 'divergissem'
+    `${ROTA_PARA_404_GENERICO} respondeu ${resposta.status}: se era ROTA_PENDENTE e migrou, `
+    + 'ROTAS_PENDENTES ja deveria ter encolhido (ver testes/links.test.mjs); se era '
+    + 'ROTA_INEXISTENTE, alguem criou essa rota de verdade — troque a constante'
   );
 });
 
 test('o HTML do 404 segue as regras do projeto', async () => {
-  const html = await fetch(`${BASE}${ROTA_PENDENTE}`).then((r) => r.text());
+  const html = await fetch(`${BASE}${ROTA_PARA_404_GENERICO}`).then((r) => r.text());
 
   assert.match(html, /<main[^>]+id="conteudo"/,
     'sem <main id="conteudo">, o link "Pular para o conteúdo" do layout aponta para lugar nenhum');
@@ -101,13 +119,13 @@ test('o HTML do 404 segue as regras do projeto', async () => {
 });
 
 test('o 404 oferece um caminho de volta', async () => {
-  const html = await fetch(`${BASE}${ROTA_PENDENTE}`).then((r) => r.text());
+  const html = await fetch(`${BASE}${ROTA_PARA_404_GENERICO}`).then((r) => r.text());
   const dentroDoMain = html.match(/<main[\s\S]*?<\/main>/)?.[0] || '';
   assert.match(dentroDoMain, /href="\/"/,
     'quem cai no 404 precisa de um link de volta dentro do conteudo principal');
 });
 
-test('clicar no menu para uma rota pendente entrega o 404 com titulo proprio e a pagina inteira recarregada', async () => {
+test('clicar no menu para uma rota pendente entrega o 404 com titulo proprio e a pagina inteira recarregada', { skip: semRotaDeMenuPendente() }, async () => {
   // MEDIDO, nao suposto: o roteador do Next NAO renderiza no cliente uma rota
   // que nao existe no app — ele cai para navegacao de documento inteiro
   // (comprovado abaixo pela marca que some do window). Isso muda o que se

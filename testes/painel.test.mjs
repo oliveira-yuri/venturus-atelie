@@ -85,13 +85,19 @@ test.todo('o painel pede noindex na página real '
 // =====================================================================
 // Reativados pela Tarefa A6 contra /entrar de verdade (app/entrar/page.tsx
 // + componentes/AbasEntrar.tsx). Corpo adaptado do commit histórico
-// (`git show effe333:testes/painel.test.mjs`): mesma verificação, mesmo
-// seletor onde o HTML se manteve igual (`#form-entrar input`, `#aba-criar`,
-// `#painel-criar`, `#campo-maioridade`) — só o endereço muda, de um
-// servidor estático próprio servindo site/entrar.html para BASE + '/entrar'
-// no Next. Os três continuam válidos com todo campo desabilitado (a
-// decisão "sem envio" da Tarefa A6): rótulo vinculado, alternância de aba e
-// o atributo `required` não dependem de o campo estar habilitado.
+// (`git show effe333:testes/painel.test.mjs`): mesma verificação, seletor
+// igual onde o HTML se manteve igual (`#form-entrar input`, `#aba-criar`,
+// `#painel-criar`) — só o endereço muda, de um servidor estático próprio
+// servindo site/entrar.html para BASE + '/entrar' no Next. Exceção:
+// `#campo-maioridade` virou `#criar-campo-maioridade` na Rodada de
+// correção 1 (ver o `prefixo` de componentes/CampoFormulario.ts) — os dois
+// `<form>` (entrar/criar) coexistem sempre no DOM, o painel oculto só
+// ganha `hidden`, e sem prefixo os campos "email"/"senha" dos dois
+// formulários geravam o MESMO id.
+//
+// Os três continuam válidos com todo campo desabilitado (a decisão
+// "sem envio" da Tarefa A6): rótulo vinculado, alternância de aba e o
+// atributo `required` não dependem de o campo estar habilitado.
 test('entrar.html: os campos têm rótulo vinculado', async () => {
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(`${BASE}/entrar`);
@@ -108,6 +114,23 @@ test('entrar.html: os campos têm rótulo vinculado', async () => {
   `);
 
   assert.deepEqual(semRotulo, [], 'campos sem rótulo vinculado');
+
+  // Rótulo vinculado não basta se o id estiver DUPLICADO — o achado real da
+  // Rodada de correção 1: um `label[for="campo-email"]` existia, mas
+  // resolvia para o campo do OUTRO formulário (os dois "email"/"senha" de
+  // entrar/criar geravam o mesmo id antes do `prefixo`). Esta suíte não
+  // tinha nenhum assert de unicidade — o teste acima aceitava a duplicata
+  // porque só perguntava "existe algum label para este id", não "existe só
+  // um elemento com este id em toda a página".
+  const idsRepetidos = await navegador.executeScript(`
+    const contagem = {};
+    [...document.querySelectorAll('[id]')].forEach((el) => {
+      contagem[el.id] = (contagem[el.id] || 0) + 1;
+    });
+    return Object.entries(contagem).filter(([, n]) => n > 1).map(([id]) => id);
+  `);
+
+  assert.deepEqual(idsRepetidos, [], `ids duplicados em /entrar: ${idsRepetidos.join(', ')}`);
 });
 
 test('entrar.html: as duas abas funcionam pelo teclado', async () => {
@@ -137,11 +160,11 @@ test('RF12: a caixa de maioridade existe e é obrigatória', async () => {
   await navegador.findElement(By.css('#aba-criar')).click();
 
   const caixa = await navegador.executeScript(`
-    const campo = document.querySelector('#campo-maioridade');
+    const campo = document.querySelector('#criar-campo-maioridade');
     if (!campo) return null;
     return {
       obrigatoria: campo.required,
-      rotulo: document.querySelector('label[for="campo-maioridade"]')?.textContent.trim() || ''
+      rotulo: document.querySelector('label[for="criar-campo-maioridade"]')?.textContent.trim() || ''
     };
   `);
 

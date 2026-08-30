@@ -21,10 +21,11 @@ import { CampoFormulario } from './CampoFormulario';
  * NÃO PORTADO desta tarefa: validarCadastro/validarEntrada, formatarTelefone
  * (máscara de telefone), cadastrar/entrar/sessaoAtual (site/assets/js/dados/
  * auth.js) e o redirecionamento de quem já tem sessão — tudo isso depende
- * da autenticação real (Bloco B). Also FALTAM description e maioridade não
- * aceitam nenhum evento além de existir na marcação: sem eles no ar,
- * ligar a máscara ou a validação criaria uma sensação de formulário "quase
- * funcionando" pior do que um formulário claramente desligado.
+ * da autenticação real (Bloco B). Decisão: ligar só a máscara de telefone ou
+ * só a validação, sem o resto, criaria uma sensação de formulário "quase
+ * funcionando" pior do que um formulário claramente desligado — por isso
+ * nenhum dos dois entra nesta tarefa, os dois ficam para quando o envio
+ * também entrar.
  */
 const AVISO_ENTRAR =
   'Criar conta e entrar ainda não estão ativos neste site. Para se candidatar ao voluntariado '
@@ -57,11 +58,11 @@ export default function AbasEntrar() {
       </div>
 
       <section id="painel-entrar" role="tabpanel" aria-labelledby="aba-entrar" hidden={abaAtual !== 'entrar'}>
-        <form id="form-entrar" className="formulario" noValidate>
-          <CampoFormulario nome="email" rotulo="E-mail" tipo="email"
+        <form id="form-entrar" className="formulario" noValidate aria-describedby="aviso">
+          <CampoFormulario nome="email" rotulo="E-mail" tipo="email" prefixo="entrar"
                             autoComplete="email" inputMode="email" obrigatorio desabilitado />
 
-          <CampoFormulario nome="senha" rotulo="Senha" tipo="password"
+          <CampoFormulario nome="senha" rotulo="Senha" tipo="password" prefixo="entrar"
                             autoComplete="current-password" obrigatorio desabilitado />
 
           <button type="submit" disabled>Entrar</button>
@@ -71,36 +72,36 @@ export default function AbasEntrar() {
       </section>
 
       <section id="painel-criar" role="tabpanel" aria-labelledby="aba-criar" hidden={abaAtual !== 'criar'}>
-        <form id="form-criar" className="formulario" noValidate>
-          <CampoFormulario nome="nome" rotulo="Nome completo" tipo="text"
+        <form id="form-criar" className="formulario" noValidate aria-describedby="aviso">
+          <CampoFormulario nome="nome" rotulo="Nome completo" tipo="text" prefixo="criar"
                             autoComplete="name" obrigatorio desabilitado />
 
-          <CampoFormulario nome="email" rotulo="E-mail" tipo="email"
+          <CampoFormulario nome="email" rotulo="E-mail" tipo="email" prefixo="criar"
                             autoComplete="email" inputMode="email" obrigatorio
                             ajuda="É por aqui que respondemos você." desabilitado />
 
-          <CampoFormulario nome="telefone" rotulo="Telefone" tipo="tel"
+          <CampoFormulario nome="telefone" rotulo="Telefone" tipo="tel" prefixo="criar"
                             autoComplete="tel" inputMode="numeric"
                             ajuda="Opcional. Com DDD, como (11) 95396-8344." desabilitado />
 
-          <CampoFormulario nome="senha" rotulo="Senha" tipo="password"
+          <CampoFormulario nome="senha" rotulo="Senha" tipo="password" prefixo="criar"
                             autoComplete="new-password" obrigatorio
                             ajuda="Pelo menos 8 caracteres." desabilitado />
 
           <fieldset className="grupo-campos">
             <legend>Como você quer participar?</legend>
             <CampoFormulario nome="voluntario" rotulo="Quero ser voluntário ou voluntária"
-                              tipo="checkbox" desabilitado />
+                              tipo="checkbox" prefixo="criar" desabilitado />
             <CampoFormulario nome="doador" rotulo="Quero doar ou apoiar"
-                              tipo="checkbox" desabilitado />
+                              tipo="checkbox" prefixo="criar" desabilitado />
           </fieldset>
 
-          <CampoFormulario nome="maioridade" tipo="checkbox" obrigatorio
+          <CampoFormulario nome="maioridade" tipo="checkbox" obrigatorio prefixo="criar"
                             rotulo="Confirmo que tenho 18 anos ou mais"
                             ajuda="Crianças e adolescentes participam das atividades por inscrição feita por um responsável, sem precisar de conta."
                             desabilitado />
 
-          <CampoFormulario nome="consentimento" tipo="checkbox" obrigatorio
+          <CampoFormulario nome="consentimento" tipo="checkbox" obrigatorio prefixo="criar"
                             rotulo="Concordo com o uso dos meus dados"
                             ajuda="Usamos seu nome, e-mail e telefone apenas para falar com você sobre voluntariado e doações."
                             desabilitado />

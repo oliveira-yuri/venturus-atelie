@@ -17,6 +17,14 @@ import Acessibilidade from './Acessibilidade';
  * (as duas páginas setavam `pagina-atual="entrar"` no custom element
  * antigo — MEDIDO lendo os dois arquivos, não suposto). A marca e o menu
  * (MenuMovel) continuam com sua própria lógica de rota atual.
+ *
+ * CUSTO MEDIDO (revisão da Rodada de correção 1 da Tarefa A6): virar Client
+ * Component custa +416 bytes de JS por página — 0,07% do JS que o site já
+ * servia — contra os 132 B que uma alternativa cirúrgica (só o link
+ * "Entrar" como Client Component, Cabecalho continuando Server Component)
+ * economizaria. Decisão de quem revisou: não vale reescrever por essa
+ * diferença — o número fica registrado aqui para não precisar remedir se a
+ * pergunta voltar.
  */
 export default function Cabecalho() {
   const rota = usePathname();

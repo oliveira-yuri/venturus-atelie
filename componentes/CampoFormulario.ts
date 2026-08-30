@@ -49,6 +49,22 @@ interface PropsCampoFormulario {
   opcoes?: OpcaoCampo[];
   desabilitado?: boolean;
   erro?: string | null;
+  /**
+   * Prefixo de id — Rodada de correção 1 da Tarefa A6. Achado da revisão:
+   * `componentes/AbasEntrar.tsx` monta os dois `<form>` (entrar e criar
+   * conta) sempre os DOIS no DOM ao mesmo tempo — o painel oculto só ganha
+   * `hidden`, nunca é desmontado — e os dois têm um campo "email" e um
+   * campo "senha". Sem prefixo, os dois geravam o MESMO id
+   * (`campo-email`, `campo-senha`), e o `label[for=]` do segundo formulário
+   * resolvia para o campo do primeiro (medido no navegador real:
+   * `label.control` do rótulo "E-mail" de "Criar conta" apontava para o
+   * `<input>` de "Entrar"). Defeito herdado de
+   * site/assets/js/componentes/aac-form-campo.js, que também deriva o id só
+   * do nome — mas lá cada instância de aac-header vivia numa página só,
+   * nunca dois formulários com os mesmos nomes de campo ao mesmo tempo no
+   * mesmo documento.
+   */
+  prefixo?: string;
 }
 
 export function CampoFormulario({
@@ -61,9 +77,10 @@ export function CampoFormulario({
   ajuda,
   opcoes,
   desabilitado,
-  erro
+  erro,
+  prefixo
 }: PropsCampoFormulario) {
-  const idCampo = `campo-${nome}`;
+  const idCampo = prefixo ? `${prefixo}-campo-${nome}` : `campo-${nome}`;
   const idAjuda = ajuda ? `${idCampo}-ajuda` : undefined;
   const idErro = `${idCampo}-erro`;
 
