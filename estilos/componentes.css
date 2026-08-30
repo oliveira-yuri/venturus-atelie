@@ -507,6 +507,11 @@
   border: 2px solid var(--tinta);
   background: var(--cal);
   box-shadow: var(--aplique) var(--amarelo);
+  /* O aviso sempre precede outra coisa — o formulario em /entrar e
+     /recuperar-acesso, o resto da secao em /doar. Sem esta margem a caixa
+     encosta no primeiro rotulo e o bloco todo vira uma parede. A sombra do
+     aplique desloca 6px para baixo, entao a folga visivel e menor que o valor. */
+  margin-bottom: var(--espaco-5);
 }
 
 .aviso--erro { box-shadow: var(--aplique) var(--marrom); }
