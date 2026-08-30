@@ -103,3 +103,55 @@ test('select desenha uma option por item de opcoes', () => {
   assert.match(html, /<option value="fisica">Pessoa física<\/option>/);
   assert.match(html, /<option value="juridica">Pessoa jurídica<\/option>/);
 });
+
+// =====================================================================
+// valorInicial — Tarefa 3 da autenticação
+//
+// A prop existe por defeito medido: sem ela, toda recusa de Server Action
+// devolvia o formulário em branco (o React 19 reseta o <form> ao fim de uma
+// action, e sem JavaScript a página é renderizada do zero). Ela é o que
+// permite à Action devolver o que a pessoa escreveu — ver `valores` em
+// acoes/autenticacao.ts.
+// =====================================================================
+
+test('valorInicial vira defaultValue no campo de texto, sem torná-lo controlado', () => {
+  const html = renderizar({
+    nome: 'email', rotulo: 'E-mail', tipo: 'email', valorInicial: 'maria@exemplo.com'
+  });
+  assert.match(html, /<input[^>]*value="maria@exemplo\.com"/);
+  // `value` sem `onChange` num input CONTROLADO seria erro de React; aqui é
+  // defaultValue, que o SSR escreve como atributo `value` e o navegador
+  // trata como valor inicial — o campo continua não controlado.
+  assert.doesNotMatch(html, /checked/);
+});
+
+test('sem valorInicial o campo não ganha atributo de valor nenhum', () => {
+  const html = renderizar({ nome: 'email', rotulo: 'E-mail', tipo: 'email' });
+  assert.doesNotMatch(html, /value=/);
+});
+
+test('na caixa de marcar, valorInicial vira defaultChecked — e nunca defaultValue', () => {
+  const marcada = renderizar({
+    nome: 'maioridade', rotulo: 'Confirmo', tipo: 'checkbox', valorInicial: 'on'
+  });
+  assert.match(marcada, /<input[^>]*checked=""/);
+  assert.doesNotMatch(marcada, /value="on"/,
+    'defaultValue num checkbox é erro de React — a caixa usa defaultChecked');
+
+  const desmarcada = renderizar({
+    nome: 'maioridade', rotulo: 'Confirmo', tipo: 'checkbox', valorInicial: ''
+  });
+  assert.doesNotMatch(desmarcada, /checked/);
+});
+
+test('o texto devolvido é escapado, não interpretado como HTML', () => {
+  // O valor vem do corpo de uma requisição — ou seja, de qualquer pessoa.
+  const html = renderizar({
+    nome: 'nome', rotulo: 'Nome', valorInicial: '"><script>alert(1)</script>'
+  });
+  assert.doesNotMatch(html, /<script>/);
+  // E o valor CHEGA, escapado — sem esta segunda metade o teste passaria
+  // também num componente que simplesmente ignorasse `valorInicial`
+  // (medido: foi o que aconteceu ao apagar a prop de propósito).
+  assert.match(html, /value="[^"]*&lt;script&gt;/);
+});

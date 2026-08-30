@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (460 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (461)
+npm test                        # suíte completa, modo offline (475 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (476)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,7 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 460 são 448 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
+Os 475 são 463 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
 (RF33), que descrevem requisitos válidos cuja forma de verificar só existe no Bloco B. Dois
 dos pulados nasceram na revisão final do Bloco A: `ROTAS_PENDENTES` está vazia desde a A6, e
 os testes que iteravam sobre ela passavam sem verificar nada — pular com motivo escrito é a
@@ -132,14 +132,20 @@ existe aqui, não contra o que existia na `main`.
 B): `acoes/autenticacao.ts` tem `entrar`, `criarConta`, `solicitarRecuperacao` e `sair` como
 Server Actions, e `compartilhado/validacao.ts` — que antes nenhum código de aplicação importava —
 é o que elas usam para validar. A Tarefa 2 acrescentou `definirNovaSenha`, a rota
-`/auth/confirm` (que troca o link do e-mail pela sessão) e a página `/nova-senha`, que é **o
-primeiro formulário do site a chamar uma Server Action de verdade** — inclusive sem
-JavaScript, medido. Os campos de `/entrar` e `/recuperar-acesso` continuam `disabled`; ligar
-os dois é a Tarefa 3. O que ainda NÃO foi exercitado é o caminho do SUCESSO contra o Auth:
-sem conta de teste e com o limite de envio de e-mail travando o cadastro, ninguém recebeu um
-link de verdade. O que está provado contra o Supabase real (`npm run test:supabase`) é o
-caminho da FALHA — token recusado vira `/nova-senha?erro=expirado` — e a recusa de
-`definirNovaSenha` sem sessão.
+`/auth/confirm` (que troca o link do e-mail pela sessão) e a página `/nova-senha`. **A Tarefa 3
+ligou os formulários de `/entrar` (entrar e criar conta) e `/recuperar-acesso`**: não existe mais
+campo `disabled` em tela nenhuma de conta, e os quatro formulários funcionam também **sem
+JavaScript** — medido no Firefox com `javascript.enabled=false`, preenchendo e enviando
+(`testes/formularios-conta.test.mjs`). O preço disso em `/entrar`: sem script os DOIS painéis
+(entrar e criar conta) chegam abertos, um abaixo do outro, porque um painel `hidden` seria um
+formulário que ninguém alcança — mesma decisão de `componentes/MenuMovel.tsx`. Com script,
+as abas voltam a se comportar como abas assim que a página hidrata.
+
+O que ainda NÃO foi exercitado é o caminho do SUCESSO contra o Auth: sem conta de teste e com o
+limite de envio de e-mail travando o cadastro, ninguém recebeu um link de verdade nem entrou.
+O que está provado contra o Supabase real (`npm run test:supabase`) é o caminho da FALHA —
+`/entrar` com credencial inexistente devolve "E-mail ou senha não conferem" vindo do Auth e
+traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?erro=expirado`.
 
 ### M1 — Site institucional
 
@@ -159,11 +165,11 @@ caminho da FALHA — token recusado vira `/nova-senha?erro=expirado` — e a rec
 
 | Req | O quê | Status |
 |---|---|---|
-| RF08 | Cadastro de voluntário | tela pronta e **Server Action pronta** (`criarConta`); falta o formulário chamá-la — Tarefa 3 |
+| RF08 | Cadastro de voluntário | **tela e envio prontos** (Tarefa 3: `componentes/AbasEntrar.tsx` chama `criarConta`). A conta é gravada, mas **ninguém entra antes de confirmar o e-mail**, e o envio nativo do Supabase tem cota baixíssima — ver "O que trava hoje", item 1. Falta a gestão pela equipe (RF26) |
 | RF09 | Cadastro de doador | idem RF08: é o mesmo formulário, com a caixa "Quero doar ou apoiar" virando `eh_doador` |
-| RF10 | Autenticação, papéis acumuláveis | **parcial** — `entrar`/`sair`/`solicitarRecuperacao`/`definirNovaSenha` em `acoes/autenticacao.ts`; `/auth/confirm` (Tarefa 2) verifica o link do e-mail e grava a sessão; `/nova-senha` é a única tela que lê sessão (`servidor/sessao.ts`, com `getUser()`, nunca `getSession()`) e envia. Falta ligar os formulários de `/entrar` e `/recuperar-acesso` (Tarefa 3) |
+| RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. Provado contra o Auth real só o caminho da recusa: **entrar de verdade ninguém conseguiu ainda**, porque não existe conta confirmada (item 1 e item 2 de "O que trava hoje"). `sair` existe como Action e **nenhuma tela a chama** — não há onde: o cabeçalho não mostra estado de sessão (RF11) |
 | RF11 | Área do usuário | **falta** — Bloco B |
-| RF12 | Confirmação de maioridade | caixa obrigatória na tela, regra (RN01) testada e **recusada no servidor** (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo); falta o envio da tela — Tarefa 3 |
+| RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
 | RF33 | Painel administrativo | **falta** — Bloco B. A casca que existia no site antigo não foi portada; `/admin` dá 404 de propósito |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
@@ -375,9 +381,16 @@ obrigar a revisitar a decisão do redirect.
 
 **Do projeto, válidos para as duas branches:**
 
-1. **Limite de e-mail do Supabase bloqueia todo cadastro.** `over_email_send_rate_limit` — o envio
-   nativo tem cota baixíssima. Enquanto não for resolvido, ninguém cria conta. Saída definitiva:
-   apontar o Auth para o SMTP do Brevo.
+1. **O e-mail do Supabase é o que separa "conta criada" de "consegue entrar".** Duas coisas, e a
+   segunda foi medida de novo em 30/08/2026 (Tarefa 3): o projeto está com
+   `mailer_autoconfirm: false`, ou seja, **todo cadastro exige abrir um link enviado por e-mail
+   antes de a pessoa conseguir entrar**; e o envio nativo tem cota baixíssima
+   (`over_email_send_rate_limit`). Desde a Tarefa 3 o formulário grava a conta de verdade — o
+   que não se pode prometer é que o link chegue. Por isso a mensagem de sucesso do cadastro diz
+   que falta confirmar, não promete prazo e termina no WhatsApp e no e-mail da ONG. Saída
+   definitiva: apontar o Auth para o SMTP do Brevo. Enquanto isso não acontece, **o site inteiro
+   de contas está de pé e ninguém consegue entrar** — a única forma de haver uma conta usável é
+   criá-la pelo painel do Supabase com *Auto Confirm User* (item 2).
 2. **Não existe conta de administrador.** Criar pelo painel do Supabase com *Auto Confirm User* e
    promover com `update public.perfis set eh_equipe = true where email = '...'`.
 3. **O painel inteiro é dívida do Bloco B.** No site antigo existia só a home do painel, e ela

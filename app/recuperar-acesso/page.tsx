@@ -13,21 +13,18 @@
 // recuperar-acesso.html (as duas usavam `pagina-atual="entrar"`) —
 // componentes/Cabecalho.tsx replica isso pela rota (usePathname).
 //
-// O FORMULÁRIO FICA SEM FUNCIONAR, DE PROPÓSITO — mesma decisão de
-// /entrar (Tarefa A6): o envio (recuperarAcesso, site/assets/js/dados/
-// auth.js) depende de autenticação e de Server Actions, Bloco B. O campo e
-// o botão vêm desabilitados, com um aviso visível no lugar do envio.
-import Link from 'next/link';
-import { CampoFormulario } from '@/componentes/CampoFormulario';
+// O FORMULÁRIO ENVIA DE VERDADE desde a Tarefa 3 da autenticação: ele vive
+// em componentes/FormularioRecuperar.tsx (Client Component) e chama a
+// Server Action `solicitarRecuperacao` (acoes/autenticacao.ts, Tarefa 1).
+// Esta página segue Server Component — é ela quem exporta `metadata` — e o
+// aviso fixo que dizia "o envio ainda não está ativo" saiu junto com o
+// envio desligado.
+import FormularioRecuperar from '@/componentes/FormularioRecuperar';
 
 export const metadata = {
   title: 'Recuperar acesso — Ateliê Afro Cultural',
   description: 'Recupere o acesso à sua conta do Ateliê Afro Cultural.'
 };
-
-const AVISO_RECUPERAR =
-  'O envio do link de recuperação ainda não está ativo. Fale com a gente pelo WhatsApp '
-  + '(11) 95396-8344 ou pelo e-mail atelieafro@gmail.com.';
 
 export default function RecuperarAcesso() {
   return (
@@ -37,19 +34,7 @@ export default function RecuperarAcesso() {
         Escreva o e-mail da sua conta. Enviamos um link para você criar uma senha nova.
       </p>
 
-      {/* Aviso permanente — ver o comentário do mesmo elemento em
-          componentes/AbasEntrar.tsx: aqui não há envio para reagir a, então
-          fica sempre visível, sem `hidden`. */}
-      <div id="aviso" className="aviso">
-        <p>{AVISO_RECUPERAR}</p>
-      </div>
-
-      <form id="form-recuperar" className="formulario" noValidate aria-describedby="aviso">
-        <CampoFormulario nome="email" rotulo="E-mail" tipo="email"
-                          autoComplete="email" inputMode="email" obrigatorio desabilitado />
-        <button type="submit" disabled>Enviar link</button>
-        <p><Link href="/entrar">Voltar para entrar</Link></p>
-      </form>
+      <FormularioRecuperar />
     </main>
   );
 }

@@ -98,17 +98,29 @@ test.todo('o painel pede noindex na página real '
 // ganha `hidden`, e sem prefixo os campos "email"/"senha" dos dois
 // formulários geravam o MESMO id.
 //
-// Os três continuam válidos com todo campo desabilitado (a decisão
-// "sem envio" da Tarefa A6): rótulo vinculado, alternância de aba e o
-// atributo `required` não dependem de o campo estar habilitado.
+// Os três valiam com todo campo desabilitado (a decisão "sem envio" da
+// Tarefa A6) e continuam valendo agora que a Tarefa 3 da autenticação
+// habilitou os campos e ligou as Server Actions: rótulo vinculado,
+// alternância de aba e o atributo `required` não dependem do estado do
+// envio. O que o envio mudou aqui foi um detalhe do primeiro teste — ver o
+// filtro de `input[type=hidden]` logo abaixo.
 test('/entrar: os campos têm rótulo vinculado', async () => {
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(`${BASE}/entrar`);
   await navegador.wait(async () =>
     (await navegador.findElements(By.css('#form-entrar input'))).length > 0, 5000);
 
+  // `input[type=hidden]` fica de fora: desde a Tarefa 3 da autenticação os
+  // dois <form> chamam Server Actions, e o Next serializa a referência de
+  // cada uma em campos escondidos ($ACTION_REF_..., $ACTION_KEY) — é o que
+  // faz o envio funcionar sem JavaScript. Campo escondido não é controle de
+  // ninguém: não aparece na tela, não recebe foco, não entra na árvore de
+  // acessibilidade, e exigir <label> para ele seria exigir rótulo para um
+  // detalhe do framework. (Antes desta linha o teste os acusava como
+  // "campos sem rótulo vinculado" — falso positivo medido nesta tarefa.)
   const semRotulo = await navegador.executeScript(`
     return [...document.querySelectorAll('input')]
+      .filter((campo) => campo.type !== 'hidden')
       .filter((campo) => {
         if (!campo.id) return true;
         return !document.querySelector('label[for="' + campo.id + '"]');

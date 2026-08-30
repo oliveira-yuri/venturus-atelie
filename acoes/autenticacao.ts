@@ -73,10 +73,39 @@ export type EstadoFormulario = {
   ok: boolean;
   mensagem: string;
   erros?: Record<string, string>;
+  /**
+   * O que a pessoa tinha escrito, devolvido para a tela repreencher o
+   * formulário — indexado pelo `name` do campo, como `erros`. Caixa de
+   * marcar vem como 'on' (marcada) ou '' (não).
+   *
+   * ACRESCENTADO NA TAREFA 3 POR DEFEITO MEDIDO, não por gosto: sem isto,
+   * TODA recusa devolve o formulário em branco. Com script porque o React
+   * 19 dá `reset()` no <form> ao fim de uma action; sem script porque a
+   * página é renderizada de novo do zero. Medido nos dois caminhos, em
+   * 30/08/2026, no cadastro: nome, e-mail, telefone e as quatro caixas
+   * voltavam vazios, sobrando só as mensagens de erro. Quem esquece de
+   * marcar a caixa de maioridade redigita oito campos — no celular, de pé,
+   * que é o cenário real da regra 4 do CLAUDE.md.
+   *
+   * SENHA NUNCA ENTRA AQUI, em nenhuma das Actions. Devolvê-la significaria
+   * escrevê-la no HTML da resposta — que fica no cache do navegador, no
+   * histórico e em qualquer log de proxy pelo caminho. Redigitar a senha é
+   * o preço, e é pequeno perto disso.
+   */
+  valores?: Record<string, string>;
 };
 
 /** Mensagem única para "o formulário voltou com campo errado". */
 const CONFIRA_OS_CAMPOS = 'Confira o que está marcado abaixo e envie de novo.';
+
+/**
+ * Canais reais da ONG — os mesmos de compartilhado/erros.ts, de /contato e
+ * de app/nova-senha/page.tsx. Estão aqui porque toda mensagem deste arquivo
+ * que admite não ter conseguido resolver precisa terminar num canal que
+ * funciona de verdade (regra 2 do CLAUDE.md: nada de contato inventado).
+ */
+const WHATSAPP = '(11) 95396-8344';
+const EMAIL_ATELIE = 'atelieafro@gmail.com';
 
 /**
  * A recusa de `definirNovaSenha` quando não há sessão.
@@ -91,9 +120,27 @@ const SEM_SESSAO_PARA_TROCAR_SENHA: EstadoFormulario = {
     + 'vez só. Peça um link novo em "Esqueci minha senha" e abra o mais recente que chegar.'
 };
 
+/**
+ * O sucesso do cadastro — e por que ele fala tanto do e-mail.
+ *
+ * O projeto Supabase está com `mailer_autoconfirm: false` (medido de novo
+ * em 30/08/2026, Tarefa 3): a conta é gravada, mas a pessoa NÃO consegue
+ * entrar antes de abrir o link de confirmação. Dizer só "conta criada"
+ * mandaria todo mundo tentar entrar em seguida e bater em "falta confirmar
+ * seu e-mail" sem saber por quê.
+ *
+ * E o link pode simplesmente não chegar: o envio nativo do Supabase tem
+ * cota baixíssima e é o item 1 de "O que trava hoje" no CLAUDE.md. Por isso
+ * a frase não promete prazo de entrega — nomeia o spam, que é a causa que a
+ * pessoa consegue resolver sozinha, e oferece os canais reais da ONG para a
+ * causa que ela não consegue. Quando o Auth apontar para o SMTP do Brevo,
+ * a segunda metade pode encolher.
+ */
 const MENSAGEM_CONTA_CRIADA =
   'Conta criada. Enviamos um e-mail com um link de confirmação: abra o link e depois volte '
-  + 'para entrar. Se o e-mail não chegar em alguns minutos, olhe o spam.';
+  + 'para entrar — antes disso a entrada não funciona. Se o e-mail não chegar, olhe o spam e, '
+  + `se ainda assim não aparecer, fale com a gente pelo WhatsApp ${WHATSAPP} ou pelo e-mail `
+  + `${EMAIL_ATELIE}.`;
 
 /**
  * Sem projeto Supabase configurado, autenticar é impossível — e é preciso
@@ -111,7 +158,7 @@ function semSupabase(): EstadoFormulario {
   return {
     ok: false,
     mensagem: 'As contas ainda não estão disponíveis neste endereço. Fale com a gente pelo '
-      + 'WhatsApp (11) 95396-8344 ou pelo e-mail atelieafro@gmail.com.'
+      + `WhatsApp ${WHATSAPP} ou pelo e-mail ${EMAIL_ATELIE}.`
   };
 }
 
@@ -215,9 +262,14 @@ export async function entrar(
 ): Promise<EstadoFormulario> {
   const campos = lerEntrada(dados);
   const { valido, erros } = validarEntrada(campos);
-  if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros };
 
-  if (!temSupabase()) return semSupabase();
+  // O e-mail volta para a tela em toda recusa; a senha, nunca (ver
+  // `valores` em EstadoFormulario).
+  const valores = { email: campos.email ?? '' };
+
+  if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros, valores };
+
+  if (!temSupabase()) return { ...semSupabase(), valores };
 
   // redirect() lança para funcionar (é assim que o Next interrompe a Action),
   // então NADA de chamá-lo dentro do try: o catch abaixo o engoliria e a
@@ -235,7 +287,7 @@ export async function entrar(
     falha = estadoDeFalha(erro, 'entrar (exceção)');
   }
 
-  if (falha) return falha;
+  if (falha) return { ...falha, valores };
 
   redirect('/');
 }
@@ -256,9 +308,22 @@ export async function criarConta(
 
   // exigirPapel: false — ver OpcoesCadastro em compartilhado/validacao.ts.
   const { valido, erros } = validarCadastro(campos, { exigirPapel: false });
-  if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros };
 
-  if (!temSupabase()) return semSupabase();
+  // Tudo que a pessoa escreveu, menos a senha — este é o formulário longo,
+  // e é aqui que perder o preenchimento dói mais.
+  const valores = {
+    nome: campos.nome ?? '',
+    email: campos.email ?? '',
+    telefone: campos.telefone ?? '',
+    voluntario: campos.papeis?.includes('voluntario') ? 'on' : '',
+    doador: campos.papeis?.includes('doador') ? 'on' : '',
+    maioridade: campos.maioridade ? 'on' : '',
+    consentimento: campos.consentimento ? 'on' : ''
+  };
+
+  if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros, valores };
+
+  if (!temSupabase()) return { ...semSupabase(), valores };
 
   const telefone = apenasDigitos(campos.telefone);
 
@@ -289,8 +354,12 @@ export async function criarConta(
       }
     });
 
-    if (error) return estadoDeFalha(error, 'criarConta');
+    if (error) return { ...estadoDeFalha(error, 'criarConta'), valores };
 
+    // Sucesso NÃO devolve `valores`: aqui o formulário terminou o que
+    // tinha para fazer, e o próximo passo é abrir o e-mail. Devolver o
+    // preenchimento deixaria na tela um cadastro que parece por enviar.
+    //
     // UMA RESPOSTA SÓ, DE PROPÓSITO. Com a confirmação de e-mail ligada, o
     // Supabase responde a um e-mail JÁ CADASTRADO com um usuário de mentira
     // (`identities: []`) em vez de erro, para não contar a estranhos quem tem
@@ -299,7 +368,7 @@ export async function criarConta(
     // recebe, que é o canal que só a dona do endereço lê.
     return { ok: true, mensagem: MENSAGEM_CONTA_CRIADA };
   } catch (erro) {
-    return estadoDeFalha(erro, 'criarConta (exceção)');
+    return { ...estadoDeFalha(erro, 'criarConta (exceção)'), valores };
   }
 }
 
@@ -318,9 +387,11 @@ export async function solicitarRecuperacao(
 ): Promise<EstadoFormulario> {
   const campos = lerRecuperacao(dados);
   const { valido, erros } = validarRecuperacao(campos);
-  if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros };
+  const valores = { email: campos.email };
 
-  if (!temSupabase()) return semSupabase();
+  if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros, valores };
+
+  if (!temSupabase()) return { ...semSupabase(), valores };
 
   try {
     const supabase = await obterCliente();
@@ -333,7 +404,7 @@ export async function solicitarRecuperacao(
     // Falhou o envio: dizer "enviamos" seria mentira, e "esse e-mail não
     // existe" seria entregar quem tem conta. A saída é falar do envio, que é
     // o que de fato não aconteceu, sem dizer nada sobre o e-mail.
-    if (error) return estadoDeFalha(error, 'solicitarRecuperacao');
+    if (error) return { ...estadoDeFalha(error, 'solicitarRecuperacao'), valores };
 
     return {
       ok: true,
@@ -341,7 +412,7 @@ export async function solicitarRecuperacao(
         + 'O link vale por pouco tempo — se não chegar em alguns minutos, olhe o spam.'
     };
   } catch (erro) {
-    return estadoDeFalha(erro, 'solicitarRecuperacao (exceção)');
+    return { ...estadoDeFalha(erro, 'solicitarRecuperacao (exceção)'), valores };
   }
 }
 

@@ -247,16 +247,21 @@ const PAGINAS = [
   {
     rota: '/entrar',
     arquivoOriginal: 'testes/apoio/html-original/entrar.html',
-    // Tarefa A6. Três exclusões:
+    // Tarefa A6, revista pela Tarefa 3 da autenticação. Duas exclusões —
+    // eram três:
     //
-    // "aviso": no HTML estático original é `<div id="aviso" class="aviso"
+    // "aviso" DEIXOU DE PRECISAR SER EXCLUÍDO e voltou para a comparação.
+    // No HTML estático original ele é `<div id="aviso" class="aviso"
     // hidden></div>`, vazio — só ganhava texto em runtime, escrito por
     // site/assets/js/paginas/entrar.js (mostrarAviso), depois de uma
-    // tentativa de envio. Aqui o aviso não reage a envio nenhum (não há
-    // envio) e fica sempre visível, com o texto novo aprovado para esta
-    // tarefa ("envio ainda não está ativo...") — comparar o estático (div
-    // vazia) contra o renderizado acusaria divergência ilegítima, mesma
-    // classe de "dados-pix" acima.
+    // tentativa de envio. A Tarefa A6 pôs ali um texto fixo ("o envio ainda
+    // não está ativo"), que divergia do original e por isso saía daqui; a
+    // Tarefa 3 ligou o envio de verdade e aquele texto saiu, então a caixa
+    // voltou a nascer VAZIA e escondida, igual ao original. Sem a exclusão,
+    // este teste passa a ser quem garante isso: qualquer texto fixo que
+    // alguém devolva ao aviso — nas DUAS páginas — derruba a comparação.
+    // Medido: foi assim que a exclusão foi retirada, com a suíte verde
+    // depois.
     //
     // "painel-entrar"/"painel-criar": no HTML estático original, cada
     // campo era um <aac-form-campo rotulo="..." ajuda="...">, custom
@@ -269,21 +274,22 @@ const PAGINAS = [
     // existiu como texto no arquivo .html original. As duas <section>
     // saem inteiras (não só os campos) porque os dois <form> inteiros
     // vivem dentro delas.
-    idsExcluidos: ['aviso', 'painel-entrar', 'painel-criar']
+    idsExcluidos: ['painel-entrar', 'painel-criar']
   },
   {
     rota: '/recuperar-acesso',
     arquivoOriginal: 'testes/apoio/html-original/recuperar-acesso.html',
-    // Tarefa A6. Mesma dupla situação de /entrar acima: "aviso" chegava
-    // vazio e escondido no estático (mesmo motivo); "form-recuperar" saiu
-    // inteiro porque o único campo do formulário (e-mail) era um
+    // Tarefa A6, revista pela Tarefa 3: "aviso" voltou para a comparação
+    // (ver o porquê em /entrar acima — vale igual aqui, é o mesmo
+    // elemento com o mesmo id nas duas páginas). "form-recuperar"
+    // continua fora porque o único campo do formulário (e-mail) era um
     // <aac-form-campo> sem texto no estático, e vira <label>/<input> de
     // verdade aqui — mesma classe de "filtros-acervo"/"painel-entrar". O
     // botão "Enviar link" e o link "Voltar para entrar", que SÃO texto
     // literal nos dois lados, saem junto por estarem dentro do mesmo
     // <form> — cobertos à parte, por igualdade, em
     // testes/pagina-recuperar-acesso.test.mjs.
-    idsExcluidos: ['aviso', 'form-recuperar']
+    idsExcluidos: ['form-recuperar']
   }
 ];
 
@@ -458,12 +464,6 @@ const COBERTURA_DAS_EXCLUSOES = {
   'dados-pix': {
     arquivo: 'testes/pagina-doar.test.mjs',
     nota: 'achado desta rodada — "o aviso sem chave Pix é a frase inteira..." compara por igualdade, tags fora.'
-  },
-  'aviso': {
-    arquivo: 'testes/pagina-entrar.test.mjs',
-    nota: 'Tarefa A6 — "o aviso de envio desligado é a frase inteira..." compara por igualdade, tags fora, '
-      + 'mesmo padrão de dados-pix. Usado por /entrar E /recuperar-acesso (mesmo id nas duas páginas); a '
-      + 'segunda tem seu próprio teste irmão em testes/pagina-recuperar-acesso.test.mjs.'
   },
   'painel-entrar': {
     arquivo: 'testes/campo-formulario.test.mjs',

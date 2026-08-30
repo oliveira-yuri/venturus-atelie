@@ -18,11 +18,14 @@ import { createElement } from 'react';
  * `.campo__erro`, `.campo__obrigatorio`) é a mesma do componente original,
  * porta 1:1 — só a raiz muda de tag/seletor.
  *
- * `erro` existe para o dia em que uma Server Action (Bloco B) devolver
- * erro de validação por campo — nenhuma das três páginas da Tarefa A6 passa
- * essa prop (nenhum formulário desta tarefa valida nem envia nada ainda),
- * mas a capacidade é a mesma do componente original (`campo.erro = texto`),
- * só que como prop em vez de setter imperativo.
+ * `erro` existia para o dia em que uma Server Action devolvesse erro de
+ * validação por campo — a Tarefa A6 criou a prop sem nenhum uso. Esse dia
+ * chegou na Tarefa 3 da autenticação: os quatro formulários de conta
+ * (/entrar, /recuperar-acesso, /nova-senha) passam `erro` com a mensagem
+ * que veio do servidor, indexada pelo `name` do campo. A capacidade é a
+ * mesma do componente original (`campo.erro = texto`), só que como prop em
+ * vez de setter imperativo. `valorInicial` nasceu na mesma tarefa, e por
+ * defeito medido — ver a prop.
  *
  * Escrito com createElement em vez de JSX, mesmo motivo de
  * componentes/CardAtividade.ts e das duas seções de prova social: fica um
@@ -49,6 +52,19 @@ interface PropsCampoFormulario {
   opcoes?: OpcaoCampo[];
   desabilitado?: boolean;
   erro?: string | null;
+  /**
+   * O que a pessoa já tinha escrito, devolvido pela Server Action que
+   * recusou o envio (`valores` de EstadoFormulario) — vira `defaultValue`
+   * no controle, ou `defaultChecked` na caixa de marcar ('on' = marcada).
+   *
+   * TAREFA 3, POR DEFEITO MEDIDO: sem isto, toda recusa devolvia o
+   * formulário em branco, com script (o React 19 reseta o <form> ao fim de
+   * uma action) e sem script (a página é renderizada do zero). Continua
+   * sendo `defaultValue`, e não `value`: o campo segue NÃO CONTROLADO, ou
+   * seja, o que a pessoa digita depois manda mais que o que veio do
+   * servidor — e é o mesmo atributo que o reset do React restaura.
+   */
+  valorInicial?: string;
   /**
    * Prefixo de id — Rodada de correção 1 da Tarefa A6. Achado da revisão:
    * `componentes/AbasEntrar.tsx` monta os dois `<form>` (entrar e criar
@@ -78,7 +94,8 @@ export function CampoFormulario({
   opcoes,
   desabilitado,
   erro,
-  prefixo
+  prefixo,
+  valorInicial
 }: PropsCampoFormulario) {
   const idCampo = prefixo ? `${prefixo}-campo-${nome}` : `campo-${nome}`;
   const idAjuda = ajuda ? `${idCampo}-ajuda` : undefined;
@@ -96,7 +113,14 @@ export function CampoFormulario({
     'aria-invalid': erro ? 'true' : 'false',
     autoComplete,
     inputMode,
-    disabled: desabilitado || undefined
+    disabled: desabilitado || undefined,
+    // Caixa de marcar e campo de texto não usam o mesmo atributo, e passar
+    // `defaultValue` para um checkbox é erro de React, não estilo. As duas
+    // chaves são declaradas sempre (uma delas `undefined`, que o React
+    // ignora): um spread condicional produziria dois tipos de objeto
+    // diferentes, e o createElement recusa a união.
+    defaultValue: tipo === 'checkbox' ? undefined : valorInicial,
+    defaultChecked: tipo === 'checkbox' ? Boolean(valorInicial) : undefined
   };
 
   let controle;

@@ -5,18 +5,24 @@
 // className, <main id="conteudo" class="conteudo"> preservado, <noscript>
 // saiu (a navegação chega pronta no HTML do servidor, via app/layout.tsx).
 //
-// AS ABAS E OS DOIS FORMULÁRIOS FICAM SEM FUNCIONAR, DE PROPÓSITO — decisão
-// da Tarefa A6. O envio (cadastrar/entrar, site/assets/js/dados/auth.js)
-// depende de autenticação e de Server Actions, que são Bloco B, e o Bloco B
-// depende por sua vez de uma configuração no dashboard do Supabase que
-// ainda não foi feita (ver CLAUDE.md, "O que trava hoje"). Portar a TELA
-// agora — sem prometer envio nenhum — é o que permite ao grupo ver o site
-// completo antes do Bloco B existir.
+// OS DOIS FORMULÁRIOS ENVIAM DE VERDADE desde a Tarefa 3 da autenticação.
+// Até ela, todo campo vinha `desabilitado` e um aviso fixo explicava que o
+// envio não existia (decisão da Tarefa A6, correta enquanto não havia
+// Server Action nenhuma). Agora "Entrar" chama `entrar` e "Criar conta"
+// chama `criarConta` (acoes/autenticacao.ts, Tarefa 1), e aquele aviso saiu
+// — a caixa voltou a ser o que era no site antigo: nasce vazia e só mostra
+// o resultado de uma tentativa.
 //
-// componentes/AbasEntrar.tsx concentra a única parte realmente interativa
-// (a troca de aba, que não depende de backend nenhum) e os dois <form> com
-// todo campo e botão desabilitado, mais o aviso "envio ainda não ativo" —
-// ver o comentário daquele arquivo para o porquê de cada decisão.
+// O QUE CONTINUA FALTANDO, e não é desta página: com a confirmação de
+// e-mail ligada no Supabase (`mailer_autoconfirm: false`), quem cria conta
+// só consegue entrar depois de abrir o link que chega por e-mail — e o
+// envio nativo tem cota baixíssima (CLAUDE.md, "O que trava hoje", item 1).
+// A mensagem de sucesso do cadastro diz isso.
+//
+// componentes/AbasEntrar.tsx concentra tudo que precisa de navegador (a
+// troca de aba, o erro por campo, o foco, a máscara de telefone) — ver o
+// comentário daquele arquivo para o porquê de cada decisão, inclusive por
+// que os dois painéis chegam abertos no HTML do servidor.
 import AbasEntrar from '@/componentes/AbasEntrar';
 
 export const metadata = {
