@@ -71,7 +71,30 @@ test('toda rota de ROTAS_PRONTAS responde', async () => {
   }
 });
 
-test('toda rota de ROTAS_PENDENTES continua sem página — mover para ROTAS_PRONTAS quando migrar', async () => {
+/**
+ * ROTAS_PENDENTES está vazia desde a Tarefa A6 — e um `for` sobre lista
+ * vazia PASSA, sem executar assert nenhum e sem anunciar que não verificou
+ * nada. Achado na revisão final do Bloco A: dois testes deste projeto
+ * viraram verde permanente assim.
+ *
+ * Mesmo padrão de testes/rota-inexistente.test.mjs: quando não há o que
+ * medir, PULAR com o motivo escrito. Um teste pulado aparece na contagem da
+ * suíte; um `for` vazio não aparece em lugar nenhum.
+ *
+ * SÍNCRONO e no topo do módulo, de propósito: o `skip` é avaliado antes de
+ * qualquer teste assíncrono rodar.
+ */
+function semRotaPendente() {
+  return ROTAS_PENDENTES.length > 0
+    ? false
+    : 'ROTAS_PENDENTES (testes/apoio/rotas-migracao.mjs) está vazia — todo item do menu '
+      + 'já migrou (Tarefa A6). Não há rota pendente para conferir que continua 404. Este '
+      + 'teste volta a rodar sozinho no dia em que alguém acrescentar um item de menu que '
+      + 'ainda não tem página. O teste de conjunto acima continua rodando e é ele que '
+      + 'garante que nenhum item do menu ficou fora das duas listas.';
+}
+
+test('toda rota de ROTAS_PENDENTES continua sem página — mover para ROTAS_PRONTAS quando migrar', { skip: semRotaPendente() }, async () => {
   for (const rota of ROTAS_PENDENTES) {
     const resposta = await fetch(`${BASE}${rota}`);
     assert.equal(

@@ -102,7 +102,25 @@ test('rota pronta referenciada fora do menu de fato responde', async () => {
   assert.deepEqual(quebrados, [], `links quebrados:\n  ${quebrados.join('\n  ')}`);
 });
 
-test('rota pendente referenciada fora do menu continua sem página — se migrou, mover para PAGINAS_PRONTAS aqui e em links-menu.test.mjs', async () => {
+/**
+ * Mesmo achado da revisão final do Bloco A que está em
+ * testes/links-menu.test.mjs: ROTAS_PENDENTES está vazia desde a Tarefa A6,
+ * e o `for` abaixo passa sem executar assert nenhum, sem anunciar nada.
+ * Pular com o motivo escrito (padrão de testes/rota-inexistente.test.mjs)
+ * faz a suíte dizer, em toda rodada, que esta verificação não tem o que
+ * verificar.
+ */
+function semRotaPendente() {
+  return ROTAS_PENDENTES.length > 0
+    ? false
+    : 'ROTAS_PENDENTES (testes/apoio/rotas-migracao.mjs) está vazia — todo item do menu já '
+      + 'migrou (Tarefa A6), então nenhuma página pode referenciar rota pendente FORA do '
+      + 'menu: não há rota pendente. Volta a rodar sozinho quando a lista voltar a ter '
+      + 'entrada. Os outros dois testes deste arquivo (links quebrados e a reconciliação '
+      + 'de PAGINAS_PRONTAS contra app/) não dependem disto e continuam rodando.';
+}
+
+test('rota pendente referenciada fora do menu continua sem página — se migrou, mover para PAGINAS_PRONTAS aqui e em links-menu.test.mjs', { skip: semRotaPendente() }, async () => {
   const pareceMigrada = [];
 
   for (const pagina of PAGINAS_PRONTAS) {
