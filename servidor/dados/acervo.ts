@@ -1,5 +1,6 @@
 import 'server-only';
 import { obterCliente } from '../supabase';
+import { consultarComEstado, type Degradavel } from './degradacao';
 
 /**
  * Acervo aberto (RF35-RF37). Download livre, sem cadastro. Porte de
@@ -35,30 +36,45 @@ export type FiltrosAcervo = {
   busca?: string;
 };
 
-/** Mesmo motivo de temSupabase() em servidor/dados/eventos.ts. */
-function temSupabase(): boolean {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_CHAVE_PUBLICAVEL);
-}
+/**
+ * A GUARDA DE CONFIGURAÇÃO E A POLÍTICA DE ERRO MORAM EM
+ * servidor/dados/degradacao.ts. Antes da revisão final do Bloco A esta
+ * função fazia `if (error) throw error`, e MEDIDO com o Supabase
+ * configurado e a consulta falhando, /acervo respondia 500 com a página de
+ * erro embutida do Next.
+ *
+ * DEVOLVE O ESTADO, não só a lista, e o motivo é específico desta página:
+ * o texto de estado vazio de /acervo MUDA conforme haja busca ativa
+ * ('Nada encontrado para "X"'). Degradar em silêncio ali não seria só
+ * pobre — seria MENTIROSO: a página afirmaria que a busca não achou nada
+ * quando ninguém conseguiu buscar. Com `degradou` na mão,
+ * app/acervo/page.tsx escolhe a mensagem honesta.
+ *
+ * As listagens de eventos e voluntariado não precisam disso porque o
+ * estado vazio delas não faz afirmação sobre a consulta ("Nenhuma
+ * atividade marcada por enquanto", "As áreas ainda estão sendo
+ * organizadas") — continua impreciso, e é o log que carrega essa
+ * distinção; ver o cabeçalho de degradacao.ts.
+ */
+export async function listarMateriais(
+  filtros: FiltrosAcervo = {}
+): Promise<Degradavel<Material[]>> {
+  return consultarComEstado<Material[]>('acervo', async () => {
+    let consulta = (await obterCliente()).from('acervo').select('*').eq('publicado', true);
 
-export async function listarMateriais(filtros: FiltrosAcervo = {}): Promise<Material[]> {
-  if (!temSupabase()) return [];
+    if (filtros.tema) consulta = consulta.eq('tema', filtros.tema);
+    if (filtros.faixaEtaria) consulta = consulta.eq('faixa_etaria', filtros.faixaEtaria);
 
-  let consulta = (await obterCliente()).from('acervo').select('*').eq('publicado', true);
+    // Full-text search em português, pela coluna gerada (RF35).
+    if (filtros.busca && filtros.busca.trim()) {
+      consulta = consulta.textSearch('busca', filtros.busca.trim(), {
+        type: 'plain',
+        config: 'portuguese'
+      });
+    }
 
-  if (filtros.tema) consulta = consulta.eq('tema', filtros.tema);
-  if (filtros.faixaEtaria) consulta = consulta.eq('faixa_etaria', filtros.faixaEtaria);
-
-  // Full-text search em português, pela coluna gerada (RF35).
-  if (filtros.busca && filtros.busca.trim()) {
-    consulta = consulta.textSearch('busca', filtros.busca.trim(), {
-      type: 'plain',
-      config: 'portuguese'
-    });
-  }
-
-  const { data, error } = await consulta.order('titulo');
-  if (error) throw error;
-  return data as Material[];
+    return consulta.order('titulo');
+  }, []);
 }
 
 /**

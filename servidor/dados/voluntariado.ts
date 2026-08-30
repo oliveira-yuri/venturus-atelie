@@ -1,5 +1,6 @@
 import 'server-only';
 import { obterCliente } from '../supabase';
+import { consultarOuDegradar } from './degradacao';
 
 /**
  * Áreas de voluntariado (RF24). Porte de site/assets/js/dados/
@@ -31,28 +32,34 @@ export type Area = {
 };
 
 /**
- * Mesmo motivo de temSupabase() em servidor/dados/eventos.ts: em modo
- * offline (`npm test`, sem SUPABASE_URL/SUPABASE_CHAVE_PUBLICAVEL) não há
- * fonte nenhuma para consultar. DIFERENTE de atividades/clipping: esta
- * tabela não tem JSON versionado irmão em dados-iniciais/ para servir de
- * fallback — as cinco áreas só existem no seed do Postgres (supabase/
+ * A GUARDA DE CONFIGURAÇÃO E A POLÍTICA DE ERRO MORAM EM
+ * servidor/dados/degradacao.ts.
+ *
+ * Em modo offline (`npm test`, sem SUPABASE_URL/SUPABASE_CHAVE_PUBLICAVEL)
+ * não há fonte nenhuma para consultar. DIFERENTE de atividades/clipping:
+ * esta tabela não tem JSON versionado irmão em dados-iniciais/ para servir
+ * de fallback — as cinco áreas só existem no seed do Postgres (supabase/
  * seed.sql). Devolver lista vazia aqui é o MESMO comportamento que
  * site/assets/js/dados/voluntariado.js já tinha (supabaseConfigurado())
  * antes deste porte.
+ *
+ * ESTA É A TABELA ONDE DEGRADAR CUSTA MAIS CARO, e vale dizer em voz alta:
+ * as cinco áreas EXISTEM de verdade no banco hoje (as outras duas tabelas
+ * desta política, `eventos` e `acervo`, estão vazias). Então tanto a
+ * consulta falhando quanto — o segundo modo de falha, achado na revisão
+ * final — publicar na Netlify sem as variáveis de ambiente troca conteúdo
+ * real da ONG pelo estado vazio, sem nada na tela denunciando. Os dois
+ * casos agora avisam no log do servidor (avisarQueDegradou e
+ * avisarQueNaoHaSupabase, em degradacao.ts); antes desta correção o
+ * primeiro derrubava a página com 500 e o segundo era silêncio total.
  */
-function temSupabase(): boolean {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_CHAVE_PUBLICAVEL);
-}
 
 /** As cinco áreas de atuação nomeadas pela ONG (RF24), na ordem que a equipe definiu. */
 export async function listarAreas(): Promise<Area[]> {
-  if (!temSupabase()) return [];
-
-  const { data, error } = await (await obterCliente())
-    .from('areas_voluntariado')
-    .select('*')
-    .order('ordem');
-
-  if (error) throw error;
-  return data as Area[];
+  return consultarOuDegradar<Area[]>('areas_voluntariado', async () =>
+    (await obterCliente())
+      .from('areas_voluntariado')
+      .select('*')
+      .order('ordem'),
+  []);
 }

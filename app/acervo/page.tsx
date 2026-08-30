@@ -42,6 +42,7 @@
 // elemento de erro que nunca preenche nada seria HTML morto.
 import { listarMateriais, enderecoDoArquivo } from '@/servidor/dados/acervo';
 import { ListaMateriais, type MaterialComUrl } from '@/componentes/ListaMateriais';
+import { mensagemDeErro } from '@/compartilhado/erros';
 
 export const metadata = {
   title: 'Acervo aberto — Ateliê Afro Cultural',
@@ -56,7 +57,7 @@ export default async function Acervo({
   const { busca } = await searchParams;
   const buscaLimpa = busca?.trim() || undefined;
 
-  const materiaisBrutos = await listarMateriais({ busca: buscaLimpa });
+  const { valor: materiaisBrutos, degradou } = await listarMateriais({ busca: buscaLimpa });
   // enderecoDoArquivo() é assíncrona só por causa de obterCliente() (que lê
   // cookies()) — getPublicUrl em si é síncrono e não faz requisição
   // nenhuma (ver o comentário de servidor/dados/acervo.ts). Resolvida aqui,
@@ -69,9 +70,22 @@ export default async function Acervo({
     }))
   );
 
-  const mensagemVazio = buscaLimpa
-    ? `Nada encontrado para "${buscaLimpa}". Tente outra palavra.`
-    : 'Ainda não há material publicado no acervo. Estamos preparando os primeiros.';
+  // TRÊS MENSAGENS, NÃO DUAS — correção da revisão final do Bloco A.
+  //
+  // `degradou` é true só quando o Supabase estava configurado e a consulta
+  // não voltou (ver servidor/dados/degradacao.ts). Antes desta correção
+  // esse caso derrubava a página inteira com 500; degradar em silêncio
+  // seria pior de outro jeito, porque a mensagem de busca AFIRMA um
+  // resultado: dizer 'Nada encontrado para "capoeira"' quando ninguém
+  // conseguiu buscar manda a pessoa procurar outra palavra por nada. O
+  // texto vem de compartilhado/erros.ts (mensagemDeErro), que é onde a
+  // regra da seção 11 do escopo já mora: dizer o que houve e o que fazer,
+  // sem se desculpar e sem jargão.
+  const mensagemVazio = degradou
+    ? `${mensagemDeErro(null, 'o acervo').titulo} Tente de novo em instantes.`
+    : buscaLimpa
+      ? `Nada encontrado para "${buscaLimpa}". Tente outra palavra.`
+      : 'Ainda não há material publicado no acervo. Estamos preparando os primeiros.';
 
   return (
     <main id="conteudo" className="conteudo">

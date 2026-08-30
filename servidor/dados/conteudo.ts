@@ -1,5 +1,6 @@
 import 'server-only';
 import { obterCliente } from '../supabase';
+import { temSupabase, descrever, repassarSeForControleDoNext } from './degradacao';
 import atividadesLocais from '@/dados-iniciais/atividades.json';
 import clippingLocal from '@/dados-iniciais/clipping.json';
 
@@ -82,7 +83,7 @@ export type Resultado<T> = {
   carimbo: string | null;
 };
 
-/**
+/*
  * Conteudo institucional com fonte dupla.
  *
  * Enquanto o projeto Supabase nao esta configurado no ambiente, le o JSON
@@ -92,10 +93,19 @@ export type Resultado<T> = {
  *
  * O mesmo JSON e a origem do seed.sql (ferramentas/gerar-seed.mjs), entao as
  * duas fontes nascem com o mesmo conteudo real da ONG.
+ *
+ * temSupabase(), descrever() e repassarSeForControleDoNext() saíram deste
+ * arquivo na revisão final do Bloco A e vivem em
+ * servidor/dados/degradacao.ts, junto com a política de erro dos outros
+ * três módulos: as três funções estavam copiadas aqui e nos outros
+ * arquivos, e é a mesma decisão nos quatro.
+ *
+ * Este módulo NÃO usa consultarOuDegradar() de lá, de propósito: o valor
+ * degradado dele não é uma lista vazia, é o JSON versionado com o mesmo
+ * conteúdo real — mais o `carimbo` que prova a procedência. É a única
+ * tabela do projeto que tem uma segunda fonte, e por isso a única que pode
+ * degradar sem perder conteúdo.
  */
-function temSupabase(): boolean {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_CHAVE_PUBLICAVEL);
-}
 
 /**
  * Aplica no JSON local o mesmo filtro e a mesma ordenação que a consulta
@@ -153,47 +163,6 @@ function avisarQueCaiuParaOJson(tabela: string, motivo: unknown): void {
     + 'servindo o JSON versionado de dados-iniciais/. A página fica certa, o dado fica '
     + `velho. Motivo: ${descrever(motivo)}`
   );
-}
-
-/**
- * Erro do PostgREST NÃO é um Error: é um objeto simples com message/code/
- * details/hint. `String(motivo)` nele imprime "[object Object]" — um aviso
- * que não diz qual das causas ocorreu (chave errada, grant faltando, RLS,
- * coluna renomeada) é quase tão inútil quanto não avisar.
- */
-function descrever(motivo: unknown): string {
-  if (motivo instanceof Error) return motivo.message;
-  if (motivo && typeof motivo === 'object') {
-    const e = motivo as { message?: string; code?: string; hint?: string; details?: string };
-    const partes = [e.message, e.code && `código ${e.code}`, e.details, e.hint].filter(Boolean);
-    if (partes.length > 0) return partes.join(' | ');
-    return JSON.stringify(motivo);
-  }
-  return String(motivo);
-}
-
-/**
- * Erros de CONTROLE do Next não podem ser engolidos por este catch.
- *
- * Achado ao rodar o modo degradado (`npm run test:supabase-degradado`) e ler
- * o log do build: durante `next build` o Next tenta renderizar a página
- * estaticamente, `cookies()` (dentro de obterCliente()) lança
- * DynamicServerError para avisar "esta rota é dinâmica", e o catch abaixo
- * tratava isso como "o Supabase não respondeu" — avisando errado no log e,
- * pior, ABAFANDO o sinal que faz o Next marcar a rota como dinâmica. Hoje
- * não deu prejuízo porque app/layout.tsx usa headers() para o nonce da CSP,
- * o que já torna toda rota dinâmica; no dia em que isso mudar, /para-escolas
- * seria pré-renderizada com o JSON e serviria conteúdo congelado para
- * sempre, sem erro nenhum.
- *
- * Todo erro de controle do Next carrega `digest` (DYNAMIC_SERVER_USAGE,
- * NEXT_REDIRECT, NEXT_NOT_FOUND, NEXT_HTTP_ERROR_FALLBACK...). Falha de
- * rede, DNS e timeout não carregam. Então a regra é: com digest, repassa.
- */
-function repassarSeForControleDoNext(erro: unknown): void {
-  if (erro && typeof erro === 'object' && typeof (erro as { digest?: unknown }).digest === 'string') {
-    throw erro;
-  }
 }
 
 /** Maior `criado_em` de um conjunto de linhas do banco. */

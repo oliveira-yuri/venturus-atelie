@@ -1,5 +1,6 @@
 import 'server-only';
 import { obterCliente } from '../supabase';
+import { consultarOuDegradar } from './degradacao';
 
 /**
  * Eventos e agenda pública (RF13-RF18) — porte de
@@ -37,6 +38,9 @@ export type Evento = {
 };
 
 /**
+ * A GUARDA DE CONFIGURAÇÃO E A POLÍTICA DE ERRO MORAM EM
+ * servidor/dados/degradacao.ts.
+ *
  * Sem SUPABASE_URL/SUPABASE_CHAVE_PUBLICAVEL no ambiente (é assim que
  * `npm test` roda de propósito — ver o comentário de "MODO OFFLINE" em
  * ferramentas/rodar-testes.mjs), não há fonte nenhuma para consultar: ao
@@ -45,50 +49,63 @@ export type Evento = {
  * conteúdo real ainda para versionar). Devolver lista vazia aqui é o MESMO
  * comportamento que site/assets/js/dados/supabase.js já tinha
  * (supabaseConfigurado()) antes deste porte.
+ *
+ * O QUE MUDOU NA REVISÃO FINAL DO BLOCO A: as três funções abaixo faziam
+ * `if (error) throw error`, e MEDIDO com o Supabase configurado e a
+ * consulta falhando, /agenda respondia 500 com a página de erro embutida do
+ * Next — sem cabeçalho, sem rodapé, sem `<main id="conteudo">`. Agora
+ * degradam para lista vazia (o estado vazio da Tarefa A4 já está escrito e
+ * aprovado) e avisam no log. Ver o cabeçalho de degradacao.ts para o
+ * porquê da política e para o que ela custa.
  */
-function temSupabase(): boolean {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_CHAVE_PUBLICAVEL);
-}
 
 /** Próximos eventos publicados, do mais próximo ao mais distante. */
 export async function listarProximos(): Promise<Evento[]> {
-  if (!temSupabase()) return [];
-
-  const { data, error } = await (await obterCliente())
-    .from('eventos')
-    .select('*')
-    .eq('publicado', true)
-    .gte('comeca_em', new Date().toISOString())
-    .order('comeca_em', { ascending: true });
-
-  if (error) throw error;
-  return data as Evento[];
+  return consultarOuDegradar<Evento[]>('eventos (próximos)', async () =>
+    (await obterCliente())
+      .from('eventos')
+      .select('*')
+      .eq('publicado', true)
+      .gte('comeca_em', new Date().toISOString())
+      .order('comeca_em', { ascending: true }),
+  []);
 }
 
 /** Eventos que já aconteceram — o escopo pede que continuem acessíveis. */
 export async function listarPassados(): Promise<Evento[]> {
-  if (!temSupabase()) return [];
-
-  const { data, error } = await (await obterCliente())
-    .from('eventos')
-    .select('*')
-    .eq('publicado', true)
-    .lt('comeca_em', new Date().toISOString())
-    .order('comeca_em', { ascending: false })
-    .limit(20);
-
-  if (error) throw error;
-  return data as Evento[];
+  return consultarOuDegradar<Evento[]>('eventos (passados)', async () =>
+    (await obterCliente())
+      .from('eventos')
+      .select('*')
+      .eq('publicado', true)
+      .lt('comeca_em', new Date().toISOString())
+      .order('comeca_em', { ascending: false })
+      .limit(20),
+  []);
 }
 
-/** Um evento pelo id — usada pela página de inscrição (RF15, Bloco B). */
+/**
+ * Um evento pelo id — usada pela página de inscrição (RF15, Bloco B).
+ *
+ * NENHUM CHAMADOR HOJE: a página de inscrição é Bloco B. Fica, em vez de
+ * ser apagada, porque a consulta é o porte literal de
+ * site/assets/js/dados/eventos.js e reescrevê-la depois seria reinventar
+ * uma linha que já existe funcionando em produção.
+ *
+ * O que a revisão final pegou: era a ÚNICA consulta do projeto sem guarda
+ * de configuração — chamada sem SUPABASE_URL, ela ia direto para
+ * obterCliente(), que passa `undefined` ao createServerClient e estoura.
+ * Agora passa por consultarOuDegradar() como as outras: sem configuração
+ * ou com a consulta falhando, devolve null, e quem chamar (Bloco B) trata
+ * isso como "evento não encontrado" — que é a resposta honesta quando não
+ * se conseguiu perguntar.
+ */
 export async function buscarEvento(id: string): Promise<Evento | null> {
-  const { data, error } = await (await obterCliente())
-    .from('eventos')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as Evento | null;
+  return consultarOuDegradar<Evento | null>('eventos (por id)', async () =>
+    (await obterCliente())
+      .from('eventos')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle(),
+  null);
 }

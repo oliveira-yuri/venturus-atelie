@@ -5,7 +5,7 @@
   "scripts": {
     "test": "node ferramentas/rodar-testes.mjs",
     "test:supabase": "COM_SUPABASE=1 node ferramentas/rodar-testes.mjs",
-    "test:supabase-degradado": "COM_SUPABASE=chave-errada node ferramentas/rodar-testes.mjs testes/origem-dos-dados.test.mjs",
+    "test:supabase-degradado": "COM_SUPABASE=chave-errada node ferramentas/rodar-testes.mjs testes/origem-dos-dados.test.mjs testes/degradacao.test.mjs",
     "verificar": "node ferramentas/rodar-testes.mjs testes/navegador.test.mjs",
     "verificar-deploy": "node ferramentas/verificar-antes-do-deploy.mjs",
     "seed": "node ferramentas/gerar-seed.mjs",
