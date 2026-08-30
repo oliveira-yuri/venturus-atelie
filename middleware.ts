@@ -123,10 +123,22 @@ export function middleware(requisicao: NextRequest) {
   // Ver o comentário grande em compartilhado/redirects-antigos.ts para o
   // porquê de morar aqui e não em next.config.ts `redirects()`: só assim o
   // Cache-Control abaixo sobrevive até a resposta sair (medido com curl).
-  // Comparação exata de pathname — nenhuma dessas URLs antigas tem parâmetro.
+  // Comparação exata de pathname — nenhuma dessas URLs antigas tem parâmetro
+  // de rota (tudo o que vier depois de `?` é query string, tratada abaixo).
   const antigo = REDIRECTS_ANTIGOS.find(({ origem }) => requisicao.nextUrl.pathname === origem);
   if (antigo) {
-    const respostaRedirect = NextResponse.redirect(new URL(antigo.destino, requisicao.url), 301);
+    // A query string PRECISA sobreviver (rodada de correção 2 — regressão
+    // desta própria tarefa, sem teste cobrindo na rodada 1): `new
+    // URL(antigo.destino, requisicao.url)` sozinho descarta o `search` da
+    // requisição original. Um link antigo do tipo
+    // `/quem-somos.html?utm_source=folha&fbclid=abc` — o tipo exato que já
+    // circulou, com parâmetro de campanha — perderia esses parâmetros. Há
+    // consumidor real desses parâmetros: app/acervo/page.tsx lê `?busca`,
+    // site/assets/js/paginas/entrar.js lê `?destino`.
+    const urlDestino = new URL(antigo.destino, requisicao.url);
+    urlDestino.search = requisicao.nextUrl.search;
+
+    const respostaRedirect = NextResponse.redirect(urlDestino, 301);
     // Cache-Control limitado (não ausente, não indefinido): sem cabeçalho
     // explícito um 301 é cacheável por heurística do navegador, e o cache
     // de redirect é notoriamente difícil de limpar. Se um destino precisar

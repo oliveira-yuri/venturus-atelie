@@ -171,7 +171,20 @@ const pronto = new Promise((resolve, reject) => {
 
 try {
   await pronto;
-  const testes = spawnSync('node', ['--test', ...arquivosPedidos], {
+  // '--test-concurrency=4': MEDIDO na revisão da Tarefa A7, rodada de
+  // correção 2 — o padrão do `node --test` (concorrência = núcleos da
+  // máquina, 12 nesta) sobe até 12 Firefox/geckodriver simultâneos para os
+  // 10 dos 37 arquivos que usam Selenium, e sob essa disputa de CPU 2 de 4
+  // rodadas completas falharam (em arquivos diferentes — não só o VLibras:
+  // uma vez foi `rota-inexistente.test.mjs`, "sem main h1..."). Com
+  // concorrência 4: 0 falhas em 7 rodadas, custando +3s (55-68s vira
+  // 60-67s). Com concorrência 1: 0 falhas, mas +96s (153s) pelo mesmo
+  // resultado que a concorrência 4 já entrega. Este número não muda o
+  // guardião de deploy (`npm run verificar-deploy` roda `seguranca`,
+  // `vazamento` e `origem-dos-dados` — nenhum sobe Selenium), mas evita que
+  // uma rodada de `npm test` local pareça ter achado um defeito novo
+  // quando só foi CPU disputada.
+  const testes = spawnSync('node', ['--test', '--test-concurrency=4', ...arquivosPedidos], {
     stdio: 'inherit',
     // COM_SUPABASE segue para os testes de proposito: testes/
     // origem-dos-dados.test.mjs exige "banco" num modo e "json" no outro, e

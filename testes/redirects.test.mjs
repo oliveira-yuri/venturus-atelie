@@ -38,6 +38,7 @@ import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { REDIRECTS_ANTIGOS } from '../compartilhado/redirects-antigos.ts';
+import { rotasReaisDoApp } from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
@@ -121,6 +122,53 @@ test('o redirect sai com Cache-Control limitado, não cacheável para sempre por
 
   assert.match(cacheControl, /max-age=\d+/, `Cache-Control veio "${cacheControl}", sem max-age`);
   assert.doesNotMatch(cacheControl, /no-store/, 'no-store impediria qualquer cache — não é a decisão tomada');
+});
+
+/**
+ * A query string precisa sobreviver ao redirect (rodada de correção 2 da
+ * Tarefa A7 — regressão introduzida na rodada 1, sem teste cobrindo). Há
+ * consumidor real: `app/acervo/page.tsx` lê `?busca`, e
+ * `site/assets/js/paginas/entrar.js` lê `?destino`. Um link antigo do tipo
+ * `/quem-somos.html?utm_source=folha&fbclid=abc` — o exato tipo de link que
+ * já circulou, com parâmetro de rastreio de campanha — perderia esses
+ * parâmetros no redirect se o `search` não for propagado.
+ */
+test('a query string do link antigo sobrevive ao redirect', async () => {
+  const resposta = await fetch(
+    `${BASE}/quem-somos.html?utm_source=folha&fbclid=abc`,
+    { redirect: 'manual' }
+  );
+
+  assert.equal(resposta.status, 301, `respondeu ${resposta.status}, esperava 301`);
+
+  const destino = new URL(resposta.headers.get('location'), BASE);
+  assert.equal(destino.pathname, '/quem-somos', `caminho veio "${destino.pathname}"`);
+  assert.equal(
+    destino.searchParams.get('utm_source'), 'folha',
+    `query string não sobreviveu — Location completo: "${resposta.headers.get('location')}"`
+  );
+  assert.equal(destino.searchParams.get('fbclid'), 'abc', 'fbclid não sobreviveu ao redirect');
+});
+
+/**
+ * Todo destino de redirect precisa ser uma página real, não só "responder
+ * 301 com o Location certo" — a reconciliação com `site/*.html` (acima)
+ * nunca compara contra `app/`, então uma página de `site/` jamais portada
+ * seria OBRIGADA a entrar em `REDIRECTS_ANTIGOS` (a reconciliação exigiria
+ * isso) e redirecionaria 301 para um 404, com a suíte inteira verde.
+ * `rotasReaisDoApp()` (testes/apoio/rotas-migracao.mjs) é o "chão de
+ * fábrica" das páginas que de fato existem — mesmo papel que já cumpre para
+ * `testes/links.test.mjs`.
+ */
+test('todo destino de compartilhado/redirects-antigos.ts é uma página real de app/, sem sobra de nenhum lado', async () => {
+  const destinosConfigurados = REDIRECTS_ANTIGOS.map((redirect) => redirect.destino).sort();
+  const rotasReais = (await rotasReaisDoApp()).sort();
+
+  assert.deepEqual(
+    destinosConfigurados, rotasReais,
+    'os destinos configurados e as páginas reais de app/ divergem — um redirect aponta para '
+    + 'página que não existe, ou uma página real ficou sem nenhum redirect apontando para ela'
+  );
 });
 
 /**

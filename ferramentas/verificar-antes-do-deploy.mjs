@@ -297,21 +297,31 @@ for (const { caminho: diretorio, codigoDeTerceiros } of diretoriosParaVarrer) {
 // em public/ tem precedencia sobre o redirect de mesmo caminho — estava
 // ERRADA, e foi MEDIDO (rodada de correcao 1 da Tarefa A7): criado
 // `public/quem-somos.html`, reconstruido, medido com curl contra
-// `/quem-somos.html` — o redirect configurado em next.config.ts venceu (301
-// para /quem-somos), o arquivo estatico nao foi servido. A ordem real do
-// Next e headers -> redirects -> rewrites -> arquivos estaticos/paginas:
-// redirects saem na frente.
+// `/quem-somos.html` — o redirect venceu (301 para /quem-somos), o arquivo
+// estatico nao foi servido.
+//
+// MECANISMO ATUALIZADO NA RODADA DE CORRECAO 2 (o comentario acima nasceu
+// desatualizado no mesmo commit que moveu o codigo): os 14 redirects nao
+// vivem mais em `next.config.ts` `redirects()` — vivem em `middleware.ts`
+// (NextResponse.redirect), porque so assim um Cache-Control explicito
+// sobrevive na resposta (ver compartilhado/redirects-antigos.ts). A
+// conclusao medida acima continua valendo pelo mesmo motivo estrutural:
+// o middleware roda antes do check de arquivo estatico/pagina
+// (`node_modules/next/dist/server/lib/router-utils/resolve-routes.js`,
+// `calculateRoutes()` — middleware aparece antes de `check_fs` na lista),
+// entao um redirect construido no middleware tambem vence um `.html`
+// esquecido em public/ no mesmo caminho.
 //
 // O check continua valendo por outro motivo, este sim real: um `.html`
 // solto so e inofensivo enquanto existir redirect configurado para o MESMO
-// caminho. Sem esse redirect (esquecido, ou com o `source` digitado
-// errado), o arquivo estatico seria servido tal como esta — sem cabecalho,
-// sem os controles de acessibilidade, sem a camada de dados — e ninguem
-// veria erro nenhum.
+// caminho. Sem esse redirect (esquecido, ou com a `origem` digitada
+// errada em compartilhado/redirects-antigos.ts), o arquivo estatico seria
+// servido tal como esta — sem cabecalho, sem os controles de
+// acessibilidade, sem a camada de dados — e ninguem veria erro nenhum.
 //
 // Duvida em aberto, NAO medida: na Netlify, o `@netlify/plugin-nextjs` pode
-// servir public/ direto pela CDN, sem passar pela funcao onde os
-// redirects() do Next rodam. Esse caminho nao foi testado contra o deploy
+// servir public/ direto pela CDN, sem passar pela funcao/edge onde o
+// middleware do Next roda. Esse caminho nao foi testado contra o deploy
 // real — nao da para afirmar nem descartar aqui.
 // ---------------------------------------------------------------------
 if (existsSync('public')) {
