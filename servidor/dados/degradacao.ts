@@ -106,10 +106,14 @@ export function avisarQueDegradou(tabela: string, motivo: unknown): void {
 /**
  * Tabelas sobre as quais já se avisou "sem Supabase" neste processo.
  *
+ * É a única coisa que segura o volume deste aviso, e por isso ela existe:
+ * sem o Set, "sem Supabase" viraria uma linha de log por requisição, para
+ * sempre, porque a condição não se resolve sozinha.
+ *
  * NÃO MEDIDO em produção: numa Netlify Function cada instância fria tem seu
  * próprio módulo, então o aviso reaparece a cada instância nova — o que é o
- * comportamento desejado (um deploy mal configurado precisa aparecer no
- * log), sem virar uma linha por requisição.
+ * comportamento desejado (um deploy mal configurado precisa continuar
+ * aparecendo no log), sem virar uma linha por requisição.
  */
 const jaAvisadoSemSupabase = new Set<string>();
 
@@ -121,14 +125,24 @@ const jaAvisadoSemSupabase = new Set<string>();
  * saem, e as cinco áreas reais de /voluntariado (que só existem no seed do
  * Postgres) viram o estado vazio. O site sobe bonito e incompleto.
  *
- * Só avisa em produção, de propósito: no modo offline da suíte
- * (`npm test`, NODE_ENV=test) a ausência das variáveis é DELIBERADA — ver o
- * comentário de "MODO OFFLINE" em ferramentas/rodar-testes.mjs —, e um
- * aviso ali seria ruído garantido a cada rodada. Verificador que grita à
- * toa vira verificador ignorado.
+ * SEM FILTRO POR AMBIENTE, e isso é medida, não descuido. A primeira versão
+ * desta função tinha `if (process.env.NODE_ENV !== 'production') return`,
+ * para poupar a suíte offline (onde a ausência das variáveis é DELIBERADA —
+ * ver "MODO OFFLINE" em ferramentas/rodar-testes.mjs). MEDIDO: o filtro não
+ * fazia nada. `ferramentas/rodar-testes.mjs` passa NODE_ENV=test ao `next
+ * build`/`next start`, mas o que o código do servidor lê em execução, num
+ * build de produção do Next, é `production` — o aviso saía do mesmo jeito.
+ * Um `if` que não filtra nada é pior que nenhum: ele AFIRMA um
+ * comportamento que não acontece, e o próximo a ler acredita.
+ *
+ * Então o preço está pago em voz alta. MEDIDO: uma rodada de `npm test`
+ * imprime 7 destas linhas — uma por tabela consultada POR PROCESSO (o Set
+ * acima), e a rodada tem dois processos, `next build` e `next start`. Sete
+ * linhas por suíte é barato; um deploy sem as variáveis, silencioso, não é.
+ * Não existe knob para calar isto, de propósito — todo knob de silenciar
+ * acaba ligado em produção.
  */
 export function avisarQueNaoHaSupabase(tabela: string): void {
-  if (process.env.NODE_ENV !== 'production') return;
   if (jaAvisadoSemSupabase.has(tabela)) return;
   jaAvisadoSemSupabase.add(tabela);
 

@@ -281,8 +281,12 @@ obrigar a revisitar a decisão do redirect.
    (`servidor/dados/degradacao.ts`) devolve false, nenhuma consulta sai, e as **cinco áreas
    reais de `/voluntariado`** — que só existem no seed do Postgres, sem JSON irmão — viram o
    estado vazio. O site sobe bonito e incompleto. Desde a revisão final isso pelo menos
-   **aparece no log** do servidor (`[dados] "areas_voluntariado": ... não estão no ambiente`),
-   só em produção. Conferir as duas variáveis no painel antes de anunciar o endereço.
+   **aparece no log** do servidor: `[dados] "areas_voluntariado": ... não estão no ambiente`,
+   uma linha por tabela por processo. Sai também em `npm test` (medido: 7 linhas por rodada,
+   que tem dois processos, `next build` e `next start`) —
+   é ruído aceito de propósito, porque não há filtro por ambiente que funcione aqui: o
+   servidor de um build do Next lê `NODE_ENV=production` mesmo quando a suíte pede `test`.
+   Conferir as duas variáveis no painel da Netlify antes de anunciar o endereço.
 0f. **Herdada, não corrigida: `vw` em texto no menu.** `estilos/componentes.css:93`,
    `.cabecalho__menu a { font-size: clamp(0.84rem, 1.15vw, 0.95rem) }` (e o `padding` da
    linha 87). Contra a regra 8 e contra o aviso escrito em `estilos/tokens.css:43` — dentro
