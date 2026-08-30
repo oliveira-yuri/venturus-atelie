@@ -2,6 +2,9 @@
   "name": "atelie-afro-cultural",
   "private": true,
   "description": "Site do Ateliê Afro Cultural — Next.js 16, sem bundler extra. `next build` é obrigatório antes de servir; selenium-webdriver roda as verificações de navegador.",
+  "engines": {
+    "node": "24.15.0"
+  },
   "scripts": {
     "test": "node ferramentas/rodar-testes.mjs",
     "test:supabase": "COM_SUPABASE=1 node ferramentas/rodar-testes.mjs",
@@ -16,6 +19,7 @@
     "selenium-webdriver": "^4.27.0"
   },
   "dependencies": {
+    "@netlify/plugin-nextjs": "5.15.13",
     "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "2.112.4",
     "@types/node": "26.4.0",

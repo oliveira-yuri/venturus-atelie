@@ -12,9 +12,41 @@
 [build.environment]
   # Mantido: e o que impede o embedded-postgres (devDependency) de baixar os
   # binarios do PostgreSQL e derrubar o build, como ja aconteceu. Por isso
-  # typescript e @types/* estao em dependencies — ver spec §7.2.
+  # typescript e @types/* estao em dependencies — ver spec §7.2. Pelo mesmo
+  # motivo `@netlify/plugin-nextjs` esta em dependencies e nao em
+  # devDependencies: com --omit=dev, uma devDependency simplesmente nao e
+  # instalada no build, e a Netlify voltaria a baixar a versao mais recente
+  # do plugin no dia do deploy.
   NPM_FLAGS = "--omit=dev"
 
+  # Fixado na revisao final do Bloco A. Sem esta linha, sem `.nvmrc` e sem
+  # `engines` no package.json, a Netlify usava o Node padrao da imagem dela
+  # NAQUELE DIA — um numero que ninguem no projeto escolheu e que muda
+  # sozinho. Tudo foi testado no Node 24.15.0 (`node -v` da maquina de
+  # desenvolvimento); `next@16.3.3` exige `>=20.9.0` e
+  # `@netlify/plugin-nextjs@5.15.13` exige `>=18.0.0`, entao 24.15.0
+  # satisfaz os dois com folga e e o unico numero que alguem de fato rodou.
+  #
+  # SAO TRES DECLARACOES DA MESMA VERSAO, de proposito: `.nvmrc` (para quem
+  # desenvolve), `engines` no package.json (para o npm avisar) e esta
+  # (para a Netlify). Mudou uma, mudar as tres.
+  NODE_VERSION = "24.15.0"
+
+# Versao FIXADA na revisao final do Bloco A.
+#
+# Este bloco declarava o plugin sem versao e o pacote nao estava no
+# package.json: a Netlify baixava a mais recente que existisse no dia do
+# deploy — e e este plugin, nao o Next, que decide como o Next 16.3.3 vira
+# funcao/edge na plataforma. Uma versao nova do plugin no dia da entrega e
+# uma variavel a mais num deploy que nunca rodou.
+#
+# Agora `@netlify/plugin-nextjs` esta em `dependencies` do package.json,
+# pinado em 5.15.13 (`npm view @netlify/plugin-nextjs version` em
+# 30/08/2026 — verificado, nao escrito de memoria: este projeto ja teve
+# deploy quebrado por versao de cabeca). Com o pacote instalado, a Netlify
+# usa a versao do package.json em vez de resolver a mais recente.
+#
+# A entrada aqui continua necessaria: e ela que LIGA o plugin no build.
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
