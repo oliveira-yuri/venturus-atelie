@@ -6,10 +6,10 @@
  * ganha toda a bateria de graça.
  *
  * Só as rotas já migradas para o Next entram aqui: a home (`/`), as três da
- * Tarefa A1 e /projetos (Tarefa A3). As outras oito do menu — agenda,
- * notícias, galeria, acervo, voluntariado, doar, contato, entrar — ainda
- * não existem no app novo; migram no restante da fase 2 e voltam para esta
- * lista quando existirem.
+ * Tarefa A1, /projetos (Tarefa A3) e agenda/notícias/galeria/acervo (Tarefa
+ * A4). As outras quatro do menu — voluntariado, doar, contato, entrar —
+ * ainda não existem no app novo; migram no restante da fase 2 e voltam para
+ * esta lista quando existirem.
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,7 +24,16 @@ const PAGINAS = [
   // "cabecalho e rodape montam" nao exige aria-current="page" para ela.
   { arquivo: 'privacidade',  chave: 'privacidade', semItemDeMenu: true },
   { arquivo: 'para-escolas', chave: 'para-escolas' },
-  { arquivo: 'projetos',     chave: 'projetos' }
+  { arquivo: 'projetos',     chave: 'projetos' },
+  // As quatro da Tarefa A4: conteúdo do estado vazio é provado à parte, de
+  // verdade, em testes/paginas-vazias-a4.test.mjs — aqui elas só ganham a
+  // bateria estrutural genérica (200, h1 único dentro do main, cabeçalho e
+  // rodapé, alt em imagem, sem rolagem horizontal, sem linguagem
+  // assistencialista) igual a qualquer página pronta.
+  { arquivo: 'agenda',   chave: 'agenda' },
+  { arquivo: 'noticias', chave: 'noticias' },
+  { arquivo: 'galeria',  chave: 'galeria' },
+  { arquivo: 'acervo',   chave: 'acervo' }
 ];
 
 // As 11 atividades reais (dados-iniciais/atividades.json, mesmo conteúdo

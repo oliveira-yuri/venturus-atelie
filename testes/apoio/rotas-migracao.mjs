@@ -33,12 +33,18 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 // Itens do MENU que já existem de verdade no Next.
-export const ROTAS_PRONTAS_MENU = ['/', '/quem-somos', '/para-escolas', '/projetos'];
+export const ROTAS_PRONTAS_MENU = [
+  '/', '/quem-somos', '/para-escolas', '/projetos',
+  // Tarefa A4: as quatro páginas migram juntas (agenda, notícias, galeria,
+  // acervo) — todas com tabela vazia hoje, mostrando o estado vazio da
+  // Tarefa A4 em vez da lista (ver componentes/ListaEventos.ts e
+  // componentes/ListaMateriais.ts).
+  '/agenda', '/noticias', '/galeria', '/acervo'
+];
 
 // Itens do menu (mais o "Entrar" do cabeçalho) que ainda não têm página no
 // app novo. Migram nas Tarefas A2 em diante.
 export const ROTAS_PENDENTES = [
-  '/agenda', '/noticias', '/galeria', '/acervo',
   '/voluntariado', '/doar', '/contato', '/entrar'
 ];
 

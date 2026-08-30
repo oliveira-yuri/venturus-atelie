@@ -93,6 +93,67 @@ const PAGINAS = [
     // atividade (regra 2 do CLAUDE.md no nível do campo) é provada por
     // unidade, direto no componente, em testes/card-atividade.test.mjs.
     idsExcluidos: ['lista-atividades']
+  },
+  {
+    rota: '/agenda',
+    arquivoOriginal: 'site/agenda.html',
+    // Tarefa A4. As duas <div id="lista-proximos">/<div id="lista-passados">
+    // chegavam vazias no HTML estático original — quem as preenchia era
+    // assets/js/paginas/agenda.js, no cliente, lendo listarProximos()/
+    // listarPassados(). Desde a Tarefa A4 o servidor busca direto
+    // (servidor/dados/eventos.ts) e SEMPRE desenha algo ali — os cartões,
+    // ou o estado vazio com texto real (componentes/ListaEventos.ts) — e
+    // esse texto não existe no HTML estático original (a mensagem morava
+    // dentro do JS, não do arquivo .html). Comparar o texto bruto do
+    // estático (divs vazias) contra o renderizado acusaria uma divergência
+    // ilegítima, mesma situação de "lista-atividades" acima.
+    idsExcluidos: ['lista-proximos', 'lista-passados']
+  },
+  {
+    rota: '/noticias',
+    arquivoOriginal: 'site/noticias.html',
+    // Tarefa A4. Diferente de agenda/acervo, RF04 não tem tabela nem módulo
+    // de dados — o <div id="lista-noticias"> já trazia texto de estado
+    // vazio no HTML estático original ("Nenhuma notícia publicada ainda.").
+    // A Tarefa A4 troca esse texto por um mais honesto e acionável (ver o
+    // comentário de app/noticias/page.tsx e o relatório da tarefa) — uma
+    // divergência DELIBERADA de conteúdo, aprovada por quem coordena, não
+    // um artefato de hidratação como as exclusões acima. Excluído da
+    // comparação byte a byte pelo mesmo motivo prático: o texto muda de
+    // propósito.
+    idsExcluidos: ['lista-noticias']
+  },
+  {
+    rota: '/galeria',
+    arquivoOriginal: 'site/galeria.html',
+    // Tarefa A4, mesma situação de /noticias acima: RF05 também não tem
+    // tabela nem módulo de dados, e o texto de estado vazio do
+    // <div id="lista-albuns"> foi deliberadamente trocado (ver o comentário
+    // de app/galeria/page.tsx).
+    idsExcluidos: ['lista-albuns']
+  },
+  {
+    rota: '/acervo',
+    arquivoOriginal: 'site/acervo.html',
+    // Tarefa A4. Duas exclusões, dois motivos diferentes:
+    //
+    // "filtros-acervo" (o <form> de busca): no HTML estático original o
+    // campo era <aac-form-campo rotulo="..." ajuda="...">, um custom
+    // element sem filho nenhum — rótulo e texto de ajuda eram ATRIBUTOS,
+    // não texto, e por isso não apareciam na extração de texto nem ali (só
+    // depois que o script do componente rodava no navegador). O port desta
+    // tarefa expande esse componente em <label>/<input> de verdade (mesma
+    // mecânica de Cabecalho.tsx/Rodape.tsx expandindo aac-header/
+    // aac-rodape) — o que introduz texto ("Buscar por palavra", a ajuda)
+    // que nunca existiu como texto no HTML estático. Ver o comentário de
+    // app/acervo/page.tsx.
+    //
+    // "lista-acervo": mesma situação de "lista-proximos"/"lista-passados"
+    // em /agenda acima — chegava vazia no estático, preenchida no cliente
+    // por assets/js/paginas/acervo.js; agora o servidor busca direto
+    // (servidor/dados/acervo.ts) e sempre desenha algo, cartões ou o
+    // estado vazio com texto real que não existia no arquivo .html.
+    idsExcluidos: ['filtros-acervo', 'lista-acervo']
   }
 ];
 
