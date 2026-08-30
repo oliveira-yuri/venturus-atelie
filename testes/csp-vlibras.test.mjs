@@ -317,37 +317,89 @@ test('Menu > Tradutor > digitar texto > Traduzir chega a "playing", sem bloqueio
   // traducao pelo painel, em vez de depender de selecionar uma palavra que
   // ja esteja na pagina.
   //
-  // Usa getShadowRoot()/findElement/sendKeys do proprio WebDriver (Selenium
-  // 4.47+ atravessa shadow root aberto nativamente) em vez de
-  // executeScript com dispatchEvent — mais fiel ao que uma pessoa de
-  // verdade faz: clicar, ver o campo, digitar de verdade.
-  const wrapper = await navegador.findElement(By.css('#vlibras-access-wrapper'));
-  const srAcesso = await wrapper.getShadowRoot();
-  await (await srAcesso.findElement(By.css('#vlibras-button'))).click();
+  // CLIQUES POR dispatchEvent, NAO .click() NATIVO — diagnostico da revisao
+  // da Tarefa A7 (rodada de correcao 1): o .click() nativo do WebDriver
+  // CHECA se o elemento esta no topo visivel do ponto clicado, e esbarra na
+  // propria transicao do widget abrindo ou trocando de painel — sobretudo
+  // quando a suite inteira roda com varias instancias de Firefox
+  // concorrentes disputando CPU (node --test roda arquivos em paralelo por
+  // padrao) e a animacao demora mais que os sleep() fixos preveem.
+  // dispatchEvent nao faz esse check de sobreposicao — e o mesmo padrao que
+  // abrirWidget() (topo do arquivo) e o teste do Dicionario acima ja usam,
+  // e nenhum dos dois jamais falhou por esse motivo.
+  await abrirWidget(navegador);
   await navegador.sleep(5000);
 
+  const abriuMenu = await navegador.executeScript(`
+    const sr = document.getElementById('vlibras-app-root')?.shadowRoot;
+    if (!sr) return false;
+    const botaoMenu = sr.getElementById('header-menu-button');
+    if (!botaoMenu) return false;
+    botaoMenu.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    return true;
+  `);
+  assert.ok(abriuMenu, 'nao encontrou #header-menu-button no shadow root de #vlibras-app-root');
+  await navegador.sleep(500);
+
+  const clicouTradutor = await navegador.executeScript(`
+    const sr = document.getElementById('vlibras-app-root').shadowRoot;
+    const botaoTradutor = sr.querySelector('button[aria-label="Tradutor"]');
+    if (!botaoTradutor) return false;
+    botaoTradutor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    return true;
+  `);
+  assert.ok(clicouTradutor, 'nao encontrou o botao "Tradutor" no menu do VLibras');
+
+  // POLL, NAO sleep fixo — achado rodando a suite CHEIA nesta mesma rodada
+  // de correcao: um `sleep(1500)` aqui bastava isolado, mas falhava a suite
+  // inteira com NoSuchElementError em #translator-text — o painel do
+  // Tradutor demora mais para renderizar quando varias instancias de
+  // Firefox concorrentes disputam CPU (mesma causa-raiz do
+  // ElementClickIntercepted que motivou trocar os cliques por dispatchEvent,
+  // so que atingindo o TEMPO de render, nao o clique em si). Mesmo padrao
+  // que o teste do Dicionario acima ja usa para as categorias.
+  //
+  // O poll usa `findElements` NATIVO do WebDriver (devolve lista vazia em
+  // vez de lancar), nao `executeScript` + `getElementById` — medido nesta
+  // rodada: checar a existencia via JS e depois buscar de novo via
+  // `findElement` nativo abre uma segunda janela de corrida (o painel pode
+  // re-renderizar o campo entre as duas chamadas, cada uma um round-trip
+  // HTTP separado do WebDriver), e foi exatamente isso que produziu
+  // NoSuchElementError mesmo com o poll em JS ja tendo resolvido true.
+  // Fazendo o poll com o MESMO mecanismo do findElement final, a janela de
+  // corrida encolhe ao minimo possivel.
   const appRoot = await navegador.findElement(By.css('#vlibras-app-root'));
   const srApp = await appRoot.getShadowRoot();
+  await navegador.wait(async () => {
+    const elementos = await srApp.findElements(By.css('#translator-text'));
+    return elementos.length > 0;
+  }, 10000, 'o campo #translator-text nao apareceu em 10s apos clicar em "Tradutor"');
 
-  await (await srApp.findElement(By.css('#header-menu-button'))).click();
-  await navegador.sleep(500);
-  await (await srApp.findElement(By.css('button[aria-label="Tradutor"]'))).click();
-  await navegador.sleep(1500);
-
+  // sendKeys continua pelo WebDriver (Selenium 4.47+ atravessa shadow root
+  // aberto nativamente) — nao e clique, entao nao tem o problema medido
+  // acima; digitar de verdade e mais fiel ao que uma pessoa faz.
   const campoTexto = await srApp.findElement(By.css('#translator-text'));
   await campoTexto.sendKeys('CASA VERDE');
-  await navegador.sleep(500);
 
   // O botao "Traduzir" nao tem aria-label proprio nem id — so o texto
-  // visivel o identifica (medido no HTML do painel). Fica desabilitado
-  // (disabled) ate o campo ter conteudo.
-  const botoes = await srApp.findElements(By.css('button'));
-  let botaoTraduzir = null;
-  for (const botao of botoes) {
-    if ((await botao.getText()).trim() === 'Traduzir') { botaoTraduzir = botao; break; }
-  }
-  assert.ok(botaoTraduzir, 'nao encontrou o botao "Traduzir" no painel do Tradutor');
-  await botaoTraduzir.click();
+  // visivel o identifica (medido no HTML do painel). Fica desabilitado ate
+  // o campo ter conteudo.
+  //
+  // POLL, NAO sleep fixo — mesmo achado do #translator-text acima, na MESMA
+  // bateria de medicoes desta rodada: um `sleep(500)` aqui bastava isolado,
+  // mas sob a suite cheia o re-render que habilita o botao apos o evento de
+  // input do sendKeys as vezes chega depois do sleep fixo, e o scan
+  // encontrava o botao ainda `disabled` (ou nem encontrava, se o DOM do
+  // painel ainda nao tivesse acrescentado o botao). Espera ate achar
+  // habilitado, so entao clica.
+  const clicouTraduzir = await navegador.wait(async () => navegador.executeScript(`
+    const sr = document.getElementById('vlibras-app-root').shadowRoot;
+    const botao = [...sr.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Traduzir');
+    if (!botao || botao.disabled) return false;
+    botao.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    return true;
+  `), 10000, 'o botao "Traduzir" nao apareceu habilitado em 10s apos digitar o texto');
+  assert.ok(clicouTraduzir, 'nao encontrou/habilitou o botao "Traduzir" no painel do Tradutor');
 
   await navegador.wait(
     async () => (await statusDoPlayer(navegador)) === 'playing',

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { REDIRECTS_ANTIGOS } from './compartilhado/redirects-antigos';
 
 /**
  * Politica de conteudo (CSP) com nonce por requisicao, mais os cabecalhos de
@@ -118,6 +119,27 @@ import { NextResponse, type NextRequest } from 'next/server';
  * Confirmado clicando de verdade em Menu -> Dicionario, nao por suposicao.
  */
 export function middleware(requisicao: NextRequest) {
+  // Redirects das URLs antigas em .html (Tarefa A7, rodada de correção 1).
+  // Ver o comentário grande em compartilhado/redirects-antigos.ts para o
+  // porquê de morar aqui e não em next.config.ts `redirects()`: só assim o
+  // Cache-Control abaixo sobrevive até a resposta sair (medido com curl).
+  // Comparação exata de pathname — nenhuma dessas URLs antigas tem parâmetro.
+  const antigo = REDIRECTS_ANTIGOS.find(({ origem }) => requisicao.nextUrl.pathname === origem);
+  if (antigo) {
+    const respostaRedirect = NextResponse.redirect(new URL(antigo.destino, requisicao.url), 301);
+    // Cache-Control limitado (não ausente, não indefinido): sem cabeçalho
+    // explícito um 301 é cacheável por heurística do navegador, e o cache
+    // de redirect é notoriamente difícil de limpar. Se um destino precisar
+    // de correção — ou se `/admin/index.html` ganhar redirect de verdade no
+    // dia em que o Bloco B publicar `/admin` — quem já visitou ficaria
+    // preso ao destino antigo sem forma de propagar a correção. max-age=3600
+    // limita esse travamento a 1h; must-revalidate impede servir a versão
+    // vencida sem checar de novo. Vale igual para 301 e 308 — não decorre
+    // da escolha do código de status.
+    respostaRedirect.headers.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+    return respostaRedirect;
+  }
+
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
   const politica = [

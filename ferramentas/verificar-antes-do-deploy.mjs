@@ -293,13 +293,26 @@ for (const { caminho: diretorio, codigoDeTerceiros } of diretoriosParaVarrer) {
 // ---------------------------------------------------------------------
 // 4. Nenhum .html solto em public/
 //
-// Previsto na spec §7.3 e nunca feito. `public/` vai inteiro para a raiz do
-// site publicado, e um arquivo la tem precedencia sobre a rota do Next de
-// mesmo nome. Um `public/quem-somos.html` esquecido da migracao serviria a
-// pagina ANTIGA, sem cabecalho, sem os controles de acessibilidade e sem a
-// camada de dados — e a rota /quem-somos do Next, testada e verde, nunca
-// seria alcancada. Falha silenciosa perfeita: tudo passa, o visitante ve
-// outro site.
+// Previsto na spec §7.3. A suposicao original — de que um arquivo estatico
+// em public/ tem precedencia sobre o redirect de mesmo caminho — estava
+// ERRADA, e foi MEDIDO (rodada de correcao 1 da Tarefa A7): criado
+// `public/quem-somos.html`, reconstruido, medido com curl contra
+// `/quem-somos.html` — o redirect configurado em next.config.ts venceu (301
+// para /quem-somos), o arquivo estatico nao foi servido. A ordem real do
+// Next e headers -> redirects -> rewrites -> arquivos estaticos/paginas:
+// redirects saem na frente.
+//
+// O check continua valendo por outro motivo, este sim real: um `.html`
+// solto so e inofensivo enquanto existir redirect configurado para o MESMO
+// caminho. Sem esse redirect (esquecido, ou com o `source` digitado
+// errado), o arquivo estatico seria servido tal como esta — sem cabecalho,
+// sem os controles de acessibilidade, sem a camada de dados — e ninguem
+// veria erro nenhum.
+//
+// Duvida em aberto, NAO medida: na Netlify, o `@netlify/plugin-nextjs` pode
+// servir public/ direto pela CDN, sem passar pela funcao onde os
+// redirects() do Next rodam. Esse caminho nao foi testado contra o deploy
+// real — nao da para afirmar nem descartar aqui.
 // ---------------------------------------------------------------------
 if (existsSync('public')) {
   const html = spawnSync('sh', ['-c', 'find public -type f -name "*.html"'], { encoding: 'utf8' });
@@ -311,9 +324,10 @@ if (existsSync('public')) {
     relatar(
       'Arquivo .html solto em public/',
       `Encontrado:\n  ${soltos.join('\n  ')}\n`
-      + '  public/ é servido na raiz e tem precedência sobre a rota do Next de\n'
-      + '  mesmo caminho: esses arquivos esconderiam páginas migradas atrás das\n'
-      + '  versões antigas, sem erro nenhum.'
+      + '  Medido: um redirect configurado para o mesmo caminho ainda vence (a ordem\n'
+      + '  real do Next é headers → redirects → rewrites → arquivos estáticos). O risco\n'
+      + '  é o caminho SEM redirect nenhum: esse arquivo seria servido tal como está,\n'
+      + '  sem erro nenhum.'
     );
   }
 }

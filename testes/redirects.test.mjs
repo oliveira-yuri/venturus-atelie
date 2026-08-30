@@ -4,56 +4,123 @@
  * usa rota limpa (`/quem-somos`, não `/quem-somos.html`). Sem redirect, cada
  * uma dessas 15 URLs vira 404 no dia do deploy.
  *
- * 301, não 308 (decisão registrada aqui porque `next.config.ts` só justifica
- * o resultado, não o porquê): todo acesso aqui é navegação simples — clique
- * em link salvo, favorito de navegador, indexação de buscador — nunca um
- * POST cujo corpo precise sobreviver ao redirect, que é a única vantagem
- * real do 308 sobre o 301. Em compensação, 301 é o código que crawlers e
- * caches entendem há duas décadas como "mudou para sempre, transfira o
- * peso de indexação" — inclusive o bot que gera a prévia de link do
- * WhatsApp e do Instagram, mais conservador que um navegador moderno. Não
- * há corpo de requisição para preservar aqui, então a garantia adicional do
- * 308 não compra nada e o 301 é a escolha mais compatível.
+ * 301, não 308: todo acesso aqui é navegação simples — clique em link
+ * salvo, favorito de navegador, indexação de buscador — nunca um POST cujo
+ * corpo precise sobreviver ao redirect, que é a única vantagem real do 308
+ * sobre o 301. Em compensação, 301 é o código que crawlers e caches
+ * entendem há duas décadas como "mudou para sempre, transfira o peso de
+ * indexação" — inclusive o bot que gera a prévia de link do WhatsApp e do
+ * Instagram, mais conservador que um navegador moderno. Não há corpo de
+ * requisição para preservar aqui, então a garantia adicional do 308 não
+ * compra nada e o 301 é a escolha mais compatível.
  *
  * `redirect: 'manual'` em todas as chamadas: o `fetch` padrão SEGUE o
  * redirect e a resposta chegaria como 200 da página nova, escondendo o
  * código e o destino que são exatamente o que este arquivo precisa medir.
+ *
+ * SEM LISTA MANUAL (rodada de correção 1 da Tarefa A7): a primeira versão
+ * deste arquivo copiava à mão os 14 pares [origem, destino], sem nada que
+ * os comparasse contra a fonte real — o mesmo padrão de "lista que
+ * envelhece" que `testes/apoio/rotas-migracao.mjs` já resolveu para as
+ * rotas do app. Agora os pares vêm de `compartilhado/redirects-antigos.ts`
+ * (importado de verdade, não copiado — a mesma lista que `middleware.ts`
+ * usa para construir os redirects) e são reconciliados contra os `.html`
+ * reais que ainda existem em `site/`.
+ *
+ * Essa reconciliação com `site/*.html` vale enquanto o diretório existir.
+ * A Tarefa A8 apaga `site/` — quando isso acontecer, quem fizer A8 precisa
+ * substituir `arquivosHtmlReais()` por uma lista fixa (congelada no momento
+ * da exclusão), não apagar a reconciliação sem trocá-la por outra coisa.
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { REDIRECTS_ANTIGOS } from '../compartilhado/redirects-antigos.ts';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
-// Par [URL antiga, rota nova]. `/index.html` é a raiz — caso especial citado
-// na Tarefa A7: não é troca de sufixo, o destino é `/`.
-const REDIRECTS_ESPERADOS = [
-  ['/index.html', '/'],
-  ['/quem-somos.html', '/quem-somos'],
-  ['/projetos.html', '/projetos'],
-  ['/agenda.html', '/agenda'],
-  ['/noticias.html', '/noticias'],
-  ['/galeria.html', '/galeria'],
-  ['/acervo.html', '/acervo'],
-  ['/para-escolas.html', '/para-escolas'],
-  ['/voluntariado.html', '/voluntariado'],
-  ['/doar.html', '/doar'],
-  ['/contato.html', '/contato'],
-  ['/entrar.html', '/entrar'],
-  ['/recuperar-acesso.html', '/recuperar-acesso'],
-  ['/privacidade.html', '/privacidade']
-];
+const DIRETORIO_SITE = fileURLToPath(new URL('../site/', import.meta.url));
 
-describe('as URLs antigas em .html redirecionam para a rota limpa correspondente', () => {
-  for (const [antiga, nova] of REDIRECTS_ESPERADOS) {
-    test(`${antiga} → ${nova}, com 301`, async () => {
-      const resposta = await fetch(`${BASE}${antiga}`, { redirect: 'manual' });
+// A única URL antiga sem redirect — decisão do coordenador, ver o bloco de
+// testes dedicado a `/admin` no fim deste arquivo. Qualquer outro `.html`
+// de `site/` fora desta lista PRECISA ter um redirect configurado em
+// compartilhado/redirects-antigos.ts, ou o teste de reconciliação abaixo
+// falha — o mesmo tanto se um redirect configurado não corresponder a
+// nenhum arquivo real.
+const SEM_REDIRECT_DE_PROPOSITO = ['admin/index.html'];
 
-      assert.equal(resposta.status, 301, `${antiga} respondeu ${resposta.status}, esperava 301`);
+/** Varre site/*.html recursivamente — a fonte real das URLs antigas. */
+async function arquivosHtmlReais(diretorio = DIRETORIO_SITE, prefixo = '') {
+  const entradas = await readdir(diretorio, { withFileTypes: true });
+  let arquivos = [];
 
-      const destino = new URL(resposta.headers.get('location'), BASE).pathname;
-      assert.equal(destino, nova, `${antiga} rediciona para "${destino}", esperava "${nova}"`);
+  for (const entrada of entradas) {
+    const relativo = prefixo === '' ? entrada.name : `${prefixo}/${entrada.name}`;
+    if (entrada.isDirectory()) {
+      arquivos = arquivos.concat(await arquivosHtmlReais(join(diretorio, entrada.name), relativo));
+    } else if (entrada.name.endsWith('.html')) {
+      arquivos.push(relativo);
+    }
+  }
+
+  return arquivos;
+}
+
+/** `index.html` (e só ele) vai para a raiz; os demais só perdem o sufixo. */
+function destinoEsperado(caminhoRelativo) {
+  return caminhoRelativo === 'index.html' ? '/' : `/${caminhoRelativo.replace(/\.html$/, '')}`;
+}
+
+test('compartilhado/redirects-antigos.ts tem um redirect para cada .html real de site/, sem sobra de nenhum lado (exceto /admin/index.html, decisão explícita)', async () => {
+  const fontesReais = (await arquivosHtmlReais())
+    .filter((caminho) => !SEM_REDIRECT_DE_PROPOSITO.includes(caminho))
+    .map((caminho) => `/${caminho}`)
+    .sort();
+
+  const fontesConfiguradas = REDIRECTS_ANTIGOS.map((redirect) => redirect.origem).sort();
+
+  assert.deepEqual(
+    fontesConfiguradas, fontesReais,
+    'a lista de compartilhado/redirects-antigos.ts e os .html reais de site/ divergem — um '
+    + 'arquivo novo sem redirect configurado, ou um redirect sobrando para um arquivo que não existe mais'
+  );
+});
+
+test('cada redirect configurado aponta para a rota que o nome do arquivo implica', () => {
+  for (const { origem, destino } of REDIRECTS_ANTIGOS) {
+    const esperado = destinoEsperado(origem.slice(1));
+    assert.equal(destino, esperado, `${origem} está configurado para "${destino}", esperava "${esperado}"`);
+  }
+});
+
+describe('cada redirect configurado responde de verdade, com 301 e o destino declarado', () => {
+  for (const { origem, destino } of REDIRECTS_ANTIGOS) {
+    test(`${origem} → ${destino}, com 301`, async () => {
+      const resposta = await fetch(`${BASE}${origem}`, { redirect: 'manual' });
+
+      assert.equal(resposta.status, 301, `${origem} respondeu ${resposta.status}, esperava 301`);
+
+      const destinoReal = new URL(resposta.headers.get('location'), BASE).pathname;
+      assert.equal(destinoReal, destino, `${origem} redireciona para "${destinoReal}", esperava "${destino}"`);
     });
   }
+});
+
+/**
+ * Cache-Control limitado (rodada de correção 1 da Tarefa A7): um 301 sem
+ * cabeçalho explícito é cacheável por heurística do navegador, difícil de
+ * limpar depois. Testa só uma amostra, não os 14 — os 14 saem do mesmo
+ * `respostaRedirect.headers.set(...)` em middleware.ts, então uma amostra já
+ * denuncia se a linha for removida ou o valor mudar sem querer.
+ */
+test('o redirect sai com Cache-Control limitado, não cacheável para sempre por heurística', async () => {
+  const resposta = await fetch(`${BASE}/quem-somos.html`, { redirect: 'manual' });
+  const cacheControl = resposta.headers.get('cache-control') || '';
+
+  assert.match(cacheControl, /max-age=\d+/, `Cache-Control veio "${cacheControl}", sem max-age`);
+  assert.doesNotMatch(cacheControl, /no-store/, 'no-store impediria qualquer cache — não é a decisão tomada');
 });
 
 /**
@@ -68,24 +135,38 @@ describe('as URLs antigas em .html redirecionam para a rota limpa correspondente
  * enganam mais do que ajudam — mandar para `/entrar` sugere que existe um
  * painel funcionando do outro lado do login, quando não existe nada; e
  * redirecionar para `/admin` hoje seria 301 permanente apontando para uma
- * rota que ainda não existe, exatamente o "404 com passo extra" que o
- * comentário histórico deste arquivo em `next.config.ts` sempre rejeitou. O
- * 404 que sobra não é seco: `app/not-found.tsx` entrega página real, em
- * português, com `<main id="conteudo">` e caminho de volta (provado em
+ * rota que ainda não existe, exatamente um 404 disfarçado. O 404 que sobra
+ * não é seco: `app/not-found.tsx` entrega página real, em português, com
+ * `<main id="conteudo">` e caminho de volta (provado em
  * `testes/rota-inexistente.test.mjs`).
  *
- * ESTE TESTE PRECISA QUEBRAR NO DIA EM QUE O BLOCO B PUBLICAR `/admin`: a
- * publicação do painel e o redirect de `/admin/index.html` entram no mesmo
- * commit. Se este teste continuar verde depois de `/admin` existir, alguém
- * esqueceu o redirect — é exatamente o padrão de "lista presa a uma
- * verificação" que `testes/apoio/rotas-migracao.mjs` já usa para as outras
- * rotas da migração.
+ * A TRAVA CERTA (corrigida na rodada de correção 1 — a primeira versão
+ * media o caminho ERRADO). A versão anterior só testava que
+ * `/admin/index.html` continuava 404, e isso NÃO prova nada sobre a
+ * decisão: MEDIDO — criar `app/admin/page.tsx` faz `/admin` existir, mas o
+ * Next não mapeia `/admin/index.html` para essa página (esse caminho
+ * literal não corresponde a rota nenhuma do App Router). Com o painel
+ * criado, os testes deste arquivo continuavam todos verdes — a decisão
+ * estava destravada e o comentário anterior afirmava o contrário.
+ *
+ * A trava certa observa a condição de que a decisão realmente depende:
+ * `/admin` (não `/admin/index.html`) ainda não existir. No dia em que o
+ * Bloco B publicar `app/admin/`, o teste abaixo vira vermelho — obrigando a
+ * decidir de novo o destino de `/admin/index.html` (provavelmente `/admin`)
+ * em vez de a mudança passar despercebida. Provado nesta rodada: criado
+ * `app/admin/page.tsx`, rodada a suite, este teste específico ficou
+ * vermelho; apagado o arquivo, voltou a verde.
  */
-test('/admin/index.html não redireciona — decisão explícita, não esquecimento (ver comentário acima)', async () => {
-  const resposta = await fetch(`${BASE}/admin/index.html`, { redirect: 'manual' });
+test('/admin ainda não existe — publicá-lo (Bloco B) exige revisitar esta decisão (ver comentário acima)', async () => {
+  const resposta = await fetch(`${BASE}/admin`, { redirect: 'manual' });
   assert.equal(
     resposta.status, 404,
-    `/admin/index.html respondeu ${resposta.status}: se foi porque /admin passou a existir de `
-    + 'verdade (Bloco B), este teste precisa virar um redirect de verdade — não apagar a cobertura'
+    `/admin respondeu ${resposta.status}: parece que o Bloco B publicou o painel — hora de decidir `
+    + 'o redirect de /admin/index.html e atualizar este teste, não apagar a trava'
   );
+});
+
+test('/admin/index.html não redireciona hoje — estado atual, decisão registrada acima', async () => {
+  const resposta = await fetch(`${BASE}/admin/index.html`, { redirect: 'manual' });
+  assert.equal(resposta.status, 404, `/admin/index.html respondeu ${resposta.status}, esperava 404`);
 });
