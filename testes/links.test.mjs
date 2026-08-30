@@ -1,79 +1,105 @@
 /**
- * Todo link interno precisa resolver.
+ * Todo link interno FORA do menu principal precisa resolver, ou apontar para
+ * uma rota que a migração já declarou pendente.
  *
  * Este arquivo existe porque o menu apontou para agenda, acervo, voluntariado
- * e doar antes de essas paginas existirem: quem clicava recebia 404. Os
- * testes de pagina so olhavam as paginas que existiam — ninguem perguntava se
+ * e doar antes de essas páginas existirem: quem clicava recebia 404. Os
+ * testes de página só olhavam as páginas que existiam — ninguém perguntava se
  * os destinos existiam.
+ *
+ * Reapontado para o app Next (Tarefa A1 da fase 2): a versão antiga subia um
+ * servidor HTTP próprio lendo `site/`, e por isso nunca falou com o app novo
+ * — o menu ganhou testes/links-menu.test.mjs, que percorre `nav#menu-principal`
+ * e o "Entrar" do cabeçalho contra `URL_BASE`, mas nada cobria o que fica FORA
+ * do menu: os links dentro do corpo de cada página ("Conhecer nossos
+ * projetos", "Falar pelo WhatsApp"...), o rodapé (Política de privacidade,
+ * telefone, e-mail, redes sociais) e o link "Pular para o conteúdo".
+ *
+ * Mesmo raciocínio de duas listas que links-menu.test.mjs usa, aplicado ao
+ * que ele não cobre: um link para uma rota fora das duas listas quebra o
+ * teste (typo, página nova sem cadastro aqui); um link para uma rota
+ * PENDENTE que já responde 200 também quebra (foi migrada, mas ninguém
+ * atualizou este arquivo).
  */
-import { test, before, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import { readFile, readdir } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
-import { Builder } from 'selenium-webdriver';
-import { Options } from 'selenium-webdriver/firefox.js';
 
-const RAIZ = new URL('../site/', import.meta.url).pathname;
-const TIPOS = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8'
-};
+const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
-let servidor;
-let navegador;
-let endereco;
+// Páginas que já existem de verdade no app Next nesta fase — mesma lista que
+// testes/paginas.test.mjs mantém para a bateria estrutural. Ao portar uma
+// página nova (Tarefas A2 em diante), acrescentar aqui também.
+const PAGINAS_PRONTAS = ['/', '/quem-somos', '/para-escolas', '/privacidade'];
 
-before(async () => {
-  servidor = createServer(async (requisicao, resposta) => {
-    const caminho = requisicao.url === '/' ? '/index.html' : requisicao.url.split('?')[0];
-    try {
-      const arquivo = join(RAIZ, normalize(caminho));
-      const conteudo = await readFile(arquivo);
-      resposta.writeHead(200, { 'Content-Type': TIPOS[extname(arquivo)] || 'application/octet-stream' });
-      resposta.end(conteudo);
-    } catch {
-      resposta.writeHead(404).end('nao encontrado');
-    }
-  });
-  await new Promise((pronto) => servidor.listen(0, pronto));
-  endereco = `http://localhost:${servidor.address().port}`;
+// Mesma lista de ROTAS_PENDENTES em testes/links-menu.test.mjs. Duplicada de
+// propósito: as duas listas nascem do mesmo estado da migração, mas vigiam
+// coisas diferentes (menu vs. conteúdo/rodapé) — se uma rota migrar, as DUAS
+// precisam ser atualizadas no mesmo commit. Esquecer esta aqui não passa
+// batido: o teste abaixo que confere "continua pendente" acusa.
+const ROTAS_PENDENTES = [
+  '/projetos', '/agenda', '/noticias', '/galeria', '/acervo',
+  '/voluntariado', '/doar', '/contato', '/entrar'
+];
 
-  navegador = await new Builder().forBrowser('firefox')
-    .setFirefoxOptions(new Options().addArguments('-headless')).build();
-});
-
-after(async () => {
-  await navegador?.quit();
-  servidor?.close();
-});
-
-/** Todas as paginas .html do site, publicas e do painel. */
-async function paginasDoSite() {
-  const raiz = (await readdir(new URL('../site/', import.meta.url)))
-    .filter((n) => n.endsWith('.html'));
-  const admin = (await readdir(new URL('../site/admin/', import.meta.url)))
-    .filter((n) => n.endsWith('.html')).map((n) => `admin/${n}`);
-  return [...raiz, ...admin];
+async function htmlDe(pagina) {
+  return fetch(`${BASE}${pagina}`).then((resposta) => resposta.text());
 }
 
-test('todo link interno do site leva a uma pagina que existe', async () => {
-  const paginas = await paginasDoSite();
+/**
+ * Hrefs internos de uma página, EXCLUINDO o `<nav id="menu-principal">` e o
+ * botão "Entrar" do cabeçalho — os dois já têm cobertura própria em
+ * testes/links-menu.test.mjs. Sobra o que interessa aqui: o link de marca do
+ * cabeçalho (sempre "/"), o corpo da página e o rodapé.
+ */
+function hrefsForaDoMenu(pagina) {
+  const semMenu = pagina.replace(/<nav\b[^>]*id="menu-principal"[\s\S]*?<\/nav>/, '');
+  const semEntrar = semMenu.replace(/<a\b[^>]*cabecalho__entrar[\s\S]*?<\/a>/, '');
+  // Só <a href="...">: um regex genérico de "href" também pegaria
+  // <link rel="stylesheet" href="/_next/static/..."> que o próprio Next
+  // injeta no <head> — não é link de navegação, ninguém "clica" nele.
+  return [...semEntrar.matchAll(/<a\b[^>]*\shref="([^"]+)"/g)]
+    .map((achado) => achado[1])
+    .filter((href) => href.startsWith('/') && !href.startsWith('//'));
+}
+
+test('o link de pular para o conteúdo existe, e o alvo existe, em toda página pronta', async () => {
+  const semLinkOuAlvo = [];
+
+  for (const pagina of PAGINAS_PRONTAS) {
+    const html = await htmlDe(pagina);
+    const temLink = /<a class="pular-para-conteudo" href="#conteudo">/.test(html);
+    const temAlvo = /id="conteudo"/.test(html);
+    if (!temLink || !temAlvo) semLinkOuAlvo.push(pagina);
+  }
+
+  assert.deepEqual(semLinkOuAlvo, [],
+    `páginas sem o link de pular ou sem o alvo #conteudo: ${semLinkOuAlvo.join(', ')}`);
+});
+
+test('todo link interno fora do menu (conteúdo, rodapé, marca) aponta para uma rota catalogada', async () => {
+  const desconhecidos = [];
+
+  for (const pagina of PAGINAS_PRONTAS) {
+    const html = await htmlDe(pagina);
+    for (const href of new Set(hrefsForaDoMenu(html))) {
+      if (PAGINAS_PRONTAS.includes(href) || ROTAS_PENDENTES.includes(href)) continue;
+      desconhecidos.push(`${pagina} -> ${href}`);
+    }
+  }
+
+  assert.deepEqual(desconhecidos, [],
+    `link fora do menu para rota fora das duas listas — typo, ou página nova sem cadastro aqui:\n  ${desconhecidos.join('\n  ')}`);
+});
+
+test('rota pronta referenciada fora do menu de fato responde', async () => {
   const quebrados = [];
 
-  for (const pagina of paginas) {
-    await navegador.get(`${endereco}/${pagina}`);
-
-    const destinos = await navegador.executeScript(`
-      return [...document.querySelectorAll('a[href]')]
-        .map((a) => a.getAttribute('href'))
-        .filter((href) => href && href.startsWith('/') && !href.startsWith('//'));
-    `);
+  for (const pagina of PAGINAS_PRONTAS) {
+    const html = await htmlDe(pagina);
+    const destinos = hrefsForaDoMenu(html).filter((href) => PAGINAS_PRONTAS.includes(href));
 
     for (const destino of new Set(destinos)) {
-      const resposta = await fetch(`${endereco}${destino}`);
+      const resposta = await fetch(`${BASE}${destino}`);
       if (!resposta.ok) quebrados.push(`${pagina} -> ${destino} (${resposta.status})`);
     }
   }
@@ -81,20 +107,19 @@ test('todo link interno do site leva a uma pagina que existe', async () => {
   assert.deepEqual(quebrados, [], `links quebrados:\n  ${quebrados.join('\n  ')}`);
 });
 
-test('todo destino do menu principal existe', async () => {
-  await navegador.get(`${endereco}/index.html`);
+test('rota pendente referenciada fora do menu continua sem página — se migrou, mover para PAGINAS_PRONTAS aqui e em links-menu.test.mjs', async () => {
+  const pareceMigrada = [];
 
-  const itens = await navegador.executeScript(`
-    return [...document.querySelectorAll('#menu-principal a')].map((a) => a.getAttribute('href'));
-  `);
+  for (const pagina of PAGINAS_PRONTAS) {
+    const html = await htmlDe(pagina);
+    const destinos = hrefsForaDoMenu(html).filter((href) => ROTAS_PENDENTES.includes(href));
 
-  assert.ok(itens.length >= 10, `o menu tem so ${itens.length} itens`);
-
-  const faltando = [];
-  for (const destino of itens) {
-    const resposta = await fetch(`${endereco}${destino}`);
-    if (!resposta.ok) faltando.push(destino);
+    for (const destino of new Set(destinos)) {
+      const resposta = await fetch(`${BASE}${destino}`);
+      if (resposta.status !== 404) pareceMigrada.push(`${pagina} -> ${destino} (${resposta.status})`);
+    }
   }
 
-  assert.deepEqual(faltando, [], 'itens de menu sem pagina');
+  assert.deepEqual(pareceMigrada, [],
+    `rota pendente respondeu diferente de 404 — parece migrada, atualizar as duas listas:\n  ${pareceMigrada.join('\n  ')}`);
 });
