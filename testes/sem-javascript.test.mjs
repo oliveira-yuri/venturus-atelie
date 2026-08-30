@@ -15,34 +15,41 @@
  * verdade, `javascript.enabled=false` no perfil do Firefox — a única forma de
  * garantir que nenhum script, nem um `<script>` inline nem um módulo, está
  * fazendo esse trabalho por baixo.
+ *
+ * PAGINAS_PRONTAS, ROTAS_PRONTAS_MENU e ROTAS_PENDENTES vêm de
+ * testes/apoio/rotas-migracao.mjs (Rodada de correção 1 da Tarefa A1) — a
+ * mesma fonte que links-menu.test.mjs e links.test.mjs usam, no lugar da
+ * cópia própria que este arquivo mantinha. PAGINAS_PRONTAS também é
+ * conferida contra o sistema de arquivos de app/ (rotasReaisDoApp) logo
+ * abaixo: sem essa reconciliação, uma página nova sem entrada na lista
+ * ficava sem a bateria deste arquivo e a suíte continuava verde — achado
+ * daquela rodada.
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { Builder } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
+import {
+  PAGINAS_PRONTAS, ROTAS_PRONTAS_MENU, ROTAS_PENDENTES, rotasReaisDoApp
+} from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
-// Páginas que já existem de verdade no app Next nesta fase (mesma lista de
-// testes/paginas.test.mjs), mais UMA rota ainda pendente: "/projetos" cai no
-// 404 (app/not-found.tsx), que hoje é a segunda página mais alcançada do
-// site (nove dos onze itens do menu ainda levam lá). O defeito histórico que
-// este arquivo existe para pegar — navegação escondida atrás de script —
-// seria mais grave ali, não menos, então vale medir mesmo sem conteúdo
-// próprio. Ao portar uma página nova (Tarefas A2 em diante), acrescentar
-// aqui também.
-const PAGINAS = ['/', '/quem-somos', '/para-escolas', '/privacidade', '/projetos'];
+// PAGINAS_PRONTAS, mais UMA rota ainda pendente: "/projetos" cai no 404
+// (app/not-found.tsx), que hoje é a segunda página mais alcançada do site
+// (nove dos onze itens do menu ainda levam lá). O defeito histórico que este
+// arquivo existe para pegar — navegação escondida atrás de script — seria
+// mais grave ali, não menos, então vale medir mesmo sem conteúdo próprio.
+const PAGINAS = [...PAGINAS_PRONTAS, '/projetos'];
 
-// Os 11 itens do menu principal (componentes/MenuMovel.tsx, export ITENS).
-// Duplicado aqui em vez de importado: o arquivo tem JSX, que o carregador de
-// TypeScript nativo do Node não transforma — mesma razão documentada em
-// testes/links-menu.test.mjs. Corresponde a ROTAS_PRONTAS + ROTAS_PENDENTES
-// daquele arquivo, MENOS "/entrar": esse é o botão "Entrar" do cabeçalho,
-// fora do <nav>, não um item do menu.
-const HREFS_DO_MENU = [
-  '/', '/quem-somos', '/projetos', '/agenda', '/noticias', '/galeria',
-  '/acervo', '/para-escolas', '/voluntariado', '/doar', '/contato'
-];
+// Os 11 itens do menu principal (componentes/MenuMovel.tsx, export ITENS):
+// ROTAS_PRONTAS_MENU + ROTAS_PENDENTES, MENOS "/entrar" — esse é o botão
+// "Entrar" do cabeçalho, fora do <nav>, não um item do menu. Não vem direto
+// de MenuMovel.tsx pelo mesmo motivo de testes/links-menu.test.mjs: o
+// arquivo tem JSX, que o carregador de TypeScript nativo do Node não
+// transforma.
+const HREFS_DO_MENU = [...ROTAS_PRONTAS_MENU, ...ROTAS_PENDENTES]
+  .filter((href) => href !== '/entrar');
 
 let navegador;
 
@@ -89,3 +96,14 @@ for (const pagina of PAGINAS) {
     assert.match(html, /mailto:atelieafro@gmail\.com/, 'falta e-mail');
   });
 }
+
+test('PAGINAS_PRONTAS bate com as páginas reais em app/ (page.tsx) — esquecer de acrescentar uma quebra aqui', async () => {
+  const reais = await rotasReaisDoApp();
+
+  assert.deepEqual(
+    [...PAGINAS_PRONTAS].sort(),
+    [...reais].sort(),
+    'PAGINAS_PRONTAS (testes/apoio/rotas-migracao.mjs) e as páginas reais em app/ divergem — '
+    + 'uma página nova sem entrada na lista fica sem a bateria sem-JavaScript deste arquivo'
+  );
+});

@@ -24,25 +24,18 @@
  * JSX, que o carregador de TypeScript nativo do Node não transforma. Em vez
  * disso lê o HTML que o servidor de fato entrega — o que também cobre o
  * caso sem JavaScript, já que é HTML cru via fetch, sem navegador.
+ *
+ * ROTAS_PRONTAS e ROTAS_PENDENTES vêm de testes/apoio/rotas-migracao.mjs
+ * (Rodada de correção 1 da Tarefa A1): testes/links.test.mjs e
+ * testes/sem-javascript.test.mjs precisam da mesma lista de pendentes, e
+ * mantinham cada um a própria cópia. Ver o comentário daquele módulo para o
+ * motivo de a fonte única não poder ser este próprio arquivo.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { ROTAS_PRONTAS_MENU as ROTAS_PRONTAS, ROTAS_PENDENTES } from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
-
-// Migradas nesta fase: existem de verdade no Next (Tarefa 9 e a home já
-// existente antes dela).
-const ROTAS_PRONTAS = ['/', '/quem-somos', '/para-escolas'];
-
-// Itens do menu (mais o "Entrar" do cabeçalho) que ainda não têm página no
-// app novo. Migram na fase 2 — plano ainda não escrito, ver "Ao terminar" em
-// docs/superpowers/plans/2026-08-28-migracao-nextjs-fundacao.md. Ao migrar
-// uma dessas rotas, mover a entrada para ROTAS_PRONTAS: o teste abaixo
-// acusa se isso for esquecido.
-const ROTAS_PENDENTES = [
-  '/projetos', '/agenda', '/noticias', '/galeria', '/acervo',
-  '/voluntariado', '/doar', '/contato', '/entrar'
-];
 
 async function hrefsDoMenu() {
   const html = await fetch(`${BASE}/`).then((resposta) => resposta.text());

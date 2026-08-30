@@ -20,26 +20,21 @@
  * teste (typo, página nova sem cadastro aqui); um link para uma rota
  * PENDENTE que já responde 200 também quebra (foi migrada, mas ninguém
  * atualizou este arquivo).
+ *
+ * PAGINAS_PRONTAS e ROTAS_PENDENTES vêm de testes/apoio/rotas-migracao.mjs
+ * (Rodada de correção 1 da Tarefa A1) — mesma fonte que links-menu.test.mjs
+ * e sem-javascript.test.mjs usam, no lugar de cada arquivo guardar a própria
+ * cópia. Isso sozinho não bastava: a revisão apontou que nada conferia
+ * PAGINAS_PRONTAS contra a realidade — uma página nova que alguém esquecesse
+ * de acrescentar à lista ficava sem cobertura aqui e a suíte continuava
+ * verde. O teste "PAGINAS_PRONTAS bate com..." abaixo fecha esse buraco,
+ * comparando a lista contra o que de fato existe em app/ (rotasReaisDoApp).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { PAGINAS_PRONTAS, ROTAS_PENDENTES, rotasReaisDoApp } from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
-
-// Páginas que já existem de verdade no app Next nesta fase — mesma lista que
-// testes/paginas.test.mjs mantém para a bateria estrutural. Ao portar uma
-// página nova (Tarefas A2 em diante), acrescentar aqui também.
-const PAGINAS_PRONTAS = ['/', '/quem-somos', '/para-escolas', '/privacidade'];
-
-// Mesma lista de ROTAS_PENDENTES em testes/links-menu.test.mjs. Duplicada de
-// propósito: as duas listas nascem do mesmo estado da migração, mas vigiam
-// coisas diferentes (menu vs. conteúdo/rodapé) — se uma rota migrar, as DUAS
-// precisam ser atualizadas no mesmo commit. Esquecer esta aqui não passa
-// batido: o teste abaixo que confere "continua pendente" acusa.
-const ROTAS_PENDENTES = [
-  '/projetos', '/agenda', '/noticias', '/galeria', '/acervo',
-  '/voluntariado', '/doar', '/contato', '/entrar'
-];
 
 async function htmlDe(pagina) {
   return fetch(`${BASE}${pagina}`).then((resposta) => resposta.text());
@@ -122,4 +117,16 @@ test('rota pendente referenciada fora do menu continua sem página — se migrou
 
   assert.deepEqual(pareceMigrada, [],
     `rota pendente respondeu diferente de 404 — parece migrada, atualizar as duas listas:\n  ${pareceMigrada.join('\n  ')}`);
+});
+
+test('PAGINAS_PRONTAS bate com as páginas reais em app/ (page.tsx) — esquecer de acrescentar uma quebra aqui', async () => {
+  const reais = await rotasReaisDoApp();
+
+  assert.deepEqual(
+    [...PAGINAS_PRONTAS].sort(),
+    [...reais].sort(),
+    'PAGINAS_PRONTAS (testes/apoio/rotas-migracao.mjs) e as páginas reais em app/ divergem — '
+    + 'uma página nova sem entrada na lista fica sem a cobertura deste arquivo; '
+    + 'uma entrada sem página real por trás é lixo na lista'
+  );
 });
