@@ -243,7 +243,9 @@ export function middleware(requisicao: NextRequest) {
   // as pessoas navegam normalmente, e so o buscador some. Ate a revisao
   // final do Bloco A este comentario dizia "remover no lancamento" sem
   // dizer que havia outros dois — e quem seguisse so ele publicaria um
-  // site invisivel achando que tinha terminado.
+  // site invisivel achando que tinha terminado. Desde entao ha teste que
+  // NAO deixa isso passar: testes/noindex.test.mjs mede os tres e falha se
+  // um sair sozinho.
   resposta.headers.set('X-Robots-Tag', 'noindex, nofollow');
   return resposta;
 }

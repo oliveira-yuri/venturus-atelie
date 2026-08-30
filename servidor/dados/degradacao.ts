@@ -77,6 +77,15 @@ export function descrever(motivo: unknown): string {
  * respondeu" — avisando errado no log e, pior, ABAFANDO o sinal que faz o
  * Next marcar a rota como dinâmica.
  *
+ * A CONSEQUÊNCIA CONCRETA, que é o motivo de esta guarda existir e não
+ * poder ser "simplificada" depois: hoje não deu prejuízo porque
+ * app/layout.tsx usa headers() para o nonce da CSP, o que já torna toda
+ * rota dinâmica. No dia em que isso mudar, /para-escolas seria
+ * pré-renderizada com o JSON e serviria conteúdo congelado para sempre,
+ * sem erro nenhum. (Este parágrafo vivia em servidor/dados/conteudo.ts e
+ * quase se perdeu ao mover a função para cá — sem ele o comentário explica
+ * o mecanismo e não o motivo.)
+ *
  * Todo erro de controle do Next carrega `digest` (DYNAMIC_SERVER_USAGE,
  * NEXT_REDIRECT, NEXT_NOT_FOUND, NEXT_HTTP_ERROR_FALLBACK...). Falha de
  * rede, DNS e timeout não carregam. Então a regra é: com digest, repassa.

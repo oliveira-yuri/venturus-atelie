@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (405 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (406)
+npm test                        # suíte completa, modo offline (407 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (408)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,7 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 405 são 393 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
+Os 407 são 395 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
 (RF33), que descrevem requisitos válidos cuja forma de verificar só existe no Bloco B. Dois
 dos pulados nasceram na revisão final do Bloco A: `ROTAS_PENDENTES` está vazia desde a A6, e
 os testes que iteravam sobre ela passavam sem verificar nada — pular com motivo escrito é a
@@ -95,8 +95,12 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   conteúdo real e carimba a procedência), `eventos`/`acervo`/`voluntariado` para lista vazia,
   onde o estado vazio já é texto escrito. Sempre com aviso `[dados]` no log, porque a tela
   não distingue "não há registro" de "não deu para perguntar". `app/error.tsx` e
-  `app/not-found.tsx` são a rede para o que escapar, e os dois trazem o layout inteiro —
-  cabeçalho, rodapé, `<main id="conteudo">`, link de pular, A+/contraste, VLibras.
+  `app/not-found.tsx` são a rede para o que escapar — mas **só o `not-found.tsx` traz o
+  layout no HTML servido**. O `error.tsx` é boundary do React, que não roda na renderização
+  do servidor: MEDIDO, um erro que escape entrega **500 com o `<body>` vazio** (só
+  `<div hidden>` e scripts), e o layout — cabeçalho, rodapé, `<main id="conteudo">`, link de
+  pular, A+/contraste, VLibras — só aparece **depois de hidratar**. Sem JavaScript, tela
+  branca. Ver o bloco MEDIDO no topo de `app/error.tsx`.
 - **Insert público sem `.select()`:** em `inscricoes` e `contatos` a leitura é negada; pedir a linha
   de volta faz a inserção *parecer* que falhou.
 - **Design "Aplique":** um gesto só — deslocamento sólido que simula peça costurada. Nenhuma
@@ -272,7 +276,12 @@ obrigar a revisitar a decisão do redirect.
    indexação). Os três arquivos carregam a mesma advertência, cada um citando os outros
    dois — foi a correção do BLOQUEADOR 2 da revisão final, depois que a instrução original,
    que vivia em `site/robots.txt`, morreu junto com o diretório na Tarefa A8 e sobrou uma
-   marca só, em `middleware.ts`. Quando os três saírem, apagar este item.
+   marca só, em `middleware.ts`. **E não depende mais de alguém ler os comentários:**
+   `testes/noindex.test.mjs` mede os três (cabeçalho na resposta, `/robots.txt`, e o
+   `netlify.toml` lido como texto, já que ele só tem efeito num deploy real) e falha se um
+   sair sozinho — provado removendo cada um dos três, um de cada vez. Quando os três saírem
+   juntos, apagar este item **e** o segundo teste daquele arquivo, que existe para quebrar
+   uma vez só, no lançamento.
 0d. **A suíte fica vermelha sem `.env.local`** — o teste de vazamento falha de propósito:
    um teste que não sabe o que procurar não prova nada. Quem clonar o repositório precisa
    do arquivo, ou usar só o que não depende dele.
@@ -287,7 +296,19 @@ obrigar a revisitar a decisão do redirect.
    é ruído aceito de propósito, porque não há filtro por ambiente que funcione aqui: o
    servidor de um build do Next lê `NODE_ENV=production` mesmo quando a suíte pede `test`.
    Conferir as duas variáveis no painel da Netlify antes de anunciar o endereço.
-0f. **Herdada, não corrigida: `vw` em texto no menu.** `estilos/componentes.css:93`,
+0f. **`app/error.tsx` não protege quem está sem JavaScript, e não tem teste.** Duas coisas
+   separadas, as duas medidas em 30/08/2026 com um `throw` proposital num Server Component:
+   (a) o boundary de erro do React não roda na renderização do servidor, então um erro que
+   escape da degradação entrega **500 com o `<body>` vazio** — só `<div hidden>` e scripts;
+   o layout só aparece depois de hidratar, e sem script a pessoa vê tela branca. A correção
+   de verdade é não chegar lá, e é a que existe (`servidor/dados/degradacao.ts`); cobrir
+   também quem está sem script exige desenho novo — página de erro renderizada no servidor,
+   ou tratar o erro dentro da própria página em vez de deixá-lo subir. (b) **Nenhum teste
+   exercita essa tela** — a única menção em `testes/` é um comentário. Exercitá-la pede uma
+   rota de defeito proposital fechada por variável de ambiente, no espírito de
+   `/diagnostico/origem-dos-dados`. Enquanto não houver, toda afirmação sobre ela vale só até
+   alguém medir de novo.
+0g. **Herdada, não corrigida: `vw` em texto no menu.** `estilos/componentes.css:93`,
    `.cabecalho__menu a { font-size: clamp(0.84rem, 1.15vw, 0.95rem) }` (e o `padding` da
    linha 87). Contra a regra 8 e contra o aviso escrito em `estilos/tokens.css:43` — dentro
    de `clamp()` o `vw` fica preso entre dois `rem`, então o dano é menor que um `vw` solto,
@@ -295,7 +316,7 @@ obrigar a revisitar a decisão do redirect.
    estático, não da migração. **Não foi mexida na revisão final do Bloco A**: trocar por
    `rem` muda a largura do menu em telas grandes, e isso é decisão de desenho, não de
    unidade — precisa de olho humano na tela, não de um commit.
-0g. **Decisão pendente: o VLibras roda no layout raiz**, e a CSP usa `strict-dynamic`, que
+0h. **Decisão pendente: o VLibras roda no layout raiz**, e a CSP usa `strict-dynamic`, que
    dá confiança em cadeia a tudo que ele carregar. Quando o painel existir (RF33), isso
    significa código de terceiro com confiança total na tela que mostra nome, telefone e
    responsável de crianças. O caminho barato é não montar o VLibras em `/admin`.

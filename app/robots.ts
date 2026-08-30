@@ -32,7 +32,10 @@ import type { MetadataRoute } from 'next';
  * INDEXAÇÃO, e a ONG precisa dos dois abertos para ser encontrada.
  *
  * Quando os três saírem, apagar também a entrada correspondente em
- * "O que trava hoje", no CLAUDE.md.
+ * "O que trava hoje", no CLAUDE.md — e o segundo teste de
+ * `testes/noindex.test.mjs`, que existe para quebrar exatamente uma vez, no
+ * lançamento. Esse arquivo é o que impede tudo isto de depender de alguém
+ * ler três comentários: ele mede os três e falha se um sair sozinho.
  * =====================================================================
  *
  * `sitemap` fica de fora de propósito: não existe `app/sitemap.ts` neste

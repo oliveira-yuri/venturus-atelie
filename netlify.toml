@@ -89,5 +89,9 @@
     # A instrucao original vivia em site/robots.txt e foi apagada junto com
     # o diretorio na Tarefa A8. Nao repetir isso: se um dia estes tres
     # sairem, apagar tambem a entrada de "O que trava hoje" no CLAUDE.md.
+    #
+    # Isto NAO depende de alguem ler este comentario:
+    # testes/noindex.test.mjs mede os tres e falha se um sair sozinho.
+    # Provado removendo cada um dos tres, um de cada vez.
     # =================================================================
     X-Robots-Tag = "noindex, nofollow"

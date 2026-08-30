@@ -23,11 +23,58 @@ import { mensagemDeErro } from '@/compartilhado/erros';
  *
  * PRECISA SER CLIENT COMPONENT: é contrato do App Router — o Next só aceita
  * `error.tsx` com 'use client', porque o componente recebe `reset` (uma
- * função) e precisa se remontar no navegador. Isso NÃO custa o layout: o
- * `app/layout.tsx` continua envolvendo esta página (é `global-error.tsx`
- * que substituiria o layout raiz, e ele não existe aqui de propósito — ver
- * abaixo), então cabeçalho, rodapé, link de pular, controles de
- * acessibilidade e VLibras chegam normalmente.
+ * função) e precisa se remontar no navegador.
+ *
+ * =====================================================================
+ * ESTA REDE SÓ FUNCIONA PARA QUEM TEM JAVASCRIPT. LEIA ANTES DE CONFIAR
+ * NELA.
+ *
+ * MEDIDO (30/08/2026, `throw` proposital num Server Component,
+ * `next build` + `next start`, resposta lida com fetch, sem navegador):
+ *
+ *   status:                 500
+ *   <html id="__next_error__">  presente
+ *   <body>:                 7.441 bytes, e o conteúdo dele é
+ *                           `<div hidden></div>` mais scripts — nada mais
+ *   menu principal:         ausente
+ *   <main id="conteudo">:   ausente
+ *   controles A+/contraste: ausente
+ *   rodapé:                 ausente
+ *   <h1>Esta página não carregou</h1>: AUSENTE do HTML servido
+ *
+ * (Buscar as strings "pular-para-conteudo" e "Voltar para a página
+ * inicial" no HTML dá "encontrado", e isso ENGANA: elas aparecem só dentro
+ * do payload RSC serializado nos `self.__next_f.push(...)` — são dado para
+ * a hidratação, não marcação renderizada. Medir por substring no HTML
+ * inteiro, aqui, dá o resultado errado.)
+ *
+ * No Firefox COM JavaScript a mesma URL mostra o layout completo e o
+ * `<h1>` daqui. O motivo é estrutural, não um defeito a corrigir: o
+ * boundary de erro do React não roda durante a renderização no servidor —
+ * a tela abaixo só passa a existir depois de hidratar.
+ *
+ * CONSEQUÊNCIA, dita em voz alta porque é o que alguém precisa saber ao
+ * decidir se vale reforçar: **sem JavaScript, um erro que escape da
+ * degradação entrega tela branca com 500.** Nenhum cabeçalho, nenhum
+ * rodapé, nenhum caminho de volta. Num projeto que mantém
+ * `testes/sem-javascript.test.mjs` e põe a navegação alternativa num
+ * `<noscript>` do HTML estático, isso é uma lacuna real, não um detalhe.
+ *
+ * Por que ainda assim vale a pena, e por que não foi resolvido agora: a
+ * correção de verdade é NÃO CHEGAR AQUI, e é ela que foi feita
+ * (servidor/dados/degradacao.ts — as quatro tabelas degradam, e é o único
+ * caminho de erro que este projeto sabia produzir). Esta tela cobre o
+ * resto para a maioria das visitas. Cobrir também quem está sem script
+ * exigiria uma página de erro renderizada NO SERVIDOR, o que no App Router
+ * significa outro mecanismo (um `<noscript>` no layout raiz, ou tratar o
+ * erro dentro da própria página em vez de deixá-lo subir) — desenho novo,
+ * não ajuste, e a cinco dias da entrega isso é decisão de quem coordena.
+ * =====================================================================
+ *
+ * O layout raiz (`app/layout.tsx`) continua envolvendo esta página — é
+ * `global-error.tsx` que o substituiria, e ele não existe aqui de propósito
+ * (ver abaixo). Só que, pelo que está medido acima, esse envolvimento se
+ * materializa na hidratação, não no HTML servido.
  *
  * POR QUE NÃO HÁ `app/global-error.tsx`: ele só entra em cena quando o
  * PRÓPRIO layout raiz falha, e nesse caso substitui o layout inteiro — teria
@@ -36,6 +83,17 @@ import { mensagemDeErro } from '@/compartilhado/erros';
  * real que derrube o layout raiz hoje. Decisão consciente a cinco dias da
  * entrega: uma rede, bem feita, em vez de duas, sendo que a segunda
  * envelheceria sozinha.
+ *
+ * SEM TESTE NENHUM, e isto é lacuna conhecida, não esquecimento. Nenhum
+ * arquivo de `testes/` exercita esta tela — a única menção a ela em
+ * `testes/` é um comentário em `testes/degradacao.test.mjs`. Exercitá-la
+ * exige um `throw` deliberado num Server Component, que é como a medição
+ * acima foi feita à mão: fazer isso dentro da suíte pede uma rota de
+ * defeito proposital, fechada por variável de ambiente, no mesmo espírito
+ * de `/diagnostico/origem-dos-dados`. Não foi feito na revisão final do
+ * Bloco A e continua em aberto — enquanto estiver, toda afirmação deste
+ * arquivo vale só até alguém medir de novo. Registrado também no
+ * CLAUDE.md, em "O que trava hoje".
  *
  * O TEXTO vem de compartilhado/erros.ts, onde a regra da seção 11 do escopo
  * já mora (dizer o que houve e o que fazer, sem se desculpar, sem jargão e
@@ -74,10 +132,12 @@ export default function Erro({
 
       <p className="chamada-final">
         {/*
-          `reset` remonta o trecho que falhou sem recarregar a página
-          inteira. É a única coisa nesta tela que depende de JavaScript, e
-          por isso NÃO é o único caminho de volta: o link abaixo funciona
-          sem script nenhum.
+          Dois caminhos de volta, e os DOIS dependem de JavaScript — porque
+          a tela inteira depende (ver o bloco MEDIDO no topo do arquivo).
+          `reset` remonta o trecho que falhou sem recarregar a página;
+          o link recarrega a home inteira, o que também resolve quando o
+          erro foi de estado. Quem chega aqui sem script não vê nem um nem
+          outro: vê 500 em branco.
         */}
         <button type="button" className="botao" onClick={() => reset()}>
           Tentar de novo
