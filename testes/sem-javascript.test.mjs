@@ -35,12 +35,19 @@ import {
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
-// PAGINAS_PRONTAS, mais UMA rota ainda pendente: "/projetos" cai no 404
-// (app/not-found.tsx), que hoje é a segunda página mais alcançada do site
-// (nove dos onze itens do menu ainda levam lá). O defeito histórico que este
-// arquivo existe para pegar — navegação escondida atrás de script — seria
-// mais grave ali, não menos, então vale medir mesmo sem conteúdo próprio.
-const PAGINAS = [...PAGINAS_PRONTAS, '/projetos'];
+// PAGINAS_PRONTAS, mais a primeira rota ainda pendente (cai no 404 de
+// app/not-found.tsx). O defeito histórico que este arquivo existe para
+// pegar — navegação escondida atrás de script — seria mais grave numa
+// página de erro alcançada por oito dos onze itens do menu, não menos,
+// então vale medir mesmo sem conteúdo próprio.
+//
+// Não crava mais "/projetos" (Tarefa A3 portou essa rota — saiu de
+// ROTAS_PENDENTES). ROTAS_PENDENTES[0] pode vir undefined depois que o
+// resto do menu migrar (esperado na Tarefa A7): `.filter(Boolean)` evita
+// testar a rota `undefined` nesse caso, e as três baterias abaixo então
+// rodam só contra PAGINAS_PRONTAS — sem pular nada em silêncio, porque
+// PAGINAS_PRONTAS nunca fica vazia.
+const PAGINAS = [...PAGINAS_PRONTAS, ROTAS_PENDENTES[0]].filter(Boolean);
 
 // Os 11 itens do menu principal (componentes/MenuMovel.tsx, export ITENS):
 // ROTAS_PRONTAS_MENU + ROTAS_PENDENTES, MENOS "/entrar" — esse é o botão

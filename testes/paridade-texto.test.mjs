@@ -75,14 +75,33 @@ const PAGINAS = [
     // verdade, em testes/prova-social.test.mjs. O resto de <main> — que não
     // vem de dado nenhum — continua comparado byte a byte por este teste.
     idsExcluidos: ['titulo-onde-estivemos']
+  },
+  {
+    rota: '/projetos',
+    arquivoOriginal: 'site/projetos.html',
+    // O <div id="lista-atividades"> chegava vazio no HTML estático original
+    // — quem o preenchia era assets/js/paginas/projetos.js, no cliente,
+    // lendo listarAtividades(). Desde a Tarefa A3 o servidor busca as 11
+    // atividades reais direto (servidor/dados/conteudo.ts, via
+    // componentes/CardAtividade.ts) e as renderiza no HTML — comparar o
+    // texto bruto do estático (div vazio) contra o renderizado (11 cartões
+    // de verdade) acusaria uma divergência ilegítima, mesma situação de
+    // "Na mídia" e "Onde já estivemos" acima. O conteúdo das 11 atividades
+    // é provado à parte, contra a página renderizada de verdade, em
+    // testes/paginas.test.mjs ("mostra as onze atividades" e "atividade
+    // sem sinopse não exibe parágrafo vazio"); a omissão de campo por
+    // atividade (regra 2 do CLAUDE.md no nível do campo) é provada por
+    // unidade, direto no componente, em testes/card-atividade.test.mjs.
+    idsExcluidos: ['lista-atividades']
   }
 ];
 
-// Remove do HTML bruto a <section aria-labelledby="ID">...</section> cujo id
-// está em `idsExcluidos`, antes de extrair o texto — ver comentário acima.
+// Remove do HTML bruto o elemento (<section aria-labelledby="ID">, ou
+// qualquer tag com id="ID") cujo id está em `idsExcluidos`, antes de
+// extrair o texto — ver comentário acima.
 //
 // `exigirPresenca` cobre só o lado ORIGINAL (site/*.html): aquele arquivo é
-// estático e versionado, a seção alvo tem que existir nele sempre — se
+// estático e versionado, o elemento alvo tem que existir nele sempre — se
 // sumir, é sinal de erro de digitação no id, ou de o HTML de origem ter
 // mudado sem avisar este teste. Do lado RENDERIZADO a ausência é legítima:
 // a decisão 1 da Tarefa 10 manda a <section> inteira sumir quando não há
@@ -90,18 +109,63 @@ const PAGINAS = [
 // filtrarEOrdenarLocal em servidor/dados/conteudo.ts), e essa omissão já
 // tem teste dedicado em testes/prova-social.test.mjs. Cobrar presença aqui
 // faria este teste falhar exatamente quando o produto acerta — reproduzido
-// forçando listarClipping() a devolver [] antes desta correção.
+// forçando listarClipping() a devolver [] antes daquela correção.
 function removerSecoesExcluidas(html, idsExcluidos, exigirPresenca) {
   return idsExcluidos.reduce((resultado, id) => {
-    const secao = new RegExp(
-      `<section\\b[^>]*aria-labelledby=["']${id}["'][^>]*>[\\s\\S]*?<\\/section>`,
-      'i'
-    );
+    const removido = removerElementoPorId(resultado, id);
     if (exigirPresenca) {
-      assert.match(resultado, secao, `seção "${id}" a excluir não foi encontrada no HTML original`);
+      assert.ok(removido.encontrado, `elemento "${id}" a excluir não foi encontrado no HTML original`);
     }
-    return resultado.replace(secao, '');
+    return removido.html;
   }, html);
+}
+
+/**
+ * Remove um elemento (identificado por `id="ID"` ou `aria-labelledby="ID"`)
+ * do HTML, respeitando aninhamento de tags do MESMO NOME dentro dele.
+ *
+ * Acrescentado na Tarefa A3 para excluir <div id="lista-atividades"> de
+ * /projetos da comparação (a lista é preenchida com dado real, que não
+ * existe no HTML estático original — mesma situação de "Onde já
+ * estivemos"/"Na mídia", só que a div de origem não é uma <section
+ * aria-labelledby>). Um `[\s\S]*?<\/div>` não-guloso, como o antigo regex
+ * usava para <section>, pararia no primeiro </div> DE DENTRO da lista — a
+ * ficha técnica de cada atividade usa <div> para cada linha
+ * (componentes/CardAtividade.ts) — e devolveria HTML pela metade. Contar
+ * profundidade por tag resolve isso; funciona também para o caso de
+ * <section> que já existia, já que nenhuma das duas seções de prova social
+ * aninha outra <section> dentro.
+ */
+function removerElementoPorId(html, id) {
+  const abertura = html.match(new RegExp(
+    `<([a-zA-Z][a-zA-Z0-9]*)\\b[^>]*(?:\\bid=["']${id}["']|\\baria-labelledby=["']${id}["'])[^>]*>`
+  ));
+  if (!abertura) return { html, encontrado: false };
+
+  const tag = abertura[1].toLowerCase();
+  const inicio = abertura.index;
+  const fimAbertura = inicio + abertura[0].length;
+
+  const marcador = new RegExp(`<\\/?${tag}\\b[^>]*>`, 'gi');
+  marcador.lastIndex = fimAbertura;
+
+  let profundidade = 1;
+  let fim = -1;
+  let m;
+  while ((m = marcador.exec(html))) {
+    if (m[0].startsWith('</')) {
+      profundidade -= 1;
+      if (profundidade === 0) {
+        fim = m.index + m[0].length;
+        break;
+      }
+    } else if (!m[0].endsWith('/>')) {
+      profundidade += 1;
+    }
+  }
+
+  if (fim === -1) return { html, encontrado: false };
+  return { html: html.slice(0, inicio) + html.slice(fim), encontrado: true };
 }
 
 function extrairTextoDoMain(html, idsExcluidos = [], exigirPresenca = false) {

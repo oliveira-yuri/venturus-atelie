@@ -6,15 +6,20 @@ import { listarAtividadesComOrigem, listarClippingComOrigem } from '@/servidor/d
  * Por que existe, e por que num endpoint em vez de num teste comum
  * (CRÍTICO 1 e 2 da revisão final):
  *
- * `listarAtividades()` não é consumida por nenhuma página da fase 1 —
- * /projetos só migra na fase 2. E ela não pode ser chamada de um
- * `node --test` direto: servidor/dados/conteudo.ts começa com
- * `import 'server-only'` (que lança fora de um React Server Component, e é
- * para isso que serve), importa JSON sem `with { type: 'json' }`, resolve
- * `@/...` pelo tsconfig e acaba em `cookies()` do next/headers, que exige
- * contexto de requisição. Reproduzir tudo isso com hooks de carregador
- * seria testar uma imitação. Uma rota do próprio Next roda o código de
- * verdade, no runtime de verdade, com a requisição de verdade.
+ * Nasceu quando `listarAtividades()` ainda não era consumida por nenhuma
+ * página (fase 1: /projetos só passou a consumi-la na Tarefa A3). Continua
+ * valendo agora que /projetos existe: nem essa página, nem /para-escolas ou
+ * a home (que só expõem `data-origem-*` no <main>, não o `carimbo`) provam
+ * os três modos de servidor/dados/conteudo.ts — banco, JSON e "configurado
+ * mas falhando" — só olhando o HTML renderizado. E `listarAtividadesComOrigem()`
+ * não pode ser chamada de um `node --test` direto: servidor/dados/conteudo.ts
+ * começa com `import 'server-only'` (que lança fora de um React Server
+ * Component, e é para isso que serve), importa JSON sem
+ * `with { type: 'json' }`, resolve `@/...` pelo tsconfig e acaba em
+ * `cookies()` do next/headers, que exige contexto de requisição. Reproduzir
+ * tudo isso com hooks de carregador seria testar uma imitação. Uma rota do
+ * próprio Next roda o código de verdade, no runtime de verdade, com a
+ * requisição de verdade.
  *
  * FECHADA POR PADRÃO. Sem DIAGNOSTICO_ORIGEM_DOS_DADOS=1 no ambiente do
  * servidor, responde 404 como qualquer rota inexistente — inclusive em

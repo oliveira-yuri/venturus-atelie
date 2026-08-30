@@ -1,40 +1,67 @@
 /**
  * A rota que nao existe e um destino de verdade, nao um beco.
  *
- * Nove dos onze itens do menu principal ainda nao migraram (ver
- * ROTAS_PENDENTES em testes/links-menu.test.mjs): ate a fase 2, clicar em
- * "Projetos", "Agenda", "Notícias", "Galeria", "Acervo", "Voluntariado",
- * "Doar", "Contato" ou "Entrar" leva a pessoa ao 404. Ou seja: a pagina de
- * erro e, hoje, o segundo destino mais visitado do site.
+ * Ate o restante da fase 2 migrar, clicar em "Agenda", "Notícias",
+ * "Galeria", "Acervo", "Voluntariado", "Doar", "Contato" ou "Entrar" leva a
+ * pessoa ao 404 (ver ROTAS_PENDENTES em testes/apoio/rotas-migracao.mjs —
+ * "/projetos" saiu dessa lista na Tarefa A3). A pagina de erro e, hoje, um
+ * dos destinos mais visitados do site.
  *
- * Medido ao vivo antes desta correcao, num clique real em "Projetos" (sem
- * recarga): document.title continuava "Ateliê Afro Cultural", o foco ficava
- * no BODY, a regiao aria-live vinha vazia, nao havia <main id="conteudo">
- * (o link "Pular para o conteúdo" apontava para nada), o <h1> era "404" com
- * `style="font-size:24px"` — px inline, imune ao controle A+, que e
- * requisito da ONG —, e o documento declarava lang="pt-BR" servindo texto em
- * ingles, com DOIS <title>. Tudo isso vinha da pagina 404 padrao do Next,
- * que app/not-found.tsx substitui.
+ * Medido ao vivo antes da correcao original, num clique real em "Projetos"
+ * (sem recarga, quando ainda era rota pendente): document.title continuava
+ * "Ateliê Afro Cultural", o foco ficava no BODY, a regiao aria-live vinha
+ * vazia, nao havia <main id="conteudo"> (o link "Pular para o conteúdo"
+ * apontava para nada), o <h1> era "404" com `style="font-size:24px"` — px
+ * inline, imune ao controle A+, que e requisito da ONG —, e o documento
+ * declarava lang="pt-BR" servindo texto em ingles, com DOIS <title>. Tudo
+ * isso vinha da pagina 404 padrao do Next, que app/not-found.tsx substitui.
  *
  * Este arquivo mede o 404 com o mesmo criterio das outras rotas: as regras
  * de estrutura da pagina (como testes/paginas.test.mjs) e o comportamento na
  * navegacao do roteador (como testes/foco-navegacao.test.mjs).
+ *
+ * ROTA_PENDENTE nao e mais fixa (Tarefa A3): vinha crava "/projetos", que e
+ * justamente a rota que aquela tarefa portou — o comentario antigo mandava
+ * "trocar por outra manualmente" a cada migracao, o que envelhece do mesmo
+ * jeito que a lista que a Tarefa A1 teve de consertar. Agora deriva da
+ * primeira entrada de ROTAS_PENDENTES (testes/apoio/rotas-migracao.mjs), a
+ * mesma fonte que links.test.mjs e sem-javascript.test.mjs usam — uma rota
+ * migra, a lista encolhe, e este arquivo acompanha sozinho.
+ *
+ * Quando ROTAS_PENDENTES esvaziar (esperado depois da Tarefa A7, quando o
+ * menu inteiro tiver migrado), nao ha mais rota pendente nenhuma para medir
+ * o 404 com um clique real de menu — a suite inteira abaixo pula, com o
+ * motivo visivel (skipSemRotaPendente()), em vez de falhar por uma causa
+ * que nao e a que este arquivo existe para pegar, ou de passar em silencio
+ * sem medir nada.
  */
-import { test, before, after } from 'node:test';
+import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { Builder, By } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
+import { ROTAS_PENDENTES } from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
-// Uma rota do menu que ainda nao migrou. Se /projetos migrar na fase 2,
-// trocar por outra de ROTAS_PENDENTES (testes/links-menu.test.mjs) — o
-// primeiro teste abaixo falha alto se esta rota passar a responder 200,
-// justamente para ninguem descobrir tarde que este arquivo parou de medir
-// o 404.
-const ROTA_PENDENTE = '/projetos';
+// SÍNCRONO e no topo do módulo, de propósito: o `skip` do describe() logo
+// abaixo é avaliado antes de qualquer before()/teste assíncrono rodar —
+// mesmo motivo de testes/pagina-para-escolas.test.mjs e
+// testes/seguranca.test.mjs.
+const ROTA_PENDENTE = ROTAS_PENDENTES[0];
+
+function skipSemRotaPendente() {
+  return ROTA_PENDENTE
+    ? false
+    : 'ROTAS_PENDENTES (testes/apoio/rotas-migracao.mjs) esta vazia — nao ha mais rota do menu '
+      + 'sem pagina no Next. Este arquivo mede o 404 com uma rota pendente de verdade, alcancada '
+      + 'por um clique real de menu; sem uma, nao ha o que medir aqui. Se app/not-found.tsx '
+      + 'precisar de cobertura depois disso, criar uma rota fixa que nao exista de proposito, '
+      + 'fora do menu.';
+}
 
 let navegador;
+
+describe('a rota pendente cai num 404 de verdade, nao num beco', { skip: skipSemRotaPendente() }, () => {
 
 before(async () => {
   navegador = await new Builder().forBrowser('firefox')
@@ -48,7 +75,9 @@ test('a rota escolhida para medir o 404 realmente ainda nao existe', async () =>
   const resposta = await fetch(`${BASE}${ROTA_PENDENTE}`);
   assert.equal(
     resposta.status, 404,
-    `${ROTA_PENDENTE} respondeu ${resposta.status}: se migrou, apontar este arquivo para outra rota pendente`
+    `${ROTA_PENDENTE} respondeu ${resposta.status}: se migrou, ROTAS_PENDENTES ja deveria ter `
+    + 'encolhido (ver testes/links.test.mjs) — este teste so falharia se a lista e a realidade '
+    + 'divergissem'
   );
 });
 
@@ -167,4 +196,6 @@ test('sem `main h1` na pagina nova, a regiao aria-live ainda anuncia — usando 
     `sem main h1 a regiao aria-live ficou muda, veio "${depois.anuncio}"`);
   assert.ok(depois.anuncio.includes(depois.titulo),
     `sem main h1 o anuncio deveria usar document.title ("${depois.titulo}"), veio "${depois.anuncio}"`);
+});
+
 });

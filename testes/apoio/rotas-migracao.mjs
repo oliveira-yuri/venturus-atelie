@@ -33,12 +33,12 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 // Itens do MENU que já existem de verdade no Next.
-export const ROTAS_PRONTAS_MENU = ['/', '/quem-somos', '/para-escolas'];
+export const ROTAS_PRONTAS_MENU = ['/', '/quem-somos', '/para-escolas', '/projetos'];
 
 // Itens do menu (mais o "Entrar" do cabeçalho) que ainda não têm página no
 // app novo. Migram nas Tarefas A2 em diante.
 export const ROTAS_PENDENTES = [
-  '/projetos', '/agenda', '/noticias', '/galeria', '/acervo',
+  '/agenda', '/noticias', '/galeria', '/acervo',
   '/voluntariado', '/doar', '/contato', '/entrar'
 ];
 

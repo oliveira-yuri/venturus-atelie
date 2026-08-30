@@ -5,10 +5,11 @@
  * como testes/navegador.test.mjs. Cada página nova entra na lista PAGINAS e
  * ganha toda a bateria de graça.
  *
- * Só as rotas já migradas para o Next entram aqui: a home (`/`) e as três
- * desta tarefa. As outras nove do menu — projetos, agenda, notícias,
- * galeria, acervo, voluntariado, doar, contato, entrar — ainda não existem
- * no app novo; migram na fase 2 e voltam para esta lista quando existirem.
+ * Só as rotas já migradas para o Next entram aqui: a home (`/`), as três da
+ * Tarefa A1 e /projetos (Tarefa A3). As outras oito do menu — agenda,
+ * notícias, galeria, acervo, voluntariado, doar, contato, entrar — ainda
+ * não existem no app novo; migram no restante da fase 2 e voltam para esta
+ * lista quando existirem.
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -22,8 +23,16 @@ const PAGINAS = [
   // <aac-header pagina-atual=""> em site/privacidade.html) — por isso
   // "cabecalho e rodape montam" nao exige aria-current="page" para ela.
   { arquivo: 'privacidade',  chave: 'privacidade', semItemDeMenu: true },
-  { arquivo: 'para-escolas', chave: 'para-escolas' }
+  { arquivo: 'para-escolas', chave: 'para-escolas' },
+  { arquivo: 'projetos',     chave: 'projetos' }
 ];
+
+// As 11 atividades reais (dados-iniciais/atividades.json, mesmo conteúdo
+// que alimenta o seed do Supabase). "brasil-negreiro" é usada abaixo como
+// atividade real sem `resumo` nem `descricao` — medido no arquivo, não
+// suposto.
+const ATIVIDADES_SEM_SINOPSE = ['brasil-negreiro', 'a-cabaca-e-o-canto-ancestral', 'eu-griot',
+  'memoria-negra', 'batuque-na-cozinha'];
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
@@ -114,21 +123,34 @@ for (const pagina of PAGINAS) {
   });
 }
 
-// As duas suítes abaixo (catálogo de projetos) dependem de /projetos, que
-// esta tarefa não constrói:
-//
-// - /projetos ainda não existe no Next — migra na fase 2 (plano próprio,
-//   ainda não escrito; ver "Ao terminar" em
-//   docs/superpowers/plans/2026-08-28-migracao-nextjs-fundacao.md).
-//
-// `test.todo` em vez de comentar o código: assim os dois casos continuam
-// contados (aparecem como `ℹ todo` em toda rodada) em vez de somem do
-// relatório. O corpo de cada um — asserções e seletores — está no histórico
-// do git (commit da Tarefa 9). Reativar quando /projetos existir de fato —
-// não antes, para não mascarar um teste que hoje falharia pelo motivo
-// certo.
-test.todo('projetos.html mostra as onze atividades — falta /projetos (fase 2, plano ainda não escrito)');
-test.todo('as atividades sem sinopse não exibem bloco vazio — falta /projetos (fase 2)');
+// Os dois `test.todo` da Tarefa 9 (histórico no git) reativados pela
+// Tarefa A3, agora que /projetos existe de verdade. O corpo abaixo não é
+// o mesmo daquele commit: aquela versão falava com o site estático antigo
+// (aac-card-atividade.js, custom element); esta fala com a página Next
+// renderizada no servidor (componentes/CardAtividade.ts), sem esperar
+// nenhum fetch no navegador — o servidor já entrega os cartões prontos.
+test('projetos: mostra as onze atividades do catálogo', async () => {
+  await navegador.get(`${BASE}/projetos`);
+  const cartoes = await navegador.findElements(By.css('#lista-atividades .atividade'));
+  assert.equal(cartoes.length, 11, `catálogo veio com ${cartoes.length} atividades, esperado 11`);
+});
+
+test('projetos: atividade sem sinopse não exibe parágrafo vazio (regra 2 do CLAUDE.md por campo)', async () => {
+  await navegador.get(`${BASE}/projetos`);
+
+  for (const id of ATIVIDADES_SEM_SINOPSE) {
+    const artigo = await navegador.findElement(By.css(`#${id}`));
+
+    const semResumo = await artigo.findElements(By.css('.atividade__resumo'));
+    assert.equal(semResumo.length, 0,
+      `${id}: não tem resumo no JSON, mas renderizou .atividade__resumo (vazio ou não)`);
+
+    // Nenhum <p> vazio deveria sobrar no lugar da sinopse ausente — nem com
+    // classe, nem solto.
+    const paragrafosVazios = await artigo.findElements(By.xpath(".//p[not(normalize-space())]"));
+    assert.equal(paragrafosVazios.length, 0, `${id}: sobrou parágrafo vazio dentro do cartão`);
+  }
+});
 
 // A terceira suíte prometida pelo bloco de todo acima (Tarefa 9) era "a
 // prova social carrega na HOME e em para-escolas". A metade de
