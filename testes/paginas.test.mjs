@@ -12,7 +12,7 @@
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { Builder } from 'selenium-webdriver';
+import { Builder, By } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
 
 const PAGINAS = [
@@ -114,30 +114,41 @@ for (const pagina of PAGINAS) {
   });
 }
 
-// As três suítes abaixo (catálogo de projetos e prova social) dependem de
-// páginas ou de dados que esta tarefa não constrói:
+// As duas suítes abaixo (catálogo de projetos) dependem de /projetos, que
+// esta tarefa não constrói:
 //
 // - /projetos ainda não existe no Next — migra na fase 2 (plano próprio,
 //   ainda não escrito; ver "Ao terminar" em
 //   docs/superpowers/plans/2026-08-28-migracao-nextjs-fundacao.md).
-// - A prova social depende de `listarClipping()`
-//   (`servidor/dados/conteudo.ts`). METADE disto já existe: "Onde já
-//   estivemos" em /para-escolas consome a função de verdade e tem teste
-//   próprio (testes/pagina-para-escolas.test.mjs, mais a procedência do dado
-//   em testes/origem-dos-dados.test.mjs). O que falta é "Na mídia" na home:
-//   app/page.tsx segue mínimo (só h1). O texto do `todo` abaixo diz
-//   exatamente isso — na revisão final ele ainda prometia as duas metades, e
-//   prometer o que já existe faz o relatório de `todo` valer menos.
 //
-// `test.todo` em vez de comentar o código: assim os três casos continuam
-// contados (aparecem como `ℹ todo 3` em toda rodada) em vez de somem do
+// `test.todo` em vez de comentar o código: assim os dois casos continuam
+// contados (aparecem como `ℹ todo` em toda rodada) em vez de somem do
 // relatório. O corpo de cada um — asserções e seletores — está no histórico
-// do git (commit da Tarefa 9). Reativar quando as páginas existirem de
-// fato — não antes, para não mascarar um teste que hoje falharia pelo
-// motivo certo.
+// do git (commit da Tarefa 9). Reativar quando /projetos existir de fato —
+// não antes, para não mascarar um teste que hoje falharia pelo motivo
+// certo.
 test.todo('projetos.html mostra as onze atividades — falta /projetos (fase 2, plano ainda não escrito)');
 test.todo('as atividades sem sinopse não exibem bloco vazio — falta /projetos (fase 2)');
-test.todo('a prova social carrega na HOME — /para-escolas já está coberta por testes/pagina-para-escolas.test.mjs; falta a home consumir listarClipping() para "Na mídia" (fase 2)');
+
+// A terceira suíte prometida pelo bloco de todo acima (Tarefa 9) era "a
+// prova social carrega na HOME e em para-escolas". A metade de
+// /para-escolas já tinha teste próprio antes desta tarefa
+// (testes/pagina-para-escolas.test.mjs); a Tarefa A2 fecha a outra metade —
+// a home passa a consumir listarClipping() para "Na mídia"
+// (componentes/SecaoNaMidia.ts) — e reativa este teste em vez de deixá-lo
+// como `todo`.
+//
+// Diferença do corpo original (histórico do git, commit da Tarefa 9): a
+// versão antiga usava navegador.wait() porque o site estático antigo
+// preenchia #lista-midia no CLIENTE, depois da carga
+// (assets/js/paginas/prova-social.js). Desde a Tarefa A2 o servidor já
+// entrega os itens prontos no HTML — não há fetch nenhum no navegador para
+// esperar, então basta ler o DOM assim que a página carrega.
+test('a prova social ("Na mídia") carrega na home, com pelo menos 3 registros reais', async () => {
+  await navegador.get(`${BASE}/`);
+  const itens = await navegador.findElements(By.css('#na-midia .clipping__item'));
+  assert.ok(itens.length >= 3, `home: só ${itens.length} registros de mídia (esperado >= 3)`);
+});
 
 test('nenhum texto escapa da caixa que o contém', async () => {
   // O CSS pode ser escrito para uma estrutura de HTML que não é a que existe.

@@ -154,7 +154,11 @@ test('o botao voltar do navegador tambem move o foco para o h1 de cada rota', as
     texto: (document.activeElement.textContent || '').trim()
   }`);
   assert.equal(foco.tag, 'H1', `voltando para /, o foco ficou em ${foco.tag}`);
-  assert.equal(foco.texto, 'Ateliê Afro Cultural');
+  // "Ateliê Afro Cultural" era o h1 provisório da home (casca da fase 1,
+  // antes da Tarefa A2 portar site/index.html de verdade). O h1 real inclui
+  // o <em>, e activeElement.textContent junta o texto do elemento inteiro
+  // sem as tags.
+  assert.equal(foco.texto, 'Arte, memória e pertencimento — feitos à mão, todo dia');
 });
 
 test('a escala de fonte e o alto contraste sobrevivem a navegacao do roteador, nao so a recarga', async () => {

@@ -30,10 +30,29 @@ const RAIZ = path.resolve(__dirname, '..');
 // não muda com a hidratação, então dispensa selenium/Firefox.
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
-// Só as três páginas já migradas para o Next entram aqui. As outras nove do
-// menu migram na fase 2 (ver testes/paginas.test.mjs) — quando migrarem,
-// ganham uma linha aqui também.
+// A fase 1 deixou a home (`/`) de fora desta lista — nada comparava o texto
+// dela com o original, e foi exatamente esse buraco que o brief da Tarefa
+// A2 apontou. As outras oito rotas do menu ainda migram na fase 2 (ver
+// testes/paginas.test.mjs) — quando migrarem, ganham uma linha aqui também.
 const PAGINAS = [
+  {
+    rota: '/',
+    arquivoOriginal: 'site/index.html',
+    // Mesma situação de "Onde já estivemos" em /para-escolas (ver o
+    // comentário logo abaixo, em idsExcluidos de /para-escolas): "Na mídia"
+    // já era dinâmica no HTML estático original — o <div id="lista-midia">
+    // chegava vazio e era preenchido no cliente por
+    // assets/js/paginas/prova-social.js, lendo os mesmos registros de
+    // clipping que a Tarefa A2 passou a buscar no servidor
+    // (servidor/dados/conteudo.ts, via componentes/SecaoNaMidia.ts).
+    // Comparar o texto bruto do HTML estático (div vazio) contra o HTML já
+    // renderizado com os registros de verdade acusaria uma divergência
+    // ilegítima — por isso a seção sai desta comparação de string; a
+    // omissão dela sem registro de mídia, e o conteúdo dela com registro,
+    // são provados à parte em testes/pagina-home.test.mjs e
+    // testes/prova-social.test.mjs.
+    idsExcluidos: ['titulo-midia-home']
+  },
   { rota: '/quem-somos', arquivoOriginal: 'site/quem-somos.html' },
   { rota: '/privacidade', arquivoOriginal: 'site/privacidade.html' },
   {
