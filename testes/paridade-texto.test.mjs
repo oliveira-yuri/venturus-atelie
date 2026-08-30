@@ -1,6 +1,30 @@
 /**
  * Compara o texto visível do <main> renderizado pelo Next com o texto
- * visível do <main> do HTML original em site/*.html.
+ * visível do <main> do HTML original, congelado em
+ * testes/apoio/html-original/*.html.
+ *
+ * DE ONDE VEM ESSA REFERÊNCIA (Tarefa A8). Até aqui ela era `site/*.html`,
+ * o site estático que estava no ar. A Tarefa A8 apagou `site/` nesta
+ * branch, e este teste perderia a referência junto — aposentá-lo não era
+ * opção (é ele que pega a armadilha do JSX). Decisão: congelar. Os 15 HTML
+ * foram copiados byte a byte para testes/apoio/html-original/ (conferidos
+ * com `cmp`, arquivo a arquivo, antes da exclusão) e passam a ser uma
+ * fotografia, não um diretório vivo. Ver testes/apoio/html-original/
+ * LEIA-ME.txt.
+ *
+ * Por que congelar o HTML BRUTO, e não extrair o texto de uma vez para um
+ * arquivo de referência: assim os dois lados da comparação continuam
+ * passando pelo MESMO código (removerTags, decodificarEntidades,
+ * normalizarEspacos). Com o texto pré-extraído, o lado original sairia
+ * desse caminho — e um erro na própria normalização deixaria de aparecer
+ * como divergência, porque só o lado renderizado ainda seria normalizado.
+ * A simetria é o que dá teto a este teste.
+ *
+ * O que se perde, dito em voz alta: uma fotografia não diverge mais de
+ * nada, então este teste deixa de acusar "o original mudou". Não há o que
+ * acusar — o original não existe mais nesta branch. O que ele continua
+ * fazendo é o motivo de existir: acusar que a PÁGINA NOVA se afastou do
+ * texto que a migração prometeu preservar.
  *
  * Existe porque o Defeito 1 da correção de 2026-08-28 passou por 212 testes
  * e pela verificação de fidelidade anterior: aquela verificação comparava
@@ -39,7 +63,7 @@ const BASE = process.env.URL_BASE || 'http://localhost:3123';
 const PAGINAS = [
   {
     rota: '/',
-    arquivoOriginal: 'site/index.html',
+    arquivoOriginal: 'testes/apoio/html-original/index.html',
     // Mesma situação de "Onde já estivemos" em /para-escolas (ver o
     // comentário logo abaixo, em idsExcluidos de /para-escolas): "Na mídia"
     // já era dinâmica no HTML estático original — o <div id="lista-midia">
@@ -59,11 +83,11 @@ const PAGINAS = [
     // de componentes/SecaoNaMidia.ts não derrubava teste nenhum).
     idsExcluidos: ['titulo-midia-home']
   },
-  { rota: '/quem-somos', arquivoOriginal: 'site/quem-somos.html' },
-  { rota: '/privacidade', arquivoOriginal: 'site/privacidade.html' },
+  { rota: '/quem-somos', arquivoOriginal: 'testes/apoio/html-original/quem-somos.html' },
+  { rota: '/privacidade', arquivoOriginal: 'testes/apoio/html-original/privacidade.html' },
   {
     rota: '/para-escolas',
-    arquivoOriginal: 'site/para-escolas.html',
+    arquivoOriginal: 'testes/apoio/html-original/para-escolas.html',
     // "Onde já estivemos" já era dinâmica no HTML estático original: o
     // <div id="lista-instituicoes"> chegava vazio e era preenchido no
     // cliente por assets/js/paginas/prova-social.js, lendo os mesmos
@@ -80,7 +104,7 @@ const PAGINAS = [
   },
   {
     rota: '/projetos',
-    arquivoOriginal: 'site/projetos.html',
+    arquivoOriginal: 'testes/apoio/html-original/projetos.html',
     // O <div id="lista-atividades"> chegava vazio no HTML estático original
     // — quem o preenchia era assets/js/paginas/projetos.js, no cliente,
     // lendo listarAtividades(). Desde a Tarefa A3 o servidor busca as 11
@@ -98,7 +122,7 @@ const PAGINAS = [
   },
   {
     rota: '/agenda',
-    arquivoOriginal: 'site/agenda.html',
+    arquivoOriginal: 'testes/apoio/html-original/agenda.html',
     // Tarefa A4. As duas <div id="lista-proximos">/<div id="lista-passados">
     // chegavam vazias no HTML estático original — quem as preenchia era
     // assets/js/paginas/agenda.js, no cliente, lendo listarProximos()/
@@ -113,7 +137,7 @@ const PAGINAS = [
   },
   {
     rota: '/noticias',
-    arquivoOriginal: 'site/noticias.html',
+    arquivoOriginal: 'testes/apoio/html-original/noticias.html',
     // Tarefa A4. Diferente de agenda/acervo, RF04 não tem tabela nem módulo
     // de dados — o <div id="lista-noticias"> já trazia texto de estado
     // vazio no HTML estático original ("Nenhuma notícia publicada ainda.").
@@ -127,7 +151,7 @@ const PAGINAS = [
   },
   {
     rota: '/galeria',
-    arquivoOriginal: 'site/galeria.html',
+    arquivoOriginal: 'testes/apoio/html-original/galeria.html',
     // Tarefa A4, mesma situação de /noticias acima: RF05 também não tem
     // tabela nem módulo de dados, e o texto de estado vazio do
     // <div id="lista-albuns"> foi deliberadamente trocado (ver o comentário
@@ -136,7 +160,7 @@ const PAGINAS = [
   },
   {
     rota: '/acervo',
-    arquivoOriginal: 'site/acervo.html',
+    arquivoOriginal: 'testes/apoio/html-original/acervo.html',
     // Tarefa A4. Duas exclusões, dois motivos diferentes:
     //
     // "filtros-acervo" (o <form> de busca): no HTML estático original o
@@ -159,7 +183,7 @@ const PAGINAS = [
   },
   {
     rota: '/voluntariado',
-    arquivoOriginal: 'site/voluntariado.html',
+    arquivoOriginal: 'testes/apoio/html-original/voluntariado.html',
     // Tarefa A5. O <div id="lista-areas"> chegava vazio no HTML estático
     // original — quem o preenchia era assets/js/paginas/voluntariado.js,
     // no cliente, lendo listarAreas(). Desde a Tarefa A5 o servidor busca
@@ -175,7 +199,7 @@ const PAGINAS = [
   },
   {
     rota: '/doar',
-    arquivoOriginal: 'site/doar.html',
+    arquivoOriginal: 'testes/apoio/html-original/doar.html',
     // Tarefa A5. O <div id="dados-pix"> chegava vazio no HTML estático
     // original — quem o preenchia era assets/js/paginas/doar.js, no
     // cliente, escrevendo o aviso "sem chave Pix" (CHAVE_PIX = null, D7
@@ -190,10 +214,10 @@ const PAGINAS = [
   // Tarefa A6. /contato não ganhou formulário nenhum nesta tarefa (ver o
   // comentário de app/contato/page.tsx) — é uma migração 1:1 sem seção
   // dinâmica, por isso não precisa de idsExcluidos.
-  { rota: '/contato', arquivoOriginal: 'site/contato.html' },
+  { rota: '/contato', arquivoOriginal: 'testes/apoio/html-original/contato.html' },
   {
     rota: '/entrar',
-    arquivoOriginal: 'site/entrar.html',
+    arquivoOriginal: 'testes/apoio/html-original/entrar.html',
     // Tarefa A6. Três exclusões:
     //
     // "aviso": no HTML estático original é `<div id="aviso" class="aviso"
@@ -220,7 +244,7 @@ const PAGINAS = [
   },
   {
     rota: '/recuperar-acesso',
-    arquivoOriginal: 'site/recuperar-acesso.html',
+    arquivoOriginal: 'testes/apoio/html-original/recuperar-acesso.html',
     // Tarefa A6. Mesma dupla situação de /entrar acima: "aviso" chegava
     // vazio e escondido no estático (mesmo motivo); "form-recuperar" saiu
     // inteiro porque o único campo do formulário (e-mail) era um
@@ -238,10 +262,10 @@ const PAGINAS = [
 // qualquer tag com id="ID") cujo id está em `idsExcluidos`, antes de
 // extrair o texto — ver comentário acima.
 //
-// `exigirPresenca` cobre só o lado ORIGINAL (site/*.html): aquele arquivo é
-// estático e versionado, o elemento alvo tem que existir nele sempre — se
-// sumir, é sinal de erro de digitação no id, ou de o HTML de origem ter
-// mudado sem avisar este teste. Do lado RENDERIZADO a ausência é legítima:
+// `exigirPresenca` cobre só o lado ORIGINAL (testes/apoio/html-original/
+// *.html): aquele arquivo é uma cópia congelada e versionada, o elemento
+// alvo tem que existir nele sempre — se sumir, é sinal de erro de digitação
+// no id, ou de alguém ter editado a cópia congelada, que não deve mudar. Do lado RENDERIZADO a ausência é legítima:
 // a decisão 1 da Tarefa 10 manda a <section> inteira sumir quando não há
 // nenhum registro (clipping vazio no banco, ou tudo despublicado — ver
 // filtrarEOrdenarLocal em servidor/dados/conteudo.ts), e essa omissão já

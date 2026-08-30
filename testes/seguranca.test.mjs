@@ -61,15 +61,12 @@ const COLUNAS_SENSIVEIS = ['email', 'telefone', 'cpf', 'responsavel_nome', 'resp
  * motivo do carregarEnvLocal() acima: o skip do describe roda antes de
  * qualquer before()).
  *
- * site/config.js AINDA EXISTE (é do site estático antigo, que convive com
- * o Next durante a migração — git ls-files confirma, e
- * ferramentas/verificar-antes-do-deploy.mjs continua varrendo site/ atrás
- * de chave secreta vazada por causa disso). O que mudou é que a página
- * Next não fala mais com ele: o acesso ao Supabase agora é só do servidor,
- * via servidor/supabase.ts, que lê as mesmas duas variáveis de ambiente.
- * Este teste também não lê mais aquele arquivo como fallback — um arquivo
- * do site antigo sendo lido aqui é exatamente o que permitiu, na Rodada de
- * correção 1, o guardião de deploy dar falso verde.
+ * NÃO HÁ MAIS FALLBACK PARA site/config.js — e desde a Tarefa A8 aquele
+ * arquivo nem existe (o `site/` inteiro foi apagado nesta branch). O acesso
+ * ao Supabase é só do servidor, via servidor/supabase.ts, que lê as mesmas
+ * duas variáveis de ambiente. O fallback saiu antes da exclusão, na Rodada
+ * de correção 1: ler um arquivo do site antigo aqui foi exatamente o que
+ * permitiu o guardião de deploy dar falso verde.
  */
 function lerConfiguracao() {
   if (process.env.SUPABASE_URL && process.env.SUPABASE_CHAVE_PUBLICAVEL) {

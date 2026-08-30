@@ -7,9 +7,12 @@
  *
  * Marcados como `test.todo` na Tarefa A1 da fase 2: o painel é RF33/Bloco B,
  * e as telas serão inteiramente reescritas no app Next — a implementação
- * abaixo falava com `site/admin/*.html` por um servidor estático próprio e
- * com `testes/apoio/painel-layout.html`, os dois do site antigo que a
- * migração aposenta (Tarefa A8). Não haveria o que "reapontar": a página que
+ * abaixo falava com o `admin/*.html` do site estático por um servidor
+ * próprio e com `testes/apoio/painel-layout.html`. A Tarefa A8 apagou
+ * `site/`; a cópia congelada do painel antigo, para consulta, é
+ * `testes/apoio/html-original/admin/index.html` (e o original ao vivo está
+ * em `git show main:site/admin/index.html`). Não haveria o que "reapontar":
+ * a página que
  * este arquivo mediu nunca existiu no Next, e o HTML que vier no Bloco B pode
  * ter marcação, classes e fluxo de autenticação diferentes dos que os
  * seletores abaixo assumiam (`.nav-admin`, `#form-entrar`, `#aba-criar`...).
@@ -88,7 +91,8 @@ test.todo('o painel pede noindex na página real '
 // (`git show effe333:testes/painel.test.mjs`): mesma verificação, seletor
 // igual onde o HTML se manteve igual (`#form-entrar input`, `#aba-criar`,
 // `#painel-criar`) — só o endereço muda, de um servidor estático próprio
-// servindo site/entrar.html para BASE + '/entrar' no Next. Exceção:
+// servindo o `entrar.html` do site antigo para BASE + '/entrar' no Next.
+// Exceção:
 // `#campo-maioridade` virou `#criar-campo-maioridade` na Rodada de
 // correção 1 (ver o `prefixo` de componentes/CampoFormulario.ts) — os dois
 // `<form>` (entrar/criar) coexistem sempre no DOM, o painel oculto só
@@ -98,7 +102,7 @@ test.todo('o painel pede noindex na página real '
 // Os três continuam válidos com todo campo desabilitado (a decisão
 // "sem envio" da Tarefa A6): rótulo vinculado, alternância de aba e o
 // atributo `required` não dependem de o campo estar habilitado.
-test('entrar.html: os campos têm rótulo vinculado', async () => {
+test('/entrar: os campos têm rótulo vinculado', async () => {
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(`${BASE}/entrar`);
   await navegador.wait(async () =>
@@ -133,7 +137,7 @@ test('entrar.html: os campos têm rótulo vinculado', async () => {
   assert.deepEqual(idsRepetidos, [], `ids duplicados em /entrar: ${idsRepetidos.join(', ')}`);
 });
 
-test('entrar.html: as duas abas funcionam pelo teclado', async () => {
+test('/entrar: as duas abas funcionam pelo teclado', async () => {
   await navegador.get(`${BASE}/entrar`);
   await navegador.wait(async () =>
     (await navegador.findElements(By.css('#aba-criar'))).length > 0, 5000);

@@ -25,12 +25,26 @@
  * rotas do app. Agora os pares vêm de `compartilhado/redirects-antigos.ts`
  * (importado de verdade, não copiado — a mesma lista que `middleware.ts`
  * usa para construir os redirects) e são reconciliados contra os `.html`
- * reais que ainda existem em `site/`.
+ * do site antigo.
  *
- * Essa reconciliação com `site/*.html` vale enquanto o diretório existir.
- * A Tarefa A8 apaga `site/` — quando isso acontecer, quem fizer A8 precisa
- * substituir `arquivosHtmlReais()` por uma lista fixa (congelada no momento
- * da exclusão), não apagar a reconciliação sem trocá-la por outra coisa.
+ * CONTRA O QUE ESSA RECONCILIAÇÃO RODA HOJE (Tarefa A8). Antes: os `.html`
+ * reais de `site/`. A Tarefa A8 apagou `site/`, e o cabeçalho anterior
+ * mandava trocar a varredura por "uma lista fixa" — não foi o que se fez,
+ * porque uma lista fixa escrita à mão aqui seria uma segunda cópia dos
+ * mesmos 15 caminhos, e reconciliar uma lista contra a cópia dela não prova
+ * nada. Em vez disso a varredura continua sendo de ARQUIVOS de verdade, só
+ * que dos 15 HTML congelados em `testes/apoio/html-original/` — a mesma
+ * cópia byte a byte que `testes/paridade-texto.test.mjs` usa como
+ * referência (ver o LEIA-ME de lá). Os nomes de arquivo continuam vindo do
+ * sistema de arquivos, não de uma lista digitada.
+ *
+ * O que essa reconciliação ainda vale, dito sem exagero: o conjunto de URLs
+ * antigas é história fechada — nenhuma `.html` nova vai passar a circular —,
+ * então este lado não muda mais. O que ele impede é alguém acrescentar ou
+ * remover uma entrada de `REDIRECTS_ANTIGOS` sem que exista a URL antiga
+ * correspondente. A metade viva da reconciliação é a outra, no fim deste
+ * arquivo: os DESTINOS contra `rotasReaisDoApp()`, que muda a cada página
+ * publicada em `app/`.
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -42,18 +56,22 @@ import { rotasReaisDoApp } from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
-const DIRETORIO_SITE = fileURLToPath(new URL('../site/', import.meta.url));
+const DIRETORIO_HTML_ORIGINAL = fileURLToPath(new URL('./apoio/html-original/', import.meta.url));
 
 // A única URL antiga sem redirect — decisão do coordenador, ver o bloco de
 // testes dedicado a `/admin` no fim deste arquivo. Qualquer outro `.html`
-// de `site/` fora desta lista PRECISA ter um redirect configurado em
+// do site antigo fora desta lista PRECISA ter um redirect configurado em
 // compartilhado/redirects-antigos.ts, ou o teste de reconciliação abaixo
 // falha — o mesmo tanto se um redirect configurado não corresponder a
 // nenhum arquivo real.
 const SEM_REDIRECT_DE_PROPOSITO = ['admin/index.html'];
 
-/** Varre site/*.html recursivamente — a fonte real das URLs antigas. */
-async function arquivosHtmlReais(diretorio = DIRETORIO_SITE, prefixo = '') {
+/**
+ * Varre recursivamente os `.html` congelados do site antigo — a fonte das
+ * URLs antigas que já circularam. `LEIA-ME.txt` e qualquer outro arquivo
+ * que não termine em `.html` ficam de fora pelo filtro abaixo.
+ */
+async function arquivosHtmlReais(diretorio = DIRETORIO_HTML_ORIGINAL, prefixo = '') {
   const entradas = await readdir(diretorio, { withFileTypes: true });
   let arquivos = [];
 
@@ -74,7 +92,7 @@ function destinoEsperado(caminhoRelativo) {
   return caminhoRelativo === 'index.html' ? '/' : `/${caminhoRelativo.replace(/\.html$/, '')}`;
 }
 
-test('compartilhado/redirects-antigos.ts tem um redirect para cada .html real de site/, sem sobra de nenhum lado (exceto /admin/index.html, decisão explícita)', async () => {
+test('compartilhado/redirects-antigos.ts tem um redirect para cada .html do site antigo, sem sobra de nenhum lado (exceto /admin/index.html, decisão explícita)', async () => {
   const fontesReais = (await arquivosHtmlReais())
     .filter((caminho) => !SEM_REDIRECT_DE_PROPOSITO.includes(caminho))
     .map((caminho) => `/${caminho}`)
@@ -84,8 +102,9 @@ test('compartilhado/redirects-antigos.ts tem um redirect para cada .html real de
 
   assert.deepEqual(
     fontesConfiguradas, fontesReais,
-    'a lista de compartilhado/redirects-antigos.ts e os .html reais de site/ divergem — um '
-    + 'arquivo novo sem redirect configurado, ou um redirect sobrando para um arquivo que não existe mais'
+    'a lista de compartilhado/redirects-antigos.ts e os .html congelados em '
+    + 'testes/apoio/html-original/ divergem — um redirect sobrando sem URL antiga correspondente, '
+    + 'ou uma URL antiga sem redirect configurado'
   );
 });
 
@@ -127,8 +146,14 @@ test('o redirect sai com Cache-Control limitado, não cacheável para sempre por
 /**
  * A query string precisa sobreviver ao redirect (rodada de correção 2 da
  * Tarefa A7 — regressão introduzida na rodada 1, sem teste cobrindo). Há
- * consumidor real: `app/acervo/page.tsx` lê `?busca`, e
- * `site/assets/js/paginas/entrar.js` lê `?destino`. Um link antigo do tipo
+ * um consumidor real hoje: `app/acervo/page.tsx` lê `?busca`.
+ *
+ * CORREÇÃO DE FATO (Tarefa A8): este comentário citava também
+ * `site/assets/js/paginas/entrar.js` lendo `?destino` como "consumidor
+ * real". Não era: aquele arquivo era do site estático, que a Netlify não
+ * publica desde a migração (`publish = ".next"`), e o app novo não lê
+ * `destino` em lugar nenhum — o redirecionamento pós-login é Bloco B.
+ * O motivo que sustenta este teste sozinho é o outro, abaixo: um link antigo do tipo
  * `/quem-somos.html?utm_source=folha&fbclid=abc` — o exato tipo de link que
  * já circulou, com parâmetro de rastreio de campanha — perderia esses
  * parâmetros no redirect se o `search` não for propagado.
@@ -152,8 +177,8 @@ test('a query string do link antigo sobrevive ao redirect', async () => {
 
 /**
  * Todo destino de redirect precisa ser uma página real, não só "responder
- * 301 com o Location certo" — a reconciliação com `site/*.html` (acima)
- * nunca compara contra `app/`, então uma página de `site/` jamais portada
+ * 301 com o Location certo" — a reconciliação com os HTML congelados
+ * (acima) nunca compara contra `app/`, então uma página do site antigo jamais portada
  * seria OBRIGADA a entrar em `REDIRECTS_ANTIGOS` (a reconciliação exigiria
  * isso) e redirecionaria 301 para um 404, com a suíte inteira verde.
  * `rotasReaisDoApp()` (testes/apoio/rotas-migracao.mjs) é o "chão de

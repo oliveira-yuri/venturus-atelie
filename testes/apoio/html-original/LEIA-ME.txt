@@ -1,0 +1,34 @@
+CÓPIA CONGELADA DO SITE ESTÁTICO — NÃO EDITAR, NÃO "ATUALIZAR".
+
+Estes 15 arquivos são os HTML que o diretório `site/` continha no momento
+em que a Tarefa A8 o apagou (branch migracao-nextjs, 30/08/2026). São uma
+fotografia do que o site do Ateliê de fato mostrava — conteúdo real da ONG,
+copiado byte a byte, conferido com `cmp` arquivo a arquivo antes da
+exclusão.
+
+Servem a dois testes, que sem eles perderiam a referência:
+
+  · testes/paridade-texto.test.mjs — compara o texto visível do <main> de
+    cada rota do Next com o texto visível do <main> daqui. É o teste que
+    pegou "e-mailatelieafro@gmail.com" (a armadilha do JSX que come
+    espaços) e mais dois defeitos depois disso.
+
+  · testes/redirects.test.mjs — reconcilia a lista de
+    compartilhado/redirects-antigos.ts contra os nomes de arquivo daqui:
+    toda URL antiga com `.html` que já circulou precisa ter redirect, e
+    nenhum redirect pode sobrar sem arquivo correspondente.
+
+Por serem uma fotografia, não têm mais como divergir de nada: o site que
+representam não existe mais nesta branch. Editar um deles não corrige nada
+— só afrouxa a única referência que ainda diz o que a migração prometeu
+preservar. Se um texto precisar mudar, ele muda em `app/`, e a divergência
+com o original passa a ser deliberada: registre a exclusão em
+`idsExcluidos` do teste de paridade, com o motivo escrito, e a cobertura
+correspondente em COBERTURA_DAS_EXCLUSOES.
+
+Os `<script src="assets/js/...">` e `<link href="assets/css/...">` que
+aparecem aqui apontam para arquivos que não existem mais. É esperado:
+nenhum destes arquivos é servido — os testes só os leem como texto.
+
+O original ao vivo continua no histórico do git e na branch `main`:
+`git show main:site/index.html`.

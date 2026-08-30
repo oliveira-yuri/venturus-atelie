@@ -1,5 +1,7 @@
-// Conteúdo copiado literalmente de site/contato.html (regra 2 do CLAUDE.md:
-// conteúdo real da ONG, nunca inventado). Conversão mecânica: class ->
+// Conteúdo copiado literalmente do HTML original de contato.html — hoje a
+// cópia congelada em testes/apoio/html-original/contato.html, já que a
+// Tarefa A8 apagou site/ desta branch (regra 2 do CLAUDE.md: conteúdo
+// real da ONG, nunca inventado). Conversão mecânica: class ->
 // className, <main id="conteudo" class="conteudo"> preservado, <noscript>
 // saiu (a navegação chega pronta no HTML do servidor, via app/layout.tsx).
 //

@@ -2,7 +2,7 @@
 -- Seed — conteudo real do Ateliê Afro Cultural
 --
 -- GERADO por ferramentas/gerar-seed.mjs a partir de
--- site/assets/dados-iniciais/*.json. Nao editar a mao: edite o JSON e
+-- dados-iniciais/*.json. Nao editar a mao: edite o JSON e
 -- rode o gerador de novo, para as duas fontes nao divergirem.
 -- =====================================================================
 

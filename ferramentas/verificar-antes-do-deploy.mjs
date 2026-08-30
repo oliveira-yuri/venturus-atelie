@@ -9,7 +9,9 @@
  * variaveis de ambiente; (6) RLS em toda tabela; (7) grant em toda tabela.
  * As secoes 2 a 5 nasceram na revisao final da fase 1 — as tres ultimas
  * estavam previstas na spec §7.3 e nunca tinham sido feitas, e a varredura
- * ainda olhava `site/`, que deixou de ser o que a Netlify publica.
+ * ainda olhava `site/`, que deixou de ser o que a Netlify publica. A
+ * Tarefa A8 apagou `site/`: a varredura da secao 3 agora cobre `.next` e
+ * `public/`, os dois obrigatorios, e nao ha mais diretorio opcional.
  *
  * Este script CONSTROI o site (secao 2, via ferramentas/rodar-testes.mjs
  * com COM_SUPABASE=1) e fala com a rede. Demora mais que antes, de
@@ -50,12 +52,9 @@ function relatar(titulo, detalhe) {
 // A correcao: nao duplicar a logica de configuracao aqui. Rodar o proprio
 // teste, com o sinal EXIGIR_SUPABASE=1 (que faz aquele arquivo FALHAR, nao
 // pular, quando a configuracao nao aparece — ver o skipSemConfiguracao()
-// de la) e conferir o codigo de saida de verdade. Sem fallback para
-// site/config.js AQUI: o arquivo em si continua existindo de verdade (e
-// e por isso que as secoes mais abaixo, neste mesmo guardiao, continuam
-// varrendo site/ atras de chave secreta vazada) — ele so deixou de ser
-// fonte de configuracao para o aceite bloqueante, que fala com o Supabase
-// exclusivamente por variavel de ambiente.
+// de la) e conferir o codigo de saida de verdade. Desde a Tarefa A8 aquele
+// arquivo nem existe mais (`site/` foi apagado); a configuracao do aceite
+// bloqueante vem exclusivamente de variavel de ambiente.
 // ---------------------------------------------------------------------
 const aceite = spawnSync(
   process.execPath,
@@ -159,13 +158,13 @@ if (contraOBuildReal.status !== 0) {
 // vigiava um diretorio que nao e mais o que vai ao ar. Pior, os `|| true`
 // no fim de cada grep faziam o comando devolver vazio quando o diretorio
 // sumisse, e o guardiao respondia "tudo certo" — a MESMA falha silenciosa
-// que a Rodada 1 da Tarefa 10 corrigiu na secao 1 deste arquivo. Como
-// `site/` vai ser apagado na fase 2, isso estava a um `git rm` de acontecer.
+// que a Rodada 1 da Tarefa 10 corrigiu na secao 1 deste arquivo. O `git rm`
+// aconteceu na Tarefa A8, e a correcao acima e o que impediu esse dia de
+// virar um falso verde.
 //
-// Agora: diretorio esperado que nao existe FALHA (se obrigatorio) ou aparece
-// dito em voz alta (se opcional), nunca vira silencio; e erro do proprio
-// grep (codigo de saida >= 2) tambem falha, em vez de virar "nenhum
-// resultado".
+// Agora: diretorio esperado que nao existe FALHA, nunca vira silencio; e
+// erro do proprio grep (codigo de saida >= 2) tambem falha, em vez de virar
+// "nenhum resultado".
 // ---------------------------------------------------------------------
 function papelDoToken(token) {
   try {
@@ -178,12 +177,17 @@ function papelDoToken(token) {
 }
 
 /**
- * Diretorios que vao ao ar, ou que ainda convivem com o que vai.
+ * Diretorios que vao ao ar.
  *
- * `.next` e `public/` sao o que a Netlify publica hoje. `site/` e o site
- * estatico antigo, ainda versionado durante a migracao (54 arquivos em
- * `git ls-files site/`) e ainda contendo config.js com a anon key — por
- * isso continua sendo varrido enquanto existir.
+ * `.next` e `public/` sao o que a Netlify publica — os dois obrigatorios.
+ *
+ * A entrada de `site/` saiu na Tarefa A8, junto com o diretorio. Ela era
+ * `obrigatorio: false`, e um diretorio opcional ausente imprime "· site/
+ * nao existe" a CADA execucao: ruido permanente num script cuja premissa
+ * declarada, tres paragrafos acima, e que verificador que grita a toa vira
+ * verificador ignorado. Com ela fora, `obrigatorio` so tem um valor hoje —
+ * o campo fica porque descreve a intencao de cada entrada, e o dia em que
+ * um diretorio publicado voltar a ser opcional a distincao volta a valer.
  */
 const DIRETORIOS_PUBLICADOS = [
   {
@@ -200,12 +204,7 @@ const DIRETORIOS_PUBLICADOS = [
     // e nao tem esse problema: ela nao acusa mencao, so credencial.
     codigoDeTerceiros: true
   },
-  { caminho: 'public', obrigatorio: true, porque: 'vai inteiro para a raiz do site' },
-  {
-    caminho: 'site',
-    obrigatorio: false,
-    porque: 'site estático antigo, ainda versionado durante a migração — some na fase 2'
-  }
+  { caminho: 'public', obrigatorio: true, porque: 'vai inteiro para a raiz do site' }
 ];
 
 /** Roda um grep e distingue "nada encontrado" (1) de "o grep falhou" (>=2). */
@@ -248,6 +247,10 @@ for (const { caminho, obrigatorio, porque, codigoDeTerceiros } of DIRETORIOS_PUB
       + '  ao ar mudou de lugar.'
     );
   } else {
+    // Ramo sem nenhuma entrada alcançando-o hoje: desde a Tarefa A8 as duas
+    // entradas de DIRETORIOS_PUBLICADOS são `obrigatorio: true`. Fica como
+    // parte do mecanismo (ver o comentário daquela lista), não como código
+    // que alguém achou que roda.
     console.log(`  · ${caminho}/ não existe — nada a varrer ali (${porque}).`);
   }
 }

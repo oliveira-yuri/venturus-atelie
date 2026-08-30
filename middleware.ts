@@ -132,9 +132,16 @@ export function middleware(requisicao: NextRequest) {
     // URL(antigo.destino, requisicao.url)` sozinho descarta o `search` da
     // requisição original. Um link antigo do tipo
     // `/quem-somos.html?utm_source=folha&fbclid=abc` — o tipo exato que já
-    // circulou, com parâmetro de campanha — perderia esses parâmetros. Há
-    // consumidor real desses parâmetros: app/acervo/page.tsx lê `?busca`,
-    // site/assets/js/paginas/entrar.js lê `?destino`.
+    // circulou, com parâmetro de campanha — perderia esses parâmetros.
+    //
+    // Consumidor real hoje: só `app/acervo/page.tsx`, que lê `?busca`.
+    // Correção de fato (Tarefa A8): este comentário citava também
+    // `site/assets/js/paginas/entrar.js` lendo `?destino`. Aquele arquivo
+    // era do site estático, que a Netlify não publica desde a migração
+    // (`publish = ".next"`), e o app novo não lê `destino` em lugar nenhum
+    // — o redirecionamento pós-login é Bloco B. O parâmetro de campanha,
+    // esse sim, chega de link que já circulou e justifica a propagação
+    // sozinho.
     const urlDestino = new URL(antigo.destino, requisicao.url);
     urlDestino.search = requisicao.nextUrl.search;
 

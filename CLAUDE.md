@@ -6,7 +6,8 @@ zona norte de São Paulo. Fatec Innovation Challenge.
 **Fonte de verdade do escopo:** `PLANO-PROJETO-ATELIE-AFRO-CULTURAL.md`
 **Decisões de implementação:** `docs/superpowers/specs/2026-08-24-atelie-afro-cultural-design.md`
 **Migração para Next.js (decidida em 28/08/2026):** `docs/superpowers/specs/2026-08-28-migracao-nextjs-design.md`
-— até o portão go/no-go do passo 2 ser vencido, `main` continua sendo o site que vai ao ar
+— o portão go/no-go foi vencido (**GO**); `main` continua sendo o que está no ar até esta branch
+ser publicada de verdade na Netlify
 **Conteúdo real da ONG:** `docs/conteudo-real.md` — nunca inventar texto; se falta, perguntar
 
 ---
@@ -24,14 +25,14 @@ funcionando.
 
 ## Comandos
 
-**Na branch `migracao-nextjs`** (Next.js — ver "Estado da migração" abaixo):
-
 ```bash
-npm test                        # suíte completa, modo offline (235 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (236)
+npm test                        # suíte completa, modo offline (391 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (392)
 npm run test:supabase-degradado # prova que falha de consulta não vira silêncio
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
+npm run seed                    # regenera supabase/seed.sql dos JSON de dados-iniciais/
+./ferramentas/gerar-sql-completo.sh  # junta migrations + seed num arquivo
 npx next dev                    # servir o site
 npx @axe-core/cli http://localhost:3000/ --browser firefox   # acessibilidade
 ```
@@ -40,19 +41,8 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-**Na branch `main`** (site estático, o que está no ar hoje):
-
-```bash
-node --test                  # suíte completa (217 testes)
-python3 -m http.server 8080 --directory site
-```
-
-Comuns às duas:
-
-```bash
-node ferramentas/gerar-seed.mjs      # regenera supabase/seed.sql dos JSON
-./ferramentas/gerar-sql-completo.sh  # junta migrations + seed num arquivo
-```
+Os 391 são 381 passando, 1 pulado com motivo declarado e 9 `test.todo` — os do painel
+(RF33), que descrevem requisitos válidos cuja forma de verificar só existe no Bloco B.
 
 ## Regras invioláveis
 
@@ -70,7 +60,10 @@ Cada uma vem do escopo e violá-la invalida a entrega.
    é bloqueante: sem autenticar, as tabelas com dado pessoal voltam vazias.
 6. **`eh_equipe` nunca vem do cadastro.** Só é concedido pelo painel do Supabase. Já houve uma
    escalada de privilégio real aqui, corrigida com trigger.
-7. **Sem framework nem bundler.** HTML, CSS e JS puros, módulos ES nativos.
+7. **Sem bundler extra e sem biblioteca de UI.** *Superada em parte* pela decisão do grupo de
+   28/08/2026: o projeto passou a ser Next.js 16 + TypeScript. O que sobrevive da regra, e continua
+   valendo: nada de bundler além do que o Next já traz, nada de framework de CSS, nada de
+   biblioteca de componentes. Rever esta regra é decisão do grupo, não de quem implementa.
 8. **Acessibilidade é requisito**, não preferência: a ONG pediu "áudio, textos grandes, contraste".
    Nunca trocar acessibilidade por estética — em particular, não usar `vw` em texto, que ignora o
    controle A+.
@@ -81,13 +74,14 @@ Cada uma vem do escopo e violá-la invalida a entrega.
 
 ## Arquitetura em uma tela
 
-- **Multi-página estático.** Cada página é um `.html` real; cabeçalho e rodapé são custom elements
-  sem Shadow DOM (o Shadow DOM quebraria os controles globais de fonte e contraste).
-- **Navegação sem JavaScript** fica num `<noscript>` no HTML estático de cada página — nunca dentro
-  de um componente, que só existe se o script rodar.
-- **Camada de dados isolada:** páginas falam só com `site/assets/js/dados/*.js`, nunca com
-  `supabase-js` direto.
-- **Fonte dupla:** `conteudo.js` lê JSON versionado quando não há Supabase e a tabela quando há.
+- **Next.js 16, App Router, tudo renderizado no servidor.** Cada rota é um `app/<rota>/page.tsx`;
+  cabeçalho e rodapé vivem em `app/layout.tsx` (`componentes/Cabecalho.tsx`, `Rodape.tsx`).
+- **Navegação sem JavaScript** chega pronta no HTML que o servidor entrega — não depende mais de
+  `<noscript>`, e `testes/sem-javascript.test.mjs` mede isso rota a rota.
+- **Camada de dados isolada e só do servidor:** páginas falam com `servidor/dados/*.ts`, nunca com
+  `supabase-js` direto, e todo módulo de `servidor/` começa com `import 'server-only'`.
+- **Fonte dupla:** `servidor/dados/conteudo.ts` lê o JSON versionado de `dados-iniciais/` quando não
+  há Supabase e a tabela quando há.
 - **Insert público sem `.select()`:** em `inscricoes` e `contatos` a leitura é negada; pedir a linha
   de volta faz a inserção *parecer* que falhou.
 - **Design "Aplique":** um gesto só — deslocamento sólido que simula peça costurada. Nenhuma
@@ -97,7 +91,8 @@ Cada uma vem do escopo e violá-la invalida a entrega.
 
 ## Status por módulo
 
-Atualizado em 28/08/2026.
+Atualizado em 30/08/2026 (fim do Bloco A da fase 2). O status descreve **esta branch**, já sem
+o `site/` estático.
 
 ### M1 — Site institucional
 
@@ -122,7 +117,7 @@ Atualizado em 28/08/2026.
 | RF10 | Autenticação, papéis acumuláveis | **pronto** |
 | RF11 | Área do usuário | **falta** |
 | RF12 | Confirmação de maioridade | **pronto** |
-| RF33 | Painel administrativo | **casca pronta** — só a home |
+| RF33 | Painel administrativo | **falta** — Bloco B. A casca que existia no site antigo não foi portada; `/admin` dá 404 de propósito |
 | RF34 | Perfis e permissões | **pronto** e testado |
 
 ### M3 — Eventos
@@ -180,24 +175,29 @@ Atualizado em 28/08/2026.
 Spec: `docs/superpowers/specs/2026-08-28-migracao-nextjs-design.md`
 Portão go/no-go: `docs/superpowers/plans/2026-08-28-resultado-do-portao.md` — **GO**
 
-**Duas versões do site coexistem, e é preciso saber em qual se está mexendo:**
+**O Bloco A da fase 2 fechou em 30/08/2026.** As 14 páginas públicas do site antigo existem
+como rota do Next, e a Tarefa A8 **apagou o diretório `site/` desta branch** — não há mais duas
+versões para manter em paralelo aqui.
 
-| | `main` | `migracao-nextjs` |
-|---|---|---|
-| O que é | site estático em `site/` | Next.js 16 + TypeScript |
-| Está no ar | **sim** | não — nunca publicada |
-| Páginas | 15 | **3** (`/quem-somos`, `/privacidade`, `/para-escolas`) + home casca |
-| Testes | 217 | 235 (offline) / 236 (com banco) |
+- `ROTAS_PENDENTES` (em `testes/apoio/rotas-migracao.mjs`) está **vazia**. Toda página real de
+  `app/` é reconciliada contra as listas por `testes/links.test.mjs` e `links-menu.test.mjs`.
+- As URLs antigas com `.html` **redirecionam 301** (`compartilhado/redirects-antigos.ts` +
+  `middleware.ts`), com `Cache-Control` limitado. Exceção deliberada: `/admin/index.html`, que
+  não redireciona — o painel nunca existiu no ar (ver `testes/redirects.test.mjs`).
+- Os 15 HTML originais viraram **cópia congelada** em `testes/apoio/html-original/` (byte a byte,
+  conferida com `cmp` antes da exclusão). Dois testes dependem deles e continuam vivos por causa
+  disso: `paridade-texto.test.mjs` (texto do `<main>` de cada rota igual ao do original — foi ele
+  que pegou `e-mailatelieafro@gmail.com`) e `redirects.test.mjs` (reconciliação das URLs antigas).
+  Ver `testes/apoio/html-original/LEIA-ME.txt`. **Não editar aquelas cópias.**
+- **`main` continua sendo o que está no ar** e ainda tem o `site/` estático. Comentário deste
+  repositório que cite um caminho `site/...` está falando do site antigo, que vive no histórico:
+  `git show main:site/index.html`.
 
-**Os 12 requisitos que só existem em `main`:** RF01 (home), RF03 (projetos), RF04, RF05,
-RF06 (contato), RF08–RF12 (contas e acesso), RF14 (agenda), RF23 (doar), RF24
-(voluntariado), RF33 (painel), RF35 (acervo). Na branch nova essas rotas dão **404**.
+**O que ainda não existe no Next:** o painel administrativo (RF33) e a área do usuário (RF11) —
+Bloco B. `/admin` dá 404 de propósito, e há teste que falha no dia em que deixar de dar, para
+obrigar a revisitar a decisão do redirect.
 
-Os 404 são intencionais nesta fase e vigiados por `testes/links-menu.test.mjs`, que
-separa `ROTAS_PRONTAS` de `ROTAS_PENDENTES` e falha nos dois sentidos — cada página
-migrada obriga a mover a rota de lista.
-
-### O que a fase 1 entregou além das 3 páginas
+### O que a fase 1 entregou além das páginas
 
 - **O navegador não fala com o Supabase**, garantido em três camadas: `import 'server-only'`
   (erro de build, provado), variáveis sem `NEXT_PUBLIC_` não embutidas, e o `connect-src`
@@ -221,8 +221,10 @@ migrada obriga a mover a rota de lista.
    `NODE_VERSION` fixado, e o TypeScript 7.0.2 nunca foi exercitado fora da máquina de
    desenvolvimento. É o maior risco de cronograma e resolve em 30 minutos.
 0b. **A chave do Supabase não saiu do repositório.** A que está em `.env.local` é byte a
-   byte a mesma de `site/config.js`, ainda no formato JWT antigo. Enquanto não for
-   rotacionada, o ganho declarado na spec §4.3 é nominal.
+   byte a mesma que ficou versionada em `site/config.js` — arquivo que a Tarefa A8 apagou
+   desta branch, mas que continua no histórico do git e na branch `main`. Apagar não
+   rotaciona: enquanto a chave não for trocada no Supabase, o ganho declarado na spec §4.3
+   é nominal.
 0c. **`X-Robots-Tag: noindex` está em DOIS lugares** — `middleware.ts` e `netlify.toml`,
    ambos marcados "PRÉVIA". Se só um for removido no lançamento, o site entra no ar
    invisível para buscadores.
@@ -241,9 +243,12 @@ migrada obriga a mover a rota de lista.
    apontar o Auth para o SMTP do Brevo.
 2. **Não existe conta de administrador.** Criar pelo painel do Supabase com *Auto Confirm User* e
    promover com `update public.perfis set eh_equipe = true where email = '...'`.
-3. **Sete páginas do painel são prometidas e só `index.html` existe** — `eventos`, `presenca`,
-   `contatos`, `mais`, `doacoes`, `publicacoes`. Os links quebram para quem está autenticado, e o
-   teste de links não pega porque o painel redireciona sem sessão. **Lacuna de teste conhecida.**
+3. **O painel inteiro é dívida do Bloco B.** No site antigo existia só a home do painel, e ela
+   prometia seis telas que nunca existiram (`eventos`, `presenca`, `contatos`, `mais`, `doacoes`,
+   `publicacoes`). Nada disso foi portado: nesta branch `/admin` dá 404, vigiado por
+   `testes/redirects.test.mjs`. Os 12 `test.todo` de `testes/painel.test.mjs` guardam os
+   requisitos (RF33/RNF08/RN01/RN05) até haver tela para medir — 9 continuam `todo`, 3 já foram
+   reativados contra `/entrar` pela Tarefa A6.
 4. **Conteúdo por validar com a ONG:** citações e números lidos da matéria da Folha, sinopse de 6
    espetáculos, se "Nathi Nunes" é a mesma pessoa que Nathália Monteiro.
 5. **Nenhuma autorização de uso de imagem** — por isso não há uma única foto no site.

@@ -1,9 +1,10 @@
 /**
  * Gera supabase/seed.sql a partir dos JSON que o site ja consome.
  *
- * As duas fontes precisam nascer iguais: o site le o JSON enquanto nao ha
- * banco, e o banco e populado por este seed. Gerar em vez de escrever a mao
- * e o que impede as duas divergirem.
+ * As duas fontes precisam nascer iguais: o site le o JSON de
+ * dados-iniciais/ enquanto nao ha banco (servidor/dados/conteudo.ts), e o
+ * banco e populado por este seed. Gerar em vez de escrever a mao e o que
+ * impede as duas divergirem.
  *
  * Executar com: node ferramentas/gerar-seed.mjs
  */
@@ -49,7 +50,7 @@ const conteudo = `-- ===========================================================
 -- Seed — conteudo real do Ateliê Afro Cultural
 --
 -- GERADO por ferramentas/gerar-seed.mjs a partir de
--- site/assets/dados-iniciais/*.json. Nao editar a mao: edite o JSON e
+-- dados-iniciais/*.json. Nao editar a mao: edite o JSON e
 -- rode o gerador de novo, para as duas fontes nao divergirem.
 -- =====================================================================
 

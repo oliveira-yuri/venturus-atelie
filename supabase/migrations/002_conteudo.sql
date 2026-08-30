@@ -6,7 +6,7 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- atividades (RF03) — espelha site/assets/dados-iniciais/atividades.json
+-- atividades (RF03) — espelha dados-iniciais/atividades.json
 -- ---------------------------------------------------------------------
 create table public.atividades (
   id            text primary key,
@@ -95,7 +95,7 @@ create policy "midia: equipe gerencia"
   using (public.eh_equipe()) with check (public.eh_equipe());
 
 -- ---------------------------------------------------------------------
--- clipping (RF39) — espelha site/assets/dados-iniciais/clipping.json
+-- clipping (RF39) — espelha dados-iniciais/clipping.json
 -- ---------------------------------------------------------------------
 create table public.clipping (
   id        text primary key,

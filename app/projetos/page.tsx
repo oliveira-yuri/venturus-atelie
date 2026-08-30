@@ -1,5 +1,7 @@
-// Conteúdo copiado literalmente de site/projetos.html (regra 2 do CLAUDE.md:
-// conteúdo real da ONG, nunca inventado). Conversão mecânica: class ->
+// Conteúdo copiado literalmente do HTML original de projetos.html — hoje a
+// cópia congelada em testes/apoio/html-original/projetos.html, já que a
+// Tarefa A8 apagou site/ desta branch (regra 2 do CLAUDE.md: conteúdo
+// real da ONG, nunca inventado). Conversão mecânica: class ->
 // className, <main id="conteudo" class="conteudo"> preservado, e o bloco
 // <noscript> saiu — a navegação agora chega pronta no HTML do servidor
 // (Cabecalho e Rodape em app/layout.tsx). Os links perderam o ".html"

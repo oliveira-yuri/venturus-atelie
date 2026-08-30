@@ -5,10 +5,12 @@
  *
  * Histórico do projeto: testes/links.test.mjs nasceu porque seis páginas do
  * menu apontavam para arquivos inexistentes e ninguém percebeu. Mas aquele
- * teste ficou preso ao site/ estático legado — sobe seu próprio servidor
- * lendo arquivos de site/, nunca fala com o Next. Sem este arquivo, os nove
- * destinos que ainda não migraram (mais o "Entrar") ficam sem nenhum teste
- * acompanhando neste app novo.
+ * teste tinha ficado preso ao site estático legado — subia seu próprio
+ * servidor lendo arquivos de `site/`, sem nunca falar com o Next —, e sem
+ * este arquivo os destinos que ainda não tinham migrado (mais o "Entrar")
+ * ficariam sem nenhum teste acompanhando no app novo. A própria Tarefa A1
+ * reapontou links.test.mjs para o Next; os dois continuam divididos por
+ * área (aqui o menu + "Entrar", lá o que fica fora dele).
  *
  * ROTAS_PRONTAS e ROTAS_PENDENTES precisam, juntas, esgotar exatamente os
  * hrefs que o servidor entrega hoje no menu + Entrar — sem sobra dos dois

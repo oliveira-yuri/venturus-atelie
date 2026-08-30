@@ -1,5 +1,7 @@
-// Conteúdo copiado literalmente de site/para-escolas.html (regra 2 do
-// CLAUDE.md: conteúdo real da ONG, nunca inventado). Conversão mecânica:
+// Conteúdo copiado literalmente do HTML original de para-escolas.html — hoje a
+// cópia congelada em testes/apoio/html-original/para-escolas.html, já que a
+// Tarefa A8 apagou site/ desta branch (regra 2 do CLAUDE.md: conteúdo
+// real da ONG, nunca inventado). Conversão mecânica:
 // class -> className, <main id="conteudo"> preservado, e o bloco <noscript>
 // saiu — a navegação agora chega pronta no HTML do servidor (Cabecalho e
 // Rodape em app/layout.tsx). O link do catálogo perdeu o ".html"

@@ -4,10 +4,13 @@
  * Instagram — sem redirect, cada uma vira 404 no dia do deploy.
  *
  * Fonte única: `middleware.ts` constrói os redirects a partir daqui, e
- * `testes/redirects.test.mjs` reconcilia esta lista contra os `.html` reais
- * de `site/` — nenhum dos dois mantém cópia própria (rodada de correção 1
+ * `testes/redirects.test.mjs` reconcilia esta lista contra os `.html` do
+ * site antigo — nenhum dos dois mantém cópia própria (rodada de correção 1
  * da Tarefa A7 — a versão anterior duplicava a lista à mão em três lugares
- * sem nada que os comparasse).
+ * sem nada que os comparasse). Desde a Tarefa A8 esses `.html` são a cópia
+ * congelada em `testes/apoio/html-original/`, e não mais `site/`, que foi
+ * apagado nesta branch; a reconciliação continua sendo contra arquivos de
+ * verdade, não contra uma segunda lista digitada.
  *
  * Por que isto vive em `middleware.ts`, não em `next.config.ts` `redirects()`
  * (onde a Tarefa A7 pôs originalmente): MEDIDO — o roteador do Next zera

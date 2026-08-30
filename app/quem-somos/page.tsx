@@ -1,5 +1,7 @@
-// Conteúdo copiado literalmente de site/quem-somos.html (regra 2 do
-// CLAUDE.md: conteúdo real da ONG, nunca inventado). Conversão mecânica:
+// Conteúdo copiado literalmente do HTML original de quem-somos.html — hoje a
+// cópia congelada em testes/apoio/html-original/quem-somos.html, já que a
+// Tarefa A8 apagou site/ desta branch (regra 2 do CLAUDE.md: conteúdo
+// real da ONG, nunca inventado). Conversão mecânica:
 // class -> className, <br> -> <br />, <main id="conteudo"> preservado, e o
 // bloco <noscript> saiu — a navegação agora chega pronta no HTML do
 // servidor (Cabecalho e Rodape em app/layout.tsx). O link para o catálogo

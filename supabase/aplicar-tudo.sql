@@ -181,7 +181,7 @@ grant select, update on public.perfis to authenticated;
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- atividades (RF03) — espelha site/assets/dados-iniciais/atividades.json
+-- atividades (RF03) — espelha dados-iniciais/atividades.json
 -- ---------------------------------------------------------------------
 create table public.atividades (
   id            text primary key,
@@ -270,7 +270,7 @@ create policy "midia: equipe gerencia"
   using (public.eh_equipe()) with check (public.eh_equipe());
 
 -- ---------------------------------------------------------------------
--- clipping (RF39) — espelha site/assets/dados-iniciais/clipping.json
+-- clipping (RF39) — espelha dados-iniciais/clipping.json
 -- ---------------------------------------------------------------------
 create table public.clipping (
   id        text primary key,
@@ -799,7 +799,7 @@ create policy "arquivos publicos: equipe remove"
 -- Seed — conteudo real do Ateliê Afro Cultural
 --
 -- GERADO por ferramentas/gerar-seed.mjs a partir de
--- site/assets/dados-iniciais/*.json. Nao editar a mao: edite o JSON e
+-- dados-iniciais/*.json. Nao editar a mao: edite o JSON e
 -- rode o gerador de novo, para as duas fontes nao divergirem.
 -- =====================================================================
 
