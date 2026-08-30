@@ -42,7 +42,7 @@ export default function RecuperarAcesso() {
         <p>{AVISO_RECUPERAR}</p>
       </div>
 
-      <form id="form-recuperar" className="formulario" noValidate>
+      <form id="form-recuperar" className="formulario" noValidate aria-describedby="aviso">
         <CampoFormulario nome="email" rotulo="E-mail" tipo="email"
                           autoComplete="email" inputMode="email" obrigatorio desabilitado />
         <button type="submit" disabled>Enviar link</button>
