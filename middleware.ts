@@ -234,9 +234,16 @@ export function middleware(requisicao: NextRequest) {
   resposta.headers.set('X-Content-Type-Options', 'nosniff');
   resposta.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   resposta.headers.set('X-Frame-Options', 'DENY');
-  // PREVIA: remover no lancamento. Nao ha robots.txt no app Next ainda
-  // (/robots.txt da 404 nesta fase) — este cabecalho e a unica barreira
-  // contra indexacao ate a pagina de robots nascer.
+  // PREVIA: REMOVER NO LANCAMENTO — E SAO TRES LUGARES, NAO SO ESTE:
+  //   1. esta linha (middleware.ts) — vale para as paginas renderizadas;
+  //   2. `X-Robots-Tag` em netlify.toml — vale para o que a CDN serve
+  //      direto, inclusive os caminhos que o `matcher` daqui exclui;
+  //   3. `app/robots.ts` — trocar o `disallow` por `allow`.
+  // Nenhum dos tres, esquecido sozinho, produz erro visivel: o site sobe,
+  // as pessoas navegam normalmente, e so o buscador some. Ate a revisao
+  // final do Bloco A este comentario dizia "remover no lancamento" sem
+  // dizer que havia outros dois — e quem seguisse so ele publicaria um
+  // site invisivel achando que tinha terminado.
   resposta.headers.set('X-Robots-Tag', 'noindex, nofollow');
   return resposta;
 }

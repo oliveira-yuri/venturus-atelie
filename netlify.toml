@@ -39,4 +39,23 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-Frame-Options = "DENY"
+    # =================================================================
+    # PREVIA: REMOVER NO LANCAMENTO — E SAO TRES LUGARES, NAO UM.
+    #
+    #   1. esta linha (netlify.toml) — vale para o que a CDN serve;
+    #   2. `X-Robots-Tag` em middleware.ts (procure por "PREVIA");
+    #   3. `app/robots.ts` — trocar o Disallow por Allow.
+    #
+    # Os tres precisam sair JUNTOS, e nenhum deles produz erro visivel se
+    # for esquecido:
+    #
+    #   - deixar so este: o site vai ao ar invisivel para buscador em tudo
+    #     que a CDN da Netlify servir, servido normalmente para pessoas;
+    #   - deixar so o do middleware: mesmo efeito nas paginas renderizadas;
+    #   - deixar so o robots.ts: buscador nem rastreia.
+    #
+    # A instrucao original vivia em site/robots.txt e foi apagada junto com
+    # o diretorio na Tarefa A8. Nao repetir isso: se um dia estes tres
+    # sairem, apagar tambem a entrada de "O que trava hoje" no CLAUDE.md.
+    # =================================================================
     X-Robots-Tag = "noindex, nofollow"
