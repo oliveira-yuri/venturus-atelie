@@ -6,10 +6,10 @@
  * ganha toda a bateria de graça.
  *
  * Só as rotas já migradas para o Next entram aqui: a home (`/`), as três da
- * Tarefa A1, /projetos (Tarefa A3) e agenda/notícias/galeria/acervo (Tarefa
- * A4). As outras quatro do menu — voluntariado, doar, contato, entrar —
- * ainda não existem no app novo; migram no restante da fase 2 e voltam para
- * esta lista quando existirem.
+ * Tarefa A1, /projetos (Tarefa A3), agenda/notícias/galeria/acervo (Tarefa
+ * A4) e voluntariado/doar (Tarefa A5). As outras duas do menu — contato,
+ * entrar — ainda não existem no app novo; migram no restante da fase 2 e
+ * voltam para esta lista quando existirem.
  */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -33,7 +33,13 @@ const PAGINAS = [
   { arquivo: 'agenda',   chave: 'agenda' },
   { arquivo: 'noticias', chave: 'noticias' },
   { arquivo: 'galeria',  chave: 'galeria' },
-  { arquivo: 'acervo',   chave: 'acervo' }
+  { arquivo: 'acervo',   chave: 'acervo' },
+  // Tarefa A5: o conteúdo específico de cada uma (as cinco áreas reais em
+  // voluntariado, a ausência de chave Pix em doar) é provado à parte, em
+  // testes/pagina-voluntariado.test.mjs e testes/pagina-doar.test.mjs —
+  // aqui elas só ganham a bateria estrutural genérica, igual às outras.
+  { arquivo: 'voluntariado', chave: 'voluntariado' },
+  { arquivo: 'doar',         chave: 'doar' }
 ];
 
 // As 11 atividades reais (dados-iniciais/atividades.json, mesmo conteúdo

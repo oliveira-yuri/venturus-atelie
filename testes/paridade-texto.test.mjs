@@ -154,6 +154,36 @@ const PAGINAS = [
     // (servidor/dados/acervo.ts) e sempre desenha algo, cartões ou o
     // estado vazio com texto real que não existia no arquivo .html.
     idsExcluidos: ['filtros-acervo', 'lista-acervo']
+  },
+  {
+    rota: '/voluntariado',
+    arquivoOriginal: 'site/voluntariado.html',
+    // Tarefa A5. O <div id="lista-areas"> chegava vazio no HTML estático
+    // original — quem o preenchia era assets/js/paginas/voluntariado.js,
+    // no cliente, lendo listarAreas(). Desde a Tarefa A5 o servidor busca
+    // direto (servidor/dados/voluntariado.ts) e SEMPRE desenha algo ali —
+    // os cinco cartões reais (com credenciais), ou o estado vazio com
+    // texto real (sem credenciais) — mesma situação de "lista-proximos"/
+    // "lista-passados" em /agenda: comparar o texto bruto do estático (div
+    // vazia) contra o renderizado acusaria uma divergência ilegítima.
+    // Só o <div id="lista-areas"> sai (não a <section> inteira): o h2
+    // "Onde você pode ajudar" e o parágrafo acima dele não vêm de dado
+    // nenhum e continuam comparados byte a byte.
+    idsExcluidos: ['lista-areas']
+  },
+  {
+    rota: '/doar',
+    arquivoOriginal: 'site/doar.html',
+    // Tarefa A5. O <div id="dados-pix"> chegava vazio no HTML estático
+    // original — quem o preenchia era assets/js/paginas/doar.js, no
+    // cliente, escrevendo o aviso "sem chave Pix" (CHAVE_PIX = null, D7
+    // pendente). O texto renderizado por este port é o MESMO aviso, só que
+    // já vem pronto no HTML do servidor — comparar o estático (div vazia)
+    // contra o renderizado (aviso presente) acusaria uma divergência
+    // ilegítima, mesma classe de exclusão das outras rotas com JS no meio.
+    // Só o <div id="dados-pix"> sai (não a <section> inteira): o h2
+    // "Doação em dinheiro" continua comparado byte a byte.
+    idsExcluidos: ['dados-pix']
   }
 ];
 

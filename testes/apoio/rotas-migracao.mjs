@@ -39,13 +39,17 @@ export const ROTAS_PRONTAS_MENU = [
   // acervo) — todas com tabela vazia hoje, mostrando o estado vazio da
   // Tarefa A4 em vez da lista (ver componentes/ListaEventos.ts e
   // componentes/ListaMateriais.ts).
-  '/agenda', '/noticias', '/galeria', '/acervo'
+  '/agenda', '/noticias', '/galeria', '/acervo',
+  // Tarefa A5: voluntariado (RF24, com as cinco áreas reais do banco — ver
+  // componentes/ListaAreas.ts) e doar (RF23, sem chave Pix — decisão D7
+  // pendente, ver app/doar/page.tsx).
+  '/voluntariado', '/doar'
 ];
 
 // Itens do menu (mais o "Entrar" do cabeçalho) que ainda não têm página no
 // app novo. Migram nas Tarefas A2 em diante.
 export const ROTAS_PENDENTES = [
-  '/voluntariado', '/doar', '/contato', '/entrar'
+  '/contato', '/entrar'
 ];
 
 // Páginas prontas que NÃO são item do menu principal — hoje só a política de
