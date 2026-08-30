@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (475 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (476)
+npm test                        # suíte completa, modo offline (490 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (491)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,7 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 475 são 463 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
+Os 490 são 478 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
 (RF33), que descrevem requisitos válidos cuja forma de verificar só existe no Bloco B. Dois
 dos pulados nasceram na revisão final do Bloco A: `ROTAS_PENDENTES` está vazia desde a A6, e
 os testes que iteravam sobre ela passavam sem verificar nada — pular com motivo escrito é a
@@ -95,6 +95,20 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   (`usuarioAtual()`) usa `getUser()`, que verifica o token no servidor de autenticação;
   `getSession()` devolveria o que estiver escrito no cookie, que é dado do navegador. Página e
   Server Action usam a MESMA função — se divergissem, a diferença entre as duas seria o buraco.
+- **A sessão se renova no `middleware.ts`, e só ali.** Server Component não pode escrever
+  cookie (a resposta já começou quando ele roda — é o `catch` do `setAll` em
+  `servidor/supabase.ts`), então sem o middleware o token de acesso vence e a pessoa é
+  deslogada no meio do uso mesmo com refresh token válido. Duas travas, porque o middleware
+  roda em TODAS as rotas e na Netlify é Edge Function: só monta o cliente do Supabase se a
+  requisição trouxer cookie de sessão (`compartilhado/cookies-de-sessao.ts`), e a espera tem
+  prazo total (`compartilhado/prazo.ts`) — não só timeout por tentativa. MEDIDO: sem o prazo
+  total, com o Auth inalcançável, uma página levou **50,9 s** para responder, porque o
+  `@supabase/auth-js` repete a renovação com espera exponencial por até 30 s e o abort de cada
+  tentativa só faz a seguinte começar. Com prazo: 8 s.
+- **O cabeçalho mostra quem entrou, e "Sair" é um `<form>` com Server Action.** Quem lê a
+  sessão é `app/layout.tsx` (Server Component) e passa ao `Cabecalho` o MÍNIMO — um nome, nada
+  de id, e-mail ou objeto de usuário, que iriam parar no HTML de toda página. Nada ali
+  autoriza coisa alguma: o cabeçalho decide o que desenhar, a RLS decide o que pode.
 - **Link de e-mail entra por `/auth/confirm` (Route Handler), nunca por uma página.** É
   `verifyOtp()` que grava o cookie de sessão, e escrever cookie durante a renderização de um
   Server Component é impossível (ver o `catch` do `setAll` em `servidor/supabase.ts`). O `type`
@@ -141,8 +155,15 @@ JavaScript** — medido no Firefox com `javascript.enabled=false`, preenchendo e
 formulário que ninguém alcança — mesma decisão de `componentes/MenuMovel.tsx`. Com script,
 as abas voltam a se comportar como abas assim que a página hidrata.
 
+A Tarefa 4 acrescentou o que faltava para a sessão EXISTIR na tela: o cabeçalho de quem entrou
+(nome + "Sair") e a renovação do token no `middleware.ts`. Como não há conta utilizável, o
+cabeçalho autenticado é medido por uma porta de diagnóstico fechada por padrão —
+`DIAGNOSTICO_CABECALHO_COM_SESSAO` (`app/layout.tsx`), que só muda o que o cabeçalho DESENHA e
+não passa por `usuarioAtual()`, que continua sendo o único que autoriza.
+
 O que ainda NÃO foi exercitado é o caminho do SUCESSO contra o Auth: sem conta de teste e com o
-limite de envio de e-mail travando o cadastro, ninguém recebeu um link de verdade nem entrou.
+limite de envio de e-mail travando o cadastro, ninguém recebeu um link de verdade nem entrou —
+e, por consequência, **ninguém viu o próprio nome no cabeçalho por ter entrado de verdade**.
 O que está provado contra o Supabase real (`npm run test:supabase`) é o caminho da FALHA —
 `/entrar` com credencial inexistente devolve "E-mail ou senha não conferem" vindo do Auth e
 traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?erro=expirado`.
@@ -167,7 +188,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 |---|---|---|
 | RF08 | Cadastro de voluntário | **tela e envio prontos** (Tarefa 3: `componentes/AbasEntrar.tsx` chama `criarConta`). A conta é gravada, mas **ninguém entra antes de confirmar o e-mail**, e o envio nativo do Supabase tem cota baixíssima — ver "O que trava hoje", item 1. Falta a gestão pela equipe (RF26) |
 | RF09 | Cadastro de doador | idem RF08: é o mesmo formulário, com a caixa "Quero doar ou apoiar" virando `eh_doador` |
-| RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. Provado contra o Auth real só o caminho da recusa: **entrar de verdade ninguém conseguiu ainda**, porque não existe conta confirmada (item 1 e item 2 de "O que trava hoje"). `sair` existe como Action e **nenhuma tela a chama** — não há onde: o cabeçalho não mostra estado de sessão (RF11) |
+| RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. Provado contra o Auth real só o caminho da recusa: **entrar de verdade ninguém conseguiu ainda**, porque não existe conta confirmada (item 1 e item 2 de "O que trava hoje"). A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva |
 | RF11 | Área do usuário | **falta** — Bloco B |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
 | RF33 | Painel administrativo | **falta** — Bloco B. A casca que existia no site antigo não foi portada; `/admin` dá 404 de propósito |
@@ -313,7 +334,11 @@ obrigar a revisitar a decisão do redirect.
       renderizadas;
    2. `X-Robots-Tag` em **`netlify.toml`** — vale para o que a CDN serve direto, inclusive
       os caminhos que o `matcher` do middleware exclui;
-   3. **`app/robots.ts`** — trocar o `disallow: '/'` por `allow: '/'`.
+   3. **`app/robots.ts`** — trocar o `disallow: '/'` por `allow: '/'`. **Atenção:** desde a
+      Tarefa 4 aquele arquivo lista também `/auth/confirm` e `/nova-senha`, em
+      `FORA_DO_BUSCADOR` — essas duas NÃO saem no lançamento, viram o `disallow` ao lado do
+      `allow`. Rastreador que abre um link de confirmação gasta o token, que é de uso único.
+      Há teste só para elas em `testes/noindex.test.mjs`, e ele TAMBÉM não sai.
 
    Esquecer qualquer um deles **não quebra nada que se veja**: o site sobe, as pessoas
    navegam, a suíte fica verde, e só o buscador some. Um `X-Robots-Tag: noindex` que

@@ -1,6 +1,9 @@
 import 'server-only';
+import { cookies } from 'next/headers';
 import { obterCliente } from './supabase';
 import { temSupabase, repassarSeForControleDoNext, descrever } from './dados/degradacao';
+import { temCookieDeSessao } from '@/compartilhado/cookies-de-sessao';
+import { comPrazo } from '@/compartilhado/prazo';
 
 /**
  * servidor/sessao.ts — "quem está do outro lado desta requisição?"
@@ -26,7 +29,20 @@ import { temSupabase, repassarSeForControleDoNext, descrever } from './dados/deg
  * como não autenticado — que é o desfecho seguro nos dois casos. A diferença
  * entre eles aparece no log, e só lá.
  */
-export type UsuarioDaSessao = { id: string; email: string | null };
+/**
+ * Quanto tempo uma PÁGINA espera para saber quem está autenticado.
+ *
+ * Existe pelo mesmo defeito medido que o prazo do middleware (leia
+ * compartilhado/prazo.ts): o `AbortSignal` de 5 s de servidor/supabase.ts
+ * corta cada tentativa, mas o `@supabase/auth-js` repete a renovação com
+ * espera exponencial por até 30 s, e a soma foi medida em 50,9 s. Numa
+ * página isso seria pior que no middleware — a pessoa fica olhando para o
+ * navegador girando enquanto a única coisa em jogo é qual palavra aparece no
+ * cabeçalho.
+ */
+const PRAZO_DA_SESSAO_MS = 5_000;
+
+export type UsuarioDaSessao = { id: string; email: string | null; nome: string | null };
 
 export async function usuarioAtual(): Promise<UsuarioDaSessao | null> {
   // Sem projeto configurado não existe sessão para ler: é o modo offline
@@ -35,16 +51,59 @@ export async function usuarioAtual(): Promise<UsuarioDaSessao | null> {
   // assim faria obterCliente() receber `undefined` como URL.
   if (!temSupabase()) return null;
 
+  // Sem cookie de sessão não há o que verificar, e a partir da Tarefa 4 esta
+  // função roda no LAYOUT RAIZ — ou seja, em toda página, para todo mundo,
+  // inclusive a esmagadora maioria anônima. `getUser()` já devolve
+  // AuthSessionMissingError sem sair para a rede quando não há sessão
+  // (MEDIDO lendo node_modules/@supabase/auth-js — `_getUser` só chama
+  // `/user` se houver access_token), então esta guarda não economiza uma
+  // requisição de rede: economiza montar o cliente e ler o armazenamento a
+  // cada visita, e diz em uma linha o que antes dependia de conhecer o
+  // interior da biblioteca.
+  const armazenamento = await cookies();
+  if (!temCookieDeSessao(armazenamento.getAll().map(({ name }) => name))) return null;
+
   try {
     const supabase = await obterCliente();
-    const { data, error } = await supabase.auth.getUser();
+    const resposta = await comPrazo(supabase.auth.getUser(), PRAZO_DA_SESSAO_MS);
+
+    if (resposta === null) {
+      console.warn(`[sessao] passou de ${PRAZO_DA_SESSAO_MS}ms para confirmar quem está `
+        + 'autenticado; a página segue como visitante em vez de continuar esperando.');
+      return null;
+    }
+
+    const { data, error } = resposta;
 
     // Sem sessão o Supabase responde com erro (AuthSessionMissingError), o
     // que é o caso NORMAL de quem só está navegando — não vira log, senão
     // toda visita anônima escreveria uma linha.
     if (error || !data.user) return null;
 
-    return { id: data.user.id, email: data.user.email ?? null };
+    // `nome` vem do metadata que `criarConta` gravou em `options.data`
+    // (acoes/autenticacao.ts) — o mesmo lugar de onde o trigger
+    // public.criar_perfil() lê para montar `public.perfis`. Ler daqui, e não
+    // da tabela, poupa UMA CONSULTA POR PÁGINA de quem está autenticado, e
+    // as duas fontes dizem a mesma coisa hoje porque nada edita
+    // `perfis.nome` ainda.
+    //
+    // O DIA EM QUE ISSO DEIXA DE VALER: RF11 (área do usuário, Bloco B), se
+    // ela permitir trocar o nome gravando só em `perfis`. Aí o cabeçalho
+    // mostraria o nome antigo para sempre, sem erro nenhum. Quem
+    // implementar RF11: ou atualiza o metadata junto, ou troca esta linha
+    // por uma consulta a `perfis` (a RLS já permite — "perfis: cada pessoa
+    // le o proprio registro").
+    //
+    // NÃO SERVE PARA AUTORIZAR NADA. Metadata é editável pela própria
+    // pessoa (`updateUser`), então é dado do cliente com outro nome — por
+    // isso `eh_equipe` não está aqui e nunca pode estar (regra 6 do
+    // CLAUDE.md). Serve para escrever um nome na tela, e só.
+    const metadata = data.user.user_metadata as { nome?: unknown } | null;
+    const nome = typeof metadata?.nome === 'string' && metadata.nome.trim()
+      ? metadata.nome.trim()
+      : null;
+
+    return { id: data.user.id, email: data.user.email ?? null, nome };
   } catch (erro) {
     repassarSeForControleDoNext(erro);
     // Rede, DNS, timeout: aqui sim vale registrar. A pessoa PODE estar
@@ -54,4 +113,36 @@ export async function usuarioAtual(): Promise<UsuarioDaSessao | null> {
       + `${descrever(erro)}. A requisição segue como visitante.`);
     return null;
   }
+}
+
+/**
+ * O MÍNIMO que o cabeçalho precisa saber: quem está aí, para escrever um
+ * nome na tela.
+ *
+ * Existe separada de `usuarioAtual()` por causa de uma fronteira que importa:
+ * `componentes/Cabecalho.tsx` é Client Component (usa `usePathname`), e tudo
+ * que chega nele por prop VAI PARAR NO HTML SERVIDO, em texto legível, no
+ * payload de hidratação. `usuarioAtual()` devolve `id` e `email` — nenhum
+ * dos dois precisa aparecer no HTML de toda página só para desenhar um
+ * cabeçalho. Esta função é o filtro: sai um campo, `nome`, que é
+ * exatamente o que a tela mostra.
+ *
+ * `null` significa "desenhe o cabeçalho de visitante" — e cobre os três
+ * casos de uma vez: não há sessão, não há Supabase configurado, e não deu
+ * para perguntar. Os três levam à mesma tela, de propósito; a diferença
+ * entre eles aparece no log (ver `usuarioAtual` acima).
+ */
+export type SessaoNoCabecalho = { nome: string };
+
+export async function sessaoParaOCabecalho(): Promise<SessaoNoCabecalho | null> {
+  const usuario = await usuarioAtual();
+  if (!usuario) return null;
+
+  // A ordem é a do requisito: o nome; o e-mail quando não há nome (conta
+  // criada à mão no painel do Supabase, como a de administrador do item 2 de
+  // "O que trava hoje", não passa pelo formulário e pode não ter `nome` no
+  // metadata); e um rótulo genérico se nem e-mail houver — que não é
+  // conteúdo institucional inventado (regra 2), é o texto de um controle,
+  // e sem ele o cabeçalho ficaria com um espaço em branco ao lado de "Sair".
+  return { nome: usuario.nome || usuario.email || 'Sua conta' };
 }

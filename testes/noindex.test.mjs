@@ -25,14 +25,16 @@
  *
  * O QUE ESTE ARQUIVO GARANTE, e o que não garante. Ele garante COERÊNCIA:
  * os três estão bloqueando, ou os três estão liberando — nunca dois e um.
- * Ele NÃO decide quando lançar; isso é do usuário. Por isso são dois testes
- * com papéis diferentes:
+ * Ele NÃO decide quando lançar; isso é do usuário. Por isso são testes com
+ * papéis diferentes:
  *
  *   · o de coerência quebra se alguém remover UM ou DOIS, que é exatamente
  *     o acidente temido;
  *   · o de "modo prévia" quebra quando os três saírem juntos, e aí o
- *     recado é: apagar este segundo teste e o item 0c de "O que trava hoje"
- *     no CLAUDE.md, porque a prévia acabou.
+ *     recado é: apagar aquele teste e o item 0c de "O que trava hoje"
+ *     no CLAUDE.md, porque a prévia acabou;
+ *   · o das rotas de sessão NÃO SAI NO LANÇAMENTO — é o oposto dos outros
+ *     dois. Ver o comentário dele lá embaixo.
  *
  * Ou seja: não existe caminho em que o `noindex` mude e a suíte fique
  * quieta.
@@ -142,6 +144,32 @@ test('os três continuam em modo PRÉVIA — quando o site lançar, este teste s
       + '  hoje" no CLAUDE.md.\n'
       + '  Se não foi: alguém removeu uma das três marcas sozinho, e o site iria ao ar\n'
       + '  meio-invisível sem nenhum erro visível.'
+    );
+  }
+});
+
+test('as rotas do fluxo de e-mail continuam fora do buscador — ESTE teste NÃO sai no lançamento', async () => {
+  // ATENÇÃO A QUEM VIER NO DIA DO LANÇAMENTO: o teste acima existe para
+  // quebrar uma vez e ser APAGADO; este aqui existe para FICAR. São coisas
+  // diferentes no mesmo arquivo, e confundir as duas apaga a única trava que
+  // sobra depois que a prévia acabar.
+  //
+  // Hoje o `Disallow: /` da prévia já cobre tudo e estas duas linhas são
+  // redundantes. No dia em que ele virar `allow: '/'`, elas passam a ser a
+  // única coisa mantendo `/auth/confirm` e `/nova-senha` fora do rastreio —
+  // e o motivo está escrito em app/robots.ts: rastreador que abre um link de
+  // confirmação GASTA o token, que é de uso único, e quem recebeu o e-mail
+  // descobre depois que o link "já não vale", sem entender por quê.
+  const corpo = await fetch(`${BASE}/robots.txt`).then((resposta) => resposta.text());
+
+  for (const rota of ['/auth/confirm', '/nova-senha']) {
+    assert.match(
+      corpo,
+      new RegExp(`^\\s*Disallow:\\s*${rota}\\s*$`, 'im'),
+      `${rota} saiu do /robots.txt.\n`
+      + '  Se isto aconteceu junto com o lançamento: NÃO era para sair. O `disallow: \'/\'`\n'
+      + '  da prévia sai; a lista FORA_DO_BUSCADOR de app/robots.ts fica, como segundo\n'
+      + '  campo ao lado do `allow`.'
     );
   }
 });

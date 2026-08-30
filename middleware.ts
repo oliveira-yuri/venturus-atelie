@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { REDIRECTS_ANTIGOS } from './compartilhado/redirects-antigos';
+import { temCookieDeSessao } from './compartilhado/cookies-de-sessao';
+import { comPrazo } from './compartilhado/prazo';
 
 /**
  * Politica de conteudo (CSP) com nonce por requisicao, mais os cabecalhos de
@@ -118,7 +121,7 @@ import { REDIRECTS_ANTIGOS } from './compartilhado/redirects-antigos';
  * silenciosa identica a de img-src/font-src na rodada 1, um nivel abaixo.
  * Confirmado clicando de verdade em Menu -> Dicionario, nao por suposicao.
  */
-export function middleware(requisicao: NextRequest) {
+export async function middleware(requisicao: NextRequest) {
   // Redirects das URLs antigas em .html (Tarefa A7, rodada de correção 1).
   // Ver o comentário grande em compartilhado/redirects-antigos.ts para o
   // porquê de morar aqui e não em next.config.ts `redirects()`: só assim o
@@ -158,6 +161,16 @@ export function middleware(requisicao: NextRequest) {
     respostaRedirect.headers.set('Cache-Control', 'public, max-age=3600, must-revalidate');
     return respostaRedirect;
   }
+
+  // RENOVAÇÃO DA SESSÃO — precisa acontecer AQUI, antes da linha seguinte, e
+  // a ordem não é gosto: `new Headers(requisicao.headers)` logo abaixo tira
+  // uma FOTOGRAFIA dos cabeçalhos que seguem para a renderização. Se a
+  // renovação rodasse depois, o cookie novo iria para a resposta (o
+  // navegador ficaria certo) mas NÃO para a requisição que renderiza esta
+  // página — a página seria desenhada com o token vencido, e a pessoa veria
+  // "Entrar" no cabeçalho na exata requisição em que a sessão foi renovada.
+  // Ver renovarSessao() abaixo para o resto do porquê.
+  const cookiesDaRenovacao = await renovarSessao(requisicao);
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
@@ -247,7 +260,154 @@ export function middleware(requisicao: NextRequest) {
   // NAO deixa isso passar: testes/noindex.test.mjs mede os tres e falha se
   // um sair sozinho.
   resposta.headers.set('X-Robots-Tag', 'noindex, nofollow');
+
+  // O outro lado da renovação: o token novo precisa CHEGAR ao navegador,
+  // senão ele manda o vencido de novo na requisição seguinte e a renovação
+  // vira um custo por requisição que nunca conclui. Na esmagadora maioria
+  // das requisições esta lista está vazia — ou não havia sessão, ou o token
+  // ainda valia e o Supabase não pediu para gravar nada.
+  for (const { name, value, options } of cookiesDaRenovacao) {
+    resposta.cookies.set(name, value, options);
+  }
+
   return resposta;
+}
+
+/**
+ * Quanto tempo o middleware espera o Supabase antes de desistir — e são DOIS
+ * relógios, não um.
+ *
+ * O de baixo corta cada `fetch`; o de cima corta a espera INTEIRA, porque o
+ * `@supabase/auth-js` repete a renovação com espera exponencial por até 30 s
+ * e um abort só faz ele começar a tentativa seguinte. Sem o prazo total,
+ * MEDIDO: 50,9 s de resposta com o servidor de autenticação inalcançável.
+ * O porquê inteiro está em compartilhado/prazo.ts.
+ */
+const TIMEOUT_RENOVACAO_MS = 3_000;
+
+/** O que a renovação pediu para gravar no navegador. */
+type CookieParaGravar = { name: string; value: string; options: CookieOptions };
+
+/**
+ * Renova o token de acesso da sessão, quando há sessão.
+ *
+ * POR QUE NO MIDDLEWARE, e não na página: Server Component NÃO PODE ESCREVER
+ * COOKIE — quando ele roda, a resposta já começou a ser montada e não há
+ * mais cabeçalho para escrever. É o `catch` vazio do bloco `setAll` em
+ * servidor/supabase.ts, que hoje engole exatamente esta gravação. Sem
+ * alguém que possa gravar, o token de acesso vence (uma hora, por padrão) e
+ * a pessoa é deslogada no meio do uso mesmo tendo refresh token válido.
+ * Middleware roda ANTES da resposta existir: é o único lugar do fluxo de
+ * navegação que pode gravar. Aquele comentário em servidor/supabase.ts já
+ * apontava para cá; esta função é o que ele previa.
+ *
+ * TRÊS CUIDADOS QUE NÃO VÊM DA DOCUMENTAÇÃO DO @supabase/ssr, e que existem
+ * porque este middleware roda na Netlify como Edge Function, coisa que
+ * NUNCA foi exercitada de verdade (CLAUDE.md, "O que trava hoje", item 0):
+ *
+ *  1. SÓ MONTA O CLIENTE SE HOUVER COOKIE DE SESSÃO — e a frase é essa,
+ *     medida, não a que estava escrita aqui antes. A primeira versão dizia
+ *     que sem a guarda haveria "uma chamada de rede em toda visita";
+ *     MEDIDO removendo a guarda e contando o que chega num servidor de
+ *     mentira no lugar do Supabase (testes/renovacao-da-sessao.test.mjs):
+ *     ZERO chamadas de autenticação numa visita anônima, com ou sem ela.
+ *     O `@supabase/auth-js` já devolve AuthSessionMissingError sem sair
+ *     para a rede quando não há sessão no armazenamento.
+ *
+ *     O que a guarda economiza, então, é montar o cliente e ler os cookies
+ *     em toda visita de um site institucional, que é quase todo tráfego
+ *     anônimo — e, o que importa mais, é ela que faz a garantia PARAR DE
+ *     DEPENDER do interior de uma biblioteca de terceiro. Sem ela, basta
+ *     essa biblioteca mudar de ideia (ou alguém trocar `getUser()` por
+ *     outra chamada) para toda visita anônima passar a esperar rede antes
+ *     de renderizar. A guarda está em compartilhado/cookies-de-sessao.ts,
+ *     com teste próprio.
+ *  2. NUNCA LANÇA. Qualquer falha — rede, DNS, timeout, Supabase fora do ar
+ *     — devolve lista vazia e a requisição segue como se a pessoa fosse
+ *     visitante. O pior desfecho aceitável é ver "Entrar" estando
+ *     autenticado; um middleware que lança derruba a página inteira, e
+ *     derruba TODAS as páginas, porque ele roda em todas.
+ *  3. TIMEOUT PRÓPRIO, mais curto que os 5s de servidor/supabase.ts. Lá o
+ *     tempo é gasto por uma página que tem conteúdo para degradar; aqui é
+ *     cobrado de toda requisição de quem está autenticado, e o que se perde
+ *     desistindo é só a renovação — o token atual continua valendo, e a
+ *     próxima requisição tenta de novo.
+ *
+ * NÃO REGISTRA no log o caso comum de token expirado sem renovação possível:
+ * `getUser()` devolve isso em `{ error }`, não como exceção, e é o desfecho
+ * NORMAL de quem passou dias sem voltar. Mesmo critério de
+ * servidor/sessao.ts. O que vira log é só o que ninguém consegue explicar
+ * olhando a tela: rede, DNS, timeout.
+ */
+async function renovarSessao(requisicao: NextRequest): Promise<CookieParaGravar[]> {
+  const url = process.env.SUPABASE_URL;
+  const chave = process.env.SUPABASE_CHAVE_PUBLICAVEL;
+
+  // Mesma pergunta de temSupabase() (servidor/dados/degradacao.ts), repetida
+  // aqui de propósito: aquele módulo começa com `import 'server-only'` e
+  // importá-lo do middleware, que é bundle de Edge, é justamente o que o
+  // 'server-only' existe para impedir. Sem as variáveis não há o que
+  // renovar — é o modo offline da suíte e o deploy sem as variáveis no
+  // painel da Netlify (item 0e de "O que trava hoje").
+  if (!url || !chave) return [];
+
+  if (!temCookieDeSessao(requisicao.cookies.getAll().map(({ name }) => name))) return [];
+
+  const paraGravar: CookieParaGravar[] = [];
+
+  try {
+    const supabase = createServerClient(url, chave, {
+      cookies: {
+        getAll: () => requisicao.cookies.getAll(),
+        setAll: (lista) => {
+          for (const { name, value, options } of lista) {
+            // NOS DOIS LUGARES, e são coisas diferentes: na REQUISIÇÃO para
+            // que a renderização desta mesma página já use o token novo (é
+            // daqui que servidor/sessao.ts vai ler), e a lista devolvida
+            // para quem chamou gravar na RESPOSTA, para o navegador mandar o
+            // token novo da próxima vez. Fazer só um dos dois produz um
+            // defeito que só aparece de vez em quando, na requisição em que
+            // o token vence.
+            requisicao.cookies.set(name, value);
+            paraGravar.push({ name, value, options });
+          }
+        }
+      },
+      global: {
+        fetch: (entrada, init) => {
+          const limite = AbortSignal.timeout(TIMEOUT_RENOVACAO_MS);
+          return fetch(entrada, {
+            ...init,
+            signal: init?.signal ? AbortSignal.any([init.signal, limite]) : limite
+          });
+        }
+      }
+    });
+
+    // getUser() e não getSession(): getSession() acredita no cookie, que é
+    // dado do navegador. Ver o comentário grande de servidor/sessao.ts. Aqui
+    // o valor de retorno não interessa — o efeito colateral (renovar e
+    // mandar gravar, via setAll acima) é o ponto.
+    const concluiu = await comPrazo(supabase.auth.getUser(), TIMEOUT_RENOVACAO_MS);
+
+    if (concluiu === null) {
+      console.warn('[sessao] a renovação do token passou de '
+        + `${TIMEOUT_RENOVACAO_MS}ms e a requisição seguiu sem esperar. `
+        + 'A página vai ao ar com o cookie que veio; se ele já tiver vencido, a pessoa '
+        + 'aparece como visitante mesmo estando autenticada.');
+    }
+  } catch (erro) {
+    const motivo = erro instanceof Error ? erro.message : String(erro);
+    console.warn('[sessao] não foi possível renovar o token nesta requisição: '
+      + `${motivo}. A página segue com o cookie que veio; se ele já tiver vencido, `
+      + 'a pessoa aparece como visitante mesmo estando autenticada.');
+    return [];
+  }
+
+  // Cópia, e não a lista viva: se a renovação estourou o prazo, ela continua
+  // correndo em segundo plano e pode chamar `setAll` depois — gravar na
+  // resposta um cookie que chegou tarde demais é pior que não gravar.
+  return [...paraGravar];
 }
 
 export const config = {

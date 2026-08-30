@@ -44,6 +44,51 @@
 .cabecalho__entrar:hover { background: var(--tinta); color: var(--cal); }
 .cabecalho__entrar[aria-current="page"] { background: var(--tinta); color: var(--cal); }
 
+/* ---------- Quem esta autenticado ----------
+   O nome de quem entrou e o botao de sair, no lugar onde o visitante ve
+   "Entrar" (ver componentes/Cabecalho.tsx). */
+
+.cabecalho__sessao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  /* min-width: 0 e o que permite ao nome encolher dentro do flex em vez de
+     empurrar o resto da barra para fora da tela: item flex nao encolhe
+     abaixo do proprio conteudo sem isto. */
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+/* O <form> so existe para o "Sair" funcionar sem JavaScript; visualmente ele
+   nao deve criar caixa nenhuma. display:flex (e nao display:contents) porque
+   o botao e o unico filho e nao ha risco de sumir da arvore de
+   acessibilidade em navegador antigo. */
+.cabecalho__sessao form { display: flex; }
+
+.cabecalho__sessao-nome {
+  font-weight: 700;
+  color: var(--tinta);
+  min-width: 0;
+  /* NOME LONGO NAO PODE QUEBRAR O CABECALHO (regra 4: a ONG opera do
+     celular). MEDIDO com a regra removida, num nome de 42 letras corridas,
+     na janela mais estreita que o Firefox aceita (438px de area util): a
+     pagina passa a ter 451px de largura — a barra sai da tela e aparece
+     rolagem horizontal. Com pontos e arroba no meio (um e-mail) o navegador
+     ja quebra sozinho; o caso que estoura de verdade e o nome corrido.
+     Nada de `text-overflow: ellipsis` aqui: esconder metade do nome de quem
+     esta usando um celular compartilhado e justamente perder a informacao
+     que este bloco existe para dar. Ele quebra em duas linhas e pronto. */
+  overflow-wrap: anywhere;
+}
+
+/* Mesma caixa do link "Entrar" (as duas classes andam juntas no HTML) — o
+   que falta e so o que um <button> nao herda do documento. */
+.cabecalho__sair {
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  cursor: pointer;
+}
+
 /* ---------- Menu ----------
    Sao onze destinos. Em vez de apertar todos ate caber, o espacamento
    acompanha a largura da tela; abaixo de 62rem vira sanduiche. */

@@ -42,11 +42,49 @@ import type { MetadataRoute } from 'next';
  * projeto, e apontar para um arquivo que responde 404 é pior que não
  * apontar. Entra junto com o sitemap, se e quando ele existir.
  */
+
+/**
+ * As rotas que ficam fora do buscador **mesmo depois do lançamento** — e é
+ * por isso que elas moram numa constante separada do `disallow: '/'` da
+ * prévia, que sai.
+ *
+ * As duas são pontas do fluxo de e-mail (Tarefa 2 da autenticação):
+ *
+ *  - `/auth/confirm` só faz sentido com um `token_hash` de uso único na
+ *    query, que chega no link do e-mail de uma pessoa específica;
+ *  - `/nova-senha` só faz sentido logo depois dele, com a sessão que ele
+ *    acabou de gravar.
+ *
+ * Rastreador que as visita não encontra nada de útil — encontra a tela de
+ * "este link não vale mais", porque é isso que as duas respondem sem token
+ * e sem sessão. Pior: se um link de e-mail vazar para um lugar público (um
+ * grupo de WhatsApp encaminhado, um print), o rastreador ABRE o link e
+ * GASTA o token, que é de uso único; quem recebeu o e-mail clica depois e
+ * descobre que o link "já não vale", sem entender por quê.
+ *
+ * NÃO É PROTEÇÃO DE SEGREDO, e não deve ser confundida com uma: o token
+ * viaja na query e quem tiver o link entra. Isto reduz ruído e um modo de
+ * falha real; a validade curta e o uso único do token é que são a defesa.
+ */
+const FORA_DO_BUSCADOR = ['/auth/confirm', '/nova-senha'];
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      disallow: '/'
+      // NO LANÇAMENTO, esta linha vira `allow: '/'` — e o `...` some junto
+      // com ela, mas `FORA_DO_BUSCADOR` FICA, como segundo campo:
+      //
+      //     allow: '/',
+      //     disallow: FORA_DO_BUSCADOR
+      //
+      // Enquanto a prévia dura, `'/'` já bloqueia tudo e as duas rotas são
+      // redundantes. Elas estão aqui desde já porque o dia do lançamento é
+      // o dia de mexer em três arquivos ao mesmo tempo, e é o pior momento
+      // para lembrar de acrescentar uma exceção que ninguém escreveu ainda.
+      // `testes/noindex.test.mjs` tem um teste só para elas, que NÃO sai no
+      // lançamento — ao contrário do teste de "modo prévia", que sai.
+      disallow: ['/', ...FORA_DO_BUSCADOR]
     }
   };
 }
