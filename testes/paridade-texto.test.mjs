@@ -17,7 +17,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -328,3 +328,109 @@ for (const pagina of PAGINAS) {
     assert.equal(textoRenderizado, textoOriginal);
   });
 }
+
+// =====================================================================
+// Reconciliação da lista de exclusões — Rodada de correção 1 da Tarefa A5.
+// =====================================================================
+//
+// Achado da revisão: removeram os `{' '}` do parágrafo do aviso Pix em
+// app/doar/page.tsx (a armadilha do JSX come espaços, restrição global #3)
+// e a suíte inteira — 327 testes — continuou verde. `dados-pix` sai da
+// comparação acima (exclusão LEGÍTIMA: a div chegava vazia no HTML estático
+// original), mas ninguém tinha essa mesma frase coberta em outro lugar por
+// IGUALDADE sensível a espaço — só fragmentos isolados, que passam mesmo
+// com as pontas coladas. Toda exclusão desta lista tem o mesmo risco: é um
+// bloco que este arquivo especificamente NÃO observa.
+//
+// Esta tabela não prova que a cobertura declarada é forte — só que ela
+// EXISTE (o arquivo está no repositório) e que ninguém esqueceu de decidir
+// alguma coisa a respeito. Uma exclusão nova sem entrada aqui derruba o
+// teste abaixo; isso força quem adicionar uma seção nova a `idsExcluidos` a
+// escrever a cobertura correspondente (ou o motivo de não precisar) no
+// mesmo commit — o problema real que motivou isto é a lista crescer a cada
+// tarefa sem que ninguém reconcilie. O que este mecanismo NÃO faz: verificar
+// que o teste apontado realmente compara a frase inteira por igualdade —
+// isso é julgamento humano (uma revisão, ou uma leitura do arquivo), não
+// uma checagem mecânica. Um `assert.match` fraco dentro do arquivo correto
+// passa por aqui sem acusar nada; foi exatamente esse tipo de fraqueza que
+// causou o achado desta rodada, e nenhuma automação abaixo o teria pego —
+// só a comparação por igualdade que este arquivo motivou em cada teste.
+const COBERTURA_DAS_EXCLUSOES = {
+  'titulo-midia-home': {
+    arquivo: 'testes/secao-na-midia.test.mjs',
+    nota: '"strong e span do item ficam colados" — prova a fronteira <strong></strong><span>, sem espaço solto (proposital).'
+  },
+  'titulo-onde-estivemos': {
+    arquivo: 'testes/prova-social.test.mjs',
+    nota: 'mesmo teste irmão de titulo-midia-home, para SecaoOndeEstivemos.'
+  },
+  'lista-atividades': {
+    semFronteira: true,
+    motivo: 'componentes/CardAtividade.ts não concatena texto com elemento nenhum — título, resumo, '
+      + 'cada parágrafo de sinopse e cada <dt>/<dd> da ficha vivem em blocos próprios (h2/p/dt/dd), '
+      + 'sempre separados por tag de bloco. Não há fronteira texto-elemento para uma comparação de '
+      + 'espaço observar (medido lendo o componente inteiro nesta rodada, não suposto).'
+  },
+  'lista-proximos': {
+    arquivo: 'testes/lista-eventos.test.mjs',
+    nota: '"evento completo" casa " · Sede do Ateliê..." (o espaço antes do separador) por igualdade de substring.'
+  },
+  'lista-passados': { arquivo: 'testes/lista-eventos.test.mjs', nota: 'mesmo componente de lista-proximos.' },
+  'lista-noticias': {
+    arquivo: 'testes/paginas-vazias-a4.test.mjs',
+    nota: 'as duas frases do estado vazio, num só regex — acrescentado nesta rodada (ponto cego da Tarefa A4).'
+  },
+  'lista-albuns': {
+    arquivo: 'testes/paginas-vazias-a4.test.mjs',
+    nota: 'mesmo tipo de teste de lista-noticias — acrescentado nesta rodada.'
+  },
+  'filtros-acervo': {
+    semFronteira: true,
+    motivo: 'rótulo e ajuda do formulário de busca são um <label> e um <p> cada, sem texto colado em '
+      + 'elemento nenhum — ver o comentário de app/acervo/page.tsx.'
+  },
+  'lista-acervo': { arquivo: 'testes/lista-materiais.test.mjs', nota: 'mesmo padrão de lista-proximos, para materiais.' },
+  'lista-areas': {
+    arquivo: 'testes/lista-areas.test.mjs',
+    nota: 'ListaAreas.ts também não concatena texto com elemento (h3/p separados) — mesma situação de lista-atividades.'
+  },
+  'dados-pix': {
+    arquivo: 'testes/pagina-doar.test.mjs',
+    nota: 'achado desta rodada — "o aviso sem chave Pix é a frase inteira..." compara por igualdade, tags fora.'
+  }
+};
+
+test('toda exclusão de paridade-texto tem cobertura registrada (arquivo existente, ou motivo de por que não precisa)', () => {
+  const todasAsExclusoes = [...new Set(PAGINAS.flatMap((p) => p.idsExcluidos ?? []))];
+
+  for (const id of todasAsExclusoes) {
+    const entrada = COBERTURA_DAS_EXCLUSOES[id];
+    assert.ok(
+      entrada,
+      `exclusão "${id}" sem entrada em COBERTURA_DAS_EXCLUSOES — ao excluir uma seção nova daqui, `
+      + 'registre onde a fronteira texto-elemento dela é coberta (ou por que não há fronteira nenhuma)'
+    );
+
+    if (entrada.semFronteira) {
+      assert.ok(entrada.motivo, `"${id}": semFronteira precisa vir com o motivo escrito`);
+      continue;
+    }
+
+    assert.ok(entrada.arquivo, `"${id}": precisa de "arquivo" (ou "semFronteira: true" com "motivo")`);
+    assert.ok(
+      existsSync(path.join(RAIZ, entrada.arquivo)),
+      `"${id}" aponta para ${entrada.arquivo}, que não existe mais — a cobertura sumiu junto`
+    );
+  }
+
+  // Sentido inverso: nada em COBERTURA_DAS_EXCLUSOES referencia um id que
+  // não está (mais) excluído — evita a tabela crescer com entrada morta que
+  // ninguém nota quando uma seção deixa de ser excluída (ex.: um campo que
+  // ganhou dado real e não precisa mais sair da comparação).
+  for (const id of Object.keys(COBERTURA_DAS_EXCLUSOES)) {
+    assert.ok(
+      todasAsExclusoes.includes(id),
+      `COBERTURA_DAS_EXCLUSOES tem "${id}", que não está em nenhum idsExcluidos de PAGINAS — entrada morta`
+    );
+  }
+});

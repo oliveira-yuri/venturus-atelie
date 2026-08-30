@@ -58,11 +58,39 @@ test('noticias: mostra o estado vazio com texto real, não o placeholder seco do
     'o texto antigo (site/noticias.html) não deveria sobreviver ao port');
 });
 
+// Rodada de correção 1 da Tarefa A5: o teste acima só confere a PRIMEIRA
+// frase — achado real numa revisão que trocou os {' '} de app/doar/page.tsx
+// por texto colado e viu a suíte inteira (327 testes) passar, porque o
+// `<div id="dados-pix">` sai de testes/paridade-texto.test.mjs (exclusão
+// legítima, mas também ponto cego) e nenhum outro teste comparava a frase
+// inteira. Aqui a segunda frase de "notícias" tinha o MESMO ponto cego,
+// registrado desde a revisão da própria Tarefa A4 e nunca fechado. Esta
+// asserção casa as DUAS frases NUM SÓ regex — se o espaço entre elas
+// sumisse (ou a segunda frase inteira), o match falharia aqui.
+test('noticias: as duas frases do estado vazio aparecem juntas, com o espaço entre elas', async () => {
+  const pagina = await html('/noticias');
+  assert.match(
+    pagina,
+    /Ainda não publicamos nenhuma notícia por aqui\. Siga a gente no Instagram ou fale pelo WhatsApp para saber das novidades enquanto esta página ganha as primeiras publicações\./
+  );
+});
+
 test('galeria: mostra o estado vazio com texto real, incluindo o motivo (autorização de imagem, RN07)', async () => {
   const pagina = await html('/galeria');
   assert.match(pagina, /class="estado estado--vazio"/);
   assert.match(pagina, /Ainda não publicamos nenhum álbum por aqui\./);
   assert.match(pagina, /autorização de uso de imagem/);
+});
+
+// Mesmo motivo do teste irmão em "noticias" acima (Rodada de correção 1 da
+// Tarefa A5): as duas frases precisam bater NUM SÓ regex, para o espaço
+// (e a segunda frase inteira) ficarem sensíveis a regressão.
+test('galeria: as duas frases do estado vazio aparecem juntas, com o espaço entre elas', async () => {
+  const pagina = await html('/galeria');
+  assert.match(
+    pagina,
+    /Ainda não publicamos nenhum álbum por aqui\. As fotos e vídeos das nossas oficinas e apresentações só entram no ar depois da autorização de uso de imagem de quem aparece neles — assim que os primeiros álbuns estiverem prontos, você encontra os registros aqui\./
+  );
 });
 
 test('acervo: sem busca, mostra o estado vazio padrão', async () => {
