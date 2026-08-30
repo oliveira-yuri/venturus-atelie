@@ -203,6 +203,24 @@ teste. Todo o envio é Bloco B.
 Spec: `docs/superpowers/specs/2026-08-28-migracao-nextjs-design.md`
 Portão go/no-go: `docs/superpowers/plans/2026-08-28-resultado-do-portao.md` — **GO**
 
+### Onde cada versão está publicada
+
+| Endereço | Serve |
+|---|---|
+| `marvelous-squirrel-176b0d.netlify.app` | **produção** — branch `main`, o site estático antigo |
+| `migracao-nextjs--marvelous-squirrel-176b0d.netlify.app` | **branch deploy** — a versão Next desta branch |
+
+Configurado em *Project configuration → Build & deploy → Continuous Deployment →
+Branches and deploy contexts*, com `main` como branch de produção e `migracao-nextjs`
+em "Branch deploys". As variáveis `SUPABASE_URL` e `SUPABASE_CHAVE_PUBLICAVEL` estão no
+painel da Netlify com escopo `All scopes` e `All deploy contexts` — **All scopes importa**:
+com escopo só de build, o site sobe sem erro nenhum e serve o JSON versionado em vez do
+banco. O carimbo `data-origem-clipping` no `<main>` de `/para-escolas` é como se verifica.
+
+**Cuidado ao conferir**: o endereço sem o prefixo da branch é o site ANTIGO. Ele não tem
+política de conteúdo nem redirects, e o catálogo dele carrega por JavaScript — parece
+defeito da migração e não é.
+
 **O Bloco A da fase 2 fechou em 30/08/2026.** As 14 páginas públicas do site antigo existem
 como rota do Next, e a Tarefa A8 **apagou o diretório `site/` desta branch** — não há mais duas
 versões para manter em paralelo aqui.
