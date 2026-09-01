@@ -34,7 +34,8 @@ import { createElement } from 'react';
  * nativo do Node (que despe os tipos, mas não transforma JSX).
  */
 
-type TipoCampo = 'text' | 'email' | 'tel' | 'password' | 'checkbox' | 'textarea' | 'select';
+type TipoCampo = 'text' | 'email' | 'tel' | 'password' | 'checkbox' | 'textarea' | 'select'
+  | 'file';
 
 interface OpcaoCampo {
   valor: string;
@@ -52,6 +53,25 @@ interface PropsCampoFormulario {
   opcoes?: OpcaoCampo[];
   desabilitado?: boolean;
   erro?: string | null;
+  /**
+   * `accept` do `<input type="file">` — só para `tipo="file"`.
+   *
+   * DITO EM VOZ ALTA PORQUE CONVIDA AO ENGANO: isto NÃO valida nada. É uma
+   * sugestão para o seletor de arquivos do sistema, que ajuda quem está no
+   * celular a achar a foto no meio de tudo. Quem monta a requisição à mão
+   * escolhe o que quiser — a verificação que conta é a dos BYTES, no
+   * servidor (`tipoDaImagem`, em compartilhado/validacao.ts).
+   */
+  accept?: string;
+  /**
+   * `capture` — a dica que abre a CÂMERA em vez da galeria, no celular.
+   *
+   * NÃO É USADA NA GALERIA DA ONG, e o motivo está em componentes/
+   * FormularioMidia.tsx: a foto quase sempre já foi tirada. A prop existe
+   * porque o atributo é o par natural de `accept` num campo de arquivo, e
+   * deixá-la de fora obrigaria a próxima tela a mexer neste componente.
+   */
+  capture?: string;
   /**
    * O que a pessoa já tinha escrito, devolvido pela Server Action que
    * recusou o envio (`valores` de EstadoFormulario) — vira `defaultValue`
@@ -95,7 +115,9 @@ export function CampoFormulario({
   desabilitado,
   erro,
   prefixo,
-  valorInicial
+  valorInicial,
+  accept,
+  capture
 }: PropsCampoFormulario) {
   const idCampo = prefixo ? `${prefixo}-campo-${nome}` : `campo-${nome}`;
   const idAjuda = ajuda ? `${idCampo}-ajuda` : undefined;
@@ -119,7 +141,12 @@ export function CampoFormulario({
     // chaves são declaradas sempre (uma delas `undefined`, que o React
     // ignora): um spread condicional produziria dois tipos de objeto
     // diferentes, e o createElement recusa a união.
-    defaultValue: tipo === 'checkbox' ? undefined : valorInicial,
+    // Campo de arquivo NÃO aceita `defaultValue`: nenhum navegador deixa o
+    // site preencher um <input type="file"> (o site escolheria um arquivo
+    // do disco de quem está do outro lado). É por isso que a Action de
+    // envio devolve os textos e diz, na mensagem, que a foto precisa ser
+    // escolhida de novo — ver SEM_PERMISSAO em acoes/galeria.ts.
+    defaultValue: tipo === 'checkbox' || tipo === 'file' ? undefined : valorInicial,
     defaultChecked: tipo === 'checkbox' ? Boolean(valorInicial) : undefined
   };
 
@@ -134,6 +161,8 @@ export function CampoFormulario({
     );
   } else if (tipo === 'checkbox') {
     controle = createElement('input', { ...atributosComuns, type: 'checkbox' });
+  } else if (tipo === 'file') {
+    controle = createElement('input', { ...atributosComuns, type: 'file', accept, capture });
   } else {
     controle = createElement('input', { ...atributosComuns, type: tipo });
   }

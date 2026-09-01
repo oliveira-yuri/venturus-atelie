@@ -108,7 +108,13 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // São UMA rota para criar e editar (`/admin/publicacoes/editar`, com `?id=`
   // quando é edição) — ver o cabeçalho daquele page.tsx.
   '/admin/publicacoes',
-  '/admin/publicacoes/editar'
+  '/admin/publicacoes/editar',
+  // Tarefa P3: a galeria da equipe (o formulário de subir foto vive na
+  // própria lista, não numa segunda tela — ver o cabeçalho daquele page.tsx)
+  // e a tela de confirmação de apagar, que é o que substitui um `confirm()`
+  // do navegador para quem está sem JavaScript.
+  '/admin/galeria',
+  '/admin/galeria/apagar'
 ];
 
 /**

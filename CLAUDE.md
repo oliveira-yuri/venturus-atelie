@@ -207,8 +207,8 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF01 | Página inicial | **pronto** |
 | RF02 | Quem somos | **pronto** |
 | RF03 | Projetos e atividades (11, do banco) | **pronto** — edição pela equipe falta |
-| RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem em publicação é P3 |
-| RF05 | Galeria | página pronta, **sem CRUD e sem dados** |
+| RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem DENTRO de uma publicação continua faltando: a P3 fez a galeria (`public.midia`), não `publicacoes.imagem_caminho` |
+| RF05 | Galeria | **tela e envio prontos** (Tarefa P3, 01/09/2026) — `/galeria` lê `public.midia` (`servidor/dados/galeria.ts`, agrupando por álbum) e a equipe sobe foto, publica, tira do ar e apaga em `/admin/galeria`. A tabela está VAZIA e **nenhum byte foi escrito no bucket por este código**, em ambiente nenhum: falta sessão de equipe. RN07 honrada em três camadas independentes (RLS do banco, guarda dentro da Action, tela). Só IMAGEM — vídeo não cabe no limite de corpo de uma Server Action (ver `next.config.ts`) |
 | RF06 | Contato institucional | **pronto** |
 | RF07 | Formulário de contato | **falta** — depende da tela e do envio |
 | RF38 | Para escolas | **pronto** |
@@ -223,7 +223,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. Provado contra o Auth real só o caminho da recusa: **entrar de verdade ninguém conseguiu ainda**, porque não existe conta confirmada (item 1 e item 2 de "O que trava hoje"). A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva |
 | RF11 | Área do usuário | **falta** — Bloco B |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
-| RF33 | Painel administrativo | **a primeira tela de trabalho existe** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). Galeria e atividades são P3/P4. Quem não é equipe recebe **404** nas três rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável. O que FOI medido sem sessão está no relatório da P2 e em `testes/publicacoes.test.mjs` |
+| RF33 | Painel administrativo | **a primeira tela de trabalho existe** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). Falta atividades (P4). Quem não é equipe recebe **404** nas cinco rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável. O que FOI medido sem sessão está nos relatórios de P2/P3 e em `testes/publicacoes.test.mjs` e `testes/galeria.test.mjs` |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
 ### M3 — Eventos
@@ -272,6 +272,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | Deploy Netlify | **nunca rodou** — config pronta e pinada (Node 24.15.0, plugin 5.15.13); falta publicar |
 | Página de erro 500 (`app/error.tsx`) | **pronto** — com o layout inteiro, como o 404 |
 | `/robots.txt` (`app/robots.ts`) | **pronto** — em modo prévia, ver "O que trava hoje" 0c |
+| Supabase Storage (bucket `galeria`) | **ligado pelo código** (P3) — `upload`, `remove` e `getPublicUrl`, com o host do projeto acrescentado ao `img-src` da CSP (e **não** ao `connect-src`). **Nenhum arquivo real subiu**: falta sessão de equipe |
 | Edge Function de e-mail | **falta** |
 | Manual da ONG (RNF07) | **falta** |
 
@@ -319,7 +320,7 @@ versões para manter em paralelo aqui.
   repositório que cite um caminho `site/...` está falando do site antigo, que vive no histórico:
   `git show main:site/index.html`.
 
-**O que ainda não existe no Next:** a área do usuário (RF11) e o CRUD do painel (P2/P3/P4).
+**O que ainda não existe no Next:** a área do usuário (RF11) e a última tela do painel, atividades (P4).
 O painel em si passou a existir em 31/08/2026 (Tarefa P1): `/admin` é rota real e responde
 **404 para quem não é equipe** — o que continua sendo o comportamento certo, e o que
 `testes/redirects.test.mjs` agora vigia (a trava mudou de "`/admin` não existe" para
@@ -330,7 +331,10 @@ revisitada e mantida naquela tarefa.
 
 - **O navegador não fala com o Supabase**, garantido em três camadas: `import 'server-only'`
   (erro de build, provado), variáveis sem `NEXT_PUBLIC_` não embutidas, e o `connect-src`
-  da CSP sem o Supabase
+  da CSP sem o Supabase. **Desde a Tarefa P3 o host do Supabase aparece no `img-src`**, e
+  isso NÃO é uma quarta porta: `img-src` autoriza baixar imagem (as fotos da galeria, de um
+  bucket público), e quem governa fetch/XHR/WebSocket é o `connect-src`, que continua sem
+  ele. Há teste para os dois lados em `testes/galeria.test.mjs`
 - **Política de conteúdo com nonce**, medida caminho a caminho contra o VLibras — cinco
   hosts, todos com uso demonstrado. Nenhuma diretiva ali é dedutível: veio de medição
 - **VLibras traduzindo sob a política**, incluindo o Dicionário. Duas vezes ele passou por
@@ -460,6 +464,33 @@ revisitada e mantida naquela tarefa.
    passo, se alguém quiser gastar nisso: apertar a CSP para o painel (sem
    `strict-dynamic`, com os hosts do VLibras listados um a um), o que exige medir
    caminho a caminho como a fase 1 fez. A Tarefa P1 não mexeu nisso.
+0i. **Foto de mais de 8 MB devolve "Internal Server Error" em texto puro, e não há como
+   evitar sem sair de Server Action.** Nasceu com a Tarefa P3. MEDIDO em 01/09/2026, e a
+   tabela inteira está em `next.config.ts`: **o padrão do Next recusa corpo acima de 1 MB
+   respondendo 500** (o `413` só aparece no log do servidor). Foto de celular tem 3 a 8 MB,
+   ou seja, o padrão quebraria na primeira foto real. O limite foi para `8mb` e o teto da
+   TELA ficou em 4 MB (`LIMITE_ARQUIVO_BYTES`, `compartilhado/validacao.ts`) — a folga entre
+   os dois é a faixa em que a pessoa recebe a NOSSA frase, com o tamanho e o que fazer, em
+   vez do 500. MEDIDO sem JavaScript: 5 MB → nossa frase, página inteira de pé; 9 MB →
+   `Internal Server Error`, sem `<title>`, sem layout. Com JavaScript o formulário avisa
+   antes de enviar, o que também poupa o plano de dados de quem está no celular. Dois
+   testes travam isso (`testes/galeria.test.mjs`, seção 2) e falham se alguém apagar a
+   linha do `next.config.ts` — provado apagando.
+   **O que NÃO foi medido: o limite de corpo de função da Netlify.** A branch nunca foi
+   publicada (item 0). A escolha de 4 MB parte da conta de que 4 MB binários viram ~5,3 MB
+   codificados, sob o limite documentado de 6 MB da plataforma — **conta, não medição**.
+   Conferir no primeiro deploy real, subindo uma foto de ~3,5 MB pelo painel. Se a Netlify
+   recusar antes, a mensagem será dela, não nossa, e o número aqui precisa cair.
+0j. **O bucket `galeria` é PÚBLICO: foto guardada e fora do ar continua legível por quem
+   tiver a URL.** É o que `supabase/migrations/006_storage.sql` criou (os três buckets com
+   `public: true` e uma política de select sem condição), e a Tarefa P3 não mexeu nisso —
+   a instrução era não criar migration. O que existe contra isso: o caminho é
+   `<álbum>/<uuid>.<extensão>`, que não é adivinhável, e a URL só sai no HTML de uma foto
+   publicada. **Isso é obscuridade, não permissão.** A correção de verdade é bucket privado
+   com URL assinada, e é migration nova. Enquanto não for feita, **"Tirar do ar" NÃO
+   resolve o caso da RN07** (autorização retirada, foto de criança subida por engano): só
+   "Apagar" resolve, porque ele remove o arquivo do bucket — e é por isso que a galeria tem
+   apagar e a tela de notícias não.
 
 **Do projeto, válidos para as duas branches:**
 

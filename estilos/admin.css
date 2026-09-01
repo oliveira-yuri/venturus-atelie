@@ -338,3 +338,251 @@ a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
     padding: 0 var(--espaco-5);
   }
 }
+
+/* =====================================================================
+   Galeria (RF05/RN07) — Tarefa P3
+
+   Duas telas: a lista com o formulário de envio (/admin/galeria) e a
+   confirmação de apagar (/admin/galeria/apagar). Continua valendo tudo do
+   topo deste arquivo: uma coluna, alvo de toque inteiro, nada que dependa
+   de mouse, nada de `vw` em texto.
+
+   O QUE ESTA TELA TEM DE DIFERENTE DAS OUTRAS: ela mostra imagem. Toda
+   regra abaixo que trata de tamanho de imagem existe para o mesmo cenário —
+   celular, rede de evento, uma mão só (regra 4).
+   ===================================================================== */
+
+/* Os títulos de seção dentro de uma tela de trabalho. Separam "subir uma
+   foto" de "fotos já enviadas" sem virar mais uma barra de navegação. */
+.painel__secao {
+  margin: var(--espaco-5) 0 var(--espaco-3);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+}
+
+/* ---------- O que o script diz sobre o arquivo escolhido ----------
+   Some sem JavaScript (o elemento nasce `hidden`), e é enfeite por
+   construção — ver o cabeçalho de componentes/FormularioMidia.tsx. */
+
+.midia__escolhido {
+  margin: calc(var(--espaco-3) * -1) 0 var(--espaco-3);
+  padding: var(--espaco-2) var(--espaco-3);
+  border-left: 5px solid var(--azul);
+  font-size: var(--texto-pequeno);
+  /* `word-break` porque nome de arquivo de celular é uma palavra só e
+     comprida ("IMG_20260901_143210.jpg"): sem isto ele empurra a página
+     para fora da tela a 375px. */
+  overflow-wrap: anywhere;
+}
+
+/* Passar do limite não é erro do servidor — ainda não houve envio. Muda a
+   cor da barra E o texto muda junto (o componente escreve o tamanho e o que
+   fazer): a diferença nunca é só a cor. */
+.midia__escolhido--grande { border-left-color: var(--marrom); font-weight: 700; }
+
+/* A declaração de autorização (RN07) é a caixa mais importante do
+   formulário: contorno próprio, para não se perder entre os campos. */
+.midia__autorizacao {
+  margin: var(--espaco-4) 0;
+  padding: var(--espaco-3);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique-curto) var(--amarelo);
+}
+
+.midia__demora {
+  margin: var(--espaco-2) 0 0;
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+/* ---------- A lista de fotos do painel ---------- */
+
+.midias {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  /* Cabe o deslocamento do aplique (8px) — mesma conta de .publicacoes. */
+  gap: var(--espaco-4);
+}
+
+.midia {
+  margin: 0;
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--azul);
+}
+
+/* TRÊS ESTADOS, e nenhum se distingue só pela cor: a palavra está escrita
+   no cartão (componentes/ListaMidia.ts). O que muda aqui é o PESO visual,
+   para a diferença sobreviver em alto contraste, onde a paleta some. */
+.midia__estado {
+  display: inline-block;
+  margin: 0 0 var(--espaco-2);
+  padding: var(--espaco-1) var(--espaco-2);
+  border: 2px solid var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta);
+  background: transparent;
+}
+
+.midia__estado--no-ar { background: var(--amarelo); }
+
+/* Sem autorização é o estado que a RN07 governa: preenchido em marrom (a
+   cor de terra/raízes da paleta da ONG), não vermelho de erro — não é
+   defeito, é uma foto esperando um documento. */
+.midia__estado--sem-autorizacao { background: var(--marrom); color: var(--cal); border-color: var(--marrom); }
+
+/* A MINIATURA É A FOTO INTEIRA, reduzida aqui: não há coluna de miniatura
+   no banco e não há redução sem biblioteca (regra 7). `aspect-ratio` +
+   `object-fit: cover` dão um retângulo previsível sem esticar nada — e sem
+   depender de largura/altura, que a tabela não guarda.
+
+   A altura é em `rem`, não em `vh`: com `vh` a foto encolheria no celular
+   deitado, que é justamente quando a pessoa está conferindo. */
+.midia__miniatura {
+  display: block;
+  width: 100%;
+  max-height: 14rem;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  margin: 0 0 var(--espaco-3);
+  border: 2px solid var(--borda);
+  background: var(--areia, var(--cal));
+}
+
+.midia__album {
+  margin: 0 0 var(--espaco-2);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.midia__alt,
+.midia__legenda {
+  margin: 0 0 var(--espaco-2);
+  font-size: var(--texto-base);
+  line-height: 1.5;
+}
+
+.midia__quando {
+  margin: 0 0 var(--espaco-3);
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+/* A explicação do estado "sem autorização" fica no item, junto da foto de
+   que ela fala — ver componentes/ListaMidia.ts. */
+.midia__impedimento {
+  margin: 0 0 var(--espaco-3);
+  padding-left: var(--espaco-3);
+  border-left: 5px solid var(--marrom);
+  font-size: var(--texto-pequeno);
+}
+
+.midia__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.midia__form { margin: 0; }
+
+/* Um <a> e um <button> com a MESMA cara, como em .publicacao__botao: para
+   quem usa, os dois são "um botão". */
+.midia__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.midia__botao:hover { background: var(--tinta); color: var(--cal); }
+
+.midia__botao--publicar { background: var(--amarelo); }
+.midia__botao--publicar:hover { background: var(--tinta); color: var(--amarelo); }
+
+/* Apagar é o único gesto sem desfazer, e o único que fica visualmente
+   RECUADO: contorno tracejado, sem preenchimento. Não é vermelho de perigo
+   — perigo é a cor que se aprende a ignorar; recuo é o que faz o dedo
+   hesitar. E ele leva a uma tela de confirmação, não à ação. */
+.midia__botao--apagar {
+  border-style: dashed;
+  color: var(--tinta-suave);
+}
+
+/* ---------- A tela de confirmação de apagar ---------- */
+
+.apagar__previa {
+  margin: 0 0 var(--espaco-4);
+  padding: var(--espaco-3);
+  border: 2px solid var(--borda);
+  background: var(--cal);
+}
+
+/* Aqui a foto aparece INTEIRA (`contain`, não `cover`): a pessoa está
+   conferindo se é esta mesmo, e um recorte pode esconder justamente a
+   parte que distingue uma foto da outra. */
+.apagar__foto {
+  display: block;
+  width: 100%;
+  max-height: 20rem;
+  object-fit: contain;
+  margin: 0 0 var(--espaco-3);
+  border: 2px solid var(--borda);
+}
+
+.apagar__ficha p {
+  margin: 0 0 var(--espaco-2);
+  font-size: var(--texto-base);
+  line-height: 1.5;
+}
+
+.apagar__form { margin: 0 0 var(--espaco-3); }
+
+/* O botão que apaga ocupa a largura toda no celular — mas o caminho de
+   recuo está logo abaixo dele, em texto, e não some. */
+.apagar__botao {
+  display: block;
+  width: 100%;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px dashed var(--tinta);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.apagar__botao:hover { background: var(--tinta); color: var(--cal); }
+
+.apagar__desistir a {
+  display: inline-block;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2) 0;
+  color: var(--azul-texto);
+  font-weight: 700;
+}
+
+@media (min-width: 34rem) {
+  .midia { padding: var(--espaco-4); }
+
+  .apagar__botao { display: inline-block; width: auto; padding: var(--espaco-3) var(--espaco-5); }
+}

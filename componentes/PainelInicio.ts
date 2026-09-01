@@ -76,7 +76,12 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     caminho: '/admin/galeria',
     titulo: 'Galeria',
     descricao: 'Subir foto e vídeo, escrever a descrição e registrar a autorização de uso de imagem.',
-    pronta: false
+    // Virou `true` na Tarefa P3, no mesmo commit que criou app/admin/galeria/
+    // — é o que o teste de reconciliação em testes/painel-inicio.test.mjs
+    // cobra nos dois sentidos. A descrição continua falando em vídeo porque é
+    // o que a tela vai fazer; hoje só imagem entra pelo formulário (o corpo de
+    // uma Server Action vai até 8 MB — ver next.config.ts, com a medição).
+    pronta: true
   },
   {
     caminho: '/admin/atividades',

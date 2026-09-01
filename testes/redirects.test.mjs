@@ -98,7 +98,14 @@ const PAGINAS_SEM_URL_ANTIGA = [
   // nada seria inventar história; pior, criaria um 301 permanente para uma
   // tela que responde 404 a quem não é equipe.
   '/admin/publicacoes',
-  '/admin/publicacoes/editar'
+  '/admin/publicacoes/editar',
+  // Tarefa P3 do painel, mesmo motivo: "galeria" era outro dos seis becos
+  // que a home do painel antigo prometia, e o arquivo nunca existiu no
+  // diretório congelado. A tela de confirmação de apagar não tem paralelo
+  // nenhum no site antigo — ela nasceu desta tarefa, para substituir um
+  // `confirm()` do navegador, que não existe sem JavaScript.
+  '/admin/galeria',
+  '/admin/galeria/apagar'
 ];
 
 /**

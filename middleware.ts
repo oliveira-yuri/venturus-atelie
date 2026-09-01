@@ -121,6 +121,29 @@ import { comPrazo } from './compartilhado/prazo';
  * silenciosa identica a de img-src/font-src na rodada 1, um nivel abaixo.
  * Confirmado clicando de verdade em Menu -> Dicionario, nao por suposicao.
  */
+/**
+ * A origem do projeto Supabase, no formato que a CSP espera (" https://..."),
+ * ou string vazia quando nao ha projeto configurado.
+ *
+ * `new URL(...).origin` e nao a variavel crua: SUPABASE_URL pode vir com
+ * barra no fim, com caminho, ou malformada — e uma diretiva de CSP com lixo
+ * dentro nao da erro, so deixa de valer. Origem invalida vira string vazia,
+ * que e a mesma coisa que nao ter configurado: a imagem nao carrega, o que e
+ * visivel, em vez de a politica inteira ficar mal formada, que nao e.
+ */
+function hostDoSupabase(): string {
+  const url = process.env.SUPABASE_URL;
+  if (!url) return '';
+
+  try {
+    return ` ${new URL(url).origin}`;
+  } catch {
+    console.warn('[csp] SUPABASE_URL nao e uma URL valida: as fotos da galeria vao ser '
+      + 'bloqueadas pela politica de conteudo.');
+    return '';
+  }
+}
+
 export async function middleware(requisicao: NextRequest) {
   // Redirects das URLs antigas em .html (Tarefa A7, rodada de correção 1).
   // Ver o comentário grande em compartilhado/redirects-antigos.ts para o
@@ -198,7 +221,29 @@ export async function middleware(requisicao: NextRequest) {
     // inspecionar) — mas o bloqueio ao vivo, reproduzido, e evidencia
     // suficiente. NAO REMOVER sem repetir essa medicao (rodar a suite
     // sozinha nao basta).
-    `img-src 'self' data: https://vlibras.gov.br https://cdn.jsdelivr.net`,
+    // O HOST DO SUPABASE ENTRA AQUI, E SÓ AQUI — Tarefa P3 (galeria).
+    //
+    // As fotos da galeria vivem no bucket `galeria` do Storage
+    // (006_storage.sql) e sao servidas pelo host do projeto Supabase. Sem
+    // esta entrada o <img> e BLOQUEADO EM SILENCIO: a galeria fica com
+    // buracos brancos, o painel mostra miniaturas vazias, e nada aparece
+    // em teste nenhum — so no console de quem abrir a pagina.
+    //
+    // O QUE ISTO **NAO** AFROUXA, e precisa estar escrito porque parece que
+    // afrouxa: o CLAUDE.md lista o `connect-src` sem o Supabase como uma
+    // das tres camadas que impedem o NAVEGADOR de falar com o banco. Essa
+    // camada continua intacta — `img-src` permite BAIXAR IMAGEM daquele
+    // host, e nada mais. Nao permite fetch, nao permite XHR, nao permite
+    // WebSocket: a diretiva que governa isso e `connect-src`, logo abaixo,
+    // e o host do Supabase continua fora dela. E o bucket ja e publico por
+    // decisao do projeto, entao a imagem nao carrega credencial nenhuma.
+    //
+    // MONTADO EM EXECUCAO a partir de SUPABASE_URL, e nao escrito a mao:
+    // duas cópias do host (uma na variavel de ambiente, outra aqui) e a
+    // forma de a galeria quebrar no dia em que o projeto Supabase mudar.
+    // Sem a variavel, nada e acrescentado — que e o caso do modo offline
+    // da suite e o de um deploy sem as variaveis (CLAUDE.md, item 0e).
+    `img-src 'self' data: https://vlibras.gov.br https://cdn.jsdelivr.net${hostDoSupabase()}`,
     // Todos os quatro MEDIDOS de verdade (ver comentario grande no topo do
     // arquivo). vlibras.gov.br: assets redirecionados e chamadas do menu do
     // player, que roda na pagina-mae. traducao2.vlibras.gov.br: acionado por

@@ -603,3 +603,70 @@
   background: var(--cal);
   border-color: var(--tinta);
 }
+
+/* =====================================================================
+   Galeria pública (RF05) — Tarefa P3
+
+   A página existia desde a migração, sempre vazia. Estas regras só entram
+   em ação quando houver foto publicada E com autorização de uso de imagem
+   registrada — que é o que a política de `public.midia` exige (RN07, regra
+   9 do CLAUDE.md). Enquanto não houver, o que a página desenha continua
+   sendo o parágrafo de estado vazio, que já tem estilo.
+
+   Sem gesto visual novo: continua valendo o "Aplique" (estilos/tokens.css)
+   — deslocamento sólido, canto vivo, fundo chapado, nenhuma textura.
+   ===================================================================== */
+
+.album { margin: 0 0 var(--espaco-5); }
+
+.album__titulo {
+  margin: 0 0 var(--espaco-3);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+}
+
+/* UMA COLUNA NO CELULAR, e mais colunas só quando cabem inteiras. A foto de
+   uma oficina em duas colunas de 160px não mostra nada; em uma coluna, ela
+   é o conteúdo.
+
+   `minmax(15rem, 1fr)` em vez de media query: quem decide é o espaço que
+   sobra, e a medida é em `rem`, então o A+ (regra 8) muda o ponto de quebra
+   junto com o texto — que é o comportamento certo, porque quem aumenta o
+   texto quer tudo maior, não só as letras. */
+.album__fotos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* Cabe o deslocamento do aplique (8px), senão a sombra encosta na foto
+     vizinha — mesma conta das listas do painel. */
+  gap: var(--espaco-4);
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.album__item { margin: 0; }
+
+.album__figura {
+  margin: 0;
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--amarelo);
+}
+
+/* `aspect-ratio` + `object-fit: cover` dão um retângulo previsível sem
+   esticar nada — e sem depender de `width`/`height`, que a tabela `midia`
+   não guarda. Sem isto a grade "pula" enquanto as fotos carregam, porque o
+   navegador não sabe a altura antes de baixar o arquivo. */
+.album__foto {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-bottom: 2px solid var(--borda);
+}
+
+.album__legenda {
+  padding: var(--espaco-3);
+  font-size: var(--texto-base);
+  line-height: 1.5;
+}
