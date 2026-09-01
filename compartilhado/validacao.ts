@@ -738,3 +738,171 @@ export function validarMidia(campos: CamposMidia): ResultadoValidacao {
 
   return { valido: Object.keys(erros).length === 0, erros };
 }
+
+// =====================================================================
+// Atividades — o formulário de EDITAR as 11 reais (RF03/RF33, Tarefa P4)
+//
+// Mesmo lugar dos dois blocos acima, pelo mesmo motivo escrito no cabeçalho
+// deste arquivo: as três precauções de leitura de FormData valem igual, e
+// este módulo não importa nada, o que é o que permite ao `node --test`
+// exercitá-lo sem subir o Next.
+//
+// A DIFERENÇA QUE ESTE BLOCO TEM PARA O DAS PUBLICAÇÕES, e ela decide o
+// desenho inteiro da tela: aqui NÃO SE CRIA E NÃO SE APAGA. As 11
+// atividades são conteúdo da ONG, vieram no seed versionado
+// (dados-iniciais/atividades.json) e a tela existe para CORRIGIR o texto
+// delas. Por isso `id` é OBRIGATÓRIO aqui — em `lerPublicacao` o id vazio
+// significa "notícia nova"; aqui significa "requisição malformada".
+//
+// E o `id` NÃO É UUID: `public.atividades.id` é `text`
+// (supabase/migrations/002_conteudo.sql), e os valores reais são apelidos
+// legíveis — "banzo", "catirina-e-nego-dito", "brasil-negreiro". Usar
+// `ehIdentificador` (que é o uuid das publicações e da mídia) aqui
+// recusaria todas as 11.
+// =====================================================================
+
+/**
+ * O que o formulário de atividade manda — e é a lista COMPLETA do que a
+ * Action aceita. Campo que não está aqui não existe para o resto do
+ * sistema.
+ *
+ * `publicado` NÃO ESTÁ AQUI, pela mesma razão de `lerPublicacao`: corrigir
+ * um texto não é tirar do ar nem pôr no ar. São botões separados, com Action
+ * separada. E `criado_em` também não: é do banco, não de quem escreve.
+ */
+export type CamposAtividade = {
+  /** Qual das 11 está sendo corrigida. NUNCA vazio: esta tela não cria. */
+  id: string;
+  titulo: string;
+  resumo: string;
+  descricao: string;
+  genero: string;
+  duracao: string;
+  elenco: string;
+  classificacao: string;
+  local: string;
+  rider: string;
+};
+
+/**
+ * O teto da sinopse e o dos seis campos da ficha técnica.
+ *
+ * Mesma razão dos limites das publicações: as colunas são `text` no
+ * Postgres (sem limite nenhum) e a Action é endpoint HTTP público (spec
+ * §4.5). Os números vêm do uso, medidos contra o conteúdo real de
+ * dados-iniciais/atividades.json — a maior sinopse tem 1.485 caracteres e
+ * o maior campo de ficha ("elenco") tem 67. A folga é grande de propósito:
+ * o limite existe para barrar megabytes, não para brigar com a ONG por uma
+ * frase a mais.
+ *
+ * `titulo` e `resumo` reaproveitam LIMITE_TITULO/LIMITE_RESUMO lá de cima:
+ * é a mesma decisão de uso ("cabe em duas linhas de celular", "é a chamada
+ * curta"), e dois números diferentes para a mesma ideia divergiriam.
+ */
+export const LIMITE_DESCRICAO = 20_000;
+export const LIMITE_FICHA = 200;
+
+/**
+ * O formato de um id de atividade: apelido em letras minúsculas, números e
+ * hífen — "banzo", "a-cabaca-e-o-canto-ancestral".
+ *
+ * Serve para o mesmo que `ehIdentificador` faz com o uuid das publicações:
+ * recusar, ANTES de falar com o banco, o que nunca foi um identificador. A
+ * diferença é que a coluna aqui é `text`, então um id com lixo dentro não
+ * levanta erro de sintaxe no Postgres — ele simplesmente não casa com linha
+ * nenhuma, e o `update` "bem-sucedido com zero linhas" viraria "salvo!" sem
+ * nada salvo. É por isso que a recusa é escrita, e não confiada ao banco.
+ *
+ * NÃO É AUTORIZAÇÃO E NÃO PROVA QUE A LINHA EXISTE: um apelido bem formado
+ * de outra atividade passa por aqui igual. Quem decide o que pode ser lido
+ * e escrito é a RLS.
+ */
+const FORMATO_ID_ATIVIDADE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const LIMITE_ID_ATIVIDADE = 80;
+
+export function ehIdentificadorDeAtividade(valor: unknown): boolean {
+  return typeof valor === 'string'
+    && valor.length <= LIMITE_ID_ATIVIDADE
+    && FORMATO_ID_ATIVIDADE.test(valor);
+}
+
+/**
+ * Campos do formulário de atividade (componentes/FormularioAtividade.tsx).
+ *
+ * Um a um, por nome, pelo motivo do bloco "Leitura do FormData". Aqui isso
+ * tem uma consequência extra: `publicado` é coluna desta tabela e chega
+ * `true` por padrão (`not null default true`, ao contrário de
+ * `publicacoes`). Espalhar o FormData faria um `publicado=false` mandado no
+ * corpo tirar uma atividade do ar por dentro do formulário de texto.
+ */
+export function lerAtividade(dados: FormData): CamposAtividade {
+  return {
+    id: textoDoCampo(dados, 'id'),
+    titulo: textoDoCampo(dados, 'titulo'),
+    resumo: textoDoCampo(dados, 'resumo'),
+    descricao: textoDoCampo(dados, 'descricao'),
+    genero: textoDoCampo(dados, 'genero'),
+    duracao: textoDoCampo(dados, 'duracao'),
+    elenco: textoDoCampo(dados, 'elenco'),
+    classificacao: textoDoCampo(dados, 'classificacao'),
+    local: textoDoCampo(dados, 'local'),
+    rider: textoDoCampo(dados, 'rider')
+  };
+}
+
+/** Os seis campos da ficha técnica, com o rótulo que a tela usa. */
+const FICHA_DA_ATIVIDADE: Array<[keyof CamposAtividade, string]> = [
+  ['genero', 'gênero'],
+  ['duracao', 'duração'],
+  ['elenco', 'elenco'],
+  ['classificacao', 'classificação'],
+  ['local', 'local'],
+  ['rider', 'o que precisa']
+];
+
+/**
+ * TODOS os erros de uma vez — a regra do topo deste arquivo.
+ *
+ * SÓ `titulo` É OBRIGATÓRIO, e isso espelha a tabela: `titulo text not
+ * null`, todo o resto aceita nulo (002_conteudo.sql). E espelha o conteúdo
+ * real: cinco das 11 atividades não têm resumo, seis não têm sinopse, nove
+ * não têm rider. Exigir campo que a ONG não escreveu obrigaria a inventar
+ * texto, que é a regra 2 do CLAUDE.md ao contrário.
+ */
+export function validarAtividade(campos: CamposAtividade): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  // O id vem do link que a própria lista do painel montou. Esta tela não
+  // cria atividade: sem id, ou com id que nunca foi um apelido, alguém
+  // montou a requisição à mão.
+  if (!campos.id) {
+    erros.id = 'Não foi possível saber qual atividade é esta. Volte à lista e abra pelo botão '
+      + '"Editar".';
+  } else if (!ehIdentificadorDeAtividade(campos.id)) {
+    erros.id = 'Não foi possível identificar qual atividade é esta. Volte à lista e abra de novo.';
+  }
+
+  if (!campos.titulo) {
+    erros.titulo = 'Escreva o nome da atividade.';
+  } else if (campos.titulo.length > LIMITE_TITULO) {
+    erros.titulo = `O nome passou de ${LIMITE_TITULO} caracteres. Encurte um pouco.`;
+  }
+
+  if (campos.resumo.length > LIMITE_RESUMO) {
+    erros.resumo = `O resumo passou de ${LIMITE_RESUMO} caracteres. Ele é a frase curta que `
+      + 'aparece antes da sinopse.';
+  }
+
+  if (campos.descricao.length > LIMITE_DESCRICAO) {
+    erros.descricao = `A sinopse passou de ${LIMITE_DESCRICAO} caracteres.`;
+  }
+
+  for (const [campo, rotulo] of FICHA_DA_ATIVIDADE) {
+    if (campos[campo].length > LIMITE_FICHA) {
+      erros[campo] = `O campo "${rotulo}" passou de ${LIMITE_FICHA} caracteres. Ele é uma linha `
+        + 'da ficha técnica, não um parágrafo.';
+    }
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}

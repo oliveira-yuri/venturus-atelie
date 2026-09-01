@@ -114,7 +114,14 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // e a tela de confirmação de apagar, que é o que substitui um `confirm()`
   // do navegador para quem está sem JavaScript.
   '/admin/galeria',
-  '/admin/galeria/apagar'
+  '/admin/galeria/apagar',
+  // Tarefa P4: a lista das 11 atividades reais e a tela de corrigir uma
+  // delas. A tela de edição existe SÓ com `?id=` — ao contrário da de
+  // notícias, aqui não há "nova atividade" (ver o cabeçalho daquele
+  // page.tsx); sem o parâmetro ela é 404, como qualquer endereço que não
+  // existe.
+  '/admin/atividades',
+  '/admin/atividades/editar'
 ];
 
 /**

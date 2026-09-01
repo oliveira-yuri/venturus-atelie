@@ -105,7 +105,15 @@ const PAGINAS_SEM_URL_ANTIGA = [
   // nenhum no site antigo — ela nasceu desta tarefa, para substituir um
   // `confirm()` do navegador, que não existe sem JavaScript.
   '/admin/galeria',
-  '/admin/galeria/apagar'
+  '/admin/galeria/apagar',
+  // Tarefa P4 do painel, mesmo motivo: a home do painel antigo prometia
+  // "eventos", "presenca", "contatos", "mais", "doacoes" e "publicacoes" —
+  // nunca "atividades". Nenhuma URL antiga apontou para uma tela de editar
+  // atividade, porque essa tela nunca existiu; editar era, até hoje, coisa
+  // de quem desenvolve (é o que RF03 registrava como "edição pela equipe
+  // falta").
+  '/admin/atividades',
+  '/admin/atividades/editar'
 ];
 
 /**

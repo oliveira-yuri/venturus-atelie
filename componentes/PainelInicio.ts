@@ -87,7 +87,12 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     caminho: '/admin/atividades',
     titulo: 'Atividades',
     descricao: 'Corrigir o texto das atividades que aparecem na página de projetos.',
-    pronta: false
+    // Virou `true` na Tarefa P4, no mesmo commit que criou
+    // app/admin/atividades/ — é o que o teste de reconciliação em
+    // testes/painel-inicio.test.mjs cobra nos dois sentidos. A descrição
+    // continua falando só em CORRIGIR porque é só isso que a tela faz: não
+    // se cria nem se apaga atividade por ali (ver acoes/atividades.ts).
+    pronta: true
   }
 ];
 

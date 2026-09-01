@@ -7,6 +7,38 @@
  * impede as duas divergirem.
  *
  * Executar com: node ferramentas/gerar-seed.mjs
+ *
+ * =====================================================================
+ * ATENCAO — DESDE A TAREFA P4 DO PAINEL (31/08/2026) AS DUAS FONTES PODEM
+ * DIVERGIR, E ESTE GERADOR SO CONHECE UMA DELAS
+ * =====================================================================
+ *
+ * A equipe da ONG passou a corrigir o texto das 11 atividades pelo painel
+ * (/admin/atividades, RF03). Essas correcoes vao para a TABELA do Supabase
+ * e NAO voltam para dados-iniciais/atividades.json — ninguem atualiza o
+ * repositorio a partir do painel, e nem poderia (o site em producao nao
+ * grava no git).
+ *
+ * Entao, a partir da primeira correcao:
+ *
+ *  · o JSON deste diretorio passa a ser uma FOTOGRAFIA VELHA do conteudo,
+ *    nao mais o espelho do banco;
+ *  · o seed.sql gerado aqui herda essa fotografia. O
+ *    `on conflict (id) do nothing` de cada insert protege as linhas que ja
+ *    existem — ou seja, rodar este seed num banco que ja tem as 11 nao
+ *    apaga correcao nenhuma —, mas RESTAURAR um banco a partir dele
+ *    (banco novo, ou linhas apagadas antes) traz de volta o texto de antes
+ *    das correcoes.
+ *
+ * ANTES DE RODAR ISTO CONTRA UM BANCO COM CONTEUDO EDITADO PELA EQUIPE:
+ * exporte as 11 linhas da tabela `public.atividades` e atualize o JSON com
+ * o que estiver la. E o unico jeito de as duas fontes voltarem a dizer a
+ * mesma coisa.
+ *
+ * O contexto inteiro esta em servidor/dados/conteudo.ts (a fonte dupla) e
+ * em acoes/atividades.ts (onde a divergencia nasce). O aviso abaixo e
+ * impresso a CADA execucao, porque este comentario so e lido por quem abre
+ * o arquivo.
  */
 import { readFile, writeFile } from 'node:fs/promises';
 
@@ -63,3 +95,16 @@ ${inserir('clipping', ['id', 'tipo', 'titulo', 'detalhe', 'ano', 'publicado'],
 
 await writeFile(new URL('../supabase/seed.sql', import.meta.url), conteudo);
 console.log(`seed.sql gerado: ${areas.length} áreas, ${atividades.length} atividades, ${clipping.length} registros de clipping`);
+
+// O aviso da fonte dupla, impresso a cada execução — ver o cabeçalho deste
+// arquivo. Não é `console.warn` de enfeite: desde a Tarefa P4 do painel
+// (RF03) o JSON pode estar ATRÁS do banco, e este arquivo acabou de virar
+// SQL a partir dele.
+console.warn(
+  '\n[seed] ATENÇÃO: este seed sai de dados-iniciais/*.json, e desde 31/08/2026 a equipe da ONG\n'
+  + '       corrige o texto das atividades pelo painel (/admin/atividades) — correção que fica\n'
+  + '       só no banco e NÃO volta para o JSON. Se o banco de destino já foi editado pela\n'
+  + '       equipe, exporte public.atividades e atualize o JSON ANTES de usar este arquivo para\n'
+  + '       restaurar qualquer coisa: o `on conflict do nothing` protege linha existente, mas\n'
+  + '       um banco novo populado por aqui volta ao texto de antes das correções.\n'
+);

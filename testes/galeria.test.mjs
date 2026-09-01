@@ -677,7 +677,19 @@ test('/galeria continua respondendo 200 e servindo o estado vazio', async () => 
 // 6. A CSP deixando a foto carregar — e continuando a barrar o resto
 // =====================================================================
 
-test('SEM Supabase configurado, o img-src não ganha host nenhum', async () => {
+/**
+ * ESTE MEDE O SERVIDOR COMPARTILHADO DA SUÍTE, e por isso só vale no modo
+ * offline — achado na Tarefa P4, rodando `npm run test:supabase`: com as
+ * credenciais no ambiente o servidor da suíte tem SUPABASE_URL, o host entra
+ * no img-src (que é o comportamento CERTO, provado pelo teste seguinte) e
+ * este aqui ficava vermelho acusando um defeito que não existe.
+ *
+ * O irmão abaixo ("COM Supabase configurado") não tem esse problema porque
+ * sobe um servidor próprio, com ambiente próprio.
+ */
+test('SEM Supabase configurado, o img-src não ganha host nenhum',
+  { skip: process.env.COM_SUPABASE ? 'mede o modo offline; a suíte está com credenciais' : false },
+  async () => {
   const politica = (await fetch(`${BASE}/galeria`)).headers.get('content-security-policy');
 
   assert.ok(politica, 'a página não veio com política de conteúdo');

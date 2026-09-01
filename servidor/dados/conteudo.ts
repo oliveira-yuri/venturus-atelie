@@ -1,6 +1,8 @@
 import 'server-only';
 import { obterCliente } from '../supabase';
-import { temSupabase, descrever, repassarSeForControleDoNext } from './degradacao';
+import {
+  temSupabase, descrever, repassarSeForControleDoNext, consultarComEstado, type Degradavel
+} from './degradacao';
 import atividadesLocais from '@/dados-iniciais/atividades.json';
 import clippingLocal from '@/dados-iniciais/clipping.json';
 
@@ -94,17 +96,61 @@ export type Resultado<T> = {
  * O mesmo JSON e a origem do seed.sql (ferramentas/gerar-seed.mjs), entao as
  * duas fontes nascem com o mesmo conteudo real da ONG.
  *
+ * =====================================================================
+ * DESDE A TAREFA P4 DO PAINEL, AS DUAS FONTES PODEM DIVERGIR — E ISSO
+ * MUDA O QUE "DEGRADAR" SIGNIFICA AQUI
+ * =====================================================================
+ *
+ * Ate 31/08/2026 esta era uma afirmacao segura: as duas fontes dizem a
+ * mesma coisa, entao cair para o JSON custava apenas a PROCEDENCIA do
+ * dado, nunca o conteudo. A tela de /admin/atividades (RF03) e a primeira
+ * coisa do projeto que quebra essa igualdade: quando a equipe corrige um
+ * texto, o banco passa a ter a correcao e o JSON versionado continua com o
+ * texto antigo — ninguem atualiza o arquivo a partir do painel, e nem
+ * poderia (o repositorio nao e gravavel em producao).
+ *
+ * As tres consequencias, escritas porque nenhuma delas produz erro
+ * visivel:
+ *
+ *  1. QUEDA DO BANCO passa a servir texto DESATUALIZADO em /projetos, e
+ *     nao mais "o mesmo conteudo por outro caminho". O carimbo
+ *     `data-origem-atividades="json"` no <main> continua sendo como se
+ *     descobre isso de fora; o aviso [dados] no log, como se descobre de
+ *     dentro.
+ *  2. DEPLOY SEM AS VARIAVEIS do Supabase (CLAUDE.md, item 0e) tem o mesmo
+ *     efeito, permanente e silencioso: o site sobe inteiro, bonito, com o
+ *     texto de antes da correcao.
+ *  3. `npm run seed` REGENERA supabase/seed.sql a partir do JSON. Rodado
+ *     contra um banco onde a equipe ja editou, o `on conflict do nothing`
+ *     protege as linhas existentes — mas o arquivo gerado passa a ser uma
+ *     fotografia velha, e restaurar um banco a partir dele desfaz a
+ *     correcao. O aviso esta escrito em ferramentas/gerar-seed.mjs, que o
+ *     imprime a cada execucao.
+ *
+ * O QUE NAO SE FAZ AQUI, e e decisao: nada disso e "consertado" nesta
+ * tarefa. Consertar de verdade e escolher UMA fonte (perder a rede de
+ * seguranca offline) ou dar ao painel um caminho de exportacao de volta
+ * para o JSON (que e commit no repositorio, coisa que a equipe da ONG nao
+ * faz do celular). As duas sao decisao do grupo, nao de quem implementa —
+ * o que esta tarefa faz e nao deixar a armadilha sem sinalizacao: aqui, em
+ * acoes/atividades.ts, em ferramentas/gerar-seed.mjs, na tela da equipe
+ * (componentes/ListaAtividades.ts) e no CLAUDE.md.
+ *
  * temSupabase(), descrever() e repassarSeForControleDoNext() saíram deste
  * arquivo na revisão final do Bloco A e vivem em
  * servidor/dados/degradacao.ts, junto com a política de erro dos outros
  * três módulos: as três funções estavam copiadas aqui e nos outros
  * arquivos, e é a mesma decisão nos quatro.
  *
- * Este módulo NÃO usa consultarOuDegradar() de lá, de propósito: o valor
- * degradado dele não é uma lista vazia, é o JSON versionado com o mesmo
- * conteúdo real — mais o `carimbo` que prova a procedência. É a única
- * tabela do projeto que tem uma segunda fonte, e por isso a única que pode
- * degradar sem perder conteúdo.
+ * As funções PÚBLICAS deste módulo não usam consultarOuDegradar() de lá, de
+ * propósito: o valor degradado delas não é uma lista vazia, é o JSON
+ * versionado com o mesmo conteúdo real — mais o `carimbo` que prova a
+ * procedência. É a única tabela do projeto que tem uma segunda fonte, e por
+ * isso a única que pode degradar sem perder conteúdo.
+ *
+ * As duas funções do PAINEL, no fim do arquivo, usam consultarComEstado() e
+ * NÃO caem para o JSON — o porquê está escrito lá, e é o outro lado desta
+ * mesma decisão.
  */
 
 /**
@@ -248,4 +294,84 @@ export async function listarAtividades(): Promise<Atividade[]> {
 
 export async function listarClipping(): Promise<RegistroClipping[]> {
   return (await listarClippingComOrigem()).registros;
+}
+
+// =====================================================================
+// A LEITURA DO PAINEL (RF03/RF33, Tarefa P4)
+//
+// As duas funções abaixo são as únicas deste arquivo que NÃO caem para o
+// JSON versionado. É a decisão mais importante da tarefa, e ela é o
+// contrário da política do resto do módulo:
+//
+//   · /projetos é página pública. Se o banco não responde, servir o JSON
+//     com o mesmo conteúdo real é melhor que servir uma página vazia;
+//   · o PAINEL é a tela de edição. Servir o JSON ali seria desenhar uma
+//     lista de 11 atividades com botão "Editar" ao lado de cada uma,
+//     sabendo que nenhum daqueles textos é o que está no banco e que o
+//     `update` da Action não tem linha para acertar. A equipe corrigiria o
+//     texto, a Action responderia "esta atividade não está mais no banco",
+//     e a explicação estaria a três camadas de distância.
+//
+// Então aqui a falha é DECLARADA: `Degradavel<T>`, com `degradou` chegando
+// à tela, que mostra o aviso de falha em vez do estado vazio — a mesma
+// escolha (e o mesmo motivo) de servidor/dados/publicacoes.ts e
+// servidor/dados/galeria.ts para as listas da equipe.
+//
+// `publicado` VEM NA CONSULTA, ao contrário de `listarAtividadesComOrigem`:
+// a tela do painel precisa DESENHAR se a atividade está no ar, e é essa
+// informação que decide qual botão aparece. Na página pública ele é só
+// filtro, e quem filtra é a RLS.
+//
+// QUEM AUTORIZA CONTINUA SENDO A RLS: a política de `atividades` é
+// `using (publicado or public.eh_equipe())` (002_conteudo.sql). Estas
+// funções não têm `.eq('publicado', ...)` nenhum — para quem não é equipe o
+// Postgres devolveria só as publicadas, mesmo que a página fosse aberta.
+// =====================================================================
+
+/**
+ * Uma atividade como o PAINEL precisa dela: tudo o que a página pública
+ * mostra, mais o estado de publicação.
+ */
+export type AtividadeDoPainel = Atividade & { publicado: boolean };
+
+/** Os campos da tabela que alguma tela do painel de fato lê. */
+const COLUNAS_DO_PAINEL =
+  'id, titulo, resumo, descricao, genero, duracao, elenco, classificacao, local, rider, publicado';
+
+/**
+ * As atividades para a lista da equipe — publicadas e fora do ar, em ordem
+ * de título.
+ *
+ * Ordena por `titulo` como a consulta pública, e não por data: a lista é
+ * fechada (11 registros que a ONG escreveu, sem criar nem apagar), então o
+ * que a equipe faz aqui é PROCURAR uma pela outra, e ordem alfabética é o
+ * que torna isso possível numa tela de celular.
+ */
+export async function listarAtividadesDoPainel(): Promise<Degradavel<AtividadeDoPainel[]>> {
+  return consultarComEstado<AtividadeDoPainel[]>('atividades (painel)', async () =>
+    (await obterCliente())
+      .from('atividades')
+      .select(COLUNAS_DO_PAINEL)
+      .order('titulo'),
+  []);
+}
+
+/**
+ * Uma atividade pelo id, para a tela de edição.
+ *
+ * DEVOLVE `Degradavel` pelo mesmo motivo de `buscarPublicacao`: sem a
+ * distinção, uma queda do Supabase apareceria para a equipe como se a
+ * atividade tivesse sumido — e a reação natural a isso é achar que o
+ * painel apagou conteúdo da ONG.
+ */
+export async function buscarAtividadeDoPainel(
+  id: string
+): Promise<Degradavel<AtividadeDoPainel | null>> {
+  return consultarComEstado<AtividadeDoPainel | null>('atividades (por id)', async () =>
+    (await obterCliente())
+      .from('atividades')
+      .select(COLUNAS_DO_PAINEL)
+      .eq('id', id)
+      .maybeSingle(),
+  null);
 }

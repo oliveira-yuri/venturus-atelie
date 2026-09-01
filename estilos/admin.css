@@ -586,3 +586,196 @@ a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
 
   .apagar__botao { display: inline-block; width: auto; padding: var(--espaco-3) var(--espaco-5); }
 }
+
+/* =====================================================================
+   Atividades (RF03) — Tarefa P4
+
+   Duas telas: a lista das 11 (/admin/atividades) e a de corrigir uma
+   (/admin/atividades/editar). Continua valendo tudo do topo deste arquivo:
+   uma coluna, alvo de toque inteiro, nada que dependa de mouse, nada de
+   `vw` em texto.
+
+   O QUE ESTA TELA TEM DE DIFERENTE DAS OUTRAS: ela é a única com
+   formulário LONGO — dez campos. Daí a `<details>` da ficha técnica, que é
+   elemento nativo e por isso funciona sem JavaScript (ver o cabeçalho de
+   componentes/FormularioAtividade.tsx).
+
+   O aplique aqui é MARROM, e não o azul das notícias nem o amarelo da home
+   do painel: as três cores são as da ONG, com significado declarado por
+   eles (regra 3), e usar uma por tela é o que faz a pessoa reconhecer onde
+   está antes de ler o título — num celular, com o dedo já rolando.
+   ===================================================================== */
+
+.atividades-painel {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  /* O gap precisa caber o deslocamento do aplique (8px), senão a sombra de
+     um cartão encosta no cartão de baixo — mesma conta de .publicacoes. */
+  gap: var(--espaco-4);
+}
+
+.atividade-painel {
+  margin: 0;
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--marrom);
+}
+
+/* NO AR e FORA DO AR não se distinguem só pela cor: a palavra está escrita
+   no cartão (componentes/ListaAtividades.ts). O que muda aqui é o PESO
+   visual — fora do ar é contorno, no ar é preenchido —, para que a
+   diferença sobreviva também em alto contraste, onde a paleta some. Mesma
+   regra de .publicacao__estado, e de propósito: são a mesma ideia em telas
+   diferentes. */
+.atividade-painel__estado {
+  display: inline-block;
+  margin: 0 0 var(--espaco-2);
+  padding: var(--espaco-1) var(--espaco-2);
+  border: 2px solid var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta);
+  background: transparent;
+}
+
+.atividade-painel__estado--no-ar { background: var(--amarelo); }
+
+.atividade-painel__titulo {
+  margin: 0 0 var(--espaco-1);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.atividade-painel__resumo {
+  margin: 0 0 var(--espaco-3);
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+  line-height: 1.5;
+}
+
+/* Os dois botões lado a lado quando cabem, empilhados quando não — `wrap`
+   em vez de media query, porque quem decide é o tamanho do texto (que a
+   pessoa pode aumentar com o A+), não a largura da tela. */
+.atividade-painel__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.atividade-painel__form { margin: 0; }
+
+/* Um <a> e um <button> com a MESMA cara, de propósito: para quem usa, os
+   dois são "um botão". A diferença de tag é semântica (navegar x agir) e
+   importa para o leitor de tela, não para o dedo. */
+.atividade-painel__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.atividade-painel__botao:hover { background: var(--tinta); color: var(--cal); }
+
+/* "Pôr de volta" é o gesto que devolve a atividade ao site: carrega a cor
+   da ONG. "Tirar do ar" fica neutro — não vermelho de "perigo", porque não
+   há perda nenhuma (o texto continua guardado; ver ListaAtividades.ts). */
+.atividade-painel__botao--publicar { background: var(--amarelo); }
+.atividade-painel__botao--publicar:hover { background: var(--tinta); color: var(--amarelo); }
+
+/* ---------- O formulário de corrigir ---------- */
+
+/* A sinopse é o campo mais longo do painel inteiro (a maior das 11 tem
+   1.485 caracteres). Mesma conta do `textarea[name="corpo"]` das notícias,
+   e pelo mesmo motivo: revisar o terceiro parágrafo dentro de uma caixinha
+   de cinco linhas obriga a rolar dentro de algo que já rola. Em `rem`,
+   então cresce com o A+ (regra 8). */
+.painel__conteudo .campo textarea[name="descricao"] { min-height: 18rem; }
+
+/* A FICHA TÉCNICA DOBRADA. `<details>` nativo: abre e fecha sem uma linha
+   de JavaScript. Tem cara de alvo de toque porque é um — o `<summary>` é o
+   que a pessoa aperta. */
+.painel__dobra {
+  margin: 0 0 var(--espaco-4);
+  border: 2px solid var(--borda);
+  background: var(--cal);
+}
+
+/* DEFEITO MEDIDO E CORRIGIDO NESTA TAREFA, visto abrindo a tela (regra 10)
+   e não pelos testes, que estavam verdes: com `display: flex` aqui, Firefox
+   e Chrome descartam o triângulo nativo do <summary> — o bloco fechado
+   ficava com cara de caixa de título, sem nenhuma marca de que abre. A
+   correção é a seta do `::after` abaixo, escrita à mão; `list-style: none`
+   e o pseudo do WebKit ficam para que ela seja a ÚNICA marca, em todos os
+   navegadores, em vez de conviver com um triângulo nativo em alguns. */
+.painel__dobra-titulo {
+  display: block;
+  position: relative;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2) var(--espaco-5) var(--espaco-2) var(--espaco-3);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.painel__dobra-titulo::-webkit-details-marker { display: none; }
+
+.painel__dobra-titulo::after {
+  content: '▾';
+  position: absolute;
+  top: var(--espaco-2);
+  right: var(--espaco-3);
+  font-size: var(--texto-medio);
+}
+
+.painel__dobra[open] > .painel__dobra-titulo::after { content: '▴'; }
+
+/* O que tem lá dentro, dito com o bloco fechado: num celular, isto evita
+   abrir só para conferir. Em `--corpo` e peso normal para não competir com
+   o nome do bloco, que está em fonte de display. */
+.painel__dobra-dica {
+  display: block;
+  margin-top: var(--espaco-1);
+  font-family: var(--corpo);
+  font-size: var(--texto-pequeno);
+  font-weight: 400;
+  color: var(--tinta-suave);
+}
+
+/* Os campos de dentro recebem o respiro que o cartão não dá sozinho. O
+   seletor pega tudo que não é o <summary> — sem isso, o primeiro campo
+   nasce colado na borda. */
+.painel__dobra > *:not(summary) {
+  margin-left: var(--espaco-3);
+  margin-right: var(--espaco-3);
+}
+
+.painel__dobra > *:last-child { margin-bottom: var(--espaco-3); }
+
+.painel__dobra-ajuda {
+  margin-top: 0;
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+@media (min-width: 34rem) {
+  .atividade-painel { padding: var(--espaco-4); }
+}

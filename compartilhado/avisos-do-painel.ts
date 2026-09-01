@@ -129,3 +129,48 @@ export function avisoDaGaleria(valor: unknown): AvisoDoPainel | null {
   // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
   return Object.hasOwn(AVISOS_DA_GALERIA, valor) ? AVISOS_DA_GALERIA[valor] : null;
 }
+
+/**
+ * Os avisos das ATIVIDADES (RF03/RF33, Tarefa P4) — lista separada das
+ * outras duas, pelo mesmo motivo escrito acima: as frases são de assuntos
+ * diferentes e envelhecem separadamente.
+ *
+ * DUAS FRASES DAQUI DIZEM ALGO QUE NENHUMA OUTRA TELA DO PAINEL PRECISA
+ * DIZER, e é a armadilha desta tarefa: as atividades têm DUAS fontes. O
+ * texto vive no banco E numa cópia versionada dentro do próprio site
+ * (dados-iniciais/atividades.json), que é o que /projetos mostra quando o
+ * banco não responde — ver o cabeçalho de servidor/dados/conteudo.ts. A
+ * partir do momento em que a equipe corrige um texto por aqui, as duas
+ * deixam de dizer a mesma coisa, e a cópia do site fica velha. Dizer isso
+ * na tela é a única forma de a equipe entender o dia em que o texto antigo
+ * reaparecer sozinho — sem esta frase, aquilo parece o painel ter perdido a
+ * correção.
+ */
+const AVISOS_DE_ATIVIDADES: Record<string, AvisoDoPainel> = {
+  salva: {
+    texto: 'Correção guardada. A página de projetos já mostra o texto novo.',
+    ok: true
+  },
+  publicada: {
+    texto: 'De volta ao ar. A atividade aparece outra vez na página de projetos.',
+    ok: true
+  },
+  retirada: {
+    texto: 'Tirada do ar. A atividade sumiu da página de projetos e continua guardada aqui, com '
+      + 'o texto inteiro. Atenção: se o banco de dados ficar fora do ar, o site mostra a cópia '
+      + 'antiga guardada dentro dele, e nela esta atividade ainda aparece.',
+    ok: true
+  },
+  erro: {
+    texto: 'Não deu para fazer isso agora. Tente de novo em alguns instantes — se continuar, '
+      + 'nenhum texto foi perdido.',
+    ok: false
+  }
+};
+
+export function avisoDeAtividades(valor: unknown): AvisoDoPainel | null {
+  if (typeof valor !== 'string') return null;
+
+  // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
+  return Object.hasOwn(AVISOS_DE_ATIVIDADES, valor) ? AVISOS_DE_ATIVIDADES[valor] : null;
+}

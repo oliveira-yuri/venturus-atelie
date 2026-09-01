@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (544 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (510)
+npm test                        # suíte completa, modo offline (630 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (631)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,7 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 544 são 532 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
+Os 630 são 618 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
 (RF33), que descrevem requisitos válidos cuja forma de verificar depende de uma sessão de
 equipe, que ainda não existe (ver "O que trava hoje", itens 1 e 2). Os 19 que entraram em
 31/08/2026 são da Tarefa P1 do painel: `testes/painel-guarda.test.mjs` (a guarda, a falha
@@ -49,7 +49,15 @@ fechada e o não-vazamento) e `testes/painel-inicio.test.mjs` (a home). Os 35 de
 são da Tarefa P2 (`testes/publicacoes.test.mjs`): a validação do formulário de notícia, o
 que as duas telas desenham, a varredura que exige `ehEquipe()` em toda Server Action de
 publicações — a de `painel-guarda` cobre `app/admin/**` e NÃO alcança Action — e o 404 das
-rotas novas. Dois
+rotas novas. Os de `testes/galeria.test.mjs` são da Tarefa P3, e os 34 de 01/09/2026, em
+`testes/atividades.test.mjs`, são da Tarefa P4: o identificador de atividade (que é `text`,
+não uuid), a validação do formulário de dez campos, o que a lista da equipe desenha, a
+varredura que exige `ehEquipe()` em toda Action de atividades **e que não exista `insert`
+nem `delete` ali**, e a que exige que a leitura do PAINEL não caia para o JSON versionado.
+No modo `test:supabase` a contagem é 631, um a mais e um pulado a mais: o teste do `img-src`
+"sem Supabase" (`testes/galeria.test.mjs`) mede o servidor compartilhado da suíte e só vale
+no modo offline — ficava vermelho com credenciais, e a Tarefa P4 o marcou com `skip` nesse
+modo (o irmão "com Supabase" sobe servidor próprio e continua medindo). Dois
 dos pulados nasceram na revisão final do Bloco A: `ROTAS_PENDENTES` está vazia desde a A6, e
 os testes que iteravam sobre ela passavam sem verificar nada — pular com motivo escrito é a
 contagem honesta.
@@ -132,8 +140,14 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   por isso o metadata do painel é `generateMetadata` guardado.
 - **Camada de dados isolada e só do servidor:** páginas falam com `servidor/dados/*.ts`, nunca com
   `supabase-js` direto, e todo módulo de `servidor/` começa com `import 'server-only'`.
-- **Fonte dupla:** `servidor/dados/conteudo.ts` lê o JSON versionado de `dados-iniciais/` quando não
-  há Supabase e a tabela quando há.
+- **Fonte dupla, e desde a Tarefa P4 ela pode DIVERGIR:** `servidor/dados/conteudo.ts` lê o
+  JSON versionado de `dados-iniciais/` quando não há Supabase e a tabela quando há. Até P4 as
+  duas diziam a mesma coisa; agora a equipe corrige o texto das atividades pelo painel, e a
+  correção fica só no banco. Consequências no item 0k de "O que trava hoje". As DUAS leituras
+  do painel (`listarAtividadesDoPainel`, `buscarAtividadeDoPainel`) NÃO caem para o JSON, de
+  propósito — desenhar 11 atividades com "Editar" ao lado sabendo que aquele texto não é o do
+  banco é oferecer um gesto que não pode dar certo. Há teste que falha se alguém unificar as
+  duas leituras (`testes/atividades.test.mjs`).
 - **Uma política de erro só, em `servidor/dados/degradacao.ts`:** nenhum módulo de dados lança
   para cima. Banco fora do ar degrada — `conteudo.ts` para o JSON versionado (que tem o mesmo
   conteúdo real e carimba a procedência), `eventos`/`acervo`/`voluntariado` para lista vazia,
@@ -153,7 +167,8 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
 - **Toda Server Action do painel chama `ehEquipe()` sozinha.** A varredura de
   `testes/painel-guarda.test.mjs` exige a guarda em toda página de `app/admin/**` e **não
   alcança Action** — Action é endpoint HTTP público (spec §4.5) e não passa por página nem por
-  layout. `testes/publicacoes.test.mjs` tem a varredura irmã, para as Actions. MEDIDO em
+  layout. `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs` e
+  `testes/atividades.test.mjs` têm a varredura irmã, uma para cada arquivo de Action. MEDIDO em
   01/09/2026, sem JavaScript, com as guardas das PÁGINAS desligadas de propósito: o envio chega
   à Action, a guarda dela recusa e o formulário volta preenchido.
 - **Publicar é um ato separado de escrever.** `salvarPublicacao` não conhece a coluna
@@ -161,6 +176,15 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   muda por `alternarPublicacao`, que é um `<form>` com botão próprio. Ao publicar, `publicado_em`
   só é carimbado se ainda for nulo (corrigir e republicar não é republicar); ao tirar do ar, a
   data FICA — ela é um fato, e apagá-la seria destruir informação num gesto sem desfazer.
+- **Nas atividades, `publicado` nasce `true` — o contrário de `publicacoes`.** É a coluna real
+  (`not null default true`, `002_conteudo.sql`), e a consequência inverte o risco: numa notícia
+  o descuido põe algo no ar sem querer; numa atividade ele TIRA do ar conteúdo que a ONG tem
+  publicado. O remédio é o mesmo — `salvarAtividade` não conhece a coluna, e quem muda é
+  `alternarAtividade`, botão separado. E a tela de atividades **não cria e não apaga**: as 11
+  vieram da ONG pelo seed, apagar não tem desfazer, e criar sem poder apagar deixaria a equipe
+  sem saída depois de um toque errado no celular (regra 4). O banco permite as duas (`for all`);
+  quem recusa é `acoes/atividades.ts`, e há teste que falha no dia em que um `insert` ou um
+  `delete` aparecer ali.
 - **Design "Aplique":** um gesto só — deslocamento sólido que simula peça costurada. Nenhuma
   textura de fundo repetida. Fontes servidas localmente, sem Google Fonts.
 
@@ -168,8 +192,8 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
 
 ## Status por módulo
 
-Atualizado em 31/08/2026 (Tarefa P1 do painel; antes disso, fim do Bloco A da fase 2,
-rodada de correção 1). O status descreve
+Atualizado em 01/09/2026 (Tarefas P2, P3 e P4 do painel; antes disso, P1 em 31/08 e o fim do
+Bloco A da fase 2, rodada de correção 1). O status descreve
 **esta branch**, já sem o `site/` estático — e por isso foi conferido linha a linha contra o que
 existe aqui, não contra o que existia na `main`.
 
@@ -206,7 +230,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 |---|---|---|
 | RF01 | Página inicial | **pronto** |
 | RF02 | Quem somos | **pronto** |
-| RF03 | Projetos e atividades (11, do banco) | **pronto** — edição pela equipe falta |
+| RF03 | Projetos e atividades (11, do banco) | **pronto**, agora inclusive a edição pela equipe (Tarefa P4, 01/09): `/admin/atividades` lista as 11 e `/admin/atividades/editar?id=` corrige nome, resumo, sinopse e ficha técnica. **Só editar**: não cria e não apaga (o banco permite; a tela não oferece, e diz por quê). Tirar do ar/pôr de volta existe, num botão separado. Ninguém percorreu o caminho autenticado — não há sessão de equipe |
 | RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem DENTRO de uma publicação continua faltando: a P3 fez a galeria (`public.midia`), não `publicacoes.imagem_caminho` |
 | RF05 | Galeria | **tela e envio prontos** (Tarefa P3, 01/09/2026) — `/galeria` lê `public.midia` (`servidor/dados/galeria.ts`, agrupando por álbum) e a equipe sobe foto, publica, tira do ar e apaga em `/admin/galeria`. A tabela está VAZIA e **nenhum byte foi escrito no bucket por este código**, em ambiente nenhum: falta sessão de equipe. RN07 honrada em três camadas independentes (RLS do banco, guarda dentro da Action, tela). Só IMAGEM — vídeo não cabe no limite de corpo de uma Server Action (ver `next.config.ts`) |
 | RF06 | Contato institucional | **pronto** |
@@ -223,7 +247,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. Provado contra o Auth real só o caminho da recusa: **entrar de verdade ninguém conseguiu ainda**, porque não existe conta confirmada (item 1 e item 2 de "O que trava hoje"). A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva |
 | RF11 | Área do usuário | **falta** — Bloco B |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
-| RF33 | Painel administrativo | **a primeira tela de trabalho existe** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). Falta atividades (P4). Quem não é equipe recebe **404** nas cinco rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável. O que FOI medido sem sessão está nos relatórios de P2/P3 e em `testes/publicacoes.test.mjs` e `testes/galeria.test.mjs` |
+| RF33 | Painel administrativo | **a primeira tela de trabalho existe** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). P4 (01/09) fechou o bloco com **atividades**: `/admin/atividades` (as 11 reais, com tirar do ar/pôr de volta) e `/admin/atividades/editar?id=` (corrigir o texto — sem criar e sem apagar). Quem não é equipe recebe **404** nas sete rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável. O que FOI medido sem sessão está nos relatórios de P2/P3/P4 e em `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs` e `testes/atividades.test.mjs` |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
 ### M3 — Eventos
@@ -491,6 +515,36 @@ revisitada e mantida naquela tarefa.
    resolve o caso da RN07** (autorização retirada, foto de criança subida por engano): só
    "Apagar" resolve, porque ele remove o arquivo do bucket — e é por isso que a galeria tem
    apagar e a tela de notícias não.
+0k. **A fonte dupla das atividades passou a poder DIVERGIR, e nada disso dá erro visível.**
+   Nasceu com a Tarefa P4 (01/09/2026): a equipe corrige o texto das 11 atividades em
+   `/admin/atividades`, a correção vai para `public.atividades` e **não volta** para
+   `dados-iniciais/atividades.json` — ninguém atualiza o repositório a partir do painel, e
+   nem poderia (o site em produção não grava no git). A partir da primeira correção:
+   1. **queda do banco passa a servir texto DESATUALIZADO** em `/projetos`, e não mais "o
+      mesmo conteúdo por outro caminho". O carimbo `data-origem-atividades` no `<main>`
+      continua sendo como se descobre isso de fora, e o aviso `[dados]` no log, de dentro;
+   2. **deploy sem as variáveis do Supabase** (item 0e) faz o mesmo, de forma permanente e
+      silenciosa: o site sobe inteiro, bonito, com o texto de antes das correções;
+   3. **`npm run seed` regenera `supabase/seed.sql` a partir do JSON.** O
+      `on conflict (id) do nothing` protege as linhas que já existem — rodar o seed num banco
+      que já tem as 11 não apaga correção nenhuma —, mas **restaurar** um banco a partir dele
+      (banco novo, ou linhas apagadas antes) traz de volta o texto velho. O gerador imprime
+      esse aviso a cada execução, e `testes/atividades.test.mjs` falha se ele sumir.
+
+   **Como voltar a alinhar as duas fontes:** exportar `public.atividades` e atualizar
+   `dados-iniciais/atividades.json` com o que estiver lá, antes de qualquer restauração.
+   Consertar de verdade é decisão do GRUPO, não de quem implementa: ou escolher uma fonte só
+   (perdendo a rede de segurança offline) ou dar ao painel um caminho de exportação para o
+   JSON, que é commit no repositório — coisa que a equipe da ONG não faz do celular. A
+   sinalização está em cinco lugares: `servidor/dados/conteudo.ts`, `acoes/atividades.ts`,
+   `ferramentas/gerar-seed.mjs`, a própria tela da equipe (aviso permanente em
+   `componentes/ListaAtividades.ts`, mais a frase do "tirar do ar") e este item.
+   **Uma segunda ponta, para quando houver correção de verdade no banco:** dois testes de
+   `testes/paginas.test.mjs` afirmam o conteúdo de hoje — "mostra as onze atividades" e a
+   lista `ATIVIDADES_SEM_SINOPSE`. No modo offline eles continuam determinísticos (leem o
+   JSON); em `npm run test:supabase`, a primeira atividade tirada do ar ou o primeiro resumo
+   preenchido pela equipe deixa um deles vermelho — será a suíte cobrando conteúdo, não
+   defeito de código.
 
 **Do projeto, válidos para as duas branches:**
 
@@ -506,13 +560,19 @@ revisitada e mantida naquela tarefa.
    criá-la pelo painel do Supabase com *Auto Confirm User* (item 2).
 2. **Não existe conta de administrador.** Criar pelo painel do Supabase com *Auto Confirm User* e
    promover com `update public.perfis set eh_equipe = true where email = '...'`.
-3. **O painel existe, e ninguém o viu pelo caminho normal.** A Tarefa P1 (31/08/2026)
-   construiu a fundação: guarda, home e estilo. O que trava é o mesmo do item 1 — sem sessão
+3. **O painel existe INTEIRO (P1 a P4), e ninguém o viu pelo caminho normal.** A Tarefa P1
+   (31/08/2026) construiu a fundação: guarda, home e estilo; P2, P3 e P4 (01/09/2026) as três
+   telas de trabalho. O que trava é o mesmo do item 1 — sem sessão
    de equipe, **o caminho autenticado nunca foi percorrido**: a home do painel foi conferida
    com o navegador só depois de um remendo local temporário no `ehEquipe()`, que não foi
    commitado, e por teste de unidade do componente (`testes/painel-inicio.test.mjs`). Não
    existe porta de diagnóstico para o painel, de propósito — uma variável que abra o painel
-   é uma variável que abre o painel, e as telas de P2/P3/P4 penduram dado pessoal ali.
+   é uma variável que abre o painel, e as telas de P2/P3/P4 penduram dado pessoal ali. A P4
+   conferiu as duas telas dela com o navegador de outro jeito, declarado no relatório:
+   montando os COMPONENTES REAIS com o CSS real numa bancada local (`react-dom/server` +
+   um `http` de brinquedo), a 375px e a 1280px. É a tela desenhada, não a tela servida —
+   foi assim que se viu que o `<summary>` da ficha técnica tinha perdido o triângulo de
+   "isto abre" por causa de um `display: flex` (regra 10 de novo).
    Os 12 `test.todo` de `testes/painel.test.mjs` guardam os requisitos
    (RF33/RNF08/RN01/RN05) — 9 continuam `todo` porque medem a tela renderizada (alvo de
    44px, sem rolagem horizontal, navegação na zona do polegar) e ela exige a sessão; 3 foram
