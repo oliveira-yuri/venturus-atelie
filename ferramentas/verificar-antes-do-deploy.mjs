@@ -1,14 +1,15 @@
 /**
  * Guardiao do deploy.
  *
- * OITO secoes, nesta ordem: (1) o aceite bloqueante da secao 12 do escopo
+ * NOVE secoes, nesta ordem: (1) o aceite bloqueante da secao 12 do escopo
  * roda de verdade; (2) o teste de vazamento E o de procedencia do dado
  * rodam contra um build feito COM as credenciais; (3) os diretorios que
  * vao ao ar sao varridos atras de
  * chave secreta; (4) nenhum .html solto em public/; (5) os VALORES das
  * variaveis de ambiente; (6) RLS em toda tabela; (7) grant em toda tabela;
  * (8) o bucket `galeria` ja e privado? — a unica que ALERTA sem bloquear,
- * pelo motivo escrito la embaixo.
+ * pelo motivo escrito la embaixo; (9) netlify.toml e vercel.json dizem a
+ * mesma coisa, agora que o projeto pode rodar nas duas plataformas.
  * As secoes 2 a 5 nasceram na revisao final da fase 1 — as tres ultimas
  * estavam previstas na spec §7.3 e nunca tinham sido feitas, e a varredura
  * ainda olhava `site/`, que deixou de ser o que a Netlify publica. A
@@ -195,7 +196,11 @@ const DIRETORIOS_PUBLICADOS = [
   {
     caminho: '.next',
     obrigatorio: true,
-    porque: 'é o que netlify.toml publica',
+    // `publish = ".next"` no netlify.toml; na Vercel e o que ela produz
+    // sozinha ao detectar Next.js, sem ninguem declarar (por isso o
+    // vercel.json nao tem `outputDirectory` — ver vercel.json.LEIA-ME.txt).
+    // Nos dois casos e o diretorio que vai ao ar, e e ele que se varre.
+    porque: 'é o que vai ao ar nas duas plataformas',
     // .next empacota bibliotecas de terceiros. O @supabase/supabase-js
     // carrega, no proprio codigo, `e.startsWith("sb_secret_")` e a mensagem
     // "Double check your Supabase `anon` or `service_role` API key" — o
@@ -554,6 +559,169 @@ if (ambiente.SUPABASE_URL) {
         + `  Motivo: ${motivo || 'resposta em formato desconhecido'}\n`
         + '  Duvida aqui NUNCA vira silencio: confira a mao antes de anunciar o endereco.\n'
         + '  Ver "O que trava hoje", item 0j.'
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
+// 9. As DUAS configuracoes de plataforma dizem a mesma coisa
+//
+// Nasceu quando o projeto passou a poder rodar na Netlify E na Vercel. A
+// Netlify le `netlify.toml` e IGNORA `vercel.json`; a Vercel faz o
+// contrario. Ou seja: o mesmo cabecalho precisa estar escrito duas vezes,
+// em duas sintaxes, e nada no mundo obriga as duas a concordarem.
+//
+// POR QUE ISTO E UM PORTAO E NAO UM ALERTA. Divergencia aqui e da familia
+// de defeito que este projeto ja registrou meia duzia de vezes: nao produz
+// sintoma. Com o site numa plataforma so, o arquivo da OUTRA nao faz nada —
+// entao um X-Robots-Tag esquecido, um Cache-Control diferente ou um
+// X-Frame-Options a menos passam por toda a suite, por toda a revisao, e so
+// aparecem no dia da troca de plataforma, que e o pior dia para descobrir.
+//
+// O QUE ELE COMPARA: os VALORES dos cabecalhos, nao os caminhos. Os
+// caminhos NAO dao para comparar — a Netlify escreve `/fontes/*` e a Vercel
+// usa path-to-regexp (`/fontes/:caminho*`), e exigir que fossem iguais seria
+// exigir que uma das duas estivesse errada.
+//
+// O QUE ELE NAO VERIFICA, e precisa ficar dito: se algum dos dois arquivos
+// tem EFEITO. Nenhum dos dois foi exercitado num deploy real — a Netlify
+// nunca publicou esta branch e a Vercel nunca recebeu este projeto
+// (CLAUDE.md, "O que trava hoje", item 0). Isto e coerencia entre textos.
+// ---------------------------------------------------------------------
+
+/**
+ * Os cabecalhos declarados no netlify.toml, so os que estao mesmo dentro de
+ * um bloco `[headers.values]`.
+ *
+ * Um regex solto de `Chave = "valor"` pegaria tambem `NPM_FLAGS` e
+ * `NODE_VERSION`, que vivem em `[build.environment]` e nao sao cabecalho
+ * nenhum. Dai a maquina de estados: so coleta enquanto a ultima secao vista
+ * for `[headers.values]`. Linha de comentario e ignorada de proposito — o
+ * bloco de advertencia da previa MENCIONA `X-Robots-Tag` varias vezes, e sem
+ * isso apagar a diretiva de verdade e deixar o comentario passaria batido.
+ * (Mesmo cuidado de testes/noindex.test.mjs.)
+ */
+function cabecalhosDoNetlifyToml(texto) {
+  const encontrados = new Map();
+  let dentroDeHeaders = false;
+
+  for (const bruta of texto.split('\n')) {
+    const linha = bruta.trim();
+    if (linha.startsWith('#') || linha === '') continue;
+
+    if (linha.startsWith('[')) {
+      dentroDeHeaders = linha === '[headers.values]';
+      continue;
+    }
+
+    if (!dentroDeHeaders) continue;
+
+    const casou = linha.match(/^([A-Za-z0-9-]+)\s*=\s*"(.*)"\s*$/);
+    if (casou) encontrados.set(casou[1].toLowerCase(), casou[2]);
+  }
+
+  return encontrados;
+}
+
+/** Os cabecalhos declarados no vercel.json, achatados como os de cima. */
+function cabecalhosDoVercelJson(config) {
+  const encontrados = new Map();
+  const regras = Array.isArray(config.headers) ? config.headers : [];
+
+  for (const regra of regras) {
+    const lista = Array.isArray(regra?.headers) ? regra.headers : [];
+    for (const { key, value } of lista) {
+      if (typeof key === 'string' && typeof value === 'string') {
+        encontrados.set(key.toLowerCase(), value);
+      }
+    }
+  }
+
+  return encontrados;
+}
+
+const CONFIGS_DE_PLATAFORMA = [
+  { caminho: 'netlify.toml', plataforma: 'Netlify' },
+  { caminho: 'vercel.json', plataforma: 'Vercel' }
+];
+
+const faltando = CONFIGS_DE_PLATAFORMA.filter(({ caminho }) => !existsSync(caminho));
+
+if (faltando.length > 0) {
+  for (const { caminho, plataforma } of faltando) {
+    relatar(
+      `Configuração de plataforma ausente: ${caminho}`,
+      `${caminho} não existe, e é o que a ${plataforma} lê.\n`
+      + '  As duas plataformas ficam configuradas de propósito: a que não está no ar é a\n'
+      + '  rede de segurança da que está. Apagar uma delas não quebra o deploy de hoje —\n'
+      + '  quebra o de amanhã, em silêncio. Ver vercel.json.LEIA-ME.txt.'
+    );
+  }
+} else {
+  // O companheiro do vercel.json e OBRIGATORIO, e o motivo esta escrito
+  // nele: a Vercel recusa comentario dentro do JSON, entao a advertencia
+  // da previa nao cabe no arquivo. Se este LEIA-ME sumir, a advertencia
+  // some com ele — que e literalmente o que aconteceu com site/robots.txt
+  // na Tarefa A8, e o motivo de metade das travas deste repositorio.
+  if (!existsSync('vercel.json.LEIA-ME.txt')) {
+    relatar(
+      'vercel.json.LEIA-ME.txt sumiu',
+      'O vercel.json não aceita comentário (a Vercel recusa o deploy inteiro), então a\n'
+      + '  advertência de PRÉVIA daquele arquivo — um dos QUATRO lugares do noindex — mora\n'
+      + '  nesse LEIA-ME. Sem ele, quem abrir o vercel.json no dia do lançamento não vê\n'
+      + '  aviso nenhum.\n'
+      + '  Já aconteceu uma vez: a instrução original vivia em site/robots.txt e morreu\n'
+      + '  junto com o diretório na Tarefa A8.'
+    );
+  }
+
+  const textoNetlify = await readFile('netlify.toml', 'utf8');
+  const brutoVercel = await readFile('vercel.json', 'utf8');
+
+  let configVercel = null;
+  try {
+    configVercel = JSON.parse(brutoVercel);
+  } catch (erro) {
+    relatar(
+      'vercel.json não é JSON válido',
+      `${erro.message}\n`
+      + '  A Vercel valida o arquivo contra um schema e recusa o deploy INTEIRO — inclusive\n'
+      + '  por causa de comentário (`//`), que ela não aceita, e de chave de topo que ela\n'
+      + '  não conheça. Ver vercel.json.LEIA-ME.txt.'
+    );
+  }
+
+  if (configVercel) {
+    const naNetlify = cabecalhosDoNetlifyToml(textoNetlify);
+    const naVercel = cabecalhosDoVercelJson(configVercel);
+
+    const divergencias = [];
+
+    for (const nome of new Set([...naNetlify.keys(), ...naVercel.keys()])) {
+      const daNetlify = naNetlify.get(nome);
+      const daVercel = naVercel.get(nome);
+
+      if (daNetlify === undefined) {
+        divergencias.push(`${nome}: só no vercel.json ("${daVercel}") — falta no netlify.toml`);
+      } else if (daVercel === undefined) {
+        divergencias.push(`${nome}: só no netlify.toml ("${daNetlify}") — falta no vercel.json`);
+      } else if (daNetlify !== daVercel) {
+        divergencias.push(`${nome}: netlify.toml diz "${daNetlify}", vercel.json diz "${daVercel}"`);
+      }
+    }
+
+    if (divergencias.length > 0) {
+      relatar(
+        'netlify.toml e vercel.json discordam sobre os cabeçalhos',
+        divergencias.map((linha) => `  · ${linha}`).join('\n') + '\n'
+        + '  Os dois arquivos precisam dizer a MESMA coisa: cada plataforma lê o seu e ignora\n'
+        + '  o do outro, então a diferença só aparece no dia em que o site trocar de\n'
+        + '  plataforma — e aí ninguém vai procurar aqui.\n'
+        + '  Os CAMINHOS são diferentes de propósito (a Netlify escreve /fontes/*, a Vercel\n'
+        + '  /fontes/:caminho*); o que precisa bater é o VALOR de cada cabeçalho.\n'
+        + '  Se um deles é o X-Robots-Tag: leia vercel.json.LEIA-ME.txt antes de mexer — ele\n'
+        + '  é a camada de PRÉVIA, e sai no lançamento junto com outros três.'
       );
     }
   }

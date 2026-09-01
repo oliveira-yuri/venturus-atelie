@@ -17,25 +17,29 @@ import type { MetadataRoute } from 'next';
  * Este arquivo devolve as duas coisas: o robots e a instrução.
  *
  * =====================================================================
- * PRÉVIA: REMOVER NO LANÇAMENTO — E SÃO TRÊS LUGARES, NÃO SÓ ESTE.
+ * PRÉVIA: REMOVER NO LANÇAMENTO — E SÃO QUATRO LUGARES, NÃO SÓ ESTE.
  *
  *   1. este arquivo: trocar o `disallow: '/'` por `allow: '/'`;
  *   2. `X-Robots-Tag` em middleware.ts (procure por "PREVIA") — vale para
- *      as páginas renderizadas;
+ *      as páginas renderizadas, nas duas plataformas;
  *   3. `X-Robots-Tag` em netlify.toml — vale para o que a CDN serve
- *      direto, inclusive os caminhos que o `matcher` do middleware exclui.
+ *      direto, inclusive os caminhos que o `matcher` do middleware exclui;
+ *   4. `X-Robots-Tag` em vercel.json — o equivalente do 3 na outra
+ *      plataforma, desde que o projeto passou a poder rodar nas duas. O
+ *      aviso inteiro está em `vercel.json.LEIA-ME.txt`, e mora num arquivo
+ *      separado porque a Vercel recusa comentário dentro do `vercel.json`.
  *
- * Os três saem JUNTOS. Fazer um só não produz erro visível nenhum: o site
+ * Os quatro saem JUNTOS. Fazer um só não produz erro visível nenhum: o site
  * sobe, as pessoas navegam, os testes passam, e o site simplesmente não
  * aparece em busca. Um `X-Robots-Tag: noindex` que sobreviva vence este
  * arquivo — robots.txt controla o RASTREIO, o cabeçalho controla a
  * INDEXAÇÃO, e a ONG precisa dos dois abertos para ser encontrada.
  *
- * Quando os três saírem, apagar também a entrada correspondente em
+ * Quando os quatro saírem, apagar também a entrada correspondente em
  * "O que trava hoje", no CLAUDE.md — e o segundo teste de
  * `testes/noindex.test.mjs`, que existe para quebrar exatamente uma vez, no
  * lançamento. Esse arquivo é o que impede tudo isto de depender de alguém
- * ler três comentários: ele mede os três e falha se um sair sozinho.
+ * ler quatro avisos: ele mede os quatro e falha se um sair sozinho.
  * =====================================================================
  *
  * `sitemap` fica de fora de propósito: não existe `app/sitemap.ts` neste
@@ -124,7 +128,7 @@ export default function robots(): MetadataRoute.Robots {
       //
       // Enquanto a prévia dura, `'/'` já bloqueia tudo e as duas rotas são
       // redundantes. Elas estão aqui desde já porque o dia do lançamento é
-      // o dia de mexer em três arquivos ao mesmo tempo, e é o pior momento
+      // o dia de mexer em quatro arquivos ao mesmo tempo, e é o pior momento
       // para lembrar de acrescentar uma exceção que ninguém escreveu ainda.
       // `testes/noindex.test.mjs` tem um teste só para elas, que NÃO sai no
       // lançamento — ao contrário do teste de "modo prévia", que sai.

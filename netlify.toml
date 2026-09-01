@@ -27,9 +27,29 @@
   # `@netlify/plugin-nextjs@5.15.13` exige `>=18.0.0`, entao 24.15.0
   # satisfaz os dois com folga e e o unico numero que alguem de fato rodou.
   #
-  # SAO TRES DECLARACOES DA MESMA VERSAO, de proposito: `.nvmrc` (para quem
-  # desenvolve), `engines` no package.json (para o npm avisar) e esta
-  # (para a Netlify). Mudou uma, mudar as tres.
+  # SAO TRES DECLARACOES, e desde a entrada da Vercel elas NAO DIZEM MAIS A
+  # MESMA COISA — de proposito, e a diferenca importa:
+  #
+  #   · `.nvmrc` = 24.15.0 EXATO. Para quem desenvolve: e o unico numero em
+  #     que a suite de fato rodou;
+  #   · esta linha (NODE_VERSION) = 24.15.0 EXATO. A Netlify aceita patch
+  #     exato e e ela quem esta no ar hoje, entao aqui nao se afrouxa nada;
+  #   · `engines.node` no package.json = ">=22.0.0", FAIXA. Mudou nesta
+  #     tarefa, e o motivo e a Vercel: ela le `engines.node` e SO OFERECE
+  #     MAJOR ("24.x", "22.x", "20.x" — "Only major versions are available.
+  #     Vercel automatically rolls out minor and patch updates when needed",
+  #     https://vercel.com/docs/functions/runtimes/node-js/node-js-versions).
+  #     Um patch exato como "24.15.0" nao casa com nenhuma versao que ela
+  #     oferece, e o risco e recusa do build na PRIMEIRA tentativa. A mesma
+  #     pagina documenta que ">=20.0.0" resolve para a ultima 24.x, que e a
+  #     forma de ">=22.0.0".
+  #
+  # Consequencia a dizer em voz alta: `engines` deixou de travar a versao e
+  # passou a so descartar Node velho demais. Quem trava continua sendo
+  # `.nvmrc` (aqui) e a linha abaixo (Netlify); na Vercel, quem trava e o
+  # seletor de Node.js em Settings -> Build and Deployment, que precisa
+  # ficar em 24.x para bater com o que foi testado. NAO CONFERIDO: o projeto
+  # nunca foi importado na Vercel (CLAUDE.md, "O que trava hoje", item 0).
   NODE_VERSION = "24.15.0"
 
 # Versao FIXADA na revisao final do Bloco A.
@@ -72,26 +92,36 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-Frame-Options = "DENY"
     # =================================================================
-    # PREVIA: REMOVER NO LANCAMENTO — E SAO TRES LUGARES, NAO UM.
+    # PREVIA: REMOVER NO LANCAMENTO — E SAO QUATRO LUGARES, NAO UM.
     #
     #   1. esta linha (netlify.toml) — vale para o que a CDN serve;
-    #   2. `X-Robots-Tag` em middleware.ts (procure por "PREVIA");
-    #   3. `app/robots.ts` — trocar o Disallow por Allow.
+    #   2. `X-Robots-Tag` em vercel.json (bloco `source: "/(.*)"`) — o
+    #      equivalente desta linha na outra plataforma. Entrou quando o
+    #      projeto passou a poder rodar nas duas; ver vercel.json.LEIA-ME.txt,
+    #      que existe porque vercel.json NAO ACEITA COMENTARIO;
+    #   3. `X-Robots-Tag` em middleware.ts (procure por "PREVIA");
+    #   4. `app/robots.ts` — trocar o Disallow por Allow.
     #
-    # Os tres precisam sair JUNTOS, e nenhum deles produz erro visivel se
+    # Os quatro precisam sair JUNTOS, e nenhum deles produz erro visivel se
     # for esquecido:
     #
     #   - deixar so este: o site vai ao ar invisivel para buscador em tudo
     #     que a CDN da Netlify servir, servido normalmente para pessoas;
+    #   - deixar so o da Vercel: idem, na outra plataforma;
     #   - deixar so o do middleware: mesmo efeito nas paginas renderizadas;
     #   - deixar so o robots.ts: buscador nem rastreia.
     #
+    # E ha um jeito NOVO de errar, que nasceu com a segunda plataforma: com
+    # o site em UMA delas, o arquivo da OUTRA nao tem efeito nenhum, entao
+    # esquece-lo nao muda nada hoje — e o site volta invisivel no dia em que
+    # mudar de plataforma. Por isso 1 e 2 saem juntos mesmo com um so no ar.
+    #
     # A instrucao original vivia em site/robots.txt e foi apagada junto com
-    # o diretorio na Tarefa A8. Nao repetir isso: se um dia estes tres
+    # o diretorio na Tarefa A8. Nao repetir isso: se um dia estes quatro
     # sairem, apagar tambem a entrada de "O que trava hoje" no CLAUDE.md.
     #
     # Isto NAO depende de alguem ler este comentario:
-    # testes/noindex.test.mjs mede os tres e falha se um sair sozinho.
-    # Provado removendo cada um dos tres, um de cada vez.
+    # testes/noindex.test.mjs mede os quatro e falha se um sair sozinho.
+    # Provado removendo cada um dos quatro, um de cada vez.
     # =================================================================
     X-Robots-Tag = "noindex, nofollow"

@@ -303,18 +303,22 @@ export async function middleware(requisicao: NextRequest) {
   resposta.headers.set('X-Content-Type-Options', 'nosniff');
   resposta.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   resposta.headers.set('X-Frame-Options', 'DENY');
-  // PREVIA: REMOVER NO LANCAMENTO — E SAO TRES LUGARES, NAO SO ESTE:
-  //   1. esta linha (middleware.ts) — vale para as paginas renderizadas;
+  // PREVIA: REMOVER NO LANCAMENTO — E SAO QUATRO LUGARES, NAO SO ESTE:
+  //   1. esta linha (middleware.ts) — vale para as paginas renderizadas,
+  //      nas DUAS plataformas (este arquivo roda em Netlify e em Vercel);
   //   2. `X-Robots-Tag` em netlify.toml — vale para o que a CDN serve
   //      direto, inclusive os caminhos que o `matcher` daqui exclui;
-  //   3. `app/robots.ts` — trocar o `disallow` por `allow`.
-  // Nenhum dos tres, esquecido sozinho, produz erro visivel: o site sobe,
+  //   3. `X-Robots-Tag` em vercel.json (bloco `source: "/(.*)"`) — o
+  //      equivalente do 2 na outra plataforma. O aviso completo esta em
+  //      vercel.json.LEIA-ME.txt, porque vercel.json nao aceita comentario;
+  //   4. `app/robots.ts` — trocar o `disallow` por `allow`.
+  // Nenhum dos quatro, esquecido sozinho, produz erro visivel: o site sobe,
   // as pessoas navegam normalmente, e so o buscador some. Ate a revisao
   // final do Bloco A este comentario dizia "remover no lancamento" sem
   // dizer que havia outros dois — e quem seguisse so ele publicaria um
   // site invisivel achando que tinha terminado. Desde entao ha teste que
-  // NAO deixa isso passar: testes/noindex.test.mjs mede os tres e falha se
-  // um sair sozinho.
+  // NAO deixa isso passar: testes/noindex.test.mjs mede os quatro e falha
+  // se um sair sozinho.
   resposta.headers.set('X-Robots-Tag', 'noindex, nofollow');
 
   // O outro lado da renovação: o token novo precisa CHEGAR ao navegador,

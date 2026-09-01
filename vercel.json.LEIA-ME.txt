@@ -1,0 +1,84 @@
+POR QUE ESTE ARQUIVO EXISTE, E NAO UM COMENTARIO DENTRO DO vercel.json
+======================================================================
+
+O `vercel.json` nao aceita comentario. Nao e gosto nosso e nao e teimosia
+de parser generico: a Vercel valida o arquivo contra um schema e recusa o
+deploy inteiro com "Invalid vercel.json file provided" se houver `//` ou
+`/* */`, e recusa tambem qualquer chave de topo que ela nao conheca
+("should NOT have additional property"). Ou seja, nao ha como escrever
+`"//": "aviso"` la dentro — a lista fechada de chaves de topo esta em
+https://vercel.com/docs/project-configuration/vercel-json e nenhuma delas
+carrega texto livre. A unica chave extra documentada como aceita e
+`$schema`, e ela so aceita uma URL.
+
+Entao o aviso mora aqui, ao lado. E para ele NAO morrer sozinho (foi
+exatamente o que aconteceu com a instrucao que vivia em `site/robots.txt`
+e sumiu com o diretorio na Tarefa A8), `ferramentas/verificar-antes-do-deploy.mjs`
+BLOQUEIA o deploy se existir `vercel.json` sem este arquivo do lado.
+
+
+=====================================================================
+PREVIA: REMOVER NO LANCAMENTO — E SAO QUATRO LUGARES, NAO TRES.
+=====================================================================
+
+Ate esta tarefa eram tres. A entrada da Vercel fez o quarto:
+
+  1. `X-Robots-Tag` em `vercel.json` (o bloco `source: "/(.*)"`) — vale
+     para tudo que a Vercel serve;
+  2. `X-Robots-Tag` em `netlify.toml` — vale para o que a CDN da Netlify
+     serve direto, inclusive os caminhos que o `matcher` do middleware
+     exclui (`_next/static`, `favicon.ico`, `fontes/`);
+  3. `X-Robots-Tag` em `middleware.ts` (procure por "PREVIA") — vale para
+     as paginas renderizadas, nas DUAS plataformas;
+  4. `app/robots.ts` — trocar o `disallow: '/'` por `allow: '/'`.
+
+Os quatro saem JUNTOS. Nenhum deles, esquecido sozinho, produz erro
+visivel: o site sobe, as pessoas navegam, a suite fica verde, e o Atelie
+simplesmente nao aparece em busca nenhuma. Um `X-Robots-Tag: noindex` que
+sobreviva vence o `robots.txt` — robots.txt controla o RASTREIO, o
+cabecalho controla a INDEXACAO, e a ONG precisa dos dois abertos para ser
+encontrada.
+
+ATENCAO ao numero 1 e ao numero 2 juntos: com o site em UMA plataforma so,
+o arquivo da outra nao tem efeito nenhum. Isso e justamente o que torna
+facil esquece-lo — e o dia em que o site voltar para a outra plataforma,
+por queda ou por decisao, ele volta invisivel. Por isso os dois saem
+juntos, mesmo que so um esteja no ar.
+
+Isto NAO depende de alguem ler este arquivo: `testes/noindex.test.mjs`
+mede os QUATRO e falha se um sair sozinho. Quando os quatro sairem juntos,
+apagar tambem o segundo teste daquele arquivo (o de "modo previa", que
+existe para quebrar uma vez so) e o item 0c de "O que trava hoje" no
+CLAUDE.md. O terceiro teste daquele arquivo — o das rotas que ficam fora
+do buscador para sempre — NAO sai.
+
+
+O QUE MAIS ESTA NO vercel.json, E O QUE NAO ESTA
+================================================
+
+ESTA: o `Cache-Control` de um ano para `/fontes/*`, que na Netlify vem do
+`netlify.toml`, e os tres cabecalhos de seguranca do bloco `/*` de la
+(`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`). O
+`middleware.ts` ja poe esses tres nas PAGINAS; os dois arquivos de
+plataforma existem para o que e servido sem passar pelo middleware.
+
+Os padroes de caminho NAO sao os mesmos nos dois arquivos, e isso e da
+plataforma, nao descuido: a Netlify escreve `/fontes/*`, a Vercel usa
+path-to-regexp e escreve `/fontes/:caminho*`. Mudou um, conferir o outro —
+o verificador de deploy compara os VALORES dos cabecalhos entre os dois
+arquivos justamente porque os caminhos nao dao para comparar direto.
+
+NAO ESTA, de proposito:
+
+  · o `Content-Security-Policy`. Ele leva um nonce novo por requisicao e so
+    pode ser montado no `middleware.ts` — arquivo de configuracao nao tem
+    como gerar valor por visita. Isso vale igual nas duas plataformas;
+  · `buildCommand`, `outputDirectory`, `framework`. A Vercel detecta Next.js
+    sozinha, e escrever a mao o que ela ja acerta e mais uma coisa para
+    divergir do `netlify.toml`. NAO MEDIDO contra a Vercel: o projeto nunca
+    foi importado la (ver "O que trava hoje", item 0, no CLAUDE.md);
+  · os 14 redirects das URLs antigas com `.html`. Eles vivem em
+    `middleware.ts` (`compartilhado/redirects-antigos.ts`) porque so assim
+    um `Cache-Control` explicito sobrevive na resposta, e o middleware roda
+    nas duas plataformas. Duplica-los aqui criaria duas fontes de verdade
+    para a mesma regra.

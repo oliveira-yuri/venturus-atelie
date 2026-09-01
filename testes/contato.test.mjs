@@ -190,19 +190,65 @@ test('um File no lugar de um campo de texto não vira a string "[object File]"',
 // 2. A origem do visitante (a metade do site da migration 007)
 // =====================================================================
 
-test('o cabeçalho da Netlify vence o x-forwarded-for — a ordem é a defesa contra forjar o balde', () => {
-  // `x-forwarded-for` pode ser mandado por quem faz a requisição: se ele
-  // viesse primeiro, trocar de balde a cada envio seria trivial e o limite
-  // não existiria. `x-nf-client-connection-ip` é escrito pela plataforma.
-  const ler = (nome) => ({
-    'x-nf-client-connection-ip': '203.0.113.7',
-    'x-forwarded-for': '198.51.100.1',
-    'x-real-ip': '198.51.100.2'
-  })[nome];
+/**
+ * Os cabeçalhos escritos PELA PLATAFORMA, um por hospedagem suportada.
+ *
+ * Nenhuma das duas escreve o da outra, então na prática só um existe por
+ * requisição — mas os dois precisam vencer o `x-forwarded-for`, que é o
+ * único da lista que quem faz a requisição consegue mandar.
+ *
+ * Os nomes vieram da documentação de cada plataforma, não de memória; o de
+ * onde saiu cada um está no bloco de segurança de
+ * `compartilhado/origem-do-visitante.ts`. O da Vercel NUNCA foi visto numa
+ * requisição de verdade: o projeto nunca foi publicado lá.
+ */
+const CABECALHOS_DE_PLATAFORMA = [
+  ['Netlify', 'x-nf-client-connection-ip'],
+  ['Vercel', 'x-vercel-forwarded-for']
+];
 
-  assert.equal(ipDoVisitante(ler), '203.0.113.7');
-  assert.equal(CABECALHOS_DE_IP[0], 'x-nf-client-connection-ip',
-    'a ordem dos cabeçalhos mudou — ver o bloco de segurança em compartilhado/origem-do-visitante.ts');
+for (const [plataforma, cabecalho] of CABECALHOS_DE_PLATAFORMA) {
+  test(`o cabeçalho da ${plataforma} (${cabecalho}) vence o x-forwarded-for — a ordem é a defesa contra forjar o balde`, () => {
+    // `x-forwarded-for` pode ser mandado por quem faz a requisição: se ele
+    // viesse primeiro, trocar de balde a cada envio seria trivial e o
+    // limite não existiria. O cabeçalho da plataforma é escrito por ela.
+    const ler = (nome) => ({
+      [cabecalho]: '203.0.113.7',
+      'x-forwarded-for': '198.51.100.1',
+      'x-real-ip': '198.51.100.2'
+    })[nome];
+
+    assert.equal(ipDoVisitante(ler), '203.0.113.7');
+  });
+}
+
+test('TODO cabeçalho de plataforma vem antes do x-forwarded-for na lista', () => {
+  // Afirmação por PROPRIEDADE, não por posição. Antes isto era
+  // `CABECALHOS_DE_IP[0] === 'x-nf-client-connection-ip'`, o que travava o
+  // índice 0 e não dizia nada sobre um segundo cabeçalho de plataforma —
+  // acrescentar o da Vercel na frente do da Netlify teria quebrado o teste
+  // sem nada de errado ter acontecido, e acrescentá-lo DEPOIS do
+  // `x-forwarded-for` (que é o erro de verdade) teria passado.
+  const forjavel = CABECALHOS_DE_IP.indexOf('x-forwarded-for');
+  assert.notEqual(forjavel, -1, 'x-forwarded-for saiu da lista');
+
+  for (const [plataforma, cabecalho] of CABECALHOS_DE_PLATAFORMA) {
+    const posicao = CABECALHOS_DE_IP.indexOf(cabecalho);
+    assert.notEqual(
+      posicao, -1,
+      `${cabecalho} (${plataforma}) sumiu de CABECALHOS_DE_IP — o limite de envio naquela `
+      + 'plataforma passa a ser contado pelo x-forwarded-for, e ninguém vê diferença nenhuma '
+      + 'até chegar o envio em massa.'
+    );
+    assert.ok(
+      posicao < forjavel,
+      `${cabecalho} (${plataforma}) ficou DEPOIS de x-forwarded-for.\n`
+      + '  x-forwarded-for é mandado por quem faz a requisição: com ele na frente, qualquer\n'
+      + '  pessoa troca de balde a cada envio e o limite de 30/hora por origem deixa de\n'
+      + '  existir, sem erro nenhum aparecer. Ver o bloco de segurança em\n'
+      + '  compartilhado/origem-do-visitante.ts.'
+    );
+  }
 });
 
 test('x-forwarded-for é uma lista, e quem interessa é o primeiro da fila', () => {

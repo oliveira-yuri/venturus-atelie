@@ -209,31 +209,111 @@ function estadoDeFalha(erro: unknown, rotulo: string): EstadoFormulario {
  * Ordem, e por quê:
  *  1. `URL_DO_SITE` — a variável desta aplicação. É a única que alguém
  *     configura à mão, e a que vence todas as outras. PRECISA SER CADASTRADA
- *     NO PAINEL DA NETLIFY (Site configuration → Environment variables) com o
- *     endereço público, sem barra no fim. Sem prefixo `NEXT_PUBLIC_`: isto é
- *     lido só no servidor e não pode ser embutido no bundle do navegador.
+ *     NO PAINEL DA PLATAFORMA (Netlify: Site configuration → Environment
+ *     variables; Vercel: Settings → Environment Variables) com o endereço
+ *     público, sem barra no fim. Sem prefixo `NEXT_PUBLIC_`: isto é lido só
+ *     no servidor e não pode ser embutido no bundle do navegador.
  *  2. `DEPLOY_PRIME_URL` e `URL` — a Netlify injeta as duas sozinha.
  *     DEPLOY_PRIME_URL vem primeiro porque num branch deploy ela é o endereço
  *     COM o prefixo da branch, enquanto URL é sempre o de produção.
- *  3. Os cabeçalhos da requisição — para desenvolvimento local, onde nenhuma
+ *  3. `VERCEL_PROJECT_PRODUCTION_URL` — a Vercel injeta sozinha. Só uma, e a
+ *     escolha entre as três candidatas está no bloco A ESCOLHA DA VARIÁVEL
+ *     DA VERCEL, abaixo. Vem depois das da Netlify por acidente de ordem, não
+ *     por precedência: as duas plataformas nunca injetam ao mesmo tempo.
+ *  4. Os cabeçalhos da requisição — para desenvolvimento local, onde nenhuma
  *     das outras existe e quebrar seria pior.
  *
- * SOBRE O PASSO 3: `Host` é cabeçalho do cliente, ou seja, controlado por
+ * ===================================================================
+ * A ESCOLHA DA VARIÁVEL DA VERCEL, E POR QUE ERRAR AQUI É INVISÍVEL
+ * ===================================================================
+ *
+ * Errar o NOME de uma variável desta cadeia não quebra nada que se veja: a
+ * inexistente devolve `undefined`, o `||` segue adiante, o passo 4 usa o
+ * `Host` da requisição, e o link do e-mail sai montado e plausível. O
+ * sintoma só aparece do outro lado, no Supabase, que ignora em silêncio
+ * qualquer `redirectTo` fora da lista de Redirect URLs e manda a pessoa para
+ * o Site URL. É a família de defeito que este projeto já registrou várias
+ * vezes: sobe, fica verde, e está errado.
+ *
+ * Por isso os nomes daqui NÃO foram escritos de memória. Os três candidatos
+ * estão em https://vercel.com/docs/environment-variables/system-environment-variables
+ * (consultada em 01/09/2026), e o que a doc diz de cada um:
+ *
+ *  · `VERCEL_URL` — "The domain name of the generated deployment URL", ou
+ *    seja, o endereço ÚNICO daquele deploy, novo a cada publicação. Nunca
+ *    estaria na lista de Redirect URLs do Supabase, que é fixa. A própria
+ *    doc ainda avisa que ela "cannot be used in conjunction with Standard
+ *    Deployment Protection". RECUSADA;
+ *  · `VERCEL_BRANCH_URL` — o endereço `*-git-<branch>.vercel.app`. É a
+ *    análoga exata de `DEPLOY_PRIME_URL`, e seria a tradução mais literal.
+ *    RECUSADA mesmo assim: ela também existe no deploy de PRODUÇÃO, então
+ *    pô-la antes faria o e-mail de produção apontar para o endereço de
+ *    branch em vez do domínio da ONG — e apontar para um endereço que
+ *    funciona é justamente o erro que ninguém percebe;
+ *  · `VERCEL_PROJECT_PRODUCTION_URL` — "A production domain name of the
+ *    project... this is always set, even in preview deployments. This is
+ *    useful to reliably generate links that point to production". ESCOLHIDA:
+ *    é estável, é UMA entrada só na lista do Supabase, e a doc recomenda
+ *    exatamente este uso.
+ *
+ * O PREÇO DA ESCOLHA, dito em voz alta: num preview deploy da Vercel o link
+ * do e-mail aponta para PRODUÇÃO. Quem quiser medir autenticação num preview
+ * precisa cadastrar `URL_DO_SITE` naquele ambiente — o passo 1 vence, e é
+ * para isso que ele existe.
+ *
+ * AS DA VERCEL NÃO TRAZEM `https://`, AS DA NETLIFY TRAZEM. A doc é
+ * explícita nas três: "The value does not include the protocol scheme
+ * https://". `DEPLOY_PRIME_URL` e `URL` da Netlify vêm com o esquema. Sem
+ * normalizar, o `redirectTo` sairia como `atelie.com.br/auth/confirm` — sem
+ * esquema, ou seja, caminho relativo, e de novo nada quebraria de forma
+ * visível. `comEsquema()` resolve, e há teste para os dois formatos.
+ *
+ * NADA DISTO FOI EXERCITADO CONTRA A VERCEL: o projeto nunca foi importado
+ * lá (CLAUDE.md, "O que trava hoje", item 0). O que está verificado é a
+ * DOCUMENTAÇÃO do nome, não o valor chegando. A primeira publicação é que
+ * responde — e o jeito de conferir em dez segundos é abrir um e-mail de
+ * recuperação e olhar o domínio do link.
+ *
+ * SOBRE O PASSO 4: `Host` é cabeçalho do cliente, ou seja, controlado por
  * quem chama. Um `Host: site-falso.exemplo` faria o link do e-mail apontar
  * para lá. Duas coisas limitam o estrago, e nenhuma delas está neste arquivo:
  * o Supabase só aceita `redirectTo` que esteja na lista de Redirect URLs do
  * projeto (Authentication → URL Configuration) e ignora o resto, caindo no
  * Site URL; e a Netlify normaliza o Host do que entra pela CDN. Ainda assim,
- * o passo 3 é rede de segurança para desenvolvimento — em produção,
+ * o passo 4 é rede de segurança para desenvolvimento — em produção,
  * `URL_DO_SITE` deve estar cadastrada, e é isso que torna a questão teórica.
+ * Na Vercel o passo 4 é ainda mais improvável de ser alcançado, porque o
+ * passo 3 está sempre presente ("this is always set, even in preview
+ * deployments"); mas isso é promessa de documentação, e a checagem de
+ * formato abaixo continua valendo para as duas plataformas.
  * O formato é checado abaixo para não montar URL com lixo dentro.
  */
+/**
+ * Acrescenta `https://` a quem vier sem esquema, e tira a barra do fim.
+ *
+ * Existe por causa da diferença entre as plataformas, medida na
+ * documentação de cada uma: `DEPLOY_PRIME_URL`/`URL` (Netlify) trazem
+ * `https://` na frente; `VERCEL_PROJECT_PRODUCTION_URL` NÃO traz. Uma
+ * `URL_DO_SITE` digitada à mão pode vir de qualquer um dos dois jeitos.
+ *
+ * `http://` de desenvolvimento é preservado — só o que não tem esquema
+ * nenhum recebe `https://`.
+ */
+function comEsquema(valor: string): string {
+  const limpo = valor.trim().replace(/\/+$/, '');
+  if (limpo === '') return '';
+  return /^https?:\/\//i.test(limpo) ? limpo : `https://${limpo}`;
+}
+
 async function urlBaseDoSite(): Promise<string> {
   const configurada = process.env.URL_DO_SITE
     || process.env.DEPLOY_PRIME_URL
-    || process.env.URL;
+    || process.env.URL
+    // Vercel. NOME CONFERIDO NA DOCUMENTAÇÃO, NÃO CONTRA A PLATAFORMA — ver
+    // o bloco "A ESCOLHA DA VARIÁVEL DA VERCEL" acima antes de trocar.
+    || process.env.VERCEL_PROJECT_PRODUCTION_URL;
 
-  if (configurada) return configurada.replace(/\/+$/, '');
+  if (configurada) return comEsquema(configurada);
 
   const cabecalhos = await headers();
   const host = cabecalhos.get('x-forwarded-host') || cabecalhos.get('host') || '';
