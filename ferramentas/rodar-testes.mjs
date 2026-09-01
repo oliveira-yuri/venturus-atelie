@@ -72,7 +72,16 @@ const arquivosPedidos = process.argv.slice(2);
 const chaveErrada = process.env.COM_SUPABASE === 'chave-errada';
 const comSupabase = process.env.COM_SUPABASE === '1' || chaveErrada;
 
-const porta = 3123;
+// A porta era FIXA em 3123, e isso virou gargalo em 01/09/2026, quando o
+// trabalho passou a rodar em varias frentes ao mesmo tempo, cada uma no seu
+// worktree: duas suites disputavam a mesma porta e uma ficava esperando a
+// outra terminar. MEDIDO — um agente relatou a espera.
+//
+// PORTA_TESTES permite dar uma porta propria a cada frente; sem ela, o
+// padrao continua 3123, entao nada muda para quem roda `npm test` sozinho.
+// Nao sorteio porta livre de proposito: numero sorteado torna a falha
+// dificil de reproduzir, e o que se quer aqui e reproduzir.
+const porta = Number(process.env.PORTA_TESTES) || 3123;
 
 /**
  * O ambiente do build e do servidor, conforme o modo.
