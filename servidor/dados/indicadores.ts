@@ -77,8 +77,20 @@ const PRAZO_DA_CONTAGEM_MS = 3_000;
 
 type Cliente = Awaited<ReturnType<typeof obterCliente>>;
 
-/** O que uma consulta de contagem devolve — a forma do PostgREST com `head`. */
-type RespostaDeContagem = { count: number | null; error: unknown };
+/**
+ * O que uma consulta de contagem devolve — a forma do PostgREST com `head`.
+ *
+ * `status` entra por MEDIÇÃO, não por completude. Com `head: true` o
+ * PostgREST responde SEM CORPO, e um erro chega como um objeto de
+ * `message` VAZIA: a linha de log saía literalmente
+ * `Motivo: {"message":""}` — medido em 01/09/2026, contra o Supabase real,
+ * com sessão anônima (a mesma consulta em `contatos`, sem `head`, diz
+ * "permission denied for table contatos | código 42501"). Um aviso que não
+ * distingue "sem permissão" de "tabela renomeada" custa a próxima hora de
+ * quem for procurar. O código HTTP é a única coisa que sobra quando não há
+ * corpo.
+ */
+type RespostaDeContagem = { count: number | null; error: unknown; status?: number };
 
 /**
  * A consulta de cada número, e a TABELA que ela toca (que é o que vai para o
@@ -176,9 +188,15 @@ async function contar(chave: ChaveDeIndicador, cliente: Cliente): Promise<number
     }
 
     if (resposta.error) {
+      // O `status` vem junto porque a resposta de um `head` não tem corpo —
+      // ver o comentário de RespostaDeContagem. 401/403 é chave ou sessão,
+      // 404 é tabela/coluna que não existe mais.
+      const motivo = descrever(resposta.error);
+      const codigo = resposta.status ? ` (HTTP ${resposta.status})` : '';
+
       console.warn(
-        `[dados] "${tabela}": a contagem de "${chave}" não voltou. A home do painel mostra um `
-        + `traço no lugar do número. Motivo: ${descrever(resposta.error)}`
+        `[dados] "${tabela}": a contagem de "${chave}" não voltou${codigo}. A home do painel `
+        + `mostra um traço no lugar do número. Motivo: ${motivo}`
       );
       return null;
     }

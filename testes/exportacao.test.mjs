@@ -330,9 +330,16 @@ test('a rota de exportação usa a lista fechada, e não o segmento cru da URL',
     'sem `no-store` a CDN pode guardar um arquivo com a lista de contatos da ONG');
   assert.match(codigo, /content-disposition/,
     'sem Content-Disposition o CSV abre como texto na tela em vez de ser salvo');
-  assert.match(codigo, /degradou/,
+  // `if (degradou)`, e não só a palavra `degradou` em algum lugar: ela
+  // aparece de qualquer forma no `const { valor, degradou } = ...`. MEDIDO
+  // na rodada de prova desta tarefa — trocando `if (degradou)` por
+  // `if (false)`, um teste que só procurasse a palavra continuava VERDE.
+  assert.match(codigo, /if\s*\(\s*degradou\s*\)/,
     'a rota precisa recusar o download quando a consulta falha — um CSV vazio AFIRMA que não '
-    + 'há ninguém na lista');
+    + 'há ninguém na lista, e o engano vira anexo de e-mail');
+  assert.match(codigo, /redirect\(`\$\{PAINEL\}\?aviso=exportacao-erro`\)/,
+    'a recusa precisa levar a equipe de volta ao painel com a frase — sem isso o download '
+    + 'simplesmente não acontece, e isso se lê como "o botão não funciona"');
 });
 
 // ---------------------------------------------------------------------
