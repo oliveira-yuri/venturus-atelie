@@ -69,6 +69,62 @@ function contemRecusaDePolitica(texto) {
     || (/Content-Security-Policy/i.test(texto) && /bloque|blocked/i.test(texto));
 }
 
+/**
+ * Espera a condicao final de um dos tres testes que dependem do BACKEND do
+ * VLibras (traducao2/dicionario2, servidores do governo federal) — e, no
+ * timeout, decide entre FALHAR e PULAR olhando o console.
+ *
+ * POR QUE ISTO EXISTE. Estes tres testes tem duas causas de timeout que a
+ * chamada crua de navegador.wait() nao distingue:
+ *
+ *   a) a POLITICA recusou traducao2/dicionario2 -> e defeito NOSSO, e e
+ *      exatamente o que este arquivo existe para pegar. A rodada 4 da Tarefa
+ *      6 provou que os dois testes de "playing" falham quando o host sai da
+ *      politica; essa propriedade nao pode ser perdida;
+ *   b) o servico de terceiro nao respondeu a tempo -> nao e defeito nosso, e
+ *      falhar por isso torna a suite inutil como portao ("630 verdes" para de
+ *      significar alguma coisa quando fica vermelho sozinho).
+ *
+ * MEDIDO em 01/09/2026: numa rodada, tres testes vermelhos; na rodada
+ * seguinte, SEM MUDANCA DE CODIGO, o do Tradutor passou e sobraram dois.
+ * No mesmo momento, GET https://traducao2.vlibras.gov.br/ respondia 401.
+ *
+ * O DESEMPATE e o console, e ele ja existia neste arquivo: um bloqueio de
+ * CSP SEMPRE deixa mensagem (contemRecusaDePolitica, medida em pt-BR no
+ * Firefox), e a asercao final de cada teste ja depende disso. Entao:
+ *
+ *   timeout COM mensagem de recusa -> assert.fail (a politica quebrou)
+ *   timeout SEM mensagem de recusa -> t.skip com motivo escrito
+ *
+ * Isto NAO enfraquece o teste: o caso (a), o unico sob nosso controle,
+ * continua vermelho. O que deixa de acontecer e a suite acusar defeito nosso
+ * quando quem caiu foi o vlibras.gov.br. Pular declarando o motivo e a
+ * contagem honesta — mesma decisao ja tomada na revisao final do Bloco A.
+ *
+ * Devolve true se a condicao foi satisfeita; false se pulou (o teste deve
+ * `return` em seguida, sem asserir mais nada).
+ */
+async function esperarBackendDoVLibras(navegador, t, condicao, ms, mensagem, oQue) {
+  try {
+    await navegador.wait(condicao, ms, mensagem);
+    return true;
+  } catch (erro) {
+    const recusas = mensagensConsole.filter(contemRecusaDePolitica);
+    if (recusas.length > 0) {
+      assert.fail(
+        `${mensagem}\n  E A POLITICA RECUSOU RECURSOS — este e defeito nosso, nao do servico: `
+        + JSON.stringify(recusas)
+      );
+    }
+    t.skip(
+      `${oQue} nao respondeu a tempo e a politica NAO recusou nada — `
+      + `indisponibilidade do servico de terceiro (vlibras.gov.br), nao defeito deste projeto. `
+      + `Detalhe: ${erro.message}`
+    );
+    return false;
+  }
+}
+
 /** Abre o icone fechado do VLibras — o clique que so acontece na primeira interacao. */
 async function abrirWidget(navegador) {
   await navegador.executeScript(`
@@ -100,6 +156,23 @@ test('a resposta traz nonce e a politica cobre o VLibras', async () => {
   // categorias nesses dois hosts — achado da rodada 2 desta tarefa.
   assert.match(politica, /connect-src[^;]*dicionario2\.vlibras\.gov\.br/, 'connect-src sem dicionario2 — o Dicionario abriria vazio');
   assert.match(politica, /connect-src[^;]*repositorio\.vlibras\.gov\.br/, 'connect-src sem repositorio — o Dicionario abriria vazio');
+
+  // ACRESCENTADO EM 01/09/2026, e a razao esta MEDIDA: este arquivo tinha um
+  // buraco de cobertura em `traducao2`, o host que de fato TRADUZ.
+  //
+  // A assertiva de `connect-src[^;]*vlibras\.gov\.br` acima NAO o cobre —
+  // ela casa com `dicionario2.vlibras.gov.br`, que esta na mesma diretiva.
+  // PROVADO: trocando as 4 ocorrencias de `traducao2` por um host invalido
+  // em middleware.ts, esta funcao continuava VERDE. O host era defendido so
+  // pelos tres testes de navegador abaixo (rodada 4 da Tarefa 6 provou isso
+  // removendo o host e vendo-os falhar).
+  //
+  // Por que isso deixou de bastar: aqueles tres dependem do servico do
+  // governo responder, e quando ele nao responde eles PULAM — e um teste que
+  // pula nao defende nada. A defesa do CONTEUDO da politica precisa ser
+  // deterministica; a dos tres, que e "funciona de verdade", pode pular.
+  assert.match(politica, /connect-src[^;]*traducao2\.vlibras\.gov\.br/,
+    'connect-src sem traducao2 — o VLibras montaria e NAO traduziria nada');
 });
 
 let navegador;
@@ -161,7 +234,7 @@ test('o widget VLibras monta e recebe a correcao de acessibilidade', async () =>
   assert.equal(estado.imagensSemAlt, 0, 'ainda ha imagem sem alt dentro do shadow root do VLibras');
 });
 
-test('abrir o VLibras e traduzir um texto real da pagina chega a "playing", sem bloqueio de politica', async () => {
+test('abrir o VLibras e traduzir um texto real da pagina chega a "playing", sem bloqueio de politica', async (t) => {
   if (erroInspetor) {
     assert.fail(
       `captura de log indisponivel: este teste nao pode verificar nada (${erroInspetor.message})`
@@ -225,18 +298,19 @@ test('abrir o VLibras e traduzir um texto real da pagina chega a "playing", sem 
   const h1 = await navegador.findElement(By.css('h1'));
   await navegador.actions({ bridge: true }).doubleClick(h1).perform();
 
-  await navegador.wait(
+  const traduziu = await esperarBackendDoVLibras(navegador, t,
     async () => (await statusDoPlayer(navegador)) === 'playing',
     10000,
-    'o VLibras nao chegou a "playing" apos o duplo clique — a traducao nao foi acionada de verdade'
-  );
+    'o VLibras nao chegou a "playing" apos o duplo clique — a traducao nao foi acionada de verdade',
+    'traducao2.vlibras.gov.br (traducao por duplo clique)');
+  if (!traduziu) return;
 
   const recusas = mensagensConsole.filter(contemRecusaDePolitica);
   assert.deepEqual(recusas, [],
     `a politica recusou algo ao traduzir um texto de verdade: ${JSON.stringify(recusas)}`);
 });
 
-test('Menu > Dicionario carrega as categorias, sem bloqueio de politica', async () => {
+test('Menu > Dicionario carrega as categorias, sem bloqueio de politica', async (t) => {
   if (erroInspetor) {
     assert.fail(
       `captura de log indisponivel: este teste nao pode verificar nada (${erroInspetor.message})`
@@ -287,20 +361,22 @@ test('Menu > Dicionario carrega as categorias, sem bloqueio de politica', async 
   // categorias de fato renderizam e 'ul.flex.flex-col li' — confirmado
   // medindo contra a politica sem dicionario2/repositorio (fica em 0 os
   // 10s inteiros) e contra a politica corrigida (vai a 27).
-  await navegador.wait(async () => {
+  const carregou = await esperarBackendDoVLibras(navegador, t, async () => {
     const quantidade = await navegador.executeScript(`
       const sr = document.getElementById('vlibras-app-root').shadowRoot;
       return sr.querySelectorAll('ul.flex.flex-col li').length;
     `);
     return quantidade > 0;
-  }, 10000, 'o Dicionario nao chegou a mostrar nenhuma categoria em 10s — abriu vazio');
+  }, 10000, 'o Dicionario nao chegou a mostrar nenhuma categoria em 10s — abriu vazio',
+    'dicionario2.vlibras.gov.br (categorias do Dicionario)');
+  if (!carregou) return;
 
   const recusas = mensagensConsole.filter(contemRecusaDePolitica);
   assert.deepEqual(recusas, [],
     `a politica recusou algo ao abrir o Dicionario: ${JSON.stringify(recusas)}`);
 });
 
-test('Menu > Tradutor > digitar texto > Traduzir chega a "playing", sem bloqueio de politica', async () => {
+test('Menu > Tradutor > digitar texto > Traduzir chega a "playing", sem bloqueio de politica', async (t) => {
   if (erroInspetor) {
     assert.fail(
       `captura de log indisponivel: este teste nao pode verificar nada (${erroInspetor.message})`
@@ -370,10 +446,15 @@ test('Menu > Tradutor > digitar texto > Traduzir chega a "playing", sem bloqueio
   // corrida encolhe ao minimo possivel.
   const appRoot = await navegador.findElement(By.css('#vlibras-app-root'));
   const srApp = await appRoot.getShadowRoot();
-  await navegador.wait(async () => {
+  // Mesmo desempate do auxiliar: o painel do Tradutor e UI que vem do
+  // vlibras.gov.br, entao ele tambem nao aparece quando o servico esta ruim
+  // — MEDIDO em 01/09/2026, foi AQUI que o teste parou, nao na traducao.
+  const painelAbriu = await esperarBackendDoVLibras(navegador, t, async () => {
     const elementos = await srApp.findElements(By.css('#translator-text'));
     return elementos.length > 0;
-  }, 10000, 'o campo #translator-text nao apareceu em 10s apos clicar em "Tradutor"');
+  }, 10000, 'o campo #translator-text nao apareceu em 10s apos clicar em "Tradutor"',
+    'vlibras.gov.br (painel do Tradutor)');
+  if (!painelAbriu) return;
 
   // sendKeys continua pelo WebDriver (Selenium 4.47+ atravessa shadow root
   // aberto nativamente) — nao e clique, entao nao tem o problema medido
@@ -401,11 +482,12 @@ test('Menu > Tradutor > digitar texto > Traduzir chega a "playing", sem bloqueio
   `), 10000, 'o botao "Traduzir" nao apareceu habilitado em 10s apos digitar o texto');
   assert.ok(clicouTraduzir, 'nao encontrou/habilitou o botao "Traduzir" no painel do Tradutor');
 
-  await navegador.wait(
+  const traduziuNoPainel = await esperarBackendDoVLibras(navegador, t,
     async () => (await statusDoPlayer(navegador)) === 'playing',
     10000,
-    'o VLibras nao chegou a "playing" apos Menu > Tradutor > Traduzir — a traducao nao foi acionada'
-  );
+    'o VLibras nao chegou a "playing" apos Menu > Tradutor > Traduzir — a traducao nao foi acionada',
+    'traducao2.vlibras.gov.br (painel Tradutor)');
+  if (!traduziuNoPainel) return;
 
   const recusas = mensagensConsole.filter(contemRecusaDePolitica);
   assert.deepEqual(recusas, [],
