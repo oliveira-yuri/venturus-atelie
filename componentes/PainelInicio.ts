@@ -111,6 +111,20 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     // formulário público que a alimenta (RF07) só passou a gravar de
     // verdade em 01/09/2026 — até então não havia o que ler.
     pronta: true
+  },
+  {
+    caminho: '/admin/acervo',
+    titulo: 'Acervo',
+    descricao: 'Subir cartilha, ficha técnica e outros materiais para as pessoas baixarem.',
+    // Virou `true` no RF37, no mesmo commit que criou app/admin/acervo/ — é
+    // o que o teste de reconciliação em testes/painel-inicio.test.mjs cobra
+    // nos dois sentidos.
+    //
+    // A descrição diz "para as pessoas baixarem" e não "publicar no site"
+    // porque é a única tela cujo produto é um ARQUIVO que sai do site: o
+    // material vai parar no computador de uma professora, e é assim que ele
+    // é usado.
+    pronta: true
   }
 ];
 

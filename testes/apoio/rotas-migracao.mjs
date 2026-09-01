@@ -139,7 +139,15 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // já cabe no cartão (dentro de um <details>, ver componentes/
   // ListaContatos.ts) e uma segunda rota seria mais uma guarda para
   // esquecer.
-  '/admin/contatos'
+  '/admin/contatos',
+  // RF37: a tela onde a equipe sobe material do acervo (o formulário vive na
+  // própria lista, como na galeria — ver o cabeçalho daquele page.tsx) e a
+  // tela de confirmação de apagar. Apagar existe aqui pelo mesmo motivo da
+  // galeria e por uma causa diferente: o bucket `acervo` é PÚBLICO de
+  // propósito (download livre é o RF36), então "tirar do ar" não tira o
+  // arquivo do ar.
+  '/admin/acervo',
+  '/admin/acervo/apagar'
 ];
 
 /**

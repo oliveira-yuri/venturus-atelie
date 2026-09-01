@@ -1029,3 +1029,128 @@ a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
      linha inteira só existe para o polegar. */
   .contato__botao--responder { flex: 0 0 auto; padding: 0 var(--espaco-5); }
 }
+
+/* =====================================================================
+   ACERVO (RF36/RF37) — a lista de materiais do painel
+
+   Irmã de `.midias`/`.midia`, e escrita separada de propósito: os nomes
+   daquele bloco falam de FOTO (miniatura, álbum, autorização), e um
+   material do acervo é um arquivo sem imagem nenhuma. Reaproveitar as
+   classes deixaria a folha dizendo "midia" numa tela que não tem mídia —
+   e prenderia as duas telas à mesma decisão visual no dia em que uma
+   delas mudar.
+
+   O que NÃO se repete aqui, e é o que importa: os alvos de toque, o peso
+   dos estados e o recuo do "Apagar" saem das mesmas medidas do bloco da
+   galeria, porque a mão que usa é a mesma (regra 4).
+   ===================================================================== */
+
+.materiais {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  /* Cabe o deslocamento do aplique (8px) — mesma conta de .publicacoes. */
+  gap: var(--espaco-4);
+}
+
+.material {
+  margin: 0;
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--azul);
+}
+
+/* DOIS ESTADOS, e nenhum se distingue só pela cor: a palavra está escrita
+   no cartão (componentes/ListaMateriaisDoPainel.ts). O que muda aqui é o
+   PESO visual, para a diferença sobreviver em alto contraste, onde a
+   paleta some. */
+.material__estado {
+  display: inline-block;
+  margin: 0 0 var(--espaco-2);
+  padding: var(--espaco-1) var(--espaco-2);
+  border: 2px solid var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta);
+  background: transparent;
+}
+
+.material__estado--no-ar { background: var(--amarelo); }
+
+.material__titulo {
+  margin: 0 0 var(--espaco-2);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.material__descricao {
+  margin: 0 0 var(--espaco-2);
+  font-size: var(--texto-base);
+  line-height: 1.5;
+}
+
+.material__ficha {
+  margin: 0 0 var(--espaco-2);
+  font-size: var(--texto-base);
+}
+
+.material__ficha > div { display: flex; gap: var(--espaco-2); flex-wrap: wrap; }
+.material__ficha dt { font-weight: 700; }
+.material__ficha dd { margin: 0; color: var(--tinta-suave); }
+
+.material__quando {
+  margin: 0 0 var(--espaco-3);
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+.material__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.material__form { margin: 0; }
+
+/* Um <a> e um <button> com a MESMA cara, como em .midia__botao: para quem
+   usa, os dois são "um botão". */
+.material__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.material__botao:hover { background: var(--tinta); color: var(--cal); }
+
+.material__botao--publicar { background: var(--amarelo); }
+.material__botao--publicar:hover { background: var(--tinta); color: var(--amarelo); }
+
+/* Apagar é o único gesto sem desfazer, e o único visualmente RECUADO:
+   contorno tracejado, sem preenchimento. Não é vermelho de perigo —
+   perigo é a cor que se aprende a ignorar; recuo é o que faz o dedo
+   hesitar. E ele leva a uma tela de confirmação, não à ação. */
+.material__botao--apagar {
+  border-style: dashed;
+  color: var(--tinta-suave);
+}
+
+/* O link de conferir o arquivo na tela de confirmação de apagar: espaço
+   acima, porque ele fica dentro da ficha e não na fileira de botões. */
+.apagar__conferir { margin: var(--espaco-3) 0 0; }

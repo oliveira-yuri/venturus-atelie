@@ -40,7 +40,7 @@
 // ele existia para validação de CLIENTE, que este formulário GET não tem
 // (não há campo obrigatório, não há como "errar" uma busca) — incluir um
 // elemento de erro que nunca preenche nada seria HTML morto.
-import { listarMateriais, enderecoDoArquivo } from '@/servidor/dados/acervo';
+import { listarMateriais, enderecoDoArquivo, enderecoParaBaixar } from '@/servidor/dados/acervo';
 import { ListaMateriais, type MaterialComUrl } from '@/componentes/ListaMateriais';
 import { mensagemDeErro } from '@/compartilhado/erros';
 
@@ -58,15 +58,23 @@ export default async function Acervo({
   const buscaLimpa = busca?.trim() || undefined;
 
   const { valor: materiaisBrutos, degradou } = await listarMateriais({ busca: buscaLimpa });
-  // enderecoDoArquivo() é assíncrona só por causa de obterCliente() (que lê
-  // cookies()) — getPublicUrl em si é síncrono e não faz requisição
-  // nenhuma (ver o comentário de servidor/dados/acervo.ts). Resolvida aqui,
-  // no servidor, para ListaMateriais continuar um componente puro e
-  // síncrono, testável sem o Next (testes/lista-materiais.test.mjs).
+  // As duas funções de endereço são assíncronas só por causa de
+  // obterCliente() (que lê cookies()) — getPublicUrl em si é síncrono e não
+  // faz requisição nenhuma (ver o comentário de servidor/dados/acervo.ts).
+  // Resolvidas aqui, no servidor, para ListaMateriais continuar um
+  // componente puro e síncrono, testável sem o Next
+  // (testes/lista-materiais.test.mjs).
+  //
+  // SÃO DUAS, e não uma, desde o RF36: `url` abre o arquivo para ler e
+  // `urlDownload` leva `?download=<nome>`, que é o que faz o Storage
+  // responder `Content-Disposition: attachment`. O atributo `download` de um
+  // `<a>` NÃO funciona entre origens, e o arquivo está sempre em outra
+  // origem — o bloco inteiro está no cabeçalho de `enderecoParaBaixar`.
   const materiais: MaterialComUrl[] = await Promise.all(
     materiaisBrutos.map(async (material) => ({
       ...material,
-      url: await enderecoDoArquivo(material.arquivo_caminho)
+      url: await enderecoDoArquivo(material.arquivo_caminho),
+      urlDownload: await enderecoParaBaixar(material.arquivo_caminho, material.titulo)
     }))
   );
 

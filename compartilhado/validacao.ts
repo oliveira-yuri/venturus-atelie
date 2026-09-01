@@ -1401,3 +1401,313 @@ export function linhasDasAreas(
 ): Array<{ voluntario_id: string; area_id: string }> {
   return areas.map((area) => ({ voluntario_id: voluntarioId, area_id: area }));
 }
+
+// =====================================================================
+// Acervo — o formulário de publicar material (RF36/RF37)
+//
+// Mesmo lugar dos blocos acima, pelo mesmo motivo escrito no cabeçalho
+// deste arquivo: as três precauções de leitura de FormData valem igual, e
+// este módulo não importa nada, o que é o que permite ao `node --test`
+// exercitá-lo sem subir o Next.
+//
+// O QUE ESTE BLOCO NÃO DECIDE: se a pessoa pode gravar (isso é `ehEquipe()`
+// na Action e a RLS no banco) e se o arquivo é MESMO um PDF — a resposta a
+// essa depende de LER OS BYTES, e quem lê é a Action; o que mora aqui é a
+// decisão pura sobre os bytes já lidos (`tipoDoDocumento`).
+//
+// E ele NÃO LÊ o campo `publicado`, pela mesma razão de `lerPublicacao` e
+// `lerMidia`: subir não é publicar. O material entra guardado e sai disso
+// por um botão separado.
+//
+// A DIFERENÇA PARA A GALERIA, que decide duas coisas do desenho:
+//
+//   1. NÃO HÁ RN07 AQUI. Material de acervo é documento feito para
+//      circular — cartilha, ficha técnica, portfólio —, não foto de
+//      pessoa. Não existe caixa de autorização de uso de imagem nesta
+//      tela, e inventar uma seria pedir uma declaração que não se aplica.
+//   2. O BUCKET `acervo` É PÚBLICO E CONTINUA ASSIM (006_storage.sql), ao
+//      contrário do `galeria`, que virou privado em 008. É de propósito:
+//      o arquivo daqui é feito para ser baixado por qualquer pessoa, sem
+//      cadastro — é o que /acervo promete, em texto, desde o site antigo.
+//      A consequência que precisa estar escrita: material GUARDADO ou
+//      TIRADO DO AR continua baixável por quem tiver o endereço. Quem
+//      subiu o arquivo errado precisa APAGAR, não tirar do ar — e é por
+//      isso que esta tela tem apagar, como a da galeria e ao contrário da
+//      de notícias.
+// =====================================================================
+
+/**
+ * O TETO DE TAMANHO DE UM MATERIAL, e ele é DERIVADO do teto da galeria de
+ * propósito: a causa dos dois é a mesma, e ela não é nossa.
+ *
+ * MEDIDO em 01/09/2026, com PDF de verdade (os do acervo tratado da ONG,
+ * repetidos até o tamanho alvo), `next build` + `next start`, POST
+ * multipart cru para uma Server Action:
+ *
+ *   3 MB -> 200   4 MB -> 200   5 MB -> 200   5,5 MB -> 200
+ *   6 MB -> 200   7 MB -> 200   7,5 MB -> 200
+ *   8 MB -> 500 (Internal Server Error, texto puro)   9 MB -> 500
+ *
+ * Ou seja: com `serverActions.bodySizeLimit: '8mb'` (next.config.ts, com a
+ * tabela da medição da Tarefa P3) o Next local aceitaria material de até
+ * ~7,5 MB. **O LIMITE NÃO É O NEXT — É A PLATAFORMA**: a Netlify tem limite
+ * próprio de corpo de função (6 MB documentados, já contando a codificação
+ * que ela usa para entregar o corpo), e esta branch NUNCA foi publicada
+ * (CLAUDE.md, "O que trava hoje", item 0). 4 MB binários viram ~5,3 MB
+ * codificados, o que cabe; 6 MB binários viram ~8 MB, o que não cabe.
+ *
+ * Por isso o número é o MESMO da galeria e sai do MESMO lugar: no dia em
+ * que alguém medir o limite real da Netlify (subindo um arquivo de ~3,5 MB
+ * pelo painel, no primeiro deploy), UMA edição corrige as duas telas. Se as
+ * duas divergirem um dia, será por medição, não por descuido.
+ *
+ * O QUE ISSO CUSTA, dito em voz alta e com nome próprio: dos materiais que
+ * a ONG já tem tratados (233 MB reduzidos a 27 MB, fora deste repositório),
+ * **"Eu Griot .pdf" (5,3 MiB) não passa por esta tela**. Os outros passam.
+ * A recusa é uma frase que diz o tamanho, o limite e o que fazer — não um
+ * erro. As saídas para esse caso estão no relatório da tarefa: reduzir o
+ * PDF, ou subir pelo painel do Supabase e cadastrar a linha por lá.
+ */
+export const LIMITE_MATERIAL_BYTES = LIMITE_ARQUIVO_BYTES;
+
+/** Tema e faixa etária: rótulos curtos, como o nome do álbum da galeria. */
+export const LIMITE_TEMA = 80;
+export const LIMITE_FAIXA_ETARIA = 80;
+
+/**
+ * O que o acervo aceita, POR ASSINATURA DE BYTES — mesma disciplina de
+ * `ASSINATURAS` (imagens) e pelo mesmo motivo, que está escrito lá em cima:
+ * `accept` é sugestão para o seletor de arquivos e `File.type` vem do
+ * cliente; os dois são entrada de usuário.
+ *
+ * SÓ PDF, e é decisão com prazo de validade: os materiais que a ONG
+ * entregou são todos PDF. Acrescentar um tipo aqui é uma linha — e é o
+ * único lugar que precisa mudar, porque o `accept` do input e a mensagem de
+ * recusa saem daqui.
+ *
+ * A ASSINATURA É EXIGIDA NO COMEÇO DO ARQUIVO, sem tolerância a lixo antes
+ * dela. A especificação do PDF permite bytes antes do `%PDF-` e muitos
+ * leitores toleram; aqui a exigência é estrita de propósito — um arquivo
+ * assim não sai de nenhum editor que a ONG use, e afrouxar significaria
+ * aceitar qualquer arquivo que ESCONDA um PDF dentro.
+ */
+type AssinaturaDeDocumento = { tipo: string; extensao: string; bytes: number[] };
+
+const ASSINATURAS_DE_DOCUMENTO: AssinaturaDeDocumento[] = [
+  // "%PDF-" — os cinco bytes com que todo PDF começa.
+  { tipo: 'application/pdf', extensao: 'pdf', bytes: [0x25, 0x50, 0x44, 0x46, 0x2d] }
+];
+
+export type DocumentoReconhecido = { tipo: string; extensao: string };
+
+/**
+ * O arquivo é um material que aceitamos? Devolve o tipo e a extensão, ou
+ * `null` — e `null` é a resposta para .doc, .zip, .exe, imagem, vídeo e
+ * para um .txt renomeado para .pdf.
+ *
+ * Recebe os bytes já lidos, e não o File, pelo mesmo motivo de
+ * `tipoDaImagem`: assim a decisão é pura e cabe num teste do Node.
+ *
+ * NÃO É ANTIVÍRUS e não afirma que o arquivo é seguro: afirma que ele
+ * COMEÇA como um PDF.
+ */
+export function tipoDoDocumento(bytes: Uint8Array): DocumentoReconhecido | null {
+  for (const assinatura of ASSINATURAS_DE_DOCUMENTO) {
+    if (bytes.length < assinatura.bytes.length) continue;
+    if (assinatura.bytes.every((byte, i) => bytes[i] === byte)) {
+      return { tipo: assinatura.tipo, extensao: assinatura.extensao };
+    }
+  }
+
+  return null;
+}
+
+/** O `accept` do input — a MESMA lista das assinaturas. */
+export const TIPOS_DE_MATERIAL_ACEITOS = ASSINATURAS_DE_DOCUMENTO.map((a) => a.tipo).join(',');
+
+/**
+ * O caminho do material DENTRO do bucket `acervo`.
+ *
+ * Reaproveita `caminhoNoBucket` inteiro — a mesma lista branca de
+ * caracteres, o mesmo uuid, a mesma extensão vinda dos BYTES. O que muda é
+ * só a pasta padrão quando não há tema: "material" em vez de "album".
+ *
+ * E AQUI O UUID IMPORTA MAIS QUE NA GALERIA, não menos: o bucket `acervo` é
+ * PÚBLICO de propósito, então o caminho é a única coisa entre um arquivo
+ * guardado e quem quiser baixá-lo. Nome de arquivo NÃO entra — o nome que
+ * vem do computador de quem envia carregaria, por exemplo, o nome de uma
+ * pessoa para dentro de uma URL pública.
+ */
+export function caminhoDoMaterial(
+  tema: string,
+  extensao: string,
+  identificador: string
+): string {
+  return caminhoNoBucket(tema || 'material', extensao, identificador);
+}
+
+export type CamposMaterial = {
+  /** Vazio quando é envio novo; o uuid da linha quando é gesto sobre uma existente. */
+  id: string;
+  titulo: string;
+  descricao: string;
+  tema: string;
+  faixaEtaria: string;
+  /** O arquivo, ou null quando não veio nada (ou veio texto no lugar). */
+  arquivo: File | null;
+};
+
+/**
+ * Campos do formulário de subir material (componentes/FormularioMaterial.tsx).
+ *
+ * Um a um, por nome. `publicado` e `downloads` são colunas da tabela e NÃO
+ * estão aqui: a primeira decide o que o público vê, a segunda é contagem —
+ * nenhuma das duas pode entrar pelo corpo da requisição (regra 6 do
+ * CLAUDE.md).
+ *
+ * `tamanho_bytes` também não é campo: ele é medido do arquivo recebido, na
+ * Action. Aceitá-lo do formulário deixaria a ficha do material mentir sobre
+ * o tamanho do download — que é justamente o número que alguém em rede de
+ * celular usa para decidir se baixa agora.
+ */
+export function lerMaterial(dados: FormData): CamposMaterial {
+  const enviado = dados.get('arquivo');
+
+  return {
+    id: textoDoCampo(dados, 'id'),
+    titulo: textoDoCampo(dados, 'titulo'),
+    descricao: textoDoCampo(dados, 'descricao'),
+    tema: textoDoCampo(dados, 'tema'),
+    faixaEtaria: textoDoCampo(dados, 'faixa_etaria'),
+    // `instanceof File` e tamanho zero tratado como ausência — mesma
+    // precaução de `lerMidia`, e pelo mesmo motivo.
+    arquivo: enviado instanceof File && enviado.size > 0 ? enviado : null
+  };
+}
+
+/**
+ * TODOS os erros de uma vez — a regra do topo deste arquivo.
+ *
+ * O QUE É OBRIGATÓRIO, E POR QUÊ: título e arquivo, só. Tema e faixa etária
+ * são os dois campos de FILTRO da página pública (`FiltrosAcervo`, em
+ * servidor/dados/acervo.ts) e o cartão omite o que for nulo — exigi-los
+ * faria a equipe inventar um tema para conseguir publicar, que é a regra 2
+ * do CLAUDE.md pelo avesso. A descrição é opcional pelo mesmo motivo.
+ */
+export function validarMaterial(campos: CamposMaterial): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!campos.titulo) {
+    erros.titulo = 'Escreva o nome do material — é o que aparece na lista do acervo, e é por '
+      + 'ele que as pessoas procuram.';
+  } else if (campos.titulo.length > LIMITE_TITULO) {
+    erros.titulo = `O nome passou de ${LIMITE_TITULO} caracteres. Encurte um pouco.`;
+  }
+
+  if (campos.descricao.length > LIMITE_RESUMO) {
+    erros.descricao = `A descrição passou de ${LIMITE_RESUMO} caracteres. Ela é a explicação `
+      + 'curta que aparece embaixo do nome — o conteúdo inteiro está no próprio arquivo.';
+  }
+
+  if (campos.tema.length > LIMITE_TEMA) {
+    erros.tema = `O tema passou de ${LIMITE_TEMA} caracteres. Ele é um rótulo curto.`;
+  }
+
+  if (campos.faixaEtaria.length > LIMITE_FAIXA_ETARIA) {
+    erros.faixa_etaria = `A faixa etária passou de ${LIMITE_FAIXA_ETARIA} caracteres.`;
+  }
+
+  if (!campos.arquivo) {
+    erros.arquivo = 'Escolha o arquivo do material.';
+  } else if (campos.arquivo.size > LIMITE_MATERIAL_BYTES) {
+    erros.arquivo = `Este arquivo tem ${emMegabytes(campos.arquivo.size)} e o limite é `
+      + `${emMegabytes(LIMITE_MATERIAL_BYTES)}. Um PDF costuma caber depois de reduzido — no `
+      + 'celular, procure "comprimir PDF"; no computador, "salvar como PDF reduzido". Se ele '
+      + 'não couber de jeito nenhum, fale com quem cuida do site: dá para subir por outro '
+      + 'caminho.';
+  }
+
+  if (campos.id && !ehIdentificador(campos.id)) {
+    erros.id = 'Não foi possível identificar qual material é este. Volte ao acervo e abra de novo.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/**
+ * AS COLUNAS QUE VÃO PARA O `insert` de `public.acervo`, montadas chave por
+ * chave.
+ *
+ * Existe como função pura pelo mesmo motivo de `colunasDaCandidatura()`:
+ * escrita dentro de acoes/acervo.ts ela não entraria num `node --test`, e é
+ * justamente aqui que se prova que `publicado`, `downloads` e um
+ * `arquivo_caminho` vindo do corpo da requisição NÃO chegam ao banco.
+ *
+ * `publicado` não aparece nem como chave — a coluna é `not null default
+ * false` (002_conteudo.sql), e é a AUSÊNCIA dela que faz o material nascer
+ * guardado. Escrever `false` à mão abriria, no código, o único lugar por
+ * onde essa coluna poderia passar a vir de fora.
+ *
+ * `arquivo_caminho` e `tamanho_bytes` são ARGUMENTOS, não campos: o
+ * primeiro é construído por `caminhoDoMaterial` (uuid nosso, extensão vinda
+ * dos bytes) e o segundo é medido do arquivo recebido.
+ *
+ * Texto vazio vira NULL, não string vazia: a coluna aceita nulo e o cartão
+ * do acervo OMITE o que é nulo (componentes/ListaMateriais.ts). Guardar ''
+ * faria a ficha desenhar um "Tema" em branco.
+ */
+export function colunasDoMaterial(
+  campos: CamposMaterial,
+  arquivoCaminho: string,
+  tamanhoBytes: number
+): {
+  titulo: string;
+  descricao: string | null;
+  tema: string | null;
+  faixa_etaria: string | null;
+  arquivo_caminho: string;
+  tamanho_bytes: number;
+} {
+  return {
+    titulo: campos.titulo,
+    descricao: campos.descricao || null,
+    tema: campos.tema || null,
+    faixa_etaria: campos.faixaEtaria || null,
+    arquivo_caminho: arquivoCaminho,
+    tamanho_bytes: tamanhoBytes
+  };
+}
+
+/**
+ * O NOME COM QUE O ARQUIVO CHEGA NA PASTA DE DOWNLOADS de quem baixa.
+ *
+ * Nasceu com o RF36 e existe por um defeito concreto: o caminho no bucket é
+ * `<tema>/<uuid>.pdf` (`caminhoDoMaterial`, logo acima), então sem isto o
+ * material da ONG chegaria ao computador de uma professora como
+ * "b3f1c2d4-....pdf" — impossível de reconhecer no meio de dez downloads.
+ * O nome sai do TÍTULO, que é o que a pessoa acabou de ler na tela.
+ *
+ * Passa pela mesma lista branca de `caminhoNoBucket`, e não por gosto: este
+ * texto vai para dentro de um `Content-Disposition` (o parâmetro
+ * `?download=` do Storage) e para o nome de um arquivo no disco de outra
+ * pessoa — dois lugares onde barra, aspas, quebra de linha e caractere de
+ * controle são problema de segurança, não de estética.
+ *
+ * A extensão vem do CAMINHO GUARDADO, que por sua vez veio dos bytes no
+ * momento do envio (`tipoDoDocumento`): assim ela continua descrevendo o
+ * arquivo de verdade, mesmo que o título mude depois.
+ */
+export function nomeParaBaixar(titulo: string, caminho: string): string {
+  const extensao = caminho.includes('.') ? caminho.split('.').pop()! : '';
+  const limpo = extensao.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
+
+  const base = titulo
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+
+  return `${base || 'material'}${limpo ? `.${limpo}` : ''}`;
+}
