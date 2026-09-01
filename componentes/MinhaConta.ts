@@ -254,6 +254,18 @@ export function MinhasCandidaturas(
  * RN08 na tela, e não só no banco: o site REGISTRA doação, nunca processa
  * pagamento. É a mesma frase que /doar já diz — repetida aqui porque esta é
  * a tela onde alguém procuraria um "pagar agora".
+ *
+ * O ESTADO VAZIO MUDOU NA RF19, e é a mesma correção que a RF25 fez na
+ * lista de candidaturas: ele dizia "para doar, fale com a gente pelo
+ * WhatsApp" e mandava para fora do site. Era verdade até esta tarefa, e
+ * virou meia-verdade no dia em que `/doar/ofertar` passou a existir. Um
+ * estado vazio que descreve o site de ontem DESVIA a pessoa do caminho que
+ * funciona — e este desvia justamente quem já tem conta, que é exatamente
+ * quem pode usar o formulário.
+ *
+ * OS CANAIS DA ONG CONTINUAM NA FRASE, e não por hábito: quem prefere
+ * conversar antes de oferecer continua tendo por onde, e a ONG responde
+ * pelos dois do mesmo jeito.
  */
 export function MinhasDoacoes({ doacoes, degradou }: { doacoes: Doacao[]; degradou: boolean }) {
   if (degradou) return naoDeuParaConsultar('suas doações');
@@ -262,9 +274,10 @@ export function MinhasDoacoes({ doacoes, degradou }: { doacoes: Doacao[]; degrad
     return createElement(
       'p',
       { className: 'estado estado--vazio' },
-      'Nenhuma doação registrada no seu nome. Quando você doar e a ONG registrar, aparece '
-      + `aqui — com a resposta de quem recebeu. Para doar, fale com a gente pelo WhatsApp `
-      + `${WHATSAPP} ou pelo e-mail ${EMAIL_ATELIE}. Este site não processa pagamentos.`
+      'Nenhuma doação registrada no seu nome. Para oferecer uma, conte o que você quer doar na '
+      + 'página de apoio — a gente responde dizendo se conseguimos receber, e a resposta '
+      + `aparece aqui. Se preferir conversar antes, o WhatsApp ${WHATSAPP} e o e-mail `
+      + `${EMAIL_ATELIE} são nossos. Este site não processa pagamentos.`
     );
   }
 

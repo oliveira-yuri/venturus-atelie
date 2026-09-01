@@ -103,6 +103,27 @@ const AVISOS: Record<string, AvisoDaConta> = {
       + 'precisa mandar de novo: chame no WhatsApp (11) 95396-8344 e diga em qual área você '
       + 'quer ajudar, que a gente completa por aqui.',
     ok: true
+  },
+  /**
+   * RF19. A confirmação da oferta chega AQUI, e não na tela onde o
+   * formulário estava, pelo mesmo motivo da candidatura: é aqui que ela
+   * existe. A lista logo abaixo mostra a doação com a situação escrita, e
+   * uma confirmação que mostra o registro vale mais que uma que promete que
+   * ele existe.
+   *
+   * NÃO PROMETE PRAZO e NÃO PROMETE ACEITE (regra 2 do CLAUDE.md aplicada a
+   * uma confirmação): a ONG é uma equipe pequena, e a /doar deixa claro que
+   * a resposta pode ser "não conseguimos receber" — há coisa que ela não
+   * recebe, e está escrito lá. Dizer "obrigado pela sua doação" aqui seria
+   * agradecer por algo que ainda não chegou e pode não ser aceito.
+   *
+   * E NÃO FALA EM PAGAMENTO NEM EM RECIBO: RN08, o site registra doação e
+   * nunca processa pagamento.
+   */
+  doacao: {
+    texto: 'Oferta registrada. Ela está aqui embaixo, como “ofertada” — e é neste mesmo lugar '
+      + 'que vai aparecer a nossa resposta, dizendo se conseguimos receber e o que combinamos.',
+    ok: true
   }
 };
 

@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 // Conteúdo copiado literalmente do HTML original de doar.html — hoje a
 // cópia congelada em testes/apoio/html-original/doar.html, já que a
 // Tarefa A8 apagou site/ desta branch (regra 2 do CLAUDE.md: conteúdo
@@ -74,6 +76,37 @@ export default function Doar() {
         <p className="abertura__acoes">
           <a className="botao" href="https://wa.me/5511953968344" rel="noopener">Falar pelo WhatsApp</a>{' '}
           <a className="botao botao--secundario" href="mailto:atelieafro@gmail.com">Enviar e-mail</a>
+        </p>
+      </section>
+
+      {/*
+        SEÇÃO NOVA, ACRESCENTADA PELO RF19 — não existe no HTML original.
+        Ela entra ENTRE duas seções existentes ("Como doar" e "Doação em
+        dinheiro"), e não no fim, pelo mesmo motivo que o formulário de
+        contato (RF07) entrou no meio de /contato: assim o texto migrado
+        continua sendo lido na mesma ordem, e a leitura fica natural — a
+        seção anterior acaba de dizer "conte para a gente o que você
+        pretende doar", e esta oferece o lugar de contar.
+
+        Ela sai da comparação de testes/paridade-texto.test.mjs por
+        `idsAcrescentados: ['titulo-oferecer']` — a espécie de exclusão que
+        cobra a AUSÊNCIA do id no HTML original, e não a presença. O resto
+        do <main> continua comparado palavra por palavra, e a cobertura da
+        fronteira texto-elemento desta seção está registrada em
+        COBERTURA_DAS_EXCLUSOES.
+
+        NADA AQUI PROMETE MEIO DE PAGAMENTO. A chave Pix continua não
+        existindo (decisão D7), e a seção seguinte continua dizendo isso com
+        as palavras que já estavam no ar.
+      */}
+      <section aria-labelledby="titulo-oferecer">
+        <h2 id="titulo-oferecer">Registrar sua oferta pelo site</h2>
+        <p>
+          Se você tem conta aqui, dá para contar por escrito o que pretende doar e acompanhar a
+          nossa resposta em “Sua conta” — sem depender de lembrar em que conversa ficou.
+        </p>
+        <p className="abertura__acoes">
+          <Link className="botao" href="/doar/ofertar">Oferecer uma doação</Link>
         </p>
       </section>
 

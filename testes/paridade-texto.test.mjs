@@ -238,7 +238,16 @@ const PAGINAS = [
     // ilegítima, mesma classe de exclusão das outras rotas com JS no meio.
     // Só o <div id="dados-pix"> sai (não a <section> inteira): o h2
     // "Doação em dinheiro" continua comparado byte a byte.
-    idsExcluidos: ['dados-pix']
+    idsExcluidos: ['dados-pix'],
+    // RF19. A <section aria-labelledby="titulo-oferecer"> é texto NOVO: o
+    // botão que leva a /doar/ofertar e o parágrafo que o explica não
+    // existem no HTML original nem poderiam existir (a rota nasceu nesta
+    // tarefa). Mesma espécie de exclusão do formulário de contato — vai em
+    // `idsAcrescentados`, que cobra a AUSÊNCIA do id do lado original, e
+    // não a presença. O resto do <main> continua comparado palavra por
+    // palavra, e foi por isso que a seção nova entrou ENTRE duas seções
+    // existentes em vez de no fim.
+    idsAcrescentados: ['titulo-oferecer']
   },
   {
     rota: '/contato',
@@ -546,6 +555,16 @@ const COBERTURA_DAS_EXCLUSOES = {
       + 'IGUALDADE, com o espaço antes do link, em "o parágrafo do consentimento aponta para a '
       + 'política de privacidade, com o espaço no lugar". O título da seção e o rótulo da caixa de '
       + 'consentimento também são comparados por igualdade no mesmo arquivo.'
+  },
+  'titulo-oferecer': {
+    arquivo: 'testes/doacoes.test.mjs',
+    nota: 'RF19 — a seção nova de /doar sai daqui porque é texto que não existe no HTML '
+      + 'original. Ela tem UMA fronteira texto-elemento: nenhuma. O parágrafo é texto puro '
+      + 'dentro de <p>, o botão é um <Link> sozinho dentro do <p class="abertura__acoes"> (não '
+      + 'encosta em texto nenhum) e o <h2> é texto puro — ou seja, não há espaço entre texto e '
+      + 'tag para o JSX comer. Coberta assim mesmo, por IGUALDADE, em "a seção nova de /doar '
+      + 'leva ao formulário de oferta, com o texto inteiro": se alguém acrescentar texto '
+      + 'colado a um elemento ali, é aquele teste que acusa.'
   },
   'form-recuperar': {
     arquivo: 'testes/campo-formulario.test.mjs',

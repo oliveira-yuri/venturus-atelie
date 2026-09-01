@@ -156,6 +156,24 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     // material vai parar no computador de uma professora, e é assim que ele
     // é usado.
     pronta: true
+  },
+  {
+    caminho: '/admin/doacoes',
+    titulo: 'Doações',
+    descricao: 'Responder quem ofereceu uma doação e registrar o que o Ateliê recebeu.',
+    // Virou `true` no RF19–RF22, no mesmo commit que criou app/admin/doacoes/
+    // — é o que o teste de reconciliação em testes/painel-inicio.test.mjs
+    // cobra nos dois sentidos.
+    //
+    // A DESCRIÇÃO NÃO FALA EM DINHEIRO RECEBIDO nem em recibo, e isso é
+    // regra 2 mais RN08: o site registra doação e nunca processa pagamento
+    // (a /doar diz isso em texto). "Registrar o que o Ateliê recebeu"
+    // significa escrever o que chegou, não movimentar conta nenhuma.
+    //
+    // É a SEGUNDA das cinco que não mexe no site, como a de mensagens: as
+    // três primeiras existem para pôr coisa no ar; estas duas existem para
+    // não perder gente.
+    pronta: true
   }
 ];
 

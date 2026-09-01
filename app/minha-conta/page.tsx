@@ -278,6 +278,26 @@ export default async function MinhaConta(
 
         <MinhasDoacoes doacoes={doacoes} degradou={doacoesDegradaram} />
 
+        {/*
+          O BOTÃO APARECE SEMPRE, ao contrário do de candidatar-se logo
+          acima — e a assimetria é decisão, não descuido.
+
+          Lá o botão some para quem já tem candidatura em andamento, porque
+          candidatar-se duas vezes é oferecer um gesto que o servidor recusa
+          (e uma linha repetida que só a equipe consegue apagar). Aqui doar
+          duas vezes são DUAS doações, as duas legítimas: quem doou livros em
+          março e um tambor em agosto fez duas coisas. Esconder o botão de
+          quem já doou seria esconder o caminho justamente de quem mais
+          apoia a ONG. O argumento inteiro está em acoes/doacoes.ts.
+
+          `.botao`, e não um link em linha corrida: isto é uma AÇÃO, e alvo
+          de ação precisa de 44px de altura (RNF08, regra 4 do CLAUDE.md) —
+          a mesma medição que motivou o "Trocar minha senha" acima.
+        */}
+        <p className="abertura__acoes">
+          <Link className="botao" href="/doar/ofertar">Oferecer uma doação</Link>
+        </p>
+
         <p>
           As formas de doar estão na <Link href="/doar">página de doações</Link>.
         </p>

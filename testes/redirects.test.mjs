@@ -168,7 +168,28 @@ const PAGINAS_SEM_URL_ANTIGA = [
   // contatos). A tela de confirmação de apagar nasceu aqui, para substituir
   // um `confirm()` do navegador, que não existe sem JavaScript.
   '/admin/acervo',
-  '/admin/acervo/apagar'
+  '/admin/acervo/apagar',
+
+  // RF19–RF22, as doações. Aqui há uma diferença que vale escrever: ao
+  // contrário de "atividades" e "contatos", "doacoes" ERA um dos quatro
+  // LINKS da home do painel antigo (testes/apoio/html-original/admin/
+  // index.html) — mas o arquivo `admin/doacoes.html` NÃO EXISTE no
+  // diretório congelado. Era um dos seis becos que aquela tela prometia, e
+  // é o defeito que componentes/PainelInicio.ts existe para não repetir.
+  // Cobrar redirect de uma URL que nunca respondeu nada seria inventar
+  // história; pior, criaria um 301 permanente para uma tela que responde
+  // 404 a quem não é equipe.
+  '/admin/doacoes',
+  '/admin/doacoes/responder',
+  '/admin/doacoes/registrar',
+  // A tela pública de ofertar. O site antigo tinha `doar.html`, e ela
+  // dizia para falar pelo WhatsApp ou por e-mail — não havia formulário de
+  // oferta, porque não havia como gravar doação nenhuma (a autenticação
+  // ali era JavaScript no navegador e `public.doacoes` exige perfil
+  // autenticado, ou equipe). Nenhuma URL `.html` apontou para cá porque
+  // este endereço nunca circulou. `/doar` continua com o redirect dela,
+  // intacto.
+  '/doar/ofertar'
 ];
 
 /**

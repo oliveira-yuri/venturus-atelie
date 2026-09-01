@@ -1721,3 +1721,228 @@ a.numeros__alvo:hover { background: var(--tinta); color: var(--cal); }
 /* O link de conferir o arquivo na tela de confirmação de apagar: espaço
    acima, porque ele fica dentro da ficha e não na fileira de botões. */
 .apagar__conferir { margin: var(--espaco-3) 0 0; }
+
+/* =====================================================================
+   Doações (RF19–RF22)
+
+   Três telas: a fila (/admin/doacoes), a análise de uma
+   (/admin/doacoes/responder) e o registro do que chegou por fora
+   (/admin/doacoes/registrar). Continua valendo tudo do topo deste arquivo —
+   uma coluna, alvo de toque inteiro, nada que dependa de mouse, nada de
+   `vw` em texto.
+
+   O QUE ESTA TELA TEM DE DIFERENTE: o cartão é quase o mesmo de
+   /admin/contatos (ficha + dobra com texto livre de outra pessoa), e por
+   isso a maior parte das regras abaixo é a mesma. Duas coisas mudam:
+
+    · o aplique é AZUL, e não amarelo. Não é decoração: as duas telas de
+      leitura do painel (mensagens e doações) têm o MESMO formato de cartão,
+      e num celular, de pé, a cor é o que diz em qual delas a pessoa está
+      antes de ela ler o título. As três cores são as da ONG (regra 3);
+    · há uma linha de VALOR na ficha, que a de mensagens não tem.
+
+   NÃO HÁ BOTÃO DE APAGAR, aqui nem no HTML: o porquê está em
+   acoes/doacoes.ts e escrito na própria tela, em componentes/ListaDoacoes.ts.
+   ===================================================================== */
+
+.doacoes {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  /* O gap precisa caber o deslocamento do aplique (8px), senão a sombra de
+     um cartão encosta no cartão de baixo — mesma conta de .contatos. */
+  gap: var(--espaco-4);
+}
+
+.doacao {
+  margin: 0;
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--azul);
+}
+
+/* As duas marcas do topo (situação e tipo) lado a lado quando cabem,
+   empilhadas quando não. `wrap` em vez de media query, porque quem decide é
+   o tamanho do texto (que a pessoa pode aumentar com o A+), não a largura
+   da tela. */
+.doacao__marcas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  margin: 0 0 var(--espaco-2);
+}
+
+/* OFERTADA, ACEITA, RECEBIDA e RECUSADA não se distinguem só pela cor: a
+   palavra está escrita no cartão (componentes/ListaDoacoes.ts). O que muda
+   aqui é o PESO visual — o que ainda espera alguma coisa da equipe é
+   preenchido, o resto é contorno —, para que a diferença sobreviva também
+   em alto contraste, onde a paleta some. Mesma regra de .contato__estado,
+   .publicacao__estado e .atividade-painel__estado, e de propósito: são a
+   mesma ideia em telas diferentes. */
+.doacao__estado {
+  display: inline-block;
+  padding: var(--espaco-1) var(--espaco-2);
+  border: 2px solid var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta);
+  background: transparent;
+}
+
+.doacao__estado--aberta { background: var(--azul); }
+
+/* O tipo é informação de CONTEXTO, não de estado: ele nunca muda depois que
+   a doação existe e não pede gesto nenhum. Por isso não tem a caixa do
+   estado — é texto marcado, com peso menor, para não competir com a marca
+   que a equipe usa para trabalhar. Mesma decisão de .contato__origem. */
+.doacao__tipo {
+  display: inline-block;
+  padding: var(--espaco-1) 0;
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  color: var(--tinta-suave);
+}
+
+.doacao__quem {
+  margin: 0 0 var(--espaco-2);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+  /* Nome de outra pessoa pode ser longo e sem espaço útil para quebrar; sem
+     isto ele empurra o cartão para fora da tela a 375px. */
+  overflow-wrap: anywhere;
+}
+
+/* ---------- A ficha da doação ----------
+   Uma linha por dado, rótulo em cima do valor: a 375px, rótulo e valor lado
+   a lado deixariam o e-mail com metade da largura, e e-mail é justamente o
+   que não pode quebrar em qualquer lugar. Mesma estrutura de
+   .contato__ficha. */
+
+.doacao__ficha {
+  margin: 0 0 var(--espaco-3);
+}
+
+.doacao__ficha > div { margin: 0 0 var(--espaco-2); }
+
+.doacao__ficha dt {
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  color: var(--tinta-suave);
+}
+
+.doacao__ficha dd {
+  margin: 0;
+  font-size: var(--texto-base);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* O e-mail é LINK, e o alvo precisa ter altura de dedo: sem o padding
+   vertical ele tem a altura de uma linha de texto (~24px), abaixo dos 44px
+   que a RNF08 pede. */
+.doacao__ficha dd a {
+  display: inline-block;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2) 0;
+  color: var(--azul-texto);
+  font-weight: 700;
+}
+
+/* ---------- A descrição e a resposta ----------
+   Dentro da dobra `.painel__dobra`, que já é estilizada acima (Atividades).
+   O que muda aqui é só o texto de dentro.
+
+   A `.doacao__descricao` é usada TAMBÉM fora da dobra, em
+   /admin/doacoes/responder, onde o que foi oferecido é lido inteiro antes
+   do formulário. Por isso ela não depende de nenhum seletor de dobra. */
+
+.doacao__dobra { margin-bottom: var(--espaco-3); }
+
+/* `pre-wrap`: as quebras de linha que a pessoa escreveu ficam como ela
+   escreveu — em texto de recado elas SÃO a estrutura. E `overflow-wrap`
+   porque texto colado de celular vem com URL e palavra sem espaço.
+
+   SEM padding lateral: dentro da dobra, `.painel__dobra > *:not(summary)`
+   já dá a margem dos dois lados, e somar padding aqui dobraria o recuo —
+   defeito medido na Tarefa P4 e corrigido em .contato__mensagem. */
+.doacao__descricao {
+  margin: 0;
+  padding: 0 0 var(--espaco-3);
+  font-size: var(--texto-base);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* A resposta que a ONG já deu, dentro da mesma dobra, logo abaixo do que
+   ela responde. Marcada com a barra lateral azul (a mesma de
+   .painel__aviso) para se distinguir do texto de quem doou sem depender de
+   cor de fonte. */
+.doacao__resposta {
+  margin: 0;
+  padding: 0 0 var(--espaco-2) var(--espaco-3);
+  border-left: 5px solid var(--azul);
+  font-size: var(--texto-base);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Os botões ---------- */
+
+.doacao__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+/* Mesma caixa de .contato__botao: para quem usa, é "um botão". */
+.doacao__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.doacao__botao:hover { background: var(--tinta); color: var(--cal); }
+
+/* Responder é o gesto que a tela existe para provocar: ele carrega a cor da
+   ONG e ocupa a linha inteira no celular, porque é o alvo que o polegar
+   procura primeiro. Mesma decisão de .contato__botao--responder. */
+.doacao__botao--responder {
+  flex: 1 1 100%;
+  background: var(--azul);
+}
+
+.doacao__botao--responder:hover { background: var(--tinta); color: var(--azul); }
+
+@media (min-width: 34rem) {
+  .doacao { padding: var(--espaco-4); }
+
+  /* Com largura, responder volta a ser um botão do tamanho do texto: a
+     linha inteira só existe para o polegar. */
+  .doacao__botao--responder { flex: 0 0 auto; padding: 0 var(--espaco-5); }
+}
+
+/* O campo de resposta é onde a equipe escreve para outra pessoa ler: ele
+   precisa de mais que as 5 linhas padrão de CampoFormulario, pelo mesmo
+   motivo que o `corpo` de uma notícia precisa. O de descrição, na tela de
+   registro, idem. */
+.painel__conteudo .campo textarea[name="resposta"] { min-height: 9rem; }

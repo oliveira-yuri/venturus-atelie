@@ -1046,3 +1046,268 @@ describe('RN07 no ARQUIVO: quem lê storage.objects no bucket galeria', () => {
       `"arquivos publicos: leitura" ainda cita galeria: ${permissiva.expressao}`);
   });
 });
+
+/**
+ * RF19–RF22 — o ciclo de doações, do lado do BANCO.
+ *
+ * ===================================================================
+ * ESTE BLOCO É A MEDIÇÃO DA DECISÃO "OFERTAR EXIGE CONTA"
+ * ===================================================================
+ *
+ * `acoes/doacoes.ts` recusa a oferta de quem não tem sessão, e o cabeçalho
+ * daquele arquivo diz que isso NÃO é uma escolha de produto: é o que o
+ * esquema permite. São duas travas independentes, e os dois primeiros
+ * testes abaixo medem uma cada, contra um Postgres de verdade com as
+ * migrations reais:
+ *
+ *   1. o GRANT — `anon` não recebe nada em `public.doacoes`;
+ *   2. a POLÍTICA — `with check (perfil_id = auth.uid())`, que recusa a
+ *      linha mesmo de quem está autenticado, quando o dono é outro.
+ *
+ * Sem isto, a afirmação mais importante daquele arquivo seria só um
+ * comentário. É o mesmo papel que o bloco RF29 faz para a triagem de
+ * mensagens: a tela e a Action estão atrás de `ehEquipe()`, e a suíte não
+ * tem sessão de equipe — aqui dá para exercitar a escrita de verdade.
+ */
+describe('RF19-RF22: o ciclo de doações', () => {
+  const DA_PESSOA = `select id from public.doacoes where perfil_id = '${PESSOA}'`;
+
+  test('anon não tem GRANT nenhum em doacoes — a oferta anônima nem chega à RLS', async () => {
+    // É a primeira das duas travas. Compare com `public.contatos`, que tem
+    // `grant insert ... to anon` de propósito: lá a escrita pública foi
+    // decidida e escrita no banco; aqui não. O código é 42501, e o mesmo
+    // foi MEDIDO contra o Supabase de produção pelo PostgREST.
+    const { erro } = await comoAnonimo(
+      `insert into public.doacoes (tipo, descricao, doador_nome)
+       values ('item', 'tentativa anônima', 'Ninguém')`);
+
+    assert.ok(erro, 'anon conseguiu inserir doação — o grant vazou');
+    assert.equal(erro.code, '42501', `esperava permission denied, veio ${erro.code}`);
+  });
+
+  test('anon também não LÊ doacoes', async () => {
+    const { erro } = await comoAnonimo('select * from public.doacoes');
+    assert.ok(erro, 'VAZAMENTO: anon leu a tabela de doações');
+    assert.equal(erro.code, '42501');
+  });
+
+  test('quem está autenticado não pendura doação na conta de outra pessoa', async () => {
+    // A segunda trava: `with check (perfil_id = auth.uid())`. Sem ela,
+    // qualquer pessoa autenticada faria aparecer uma doação em "Sua conta"
+    // de quem não doou nada.
+    const { erro, linhas } = await comoEVerificar(
+      'authenticated', OUTRA_PESSOA,
+      `insert into public.doacoes (perfil_id, tipo, descricao)
+       values ('${PESSOA}', 'item', 'doação plantada')`,
+      DA_PESSOA
+    );
+
+    assert.ok(erro, 'uma pessoa conseguiu gravar doação em nome de outra');
+    assert.equal(linhas.length, 1, 'a tabela ganhou uma linha que não deveria existir');
+  });
+
+  test('a própria pessoa oferta em nome dela — e a linha nasce "ofertada"', async () => {
+    // O caminho que `ofertar` percorre. `situacao` NÃO é escrita pelo
+    // código (`colunasDaOferta` não conhece a coluna): ela vem do `default`,
+    // e é isto que mede isso.
+    const { erro, linhas } = await comoEVerificar(
+      'authenticated', OUTRA_PESSOA,
+      `insert into public.doacoes (perfil_id, tipo, descricao)
+       values ('${OUTRA_PESSOA}', 'recurso_financeiro', 'Quero ajudar todo mês')`,
+      `select situacao, valor, respondida_em, recebida_em from public.doacoes
+       where perfil_id = '${OUTRA_PESSOA}'`
+    );
+
+    assert.equal(erro, null, `a própria pessoa foi bloqueada: ${erro?.message}`);
+    assert.equal(linhas.length, 1);
+    assert.equal(linhas[0].situacao, 'ofertada');
+    assert.equal(linhas[0].valor, null, 'valor é da equipe, e nasce nulo');
+    assert.equal(linhas[0].respondida_em, null);
+    assert.equal(linhas[0].recebida_em, null);
+  });
+
+  test('a EQUIPE registra doação sem perfil_id — a outra ponta da decisão', async () => {
+    // `registrarDoacao` grava com `perfil_id` nulo e `doador_nome`
+    // preenchido. A política que permite isso é `doacoes: equipe gerencia`
+    // (`for all ... with check (eh_equipe())`), e NÃO `doacoes: o doador
+    // oferta`, que exigiria `perfil_id = auth.uid()` e recusaria esta
+    // linha. As duas são permissivas e o Postgres as combina com OU: basta
+    // uma passar. É esta frase, escrita em acoes/doacoes.ts, que o teste
+    // mede.
+    const { erro, linhas } = await comoEVerificar(
+      'authenticated', EQUIPE,
+      `insert into public.doacoes (doador_nome, doador_email, tipo, descricao, valor,
+                                   situacao, respondida_em, recebida_em)
+       values ('Dona Nice', 'nice@exemplo.test', 'recurso_financeiro',
+               'Entregou em mãos na sede', 150.00, 'recebida', now(), now())`,
+      `select perfil_id, doador_nome, valor::text from public.doacoes
+       where doador_nome = 'Dona Nice'`
+    );
+
+    assert.equal(erro, null, `a equipe foi bloqueada ao registrar: ${erro?.message}`);
+    assert.equal(linhas.length, 1);
+    assert.equal(linhas[0].perfil_id, null, 'a doação registrada não se liga a conta nenhuma');
+    assert.equal(linhas[0].valor, '150.00');
+  });
+
+  /**
+   * Uma doação registrada pela equipe, gravada FORA de transação.
+   *
+   * MESMA ARMADILHA de `jaRespondida`, abaixo, e esta quase passou: o teste
+   * acima grava 'Dona Nice' dentro de `comoEVerificar`, que rola tudo de
+   * volta. Os dois testes seguintes procuram essa linha — e, sem esta
+   * função, encontrariam ZERO e passariam pelo motivo errado ("não vazou"
+   * porque não existia; "o delete removeu" porque não havia o que remover).
+   * Teste que passa pelo motivo errado é pior que teste ausente: ele
+   * afirma.
+   */
+  async function registradaPelaEquipe() {
+    // Apaga antes de inserir: a chave primária é `gen_random_uuid()`, então
+    // `on conflict do nothing` NÃO deduplica — chamar isto duas vezes
+    // deixaria duas linhas 'Dona Nice', e o segundo teste contaria 2 onde
+    // espera 1. (Medido: foi exatamente o que aconteceu.)
+    await cliente.query(`delete from public.doacoes where doador_nome = 'Dona Nice'`);
+    await cliente.query(`
+      insert into public.doacoes (doador_nome, doador_email, tipo, descricao, valor,
+                                  situacao, respondida_em, recebida_em)
+      values ('Dona Nice', 'nice@exemplo.test', 'recurso_financeiro',
+              'Entregou em mãos na sede', 150.00, 'recebida', now(), now())
+    `);
+  }
+
+  test('a doação registrada pela equipe NÃO aparece na conta de ninguém', async () => {
+    // Consequência direta do `perfil_id` nulo, e é o que a tela de registro
+    // avisa por escrito. Se um dia alguém "melhorar" a Action pondo um
+    // perfil ali, esta linha passaria a aparecer em "Sua conta" de alguém
+    // que não doou.
+    await registradaPelaEquipe();
+
+    const { linhas: existe } = await comoPessoa(
+      `select id from public.doacoes where doador_nome = 'Dona Nice'`, EQUIPE);
+    assert.equal(existe.length, 1, 'a linha de apoio não foi gravada — o teste mediria nada');
+
+    const { linhas } = await comoPessoa(
+      `select id from public.doacoes where doador_nome = 'Dona Nice'`, PESSOA);
+
+    assert.equal(linhas.length, 0,
+      'VAZAMENTO: doação registrada pela equipe apareceu para uma pessoa comum');
+  });
+
+  test('sem perfil_id e sem doador_nome a linha não entra — identificacao_obrigatoria', async () => {
+    // O `check` que torna `doador_nome` obrigatório na tela de registro.
+    const { erro } = await comoEVerificar(
+      'authenticated', EQUIPE,
+      `insert into public.doacoes (tipo, descricao) values ('item', 'de ninguém')`,
+      'select 1'
+    );
+
+    assert.ok(erro, 'entrou doação sem identificação nenhuma');
+    assert.equal(erro.code, '23514', `esperava violação de check, veio ${erro.code}`);
+  });
+
+  test('o `check` de situacao recusa um valor inventado', async () => {
+    // A lista fechada de compartilhado/doacoes.ts e a de
+    // compartilhado/validacao.ts existem para a pessoa ler uma frase em vez
+    // de um erro de banco — mas é o banco que decide.
+    const { erro } = await comoEVerificar(
+      'authenticated', EQUIPE,
+      `update public.doacoes set situacao = 'arquivada' where perfil_id = '${PESSOA}'`,
+      'select 1'
+    );
+
+    assert.ok(erro, 'o banco aceitou uma situação fora do check');
+    assert.equal(erro.code, '23514');
+  });
+
+  test('a equipe responde: situacao, resposta e os dois carimbos', async () => {
+    // O `update` que `responderDoacao` faz. É a única medição possível dele:
+    // a tela está atrás de `ehEquipe()` e a suíte não tem sessão de equipe.
+    const { erro, linhas } = await comoEVerificar(
+      'authenticated', EQUIPE,
+      `update public.doacoes
+       set situacao = 'recebida', resposta = 'Conseguimos receber, obrigada!',
+           respondida_em = now(), recebida_em = now()
+       where perfil_id = '${PESSOA}'`,
+      `select situacao, resposta, respondida_em, recebida_em from public.doacoes
+       where perfil_id = '${PESSOA}'`
+    );
+
+    assert.equal(erro, null, `a equipe foi bloqueada ao responder: ${erro?.message}`);
+    assert.equal(linhas[0].situacao, 'recebida');
+    assert.match(linhas[0].resposta, /Conseguimos receber/);
+    assert.ok(linhas[0].respondida_em, 'respondida_em não foi carimbada');
+    assert.ok(linhas[0].recebida_em, 'recebida_em não foi carimbada');
+  });
+
+  /**
+   * A resposta da ONG, gravada FORA de transação e como superusuário.
+   *
+   * `comoEVerificar` rola tudo de volta no fim (é o que torna cada teste
+   * isolado — ver a função), então o `update` do teste acima não sobrevive
+   * a ele. Os dois testes seguintes precisam de uma doação JÁ RESPONDIDA
+   * para medir o que acontece com ela, e cada um chama isto por conta
+   * própria: depender da ordem dos testes seria fazer um passar por causa
+   * do outro.
+   */
+  async function jaRespondida() {
+    await cliente.query(`
+      update public.doacoes
+      set situacao = 'recebida', resposta = 'Conseguimos receber, obrigada!',
+          respondida_em = now(), recebida_em = now()
+      where perfil_id = '${PESSOA}'
+    `);
+  }
+
+  test('quem doou LÊ a resposta da ONG — é o RF22 do lado do banco', async () => {
+    await jaRespondida();
+
+    const { linhas } = await comoPessoa(
+      `select resposta, situacao from public.doacoes where perfil_id = '${PESSOA}'`, PESSOA);
+
+    assert.equal(linhas.length, 1);
+    assert.match(linhas[0].resposta, /Conseguimos receber/,
+      'a metade da conversa que pertence a quem doou não chega até ela');
+  });
+
+  test('quem doou NÃO consegue mudar a própria situação nem a resposta', async () => {
+    await jaRespondida();
+
+    // A tela de quem doou é só leitura, e o banco concorda: a política de
+    // update é só `doacoes: equipe gerencia`. Sem isto, a pessoa se
+    // declararia "recebida" e a fila da ONG mostraria trabalho já feito.
+    const { linhas } = await comoEVerificar(
+      'authenticated', PESSOA,
+      `update public.doacoes set situacao = 'ofertada', resposta = 'reescrito'
+       where perfil_id = '${PESSOA}'`,
+      `select situacao, resposta from public.doacoes where perfil_id = '${PESSOA}'`
+    );
+
+    assert.equal(linhas[0].situacao, 'recebida',
+      'a pessoa que doou conseguiu mudar a situação da própria doação');
+    assert.match(linhas[0].resposta, /Conseguimos receber/,
+      'a pessoa que doou conseguiu reescrever a resposta da ONG');
+  });
+
+  test('o banco PERMITE apagar doação — quem recusa é acoes/doacoes.ts', async () => {
+    // Escrito ao contrário de propósito, como o teste irmão do RF29: a
+    // ausência do `delete` no código é uma DECISÃO (prestação de contas, e
+    // apagar não tem desfazer num celular, de pé), não uma limitação do
+    // banco. Se um dia alguém "descobrir" que dá para apagar, este teste
+    // mostra que já se sabia — e testes/doacoes.test.mjs é quem falha se o
+    // `.delete(` aparecer na Action.
+    await registradaPelaEquipe();
+
+    const { linhas: antes } = await comoPessoa(
+      `select id from public.doacoes where doador_nome = 'Dona Nice'`, EQUIPE);
+    assert.equal(antes.length, 1, 'sem a linha, o delete não removeria nada e o teste mentiria');
+
+    const { erro, linhas } = await comoEVerificar(
+      'authenticated', EQUIPE,
+      `delete from public.doacoes where doador_nome = 'Dona Nice'`,
+      `select id from public.doacoes where doador_nome = 'Dona Nice'`
+    );
+
+    assert.equal(erro, null, `a equipe foi bloqueada ao apagar: ${erro?.message}`);
+    assert.equal(linhas.length, 0, 'o delete da equipe não removeu a linha');
+  });
+});

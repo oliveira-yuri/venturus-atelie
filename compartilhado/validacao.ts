@@ -2046,3 +2046,491 @@ export function nomeParaBaixar(titulo: string, caminho: string): string {
 
   return `${base || 'material'}${limpo ? `.${limpo}` : ''}`;
 }
+
+// =====================================================================
+// Doações (RF19–RF22) — as TRÊS metades de um ciclo só
+//
+// Sim, três. Um formulário público (a oferta, RF19), um da equipe que
+// responde e registra o recebido (RF20/RF21) e um da equipe que registra
+// uma doação que chegou POR FORA do site (também RF21). Os três leem
+// FormData, então os três moram aqui, com as três precauções do bloco
+// "Leitura do FormData" valendo uma a uma.
+//
+// O QUE ESTE BLOCO NÃO DECIDE, e é a diferença para `lerAlternancia`:
+// quais tipos e quais situações existem. Essas listas fechadas moram em
+// compartilhado/doacoes.ts porque decidem TRÊS coisas — as opções que a
+// tela desenha, o que a Action aceita e a ordem da fila —, e duas cópias
+// divergiriam numa opção que a Action recusa. Aqui só se LÊ.
+//
+// ===================================================================
+// A COLUNA `situacao` NÃO É LIDA DE FORMULÁRIO PÚBLICO EM CAMINHO NENHUM
+// ===================================================================
+//
+// `lerOferta` conhece DOIS campos, `tipo` e `descricao`, e mais nada.
+// `situacao` nasce do `default 'ofertada'` da coluna; `perfil_id` vem da
+// sessão verificada, como argumento; `valor`, `resposta`, `respondida_em`
+// e `recebida_em` são da equipe. É a regra 6 do CLAUDE.md aplicada a outro
+// campo: um `situacao=recebida` no corpo da requisição faria a própria
+// pessoa declarar entregue uma doação que ninguém recebeu — e isso
+// apareceria na fila da ONG como trabalho já feito.
+// =====================================================================
+
+/**
+ * O que o formulário público de oferta manda — e é a lista COMPLETA do que
+ * a Action `ofertar` aceita.
+ */
+export type CamposOferta = {
+  /**
+   * 'item' ou 'recurso_financeiro'. Texto CRU: quem aplica a lista fechada
+   * é compartilhado/doacoes.ts.
+   */
+  tipo: string;
+  /** Texto livre: o que a pessoa quer doar (RF19). */
+  descricao: string;
+};
+
+/**
+ * Teto da descrição, pelo mesmo motivo dos outros: a coluna é `text` no
+ * Postgres (sem limite nenhum) e a Action é endpoint HTTP público (spec
+ * §4.5), então sem teto qualquer pessoa manda megabytes num campo.
+ *
+ * 2.000 é o mesmo de `LIMITE_MOTIVO` e pelo mesmo raciocínio: isto começa
+ * uma conversa, não a substitui. O que a ONG precisa para responder "dá
+ * para receber?" cabe num parágrafo — e a própria /doar promete que o
+ * resto se combina junto.
+ */
+export const LIMITE_OFERTA = 2_000;
+
+/** Teto da resposta que a equipe escreve (RF20). Mesma conta da oferta. */
+export const LIMITE_RESPOSTA = 2_000;
+
+/**
+ * Campos do formulário de oferta (componentes/FormularioOferta.tsx).
+ *
+ * Um a um, por nome. Aqui isso tem uma consequência específica, escrita no
+ * bloco acima: `situacao` e `valor` não são lidos em caminho nenhum, então
+ * um corpo com `situacao=recebida&valor=5000` não tem como chegar ao banco
+ * — não porque alguém os filtre, mas porque nada os lê.
+ */
+export function lerOferta(dados: FormData): CamposOferta {
+  return {
+    tipo: textoDoCampo(dados, 'tipo'),
+    descricao: textoDoCampo(dados, 'descricao')
+  };
+}
+
+/**
+ * TODOS os erros de uma vez — a regra do topo deste arquivo.
+ *
+ * `tiposValidos` é a lista de compartilhado/doacoes.ts, passada por quem
+ * chama. Não é importada aqui porque ESTE ARQUIVO NÃO IMPORTA NADA (ver o
+ * cabeçalho) — e a inversão tem o mesmo efeito de `validarCandidatura`
+ * com as áreas: a lista fechada continua sendo uma só.
+ */
+export function validarOferta(campos: CamposOferta, tiposValidos: string[]): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!campos.tipo) {
+    erros.tipo = 'Escolha se você quer doar um item ou dinheiro. É por aí que a gente sabe '
+      + 'como responder.';
+  } else if (!tiposValidos.includes(campos.tipo)) {
+    // Só acontece com quem monta a requisição à mão. A frase não acusa
+    // ninguém e diz o que fazer.
+    erros.tipo = 'Essa opção não existe. Atualize a página e escolha de novo.';
+  }
+
+  if (!campos.descricao) {
+    erros.descricao = 'Conte o que você quer doar. Pode ser em poucas palavras — é isso que a '
+      + 'gente lê para responder se conseguimos receber.';
+  } else if (campos.descricao.length > LIMITE_OFERTA) {
+    erros.descricao = `O texto passou de ${LIMITE_OFERTA} caracteres. Conte o essencial por `
+      + 'aqui — o resto a gente combina quando responder.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/**
+ * AS COLUNAS QUE VÃO PARA O `insert` de `public.doacoes`, montadas chave
+ * por chave.
+ *
+ * ESTA FUNÇÃO EXISTE PARA PODER SER MEDIDA, mesmo motivo de
+ * `colunasDaCandidatura()`: o objeto podia ser escrito dentro de
+ * acoes/doacoes.ts, mas aquele arquivo importa `server-only` e o Supabase,
+ * ou seja, não entra num `node --test`. Aqui ele é função pura, e
+ * testes/doacoes.test.mjs a alimenta com um FormData hostil
+ * (`situacao=recebida`, `valor=99999`, `perfil_id=<outra pessoa>`,
+ * `doador_nome=...`) e prova que nada disso aparece no objeto.
+ *
+ * `perfil_id` é ARGUMENTO, e vem da sessão verificada. `situacao` não
+ * aparece nem como chave — nem para escrever 'ofertada', que é o `default`
+ * da coluna: escrever o default à mão seria abrir, no código, o único
+ * lugar por onde essa coluna poderia passar a vir de fora. Mesma regra que
+ * `salvarPublicacao` aplica a `publicado` e `salvarAtividade` também.
+ *
+ * `doador_nome`/`doador_email` TAMBÉM ficam de fora, e por outro motivo:
+ * quem oferta pelo site tem conta, e o nome dela está em `public.perfis`.
+ * Gravar uma segunda cópia aqui criaria duas respostas para "quem é esta
+ * pessoa" — e a que veio do formulário seria a editável por quem manda a
+ * requisição. Aquelas duas colunas existem para a doação que a EQUIPE
+ * registra de alguém sem conta (`colunasDoRegistro`, abaixo).
+ */
+export function colunasDaOferta(
+  campos: CamposOferta,
+  perfilId: string
+): { perfil_id: string; tipo: string; descricao: string } {
+  return { perfil_id: perfilId, tipo: campos.tipo, descricao: campos.descricao };
+}
+
+// ---------------------------------------------------------------------
+// Dinheiro: uma função de leitura, e o que ela recusa de propósito
+// ---------------------------------------------------------------------
+
+/**
+ * O maior valor que `numeric(12, 2)` guarda: 10 dígitos antes da vírgula.
+ *
+ * O TETO É O DA COLUNA, e não um número "razoável" escolhido por quem
+ * escreve o código. A tentação era limitar a, digamos, um milhão — nenhuma
+ * doação ao Ateliê passaria disso, e um teto baixo pegaria erro de
+ * digitação. Recusado: um teto inventado recusa dado legítimo no dia em
+ * que a ONG receber um patrocínio grande, e o erro de digitação tem
+ * conserto (a mesma tela grava de novo). Recusar o que o banco aceitaria
+ * seria a tela mentindo sobre o sistema.
+ */
+export const LIMITE_VALOR = 9_999_999_999.99;
+
+/**
+ * Só a forma BRASILEIRA de escrever dinheiro, e a recusa do resto é
+ * deliberada.
+ *
+ * Aceita: `1234`, `1234,56`, `1.234`, `1.234,56`, `12.345.678,90`.
+ * Recusa: `1234.56`, `1.2345`, `1,234.56`, `12.34.56`.
+ *
+ * POR QUE NÃO ACEITAR TAMBÉM O PONTO COMO DECIMAL: `1.500` é ambíguo — mil
+ * e quinhentos para quem digitou em português, um e meio para quem digitou
+ * em inglês. Um palpite errado aqui grava R$ 1,50 onde a ONG recebeu
+ * R$ 1.500,00, e NADA na tela acusaria: o número aparece bonitinho,
+ * formatado, errado por mil vezes. Entre adivinhar e pedir para escrever de
+ * novo, pedir é a única opção honesta — e a mensagem de erro mostra o
+ * formato.
+ */
+const FORMATO_VALOR = /^\d{1,3}(\.\d{3})*(,\d{1,2})?$|^\d+(,\d{1,2})?$/;
+
+/**
+ * O valor em reais que a equipe digitou, como número — ou `null` se o
+ * campo estiver vazio, e `NaN` se não for um valor escrito na forma acima.
+ *
+ * TRÊS DESFECHOS, e o do meio é o que costuma faltar: vazio é legítimo (o
+ * campo é opcional, e doação de item não tem valor), texto inválido é erro
+ * da pessoa, e número é número. Uma função que devolvesse `0` para os dois
+ * primeiros gravaria "R$ 0,00" onde a resposta certa era "não sei" — e a
+ * tela de quem doou desenharia isso como se a doação não valesse nada.
+ */
+export function numeroDoValor(texto: string): number | null {
+  const limpo = texto.replace(/^R\$\s*/i, '').trim();
+  if (!limpo) return null;
+  if (!FORMATO_VALOR.test(limpo)) return Number.NaN;
+
+  return Number(limpo.replace(/\./g, '').replace(',', '.'));
+}
+
+// ---------------------------------------------------------------------
+// A análise da equipe (RF20) e o registro do recebido (RF21)
+// ---------------------------------------------------------------------
+
+/**
+ * A lista fechada de situações que a análise aceita.
+ *
+ * DUPLICATA APARENTE de compartilhado/doacoes.ts, e não é: este arquivo
+ * NÃO IMPORTA NADA, por construção (ver o cabeçalho), então a lista tem de
+ * ser escrita aqui ou passada como argumento. `validarOferta` recebe os
+ * tipos como argumento; aqui isso encheria a assinatura de listas, e a
+ * função é chamada de dois lugares.
+ *
+ * O QUE IMPEDE AS DUAS DE DIVERGIREM: `testes/doacoes.test.mjs` reconcilia
+ * esta constante com `SITUACOES_DA_DOACAO` E com o `check` da coluna, lido
+ * de supabase/migrations/004_pessoas.sql. Três fontes, uma verdade, e a
+ * suíte fica vermelha se qualquer uma andar sozinha.
+ */
+export const SITUACOES_ACEITAS_NA_ANALISE = ['ofertada', 'aceita', 'recusada', 'recebida'];
+
+/**
+ * O que a tela de resposta manda — e é a lista COMPLETA do que a Action
+ * `responderDoacao` aceita.
+ *
+ * `descricao` NÃO ESTÁ AQUI, e a ausência é a decisão mais importante deste
+ * bloco: o que a pessoa escreveu é REGISTRO. Editá-lo seria falsificar o
+ * que alguém ofereceu à ONG — a mesma regra de acoes/contatos.ts, e a mesma
+ * tentação (a tela de atendimento é justamente onde dá vontade de "arrumar
+ * o texto"). Um campo `descricao` no corpo da requisição não tem caminho
+ * porque nada o lê.
+ *
+ * `respondida_em` e `recebida_em` também não: são carimbos, e quem os
+ * decide é `colunasDaAnalise` a partir da linha que já está no banco.
+ */
+export type CamposAnalise = {
+  id: string;
+  /** Texto CRU: a lista fechada é aplicada por `validarAnalise`. */
+  situacao: string;
+  /** A resposta da ONG, que quem doou lê em /minha-conta. */
+  resposta: string;
+  /** O que de fato entrou, em reais. Texto CRU — `numeroDoValor` converte. */
+  valor: string;
+};
+
+export function lerAnalise(dados: FormData): CamposAnalise {
+  return {
+    id: textoDoCampo(dados, 'id'),
+    situacao: textoDoCampo(dados, 'situacao'),
+    resposta: textoDoCampo(dados, 'resposta'),
+    valor: textoDoCampo(dados, 'valor')
+  };
+}
+
+/**
+ * TODOS os erros de uma vez.
+ *
+ * `tipoDaLinha` é o `tipo` da doação COMO ESTÁ NO BANCO, não como veio no
+ * formulário: quem oferece escolhe o tipo uma vez, e a tela da equipe não
+ * o edita. É ele que decide se o campo de valor faz sentido.
+ *
+ * ===================================================================
+ * DUAS REGRAS QUE PARECEM CHATICE E NÃO SÃO
+ * ===================================================================
+ *
+ *  1. RECUSAR EXIGE ESCREVER O MOTIVO. "A ONG não conseguiu receber", sem
+ *     mais nada, é o que a pessoa vê em /minha-conta — e ela ficaria sem
+ *     saber se o problema foi o item, o momento ou o espaço. A /doar
+ *     promete o contrário ("Respondemos dizendo se conseguimos receber e
+ *     combinamos juntos a entrega"), e uma recusa muda é essa promessa
+ *     quebrada. Nas outras três situações a resposta é opcional: aceitar e
+ *     receber já dizem o essencial sozinhas;
+ *  2. VALOR SÓ EM DOAÇÃO DE DINHEIRO. Um valor pendurado numa doação de
+ *     item apareceria na tela de quem doou como "Item · R$ 300,00", o que
+ *     ninguém prometeu e ninguém avaliou — a ONG não é avaliadora de bens.
+ *     A recusa é do CAMPO, com a frase dizendo por quê, e não um
+ *     apagamento silencioso.
+ */
+export function validarAnalise(campos: CamposAnalise, tipoDaLinha: string): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!campos.situacao) {
+    erros.situacao = 'Escolha em que pé está esta doação.';
+  } else if (!SITUACOES_ACEITAS_NA_ANALISE.includes(campos.situacao)) {
+    erros.situacao = 'Essa situação não existe. Atualize a página e escolha de novo.';
+  }
+
+  if (campos.resposta.length > LIMITE_RESPOSTA) {
+    erros.resposta = `A resposta passou de ${LIMITE_RESPOSTA} caracteres. O resto se conversa `
+      + 'por WhatsApp ou e-mail, que é onde a pessoa deixou o contato.';
+  } else if (campos.situacao === 'recusada' && !campos.resposta) {
+    erros.resposta = 'Escreva por que não dá para receber desta vez. Quem ofereceu lê esta '
+      + 'resposta em "Sua conta", e uma recusa sem motivo é a pior notícia possível.';
+  }
+
+  const valor = numeroDoValor(campos.valor);
+
+  if (Number.isNaN(valor)) {
+    erros.valor = 'Escreva o valor com vírgula, como 1.234,56 — ou deixe em branco se não '
+      + 'houver valor em dinheiro.';
+  } else if (valor !== null && valor > LIMITE_VALOR) {
+    erros.valor = 'Esse valor é maior do que o sistema guarda. Confira se não sobrou um zero.';
+  } else if (valor !== null && tipoDaLinha !== 'recurso_financeiro') {
+    erros.valor = 'Esta doação foi ofertada como item, não como dinheiro — não há valor a '
+      + 'registrar. Deixe o campo em branco.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/**
+ * AS COLUNAS DO `update` de `public.doacoes`, montadas chave por chave.
+ *
+ * ===================================================================
+ * OS DOIS CARIMBOS, E POR QUE ELES DEPENDEM DA LINHA ATUAL
+ * ===================================================================
+ *
+ * Mesma disciplina de `publicado_em` em acoes/publicacoes.ts, e pelo mesmo
+ * motivo — só que aqui são dois:
+ *
+ *  · `respondida_em` é carimbado SÓ SE ainda for nulo, na primeira vez que
+ *    a doação sai de "ofertada". Corrigir a resposta depois não é responder
+ *    de novo, e recarimbar apagaria quando a ONG de fato respondeu;
+ *  · `recebida_em` é carimbado SÓ SE ainda for nulo, quando a situação vira
+ *    "recebida". E ele NUNCA é apagado: se a equipe voltar a situação para
+ *    "aceita" por engano, a data fica, porque ela é um fato — aquela doação
+ *    chegou naquele dia. Apagá-la seria destruir informação num gesto sem
+ *    desfazer, num celular, de pé (regra 4 do CLAUDE.md).
+ *
+ * `agora` é ARGUMENTO, e não `new Date()` aqui dentro: é o que torna esta
+ * função pura e mensurável sem relógio de mentira.
+ *
+ * `valor` VIRA null QUANDO O CAMPO ESTÁ VAZIO, e isso é apagamento
+ * deliberado: a equipe que digitou um valor errado precisa poder tirá-lo.
+ * `validarAnalise` já garantiu que ele só existe em doação de dinheiro.
+ */
+export function colunasDaAnalise(
+  campos: CamposAnalise,
+  atual: { respondida_em: string | null; recebida_em: string | null },
+  agora: string
+): {
+  situacao: string;
+  resposta: string | null;
+  valor: number | null;
+  respondida_em: string | null;
+  recebida_em: string | null;
+} {
+  const jaRespondeu = campos.situacao !== 'ofertada';
+  const valor = numeroDoValor(campos.valor);
+
+  return {
+    situacao: campos.situacao,
+    resposta: campos.resposta || null,
+    valor: valor !== null && !Number.isNaN(valor) ? valor : null,
+    respondida_em: atual.respondida_em ?? (jaRespondeu ? agora : null),
+    recebida_em: atual.recebida_em ?? (campos.situacao === 'recebida' ? agora : null)
+  };
+}
+
+// ---------------------------------------------------------------------
+// A doação que chegou POR FORA do site (RF21)
+// ---------------------------------------------------------------------
+
+/**
+ * O que a tela de registro manda — e é a lista COMPLETA do que a Action
+ * `registrarDoacao` aceita.
+ *
+ * ESTA É A OUTRA PONTA DA DECISÃO "OFERTAR EXIGE CONTA". Quem não tem
+ * conta fala com a ONG pelo WhatsApp, pelo e-mail ou na porta da sede, e é
+ * a equipe que registra — usando `doador_nome`/`doador_email`, as duas
+ * colunas que a migration criou exatamente para isso ("Doacao registrada
+ * pela equipe pode nao ter perfil: veio de fora do site", 004_pessoas.sql).
+ * Sem esta tela, aquelas colunas seriam letra morta e o RF21 valeria só
+ * para quem tem login.
+ *
+ * `perfil_id` NÃO É CAMPO, em caminho nenhum: ele fica nulo aqui. Lê-lo do
+ * formulário deixaria a equipe (ou quem montasse a requisição) pendurar uma
+ * doação na conta de qualquer pessoa — e essa doação apareceria em
+ * /minha-conta dela, como se ela tivesse doado.
+ */
+export type CamposRegistro = {
+  doador_nome: string;
+  doador_email: string;
+  /** Texto CRU: quem aplica a lista fechada é quem chama `validarRegistro`. */
+  tipo: string;
+  descricao: string;
+  /** Texto CRU — `numeroDoValor` converte. */
+  valor: string;
+};
+
+export function lerRegistro(dados: FormData): CamposRegistro {
+  return {
+    doador_nome: textoDoCampo(dados, 'doador_nome'),
+    doador_email: textoDoCampo(dados, 'doador_email'),
+    tipo: textoDoCampo(dados, 'tipo'),
+    descricao: textoDoCampo(dados, 'descricao'),
+    valor: textoDoCampo(dados, 'valor')
+  };
+}
+
+/**
+ * TODOS os erros de uma vez.
+ *
+ * O QUE É OBRIGATÓRIO ESPELHA A TABELA, e nada além. `doador_nome` é
+ * obrigatório porque a linha não entra sem ele: `constraint
+ * identificacao_obrigatoria check (perfil_id is not null or (doador_nome is
+ * not null and length(trim(doador_nome)) > 0))`, e aqui `perfil_id` é nulo
+ * por construção. `doador_email` é opcional — muita doação chega de gente
+ * que só deixou um WhatsApp, e exigir e-mail faria a equipe inventar um.
+ */
+export function validarRegistro(
+  campos: CamposRegistro,
+  tiposValidos: string[]
+): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!campos.doador_nome) {
+    erros.doador_nome = 'Escreva quem doou. Sem isso a doação não pode ser guardada — é o '
+      + 'único jeito de saber de quem ela é, já que essa pessoa não tem conta no site.';
+  } else if (campos.doador_nome.length > LIMITE_NOME) {
+    erros.doador_nome = `O nome passou de ${LIMITE_NOME} caracteres.`;
+  }
+
+  if (campos.doador_email) {
+    if (!FORMATO_EMAIL.test(campos.doador_email)) {
+      erros.doador_email = 'Confira o e-mail, ou apague o campo — ele é opcional.';
+    } else if (campos.doador_email.length > LIMITE_EMAIL) {
+      erros.doador_email = `O e-mail passou de ${LIMITE_EMAIL} caracteres.`;
+    }
+  }
+
+  if (!campos.tipo) {
+    erros.tipo = 'Escolha se foi um item ou dinheiro.';
+  } else if (!tiposValidos.includes(campos.tipo)) {
+    erros.tipo = 'Essa opção não existe. Atualize a página e escolha de novo.';
+  }
+
+  if (!campos.descricao) {
+    erros.descricao = 'Escreva o que foi doado.';
+  } else if (campos.descricao.length > LIMITE_OFERTA) {
+    erros.descricao = `O texto passou de ${LIMITE_OFERTA} caracteres.`;
+  }
+
+  const valor = numeroDoValor(campos.valor);
+
+  if (Number.isNaN(valor)) {
+    erros.valor = 'Escreva o valor com vírgula, como 1.234,56 — ou deixe em branco se não '
+      + 'houver valor em dinheiro.';
+  } else if (valor !== null && valor > LIMITE_VALOR) {
+    erros.valor = 'Esse valor é maior do que o sistema guarda. Confira se não sobrou um zero.';
+  } else if (valor !== null && campos.tipo !== 'recurso_financeiro') {
+    erros.valor = 'Isto foi registrado como item, não como dinheiro — não há valor a guardar. '
+      + 'Deixe o campo em branco, ou troque o tipo para dinheiro.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/**
+ * AS COLUNAS DO `insert` da doação registrada pela equipe.
+ *
+ * `situacao: 'recebida'` e `recebida_em` são ESCRITOS À MÃO aqui, e isso é
+ * o contrário do que `colunasDaOferta` faz de propósito. A diferença não é
+ * de gosto: lá o valor viria de um formulário PÚBLICO, e escrever a coluna
+ * abriria o caminho para o corpo da requisição decidir a situação. Aqui o
+ * literal é da TELA — ela se chama "registrar doação recebida" e existe
+ * para o que já chegou. Nada no FormData influencia estas duas chaves:
+ * `lerRegistro` não lê `situacao` nem `recebida_em` em caminho nenhum.
+ *
+ * `perfil_id` fica FORA (nulo por omissão): ver o comentário de
+ * `CamposRegistro`.
+ *
+ * `respondida_em` também é carimbado: do ponto de vista de quem doou, a
+ * conversa aconteceu — só aconteceu fora do site.
+ */
+export function colunasDoRegistro(
+  campos: CamposRegistro,
+  agora: string
+): {
+  doador_nome: string;
+  doador_email: string | null;
+  tipo: string;
+  descricao: string;
+  valor: number | null;
+  situacao: string;
+  respondida_em: string;
+  recebida_em: string;
+} {
+  const valor = numeroDoValor(campos.valor);
+
+  return {
+    doador_nome: campos.doador_nome,
+    doador_email: campos.doador_email || null,
+    tipo: campos.tipo,
+    descricao: campos.descricao,
+    valor: valor !== null && !Number.isNaN(valor) ? valor : null,
+    situacao: 'recebida',
+    respondida_em: agora,
+    recebida_em: agora
+  };
+}
