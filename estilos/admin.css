@@ -1029,3 +1029,218 @@ a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
      linha inteira só existe para o polegar. */
   .contato__botao--responder { flex: 0 0 auto; padding: 0 var(--espaco-5); }
 }
+
+/* =====================================================================
+   Gestão de voluntários (RF26)
+
+   Uma tela: /admin/voluntarios. Continua valendo tudo do topo deste arquivo
+   — uma coluna, alvo de toque inteiro, nada que dependa de mouse, nada de
+   `vw` em texto.
+
+   O QUE ELA TEM EM COMUM COM /admin/contatos, e por que as regras se
+   parecem: as duas são FILAS DE PESSOAS, com ficha de contato tocável
+   (e-mail, telefone) e um texto livre de tamanho imprevisível dentro de uma
+   dobra. As medidas abaixo saem dos mesmos dois fatos.
+
+   POR QUE NÃO REAPROVEITAR AS CLASSES `.contato*`: elas dizem "contato" numa
+   tela que não é de contatos, e a diferença entre as duas telas é real —
+   aqui há UMA marca no topo (não duas), a ficha tem uma linha que não existe
+   lá (as áreas escolhidas), e um cartão pode não ter dobra nenhuma, porque a
+   mensagem é opcional na candidatura. Um seletor comum obrigaria as duas a
+   mudar juntas para sempre; a repetição de regra aqui é o preço de elas
+   poderem divergir.
+
+   O aplique é AZUL — a terceira cor da ONG (regra 3), a mesma das notícias e
+   da galeria. As três cores já estavam em uso quando esta tela nasceu, e a
+   repetição é aceita: o que distingue uma tela da outra é o formato do
+   cartão, não a cor.
+   ===================================================================== */
+
+.voluntarios {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  /* O gap precisa caber o deslocamento do aplique (8px), senão a sombra de
+     um cartão encosta no cartão de baixo — mesma conta de .publicacoes. */
+  gap: var(--espaco-4);
+}
+
+.voluntario {
+  margin: 0;
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--azul);
+}
+
+/* Uma marca só no topo (a situação). O `wrap` fica assim mesmo, para o dia
+   em que houver uma segunda — e porque quem decide se cabe é o tamanho do
+   texto, que a pessoa pode aumentar com o A+, não a largura da tela. */
+.voluntario__marcas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  margin: 0 0 var(--espaco-2);
+}
+
+/* NOVA, EM CONTATO, VOLUNTARIANDO e ENCERRADA não se distinguem só pela cor:
+   a palavra está escrita no cartão (componentes/ListaVoluntarios.ts). O que
+   muda aqui é o PESO visual — o que ainda espera resposta é preenchido, o
+   resto é contorno —, para que a diferença sobreviva também em alto
+   contraste, onde a paleta some. Mesma regra de .contato__estado e irmãs. */
+.voluntario__estado {
+  display: inline-block;
+  padding: var(--espaco-1) var(--espaco-2);
+  border: 2px solid var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta);
+  background: transparent;
+}
+
+.voluntario__estado--nova { background: var(--amarelo); }
+
+.voluntario__nome {
+  margin: 0 0 var(--espaco-2);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+  /* Nome de outra pessoa pode ser longo e sem espaço útil para quebrar; sem
+     isto ele empurra o cartão para fora da tela a 375px. */
+  overflow-wrap: anywhere;
+}
+
+/* ---------- A ficha ----------
+   Uma linha por dado, rótulo em cima do valor: a 375px, rótulo e valor lado
+   a lado deixariam o e-mail com metade da largura, e e-mail é justamente o
+   que não pode quebrar em qualquer lugar. */
+
+.voluntario__ficha {
+  margin: 0 0 var(--espaco-3);
+}
+
+.voluntario__ficha > div { margin: 0 0 var(--espaco-2); }
+
+.voluntario__ficha dt {
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  color: var(--tinta-suave);
+}
+
+.voluntario__ficha dd {
+  margin: 0;
+  font-size: var(--texto-base);
+  line-height: 1.5;
+  /* E-mail é uma palavra só e comprida. Sem isto, a 375px, um endereço longo
+     atravessa a borda do cartão. */
+  overflow-wrap: anywhere;
+}
+
+/* O e-mail e o telefone são LINKS, e o alvo precisa ter altura de dedo: sem
+   o padding vertical eles têm a altura de uma linha de texto (~24px), abaixo
+   dos 44px que a RNF08 pede. */
+.voluntario__ficha dd a {
+  display: inline-block;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2) 0;
+  color: var(--azul-texto);
+  font-weight: 700;
+}
+
+/* O desfecho parcial de acoes/voluntariado.ts (candidatura gravada, áreas
+   não): é uma pendência de trabalho, não um campo vazio. Marrom e peso
+   cheio, como o "sem autorização" da galeria — a mesma linguagem para "isto
+   aqui exige uma providência". */
+.voluntario__sem-areas {
+  color: var(--tinta);
+  font-weight: 700;
+}
+
+/* ---------- A mensagem ----------
+   Dentro da dobra `.painel__dobra`, que já é estilizada acima (Atividades).
+   O que muda aqui é só o texto de dentro. */
+
+.voluntario__dobra { margin-bottom: var(--espaco-3); }
+
+/* `pre-wrap`: as quebras de linha que a pessoa escreveu ficam como ela
+   escreveu. E `overflow-wrap` porque texto colado de celular vem com URL e
+   palavra sem espaço.
+
+   SEM padding lateral: `.painel__dobra > *:not(summary)` (seção Atividades,
+   acima) já dá a margem dos dois lados — pôr padding aqui dobra o recuo, que
+   foi defeito VISTO ABRINDO A TELA no RF29, com os testes verdes. */
+.voluntario__mensagem {
+  margin: 0;
+  padding: 0 0 var(--espaco-3);
+  font-size: var(--texto-base);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Quando não há mensagem não há dobra: o lugar dela recebe uma frase que diz
+   que o campo é opcional, para a ausência não parecer conteúdo perdido. */
+.voluntario__sem-mensagem {
+  margin: 0 0 var(--espaco-3);
+  padding-left: var(--espaco-3);
+  border-left: 5px solid var(--azul);
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+/* ---------- Os botões ---------- */
+
+.voluntario__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.voluntario__form { margin: 0; }
+
+/* Um <a> e um <button> com a MESMA cara, como em .contato__botao: para quem
+   usa, os dois são "um botão". A diferença de tag é semântica
+   (navegar/escrever x agir) e importa para o leitor de tela, não para o
+   dedo. */
+.voluntario__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.voluntario__botao:hover { background: var(--tinta); color: var(--cal); }
+
+/* Falar com a pessoa é o gesto que a tela existe para provocar: ele carrega
+   a cor da ONG e ocupa a linha inteira no celular, porque é o alvo que o
+   polegar procura primeiro. Marcar a situação é registro do que já foi feito
+   e fica nos botões neutros. */
+.voluntario__botao--responder {
+  flex: 1 1 100%;
+  background: var(--amarelo);
+}
+
+.voluntario__botao--responder:hover { background: var(--tinta); color: var(--amarelo); }
+
+@media (min-width: 34rem) {
+  .voluntario { padding: var(--espaco-4); }
+
+  /* Com largura, falar volta a ser um botão do tamanho do texto: a linha
+     inteira só existe para o polegar. */
+  .voluntario__botao--responder { flex: 0 0 auto; padding: 0 var(--espaco-5); }
+}

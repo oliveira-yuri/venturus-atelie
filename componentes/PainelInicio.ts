@@ -61,9 +61,11 @@ export type TelaDoPainel = {
  * verdade e não havia onde ler.
  *
  * Nenhuma outra entra aqui por antecipação: indicadores (RF30–RF32),
- * eventos (RF13), presença (RF17) e gestão de voluntários (RF26) continuam
- * fora, e listá-los seria de novo prometer tela que ninguém vai construir
- * tão cedo.
+ * eventos (RF13) e presença (RF17) continuam fora, e listá-los seria de novo
+ * prometer tela que ninguém vai construir tão cedo. A gestão de voluntários
+ * (RF26) SAIU dessa lista de ausentes em 01/09/2026, pelo mesmo motivo da de
+ * mensagens: o formulário público que a alimenta passou a gravar de verdade
+ * e não havia onde ler.
  */
 export const TELAS_DO_PAINEL: TelaDoPainel[] = [
   {
@@ -110,6 +112,21 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     // no ar; esta existe para não perder gente. Entrou depois porque o
     // formulário público que a alimenta (RF07) só passou a gravar de
     // verdade em 01/09/2026 — até então não havia o que ler.
+    pronta: true
+  },
+  {
+    caminho: '/admin/voluntarios',
+    titulo: 'Voluntários',
+    descricao: 'Ler quem se candidatou ao voluntariado e marcar em que pé está cada candidatura.',
+    // Virou `true` no RF26, no mesmo commit que criou app/admin/voluntarios/ —
+    // é o que o teste de reconciliação em testes/painel-inicio.test.mjs cobra
+    // nos dois sentidos.
+    //
+    // A DESCRIÇÃO NÃO FALA EM "CADASTRAR VOLUNTÁRIO", e a diferença é a
+    // mesma da tela de mensagens: o conteúdo daqui não é criado pela equipe,
+    // é criado por quem se oferece de fora. Prometer cadastro seria prometer
+    // um botão que esta tela não tem (ver acoes/voluntarios.ts: sem insert,
+    // sem delete, e o update grava uma coluna só).
     pronta: true
   }
 ];
