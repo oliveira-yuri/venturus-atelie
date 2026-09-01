@@ -95,11 +95,29 @@ export default function Cabecalho({ sessao }: { sessao?: SessaoNoCabecalho | nul
           */
           <div className="cabecalho__sessao">
             {/*
-              O nome é informação, não controle: fica como texto. O
-              `aria-hidden` NÃO entra aqui — quem usa leitor de tela precisa
-              saber com qual conta está, tanto quanto quem enxerga.
+              O NOME VIROU LINK NA RF11 (01/09/2026), e é o único caminho até
+              /minha-conta.
+
+              Até aqui ele era texto puro, com o comentário "o nome é
+              informação, não controle" — verdade enquanto não havia para
+              onde ir. Agora há, e a área do usuário NÃO é item de menu: o
+              menu é o mesmo para toda visita, e um item "Minha conta" ali
+              apontaria, para a esmagadora maioria anônima, a uma tela que
+              redireciona para /entrar. Pendurá-la no nome de quem entrou é o
+              que faz o link existir exatamente para quem ele serve.
+
+              O `aria-hidden` continua fora — quem usa leitor de tela precisa
+              saber com qual conta está, tanto quanto quem enxerga. E
+              `aria-current` também não entra aqui: `usePathname` já marca o
+              link quando a rota é a dele, abaixo.
             */}
-            <span className="cabecalho__sessao-nome">{sessao.nome}</span>
+            <Link
+              className="cabecalho__sessao-nome"
+              href="/minha-conta"
+              aria-current={rota === '/minha-conta' ? 'page' : undefined}
+            >
+              {sessao.nome}
+            </Link>
             <form action={sair}>
               <button type="submit" className="cabecalho__entrar cabecalho__sair">
                 Sair

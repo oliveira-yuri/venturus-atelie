@@ -92,7 +92,25 @@ import type { MetadataRoute } from 'next';
  * app/admin/layout.tsx) é a metade que não depende de ninguém obedecer ao
  * robots.txt.
  */
-const FORA_DO_BUSCADOR = ['/auth/confirm', '/nova-senha', '/admin'];
+/**
+ * A QUARTA ENTRADA, `/minha-conta`, chega com a RF11 (área do usuário) e
+ * tem o motivo do `/admin`, não o das duas de e-mail: não é conteúdo
+ * público. A tela mostra nome, e-mail, telefone e histórico de doação de
+ * uma pessoa.
+ *
+ * O incômodo aqui é MENOR que o do `/admin`: nomear `/minha-conta` num
+ * arquivo público não conta nada que o site já não diga — há um "Entrar" no
+ * cabeçalho de toda página, e a existência de contas é o assunto de
+ * /entrar. E não há o que indexar: um rastreador anônimo é REDIRECIONADO
+ * para /entrar (a guarda de app/minha-conta/page.tsx), então o que ele
+ * arquivaria seria a tela de entrar com o endereço errado na frente.
+ *
+ * A defesa de verdade continua sendo a guarda e a RLS; isto é higiene, e o
+ * `noindex` da própria página (o `robots` do `generateMetadata`, em
+ * app/minha-conta/page.tsx) é a metade que não depende de ninguém obedecer
+ * ao robots.txt.
+ */
+const FORA_DO_BUSCADOR = ['/auth/confirm', '/nova-senha', '/admin', '/minha-conta'];
 
 export default function robots(): MetadataRoute.Robots {
   return {

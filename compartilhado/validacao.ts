@@ -1080,3 +1080,142 @@ export function lerMudancaDeSituacao(dados: FormData): { id: string; situacao: s
     situacao: textoDoCampo(dados, 'situacao')
   };
 }
+
+// =====================================================================
+// Meus dados — o formulário da ÁREA DO USUÁRIO (RF11)
+//
+// A pessoa edita o PRÓPRIO registro de `public.perfis`. É a tela por onde
+// uma escalada de privilégio entraria, porque `eh_equipe` mora na mesma
+// linha da mesma tabela — e a regra 6 do CLAUDE.md existe porque essa
+// escalada já aconteceu neste projeto uma vez.
+//
+// TRÊS CAMPOS, E O QUE FICA DE FORA É A PARTE IMPORTANTE. `lerMeusDados`
+// conhece `nome`, `telefone` e `tipo_pessoa`, e mais nada. Um
+// `eh_equipe=true` no corpo da requisição não tem caminho: ninguém o lê,
+// então ele não existe para o resto do sistema (é a precaução 2 do bloco
+// "Leitura do FormData"). O mesmo vale para `id` — QUAL linha é atualizada
+// não vem do formulário em caminho nenhum, vem da sessão verificada
+// (`usuarioAtual()`), em acoes/conta.ts.
+//
+// E `eh_voluntario`/`eh_doador` também ficam de fora, por outro motivo: a
+// tela não os edita (a tarefa é nome, telefone e tipo de pessoa), então
+// lê-los aqui criaria um caminho para o corpo da requisição mexer em coluna
+// que a tela nem desenha.
+// =====================================================================
+
+/**
+ * O que o formulário de "Meus dados" manda — e é a lista COMPLETA do que a
+ * Action aceita.
+ */
+export type CamposMeusDados = {
+  nome: string;
+  telefone: string;
+  /** '' significa "não quis dizer", e vira NULL na coluna. */
+  tipo_pessoa: string;
+};
+
+/**
+ * A LISTA FECHADA de `tipo_pessoa`, e ela decide DUAS coisas: as opções que
+ * o `<select>` desenha e o que a Action aceita.
+ *
+ * Uma cópia só, porque duas divergiriam numa opção que a tela oferece e o
+ * servidor recusa — ou pior, no contrário. Os valores são exatamente os do
+ * `check (tipo_pessoa in ('fisica', 'juridica'))` de
+ * supabase/migrations/001_base.sql; a coluna aceita nulo, e é daí que vem a
+ * terceira opção.
+ *
+ * O texto de cada uma é do controle, não conteúdo institucional (regra 2 do
+ * CLAUDE.md): um `<select>` sem rótulo em cada opção não é preenchível.
+ */
+export const TIPOS_DE_PESSOA: Array<{ valor: string; texto: string }> = [
+  { valor: '', texto: 'Prefiro não dizer' },
+  { valor: 'fisica', texto: 'Pessoa física' },
+  { valor: 'juridica', texto: 'Organização (pessoa jurídica)' }
+];
+
+export function ehTipoDePessoa(valor: unknown): boolean {
+  return TIPOS_DE_PESSOA.some((opcao) => opcao.valor === valor);
+}
+
+/**
+ * Campos do formulário de "Meus dados" (componentes/FormularioMeusDados.tsx).
+ *
+ * Um a um, por nome. Ver o cabeçalho deste bloco para o que isso impede.
+ */
+export function lerMeusDados(dados: FormData): CamposMeusDados {
+  return {
+    nome: textoDoCampo(dados, 'nome'),
+    telefone: textoDoCampo(dados, 'telefone'),
+    tipo_pessoa: textoDoCampo(dados, 'tipo_pessoa')
+  };
+}
+
+/**
+ * TODOS os erros de uma vez — a regra do topo deste arquivo.
+ *
+ * O QUE É OBRIGATÓRIO ESPELHA A TABELA: `nome` é `not null` em
+ * `public.perfis`; `telefone` e `tipo_pessoa` aceitam nulo. A regra do
+ * telefone é a MESMA de `validarCadastro` e `validarContato`, de propósito
+ * — três regras de telefone no mesmo site divergiriam, e a pessoa
+ * descobriria isso ao ter um número aceito no cadastro e recusado aqui.
+ */
+export function validarMeusDados(campos: CamposMeusDados): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!campos.nome) {
+    erros.nome = 'Escreva seu nome. Ele é o que aparece no topo da tela quando você entra.';
+  } else if (campos.nome.length > LIMITE_NOME) {
+    erros.nome = `O nome passou de ${LIMITE_NOME} caracteres.`;
+  }
+
+  if (campos.telefone) {
+    const digitos = apenasDigitos(campos.telefone);
+    if (digitos.length < 10 || digitos.length > 11) {
+      erros.telefone = 'O telefone precisa incluir o DDD, como (11) 95396-8344. '
+        + 'Se preferir não deixar telefone, apague o campo — ele é opcional.';
+    }
+  }
+
+  // Só acontece com quem monta a requisição à mão (a tela é um `<select>`
+  // com estas três opções). A recusa existe para o valor não chegar ao
+  // `check` do Postgres e voltar como erro de banco.
+  if (!ehTipoDePessoa(campos.tipo_pessoa)) {
+    erros.tipo_pessoa = 'Escolha uma das opções da lista.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/**
+ * AS COLUNAS QUE VÃO PARA O `update`, montadas chave por chave.
+ *
+ * ESTA FUNÇÃO EXISTE PARA PODER SER MEDIDA. O objeto do `update` podia ser
+ * escrito dentro de `acoes/conta.ts` como nas outras Actions do projeto —
+ * mas aquele arquivo importa `server-only` e o Supabase, ou seja, não entra
+ * num `node --test`. Aqui ele é uma função pura, e
+ * `testes/minha-conta.test.mjs` a alimenta com um FormData hostil
+ * (`eh_equipe=true`, `id=<outra pessoa>`, `eh_voluntario=true`) e prova que
+ * NADA disso aparece no objeto que vai ao banco. Sem isto, a garantia da
+ * regra 6 dependeria de alguém ler o código.
+ *
+ * Campo vazio vira NULL, e não string vazia: as duas colunas aceitam nulo, e
+ * a tela OMITE o que é nulo (regra 2 do CLAUDE.md no nível do campo).
+ * Guardar '' faria a ficha desenhar um rótulo sem valor — e, em
+ * `tipo_pessoa`, '' nem passaria pelo `check` do Postgres.
+ *
+ * `telefone` guarda SÓ OS DÍGITOS, como `criarConta` já faz
+ * (acoes/autenticacao.ts): a máscara é da tela, e gravar "(11) 95396-8344"
+ * numa linha e "11953968344" na outra deixaria a mesma coluna com dois
+ * formatos.
+ */
+export function colunasDoPerfil(campos: CamposMeusDados): {
+  nome: string;
+  telefone: string | null;
+  tipo_pessoa: string | null;
+} {
+  return {
+    nome: campos.nome,
+    telefone: apenasDigitos(campos.telefone) || null,
+    tipo_pessoa: campos.tipo_pessoa || null
+  };
+}

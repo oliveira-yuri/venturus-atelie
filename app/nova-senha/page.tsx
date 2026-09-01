@@ -7,12 +7,26 @@ import FormularioNovaSenha from '@/componentes/FormularioNovaSenha';
  * app/nova-senha/page.tsx — onde a pessoa escreve a senha nova, depois de
  * ter chegado pelo link do e-mail (RF10).
  *
- * NÃO É ITEM DE MENU, e nunca foi: não existe no site antigo, não tem link
- * apontando para ela em página nenhuma, e não faz sentido chegar aqui a não
- * ser vindo de `/auth/confirm` — que é quem verifica o token e grava a
- * sessão. Por isso ela entra em PAGINAS_PRONTAS_FORA_DO_MENU
- * (testes/apoio/rotas-migracao.mjs), ao lado de /privacidade e
- * /recuperar-acesso.
+ * NÃO É ITEM DE MENU, e nunca será: ela não existe no site antigo e não faz
+ * sentido para quem está apenas visitando. Por isso entra em
+ * PAGINAS_PRONTAS_FORA_DO_MENU (testes/apoio/rotas-migracao.mjs), ao lado de
+ * /privacidade e /recuperar-acesso.
+ *
+ * DESDE A RF11 (01/09/2026) EXISTE UM LINK APONTANDO PARA CÁ — em
+ * /minha-conta, "Trocar minha senha". Até então o único caminho era
+ * `/auth/confirm`, com o token do e-mail. O link novo funciona sem uma linha
+ * de código a mais, e o motivo é o desenho desta página: o que decide se o
+ * formulário aparece NÃO é ter vindo de um link, é `usuarioAtual()` — e quem
+ * está na área do usuário tem exatamente a mesma sessão que
+ * `verifyOtp()` produziria. `definirNovaSenha` confere de novo, do lado da
+ * Action.
+ *
+ * O QUE ESSE CAMINHO NÃO FAZ, dito aqui porque é aqui que a senha muda: não
+ * pede a senha ATUAL antes de trocar. Quem pegar um celular com a sessão
+ * aberta troca a senha sem saber a antiga — e isso já era verdade antes do
+ * link existir, bastava digitar este endereço na barra. O link torna o risco
+ * visível, não o cria. Fechá-lo é `reauthentication` do Supabase, decisão do
+ * grupo (está no relatório da RF11).
  *
  * DUAS TELAS NUM ARQUIVO SÓ, e a decisão de tratar TODA falha de link aqui:
  *

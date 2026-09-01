@@ -121,7 +121,14 @@ const PAGINAS_SEM_URL_ANTIGA = [
   // doacoes, e nenhum dos arquivos existe no diretório congelado. Ou seja:
   // nenhuma URL antiga apontou para uma tela de mensagens recebidas, porque
   // essa tela nunca existiu — quem quisesse ler abria o painel do Supabase.
-  '/admin/contatos'
+  '/admin/contatos',
+  // RF11, a área do usuário. O site antigo tinha `entrar.html` e
+  // `recuperar-acesso.html` e mais nada de conta: a autenticação ali era
+  // JavaScript no navegador, e depois de entrar não havia para onde ir —
+  // é literalmente o buraco que esta tarefa fecha. Nenhuma URL `.html`
+  // apontou para uma área de conta porque ela nunca existiu; cobrar um
+  // redirect de um endereço que jamais circulou seria inventar história.
+  '/minha-conta'
 ];
 
 /**

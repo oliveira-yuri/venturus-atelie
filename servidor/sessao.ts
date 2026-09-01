@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { obterCliente } from './supabase';
 import { temSupabase, repassarSeForControleDoNext, descrever } from './dados/degradacao';
@@ -44,7 +45,23 @@ const PRAZO_DA_SESSAO_MS = 5_000;
 
 export type UsuarioDaSessao = { id: string; email: string | null; nome: string | null };
 
-export async function usuarioAtual(): Promise<UsuarioDaSessao | null> {
+/**
+ * `cache()` DO REACT — acrescentado na RF11, e por medição, não por gosto.
+ *
+ * A MESMA REQUISIÇÃO já perguntava DUAS vezes antes desta tarefa: o layout
+ * raiz (por `sessaoParaOCabecalho`) e, em `/admin`, `ehEquipe()` — que é
+ * `cache()` desde a Tarefa P1 justamente porque a pergunta dele se repete.
+ * `/minha-conta` acrescenta uma terceira: a página chama `usuarioAtual()` no
+ * corpo E no `generateMetadata`, que é a regra de guarda deste projeto (ver
+ * app/admin/layout.tsx). Sem `cache()`, abrir a área do usuário custaria
+ * QUATRO chamadas de rede a `getUser()` — e cada uma tem prazo de 5 s.
+ *
+ * `cache()` deduplica DENTRO de uma requisição e só dela: não é cache entre
+ * pessoas, não atravessa requisição, não guarda nada em disco. Server Action
+ * é outra requisição, então a guarda de `acoes/conta.ts` continua perguntando
+ * de verdade — que é exatamente o que precisa acontecer.
+ */
+export const usuarioAtual = cache(async function usuarioAtual(): Promise<UsuarioDaSessao | null> {
   // Sem projeto configurado não existe sessão para ler: é o modo offline
   // deliberado de `npm test` e também o deploy sem as variáveis no painel
   // da Netlify (CLAUDE.md, "O que trava hoje", item 0e). Perguntar mesmo
@@ -87,12 +104,28 @@ export async function usuarioAtual(): Promise<UsuarioDaSessao | null> {
     // as duas fontes dizem a mesma coisa hoje porque nada edita
     // `perfis.nome` ainda.
     //
-    // O DIA EM QUE ISSO DEIXA DE VALER: RF11 (área do usuário, Bloco B), se
-    // ela permitir trocar o nome gravando só em `perfis`. Aí o cabeçalho
-    // mostraria o nome antigo para sempre, sem erro nenhum. Quem
-    // implementar RF11: ou atualiza o metadata junto, ou troca esta linha
-    // por uma consulta a `perfis` (a RLS já permite — "perfis: cada pessoa
-    // le o proprio registro").
+    // ESSE DIA CHEGOU — RF11, 01/09/2026 — E A ARMADILHA ESTÁ FECHADA,
+    // MAS NÃO POR ESTA LINHA. O aviso que vivia aqui era: "se RF11 permitir
+    // trocar o nome gravando só em `perfis`, o cabeçalho mostraria o nome
+    // antigo para sempre, sem erro nenhum", e oferecia duas saídas —
+    // atualizar o metadata junto, ou trocar esta linha por uma consulta a
+    // `perfis`.
+    //
+    // A TAREFA ESCOLHEU A PRIMEIRA. `acoes/conta.ts` grava o nome nos DOIS
+    // lugares: em `public.perfis`, que é o registro, e aqui no metadata, que
+    // é a cópia que o cabeçalho desenha. A segunda saída foi recusada porque
+    // esta função roda no LAYOUT RAIZ, ou seja, em toda página de quem está
+    // autenticado: consultar `perfis` custaria uma ida ao Postgres por
+    // página e acrescentaria um caminho de falha no layout, para desenhar
+    // uma palavra. O porquê completo, com a ordem das duas gravações e o que
+    // acontece se só uma der certo, está no cabeçalho de acoes/conta.ts.
+    //
+    // O QUE PRECISA CONTINUAR VERDADE PARA ISTO SEGUIR VALENDO: existe UM
+    // ÚNICO escritor de `perfis.nome` no código. `testes/minha-conta.test.mjs`
+    // falha se `acoes/conta.ts` parar de gravar o metadata junto — e no dia
+    // em que RF26 (gestão de voluntários) criar um segundo escritor, é essa
+    // decisão que precisa ser tomada de novo, não este comentário que
+    // precisa ser lido.
     //
     // NÃO SERVE PARA AUTORIZAR NADA. Metadata é editável pela própria
     // pessoa (`updateUser`), então é dado do cliente com outro nome — por
@@ -113,7 +146,7 @@ export async function usuarioAtual(): Promise<UsuarioDaSessao | null> {
       + `${descrever(erro)}. A requisição segue como visitante.`);
     return null;
   }
-}
+});
 
 /**
  * O MÍNIMO que o cabeçalho precisa saber: quem está aí, para escrever um

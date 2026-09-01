@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (722 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (723)
+npm test                        # suíte completa, modo offline (757 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (758)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,18 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 722 são 707 passando, 6 pulados com motivo declarado e 9 `test.todo`. **Duas fontes de
+Os 757 são 742 passando, 6 pulados com motivo declarado e 9 `test.todo`. Os 35 que entraram
+em 01/09/2026 com a RF11 (área do usuário) são `testes/minha-conta.test.mjs`: a trava da
+regra 6 exercitada com um FormData HOSTIL (`eh_equipe=true`, `id` de outra pessoa, papéis
+inventados) percorrendo `lerMeusDados` → `colunasDoPerfil`, que é literalmente o objeto que
+vai ao `.update()`; a varredura que exige `usuarioAtual()` em toda Action de conta **e que
+ela NÃO chame `ehEquipe()`** (o contrário da varredura do painel — a área do usuário é de
+qualquer pessoa autenticada); a que exige que o `nome` seja gravado TAMBÉM no metadata da
+conta, sem o que o cabeçalho mostraria o nome antigo para sempre; a que exige `.eq()` por
+`perfilId` em toda consulta, sem o que quem é da equipe veria as doações de todo mundo na
+própria área de conta; a reconciliação das palavras da tela com os `check` de
+`001_base.sql` e `004_pessoas.sql`; e o redirect (não 404) para quem chega sem sessão.
+**Duas fontes de
 vermelho intermitente, nenhuma delas do projeto:** os três testes de
 `testes/csp-vlibras.test.mjs` que dependem de o serviço do VLibras traduzir de verdade (em
 01/09/2026 variaram entre rodadas — 3 vermelhos, depois 2, depois nenhum; com a árvore LIMPA
@@ -73,7 +84,7 @@ rotas novas. Os de `testes/galeria.test.mjs` são da Tarefa P3, e os 34 de 01/09
 não uuid), a validação do formulário de dez campos, o que a lista da equipe desenha, a
 varredura que exige `ehEquipe()` em toda Action de atividades **e que não exista `insert`
 nem `delete` ali**, e a que exige que a leitura do PAINEL não caia para o JSON versionado.
-No modo `test:supabase` a contagem é 723, um a mais e dois pulados a mais. O pulado novo é
+No modo `test:supabase` a contagem é 758, um a mais e dois pulados a mais. O pulado novo é
 o do RF07 — "sem JavaScript: o envio válido atravessa a validação e chega ao corpo da
 Action" (`testes/contato.test.mjs`), que só roda no modo offline: com credenciais ele
 gravaria uma linha inventada em `public.contatos` do projeto de produção A CADA RODADA, e
@@ -148,6 +159,26 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   sessão é `app/layout.tsx` (Server Component) e passa ao `Cabecalho` o MÍNIMO — um nome, nada
   de id, e-mail ou objeto de usuário, que iriam parar no HTML de toda página. Nada ali
   autoriza coisa alguma: o cabeçalho decide o que desenhar, a RLS decide o que pode.
+  **Desde a RF11 o nome é um link para `/minha-conta`** — e é o ÚNICO caminho até a área do
+  usuário, que não é (e não deve ser) item de menu: o menu é o mesmo para toda visita, e para
+  a maioria anônima aquele item só redirecionaria.
+- **O nome de quem entrou é gravado em DOIS lugares, e isso é decisão medida (RF11).** O
+  cabeçalho lê o nome do metadata da conta, não de `perfis` — `servidor/sessao.ts` roda no
+  layout raiz, ou seja, em toda página de quem está autenticado, e trocar essa leitura por uma
+  consulta custaria uma ida ao Postgres por página para desenhar uma palavra. Então
+  `acoes/conta.ts` grava nos dois: `public.perfis` primeiro (é o registro, é o que a RLS
+  protege), o metadata depois. Se só a primeira der certo, a pessoa NÃO recebe "salvo" liso:
+  recebe uma frase dizendo que os dados foram gravados e que só o nome do topo continua
+  antigo. Há teste que falha se a segunda gravação sumir. **O que precisa continuar verdade:
+  existe UM único escritor de `perfis.nome`.** No dia em que RF26 criar o segundo, a decisão
+  precisa ser tomada de novo.
+- **A área do usuário recusa com REDIRECT; o painel recusa com 404. Não é inconsistência.**
+  `/admin` responde 404 porque a EXISTÊNCIA do painel é o que se recusa a contar.
+  `/minha-conta` não é segredo de ninguém — que este site tem contas está escrito em /entrar
+  e no cabeçalho de toda página; o que falta a quem chega sem sessão é sessão, e a resposta
+  certa para isso é a tela de entrar. Um 404 ali esconderia de quem tem conta o caminho para a
+  própria conta. O que as duas telas compartilham é a REGRA DA GUARDA: no corpo da página **e**
+  no `generateMetadata`, pelo motivo medido na Tarefa P1.
 - **Link de e-mail entra por `/auth/confirm` (Route Handler), nunca por uma página.** É
   `verifyOtp()` que grava o cookie de sessão, e escrever cookie durante a renderização de um
   Server Component é impossível (ver o `catch` do `setAll` em `servidor/supabase.ts`). O `type`
@@ -228,6 +259,20 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   `testes/atividades.test.mjs` têm a varredura irmã, uma para cada arquivo de Action. MEDIDO em
   01/09/2026, sem JavaScript, com as guardas das PÁGINAS desligadas de propósito: o envio chega
   à Action, a guarda dela recusa e o formulário volta preenchido.
+  **`acoes/conta.ts` é a exceção que confirma a regra:** ela chama `usuarioAtual()` e NUNCA
+  `ehEquipe()` — a área do usuário é de qualquer pessoa autenticada, e exigir equipe ali
+  trancaria voluntárias e doadoras fora dos próprios dados. `testes/minha-conta.test.mjs` tem a
+  varredura ao contrário, que falha se `ehEquipe()` aparecer naquele arquivo.
+- **`eh_equipe` mora na MESMA LINHA que /minha-conta edita, e a defesa é tripla (RF11).**
+  `lerMeusDados` conhece três nomes de campo; `colunasDoPerfil` monta o objeto do `update`
+  com três chaves escritas à mão (função pura, testada com um FormData hostil); e o trigger
+  `proteger_papel_equipe` levanta exceção no banco. MEDIDO em 01/09/2026 contra o Supabase de
+  produção, com sessão de verdade, **pelos dois caminhos**: um `PATCH` direto no PostgREST com
+  `{"eh_equipe":true}` respondeu `42501 somente a equipe altera o papel de equipe`; e o envio
+  do formulário REAL de `/minha-conta` com `eh_equipe`, `eh_doador`, `id` de outra pessoa e
+  `email` acrescentados como campos escondidos gravou o nome e **não mexeu em nada disso** —
+  `eh_equipe` continuou `false`, o e-mail continuou o mesmo e a linha atualizada foi a da
+  própria pessoa. O `id` da linha vem da sessão verificada, nunca do corpo.
 - **Publicar é um ato separado de escrever.** `salvarPublicacao` não conhece a coluna
   `publicado` — nem para gravar `false` —, então nada vai ao ar por acidente; `publicado` só
   muda por `alternarPublicacao`, que é um `<form>` com botão próprio. Ao publicar, `publicado_em`
@@ -249,7 +294,8 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
 
 ## Status por módulo
 
-Atualizado em 01/09/2026 (RF29 — a tela da equipe para ler as mensagens; antes, no mesmo dia,
+Atualizado em 01/09/2026 (RF11 — a área do usuário; antes, no mesmo dia, o RF29,
+que deu à equipe a tela para ler as mensagens; e antes disso,
 o RF07 — formulário de contato + migration 007 — e as Tarefas P2, P3 e P4 do painel; antes disso, P1 em 31/08 e o fim do
 Bloco A da fase 2, rodada de correção 1). O status descreve
 **esta branch**, já sem o `site/` estático — e por isso foi conferido linha a linha contra o que
@@ -275,12 +321,20 @@ cabeçalho autenticado é medido por uma porta de diagnóstico fechada por padr�
 `DIAGNOSTICO_CABECALHO_COM_SESSAO` (`app/layout.tsx`), que só muda o que o cabeçalho DESENHA e
 não passa por `usuarioAtual()`, que continua sendo o único que autoriza.
 
-O que ainda NÃO foi exercitado é o caminho do SUCESSO contra o Auth: sem conta de teste e com o
-limite de envio de e-mail travando o cadastro, ninguém recebeu um link de verdade nem entrou —
-e, por consequência, **ninguém viu o próprio nome no cabeçalho por ter entrado de verdade**.
-O que está provado contra o Supabase real (`npm run test:supabase`) é o caminho da FALHA —
-`/entrar` com credencial inexistente devolve "E-mail ou senha não conferem" vindo do Auth e
-traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?erro=expirado`.
+**O CAMINHO DO SUCESSO PASSOU A SER EXERCITADO EM 01/09/2026, na RF11.** Até então nada disto
+tinha sido percorrido: sem conta confirmada, ninguém entrava. Duas coisas destravaram —
+`mailer_autoconfirm` virou `true` no projeto Supabase (MEDIDO em
+`GET /auth/v1/settings`; era `false` até 30/08, e é o item 1 de "O que trava hoje" que
+encolheu), e a RF11 criou uma conta de teste para medir (item 0o). Com ela, contra o Supabase de
+PRODUÇÃO, no Firefox, **com e sem JavaScript**: criar conta grava e já devolve sessão; `/entrar`
+autentica; **o cabeçalho mostra o nome de quem entrou por ter entrado de verdade**, e não pela
+porta de diagnóstico; `Sair` encerra; `/minha-conta` desenha a ficha e o formulário com o que
+veio do banco; e trocar o nome muda o nome do cabeçalho no mesmo gesto.
+`DIAGNOSTICO_CABECALHO_COM_SESSAO` continua existindo — a SUÍTE segue sem sessão —, mas deixou
+de ser a única evidência.
+O caminho da FALHA continua provado por `npm run test:supabase`: `/entrar` com credencial
+inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido por
+`compartilhado/erros.ts`, e um token recusado vira `/nova-senha?erro=expirado`.
 
 ### M1 — Site institucional
 
@@ -300,10 +354,10 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 
 | Req | O quê | Status |
 |---|---|---|
-| RF08 | Cadastro de voluntário | **tela e envio prontos** (Tarefa 3: `componentes/AbasEntrar.tsx` chama `criarConta`). A conta é gravada, mas **ninguém entra antes de confirmar o e-mail**, e o envio nativo do Supabase tem cota baixíssima — ver "O que trava hoje", item 1. Falta a gestão pela equipe (RF26) |
+| RF08 | Cadastro de voluntário | **pronto** (Tarefa 3: `componentes/AbasEntrar.tsx` chama `criarConta`). **Desde que `mailer_autoconfirm` virou `true` no projeto Supabase, a conta criada já vem com sessão e a pessoa entra na hora** — MEDIDO em 01/09/2026 (RF11): criar conta pelo Auth real devolveu `access_token`, e `signInWithPassword` com o mesmo par funcionou. Era o item 1 de "O que trava hoje", e encolheu. A confirmação por e-mail deixou de barrar a entrada; o envio nativo com cota baixa continua importando para RECUPERAR SENHA e para trocar de e-mail. Falta a gestão pela equipe (RF26) |
 | RF09 | Cadastro de doador | idem RF08: é o mesmo formulário, com a caixa "Quero doar ou apoiar" virando `eh_doador` |
-| RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. Provado contra o Auth real só o caminho da recusa: **entrar de verdade ninguém conseguiu ainda**, porque não existe conta confirmada (item 1 e item 2 de "O que trava hoje"). A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva |
-| RF11 | Área do usuário | **falta** — Bloco B |
+| RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. **Entrar de verdade passou a funcionar em 01/09/2026** (RF11): com `mailer_autoconfirm` agora `true`, criar conta devolve sessão e `/entrar` autentica — medido no Firefox contra o Auth de produção, com e sem JavaScript, e o cabeçalho mostrou o nome de quem entrou por ter entrado. O caminho da recusa continua provado por `npm run test:supabase`. A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva — e desde a RF11 o nome é um LINK para `/minha-conta`, único caminho até a área do usuário |
+| RF11 | Área do usuário | **pronto, e é o primeiro caminho AUTENTICADO do projeto medido de ponta a ponta** (01/09/2026) — `/minha-conta` mostra a ficha da conta, o formulário de nome/telefone/tipo de pessoa (`acoes/conta.ts`), as candidaturas ao voluntariado e as doações registradas. Quem chega sem sessão é mandado para `/entrar` (redirect, não 404 — o porquê está no cabeçalho da página). MEDIDO contra o Supabase de produção, no Firefox, **com e sem JavaScript**: entrar, abrir a área pelo nome no cabeçalho, corrigir o nome, ver o cabeçalho acompanhar, e a recusa de validação devolvendo o formulário preenchido. **Sem bloco de inscrições**, e não é esquecimento: `public.inscricoes` não tem política de leitura para a própria pessoa NEM coluna ligando inscrição a conta (decisão D4) — ver o fim de `servidor/dados/conta.ts`. As tabelas `voluntarios` e `doacoes` estão VAZIAS: o que se vê hoje são os estados vazios |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
 | RF33 | Painel administrativo | **quatro telas de trabalho** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). P4 (01/09) fechou o bloco com **atividades**: `/admin/atividades` (as 11 reais, com tirar do ar/pôr de volta) e `/admin/atividades/editar?id=` (corrigir o texto — sem criar e sem apagar). O RF29 (01/09) acrescentou a quinta, que não estava no plano do bloco: `/admin/contatos`, as mensagens recebidas. Quem não é equipe recebe **404** nas oito rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável na suíte. O que FOI medido sem sessão está nos relatórios de P2/P3/P4/RF29 e em `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs`, `testes/atividades.test.mjs` e `testes/contatos.test.mjs` |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
@@ -403,9 +457,11 @@ versões para manter em paralelo aqui.
   repositório que cite um caminho `site/...` está falando do site antigo, que vive no histórico:
   `git show main:site/index.html`.
 
-**O que ainda não existe no Next:** a área do usuário (RF11). A tela da equipe para LER as
-mensagens de contato (RF29) passou a existir em 01/09/2026, fechando o buraco que o RF07
-tinha aberto no mesmo dia — formulário público gravando onde ninguém lia.
+**Todas as páginas planejadas existem no Next.** A área do usuário (RF11) foi a última, em
+01/09/2026: `/minha-conta`, alcançada pelo nome de quem entrou no cabeçalho. Antes dela, no
+mesmo dia, a tela da equipe para LER as mensagens de contato (RF29), que fechou o buraco que
+o RF07 tinha aberto — formulário público gravando onde ninguém lia. O que falta agora não é
+tela portada: são requisitos que nunca tiveram tela (RF13–RF22, RF26–RF32).
 O painel em si passou a existir em 31/08/2026 (Tarefa P1): `/admin` é rota real e responde
 **404 para quem não é equipe** — o que continua sendo o comportamento certo, e o que
 `testes/redirects.test.mjs` agora vigia (a trava mudou de "`/admin` não existe" para
@@ -678,25 +734,76 @@ revisitada e mantida naquela tarefa.
    dizer que escondeu. No dia em que a lista não couber numa rolagem, o caminho é filtro por
    situação com o total escrito na tela — nunca um corte silencioso.
 
+0o. **Uma conta de teste ficou em `auth.users` e em `public.perfis` do banco de PRODUÇÃO, e
+   este repositório não consegue apagá-la.** Foi criada em 01/09/2026 para medir a RF11 — o
+   primeiro caminho AUTENTICADO exercitado no projeto: sem ela, a área do usuário teria ido
+   ao ar sem ninguém nunca ter aberto a tela pelo caminho normal, que é o que os itens 3 e
+   0m já lamentam nas telas do painel.
+
+   É reconhecível pelo e-mail `teste-rf11@exemplo.invalid` e pelo nome
+   "TESTE AUTOMATIZADO - apagar (RF11)". **`eh_equipe` é `false` e precisa continuar sendo**
+   — ela é a conta de uma pessoa comum, e é justamente isso que a torna útil para medir a
+   área do usuário. Ela não tem candidatura nem doação: as duas tabelas continuam vazias.
+
+   **A senha NÃO está neste repositório, de propósito.** Para medir de novo, defina uma nova
+   pelo painel do Supabase (*Authentication → Users*). Para apagar, é lá também
+   (*Authentication → Users → Delete user*, que leva a linha de `public.perfis` junto, pelo
+   `on delete cascade` de `001_base.sql`): `anon` e `authenticated` não apagam conta, e não
+   existe service_role neste projeto (spec §4.1).
+
+   Nenhum teste automático cria conta: o `signUp` só é exercitado por unidade, com o Auth
+   fora do caminho.
+
+0p. **Trocar a senha não pede a senha ATUAL.** Nasceu visível com a RF11, que pôs em
+   `/minha-conta` um link "Trocar minha senha" apontando para `/nova-senha` — aquela página
+   mostra o formulário para quem tem sessão, e `definirNovaSenha` confere a sessão de novo,
+   então o caminho funciona sem uma linha de código nova. **O link não cria o risco: ele o
+   torna visível.** Antes dele, quem pegasse um celular com a sessão aberta já trocava a
+   senha digitando o endereço na barra.
+
+   O cenário é real e é o da regra 4: celular pessoal, compartilhado, no meio de um evento.
+   Fechar de verdade é ligar `reauthentication` no Supabase (`updateUser` passa a exigir um
+   código enviado por e-mail antes de aceitar senha nova) — o que reintroduz a dependência do
+   envio de e-mail, hoje com cota baixa. É decisão do grupo, não de quem implementa. Enquanto
+   não for tomada, o que existe é o "Sair" no cabeçalho, em toda página.
+
 **Do projeto, válidos para as duas branches:**
 
-1. **O e-mail do Supabase é o que separa "conta criada" de "consegue entrar".** Duas coisas, e a
-   segunda foi medida de novo em 30/08/2026 (Tarefa 3): o projeto está com
-   `mailer_autoconfirm: false`, ou seja, **todo cadastro exige abrir um link enviado por e-mail
-   antes de a pessoa conseguir entrar**; e o envio nativo tem cota baixíssima
-   (`over_email_send_rate_limit`). Desde a Tarefa 3 o formulário grava a conta de verdade — o
-   que não se pode prometer é que o link chegue. Por isso a mensagem de sucesso do cadastro diz
-   que falta confirmar, não promete prazo e termina no WhatsApp e no e-mail da ONG. Saída
-   definitiva: apontar o Auth para o SMTP do Brevo. Enquanto isso não acontece, **o site inteiro
-   de contas está de pé e ninguém consegue entrar** — a única forma de haver uma conta usável é
-   criá-la pelo painel do Supabase com *Auto Confirm User* (item 2).
-2. **Não existe conta de administrador.** Criar pelo painel do Supabase com *Auto Confirm User* e
-   promover com `update public.perfis set eh_equipe = true where email = '...'`.
+1. **O e-mail do Supabase encolheu de bloqueador para incômodo — e a MENSAGEM DA TELA ficou
+   desatualizada.** Até 30/08/2026 o projeto estava com `mailer_autoconfirm: false`, ou seja,
+   todo cadastro exigia abrir um link antes de a pessoa conseguir entrar, e o envio nativo tem
+   cota baixíssima (`over_email_send_rate_limit`) — os dois juntos faziam o site inteiro de
+   contas estar de pé com ninguém conseguindo entrar.
+
+   **MEDIDO em 01/09/2026 (RF11): `mailer_autoconfirm` agora é `true`.**
+   `GET /auth/v1/settings` do projeto responde assim, e o comportamento bate: um `signUp`
+   devolveu `access_token` na hora, e `signInWithPassword` com o mesmo par funcionou em
+   seguida. Ou seja, **criar conta e entrar já funcionam de ponta a ponta, sem e-mail nenhum
+   no caminho.**
+
+   O que continua dependendo do envio, e por isso o item não sai: **recuperar senha**
+   (`resetPasswordForEmail`) e **trocar de e-mail** — é por isso que `/minha-conta` não
+   oferece troca de e-mail e diz isso por escrito. Saída definitiva continua sendo apontar o
+   Auth para o SMTP do Brevo.
+
+   **A PONTA SOLTA:** `MENSAGEM_CONTA_CRIADA` (`acoes/autenticacao.ts`) ainda diz "abra o link
+   e depois volte para entrar — antes disso a entrada não funciona". Com autoconfirm ligado
+   isso deixou de ser verdade: a pessoa já pode entrar, e a frase manda esperar um e-mail que
+   não vem. Não foi corrigida pela RF11 porque é texto de OUTRA tela e a mudança de
+   configuração pode não ter sido deliberada — **conferir com quem mexeu no painel do
+   Supabase antes de reescrever**. Se o autoconfirm veio para ficar, a frase certa é "conta
+   criada, você já está dentro".
+2. **Não existe conta de administrador.** Criar pelo painel do Supabase (não precisa mais de
+   *Auto Confirm User*, com `mailer_autoconfirm: true` — ver item 1) e promover com
+   `update public.perfis set eh_equipe = true where email = '...'`. **Existe, desde
+   01/09/2026, uma conta comum utilizável** (item 0o) — ela NÃO é equipe, e é assim que
+   precisa continuar.
 3. **O painel existe INTEIRO (P1 a P4, mais o RF29), e ninguém o viu pelo caminho normal.**
    A Tarefa P1 (31/08/2026) construiu a fundação: guarda, home e estilo; P2, P3 e P4
    (01/09/2026) as três telas de trabalho, e o RF29 (01/09/2026) a quinta,
-   `/admin/contatos`. O que trava é o mesmo do item 1 — sem sessão
-   de equipe NA SUÍTE, **o caminho autenticado nunca foi percorrido por um teste**: a home
+   `/admin/contatos`. O que trava NÃO é mais o item 1 (entrar já funciona): é que **ninguém
+   concedeu `eh_equipe` a nenhuma conta** — o item 2. Sem sessão
+   de equipe NA SUÍTE, **o caminho autenticado do painel nunca foi percorrido por um teste**: a home
    do painel foi conferida
    com o navegador só depois de um remendo local temporário no `ehEquipe()`, que não foi
    commitado, e por teste de unidade do componente (`testes/painel-inicio.test.mjs`). Não
@@ -715,7 +822,13 @@ revisitada e mantida naquela tarefa.
    Server Action, volta em 303 e a caixa de aviso aparece na lista** — no caso medido com
    `?aviso=erro`, porque a sessão do cliente era anônima e o Postgres recusou o `update`
    (`42501`, visto no log). É o mais perto do caminho autenticado que se chegou; o que
-   continua sem medição é o `update` dando CERTO. E foi assim que se viu que o parágrafo da
+   continua sem medição é o `update` dando CERTO.
+   **O QUE MUDOU EM 01/09/2026, com a RF11:** o caminho autenticado do SITE deixou de ser
+   teórico — entrar, ver o próprio nome no cabeçalho, abrir `/minha-conta`, gravar e ver a
+   tela mudar foi tudo medido contra o Supabase de produção, com e sem JavaScript. O que
+   falta ao painel é só a permissão: **basta um `update public.perfis set eh_equipe = true`
+   numa conta para as cinco telas passarem a ser mediáveis do mesmo jeito.** Isso é o item 2,
+   e é uma linha de SQL no painel do Supabase — não é mais um problema de e-mail. E foi assim que se viu que o parágrafo da
    mensagem estava com o recuo dobrado a 375px (regra 10 de novo).
    Os 12 `test.todo` de `testes/painel.test.mjs` guardam os requisitos
    (RF33/RNF08/RN01/RN05) — 9 continuam `todo` porque medem a tela renderizada (alvo de

@@ -131,6 +131,35 @@ export const PAGINAS_SO_PARA_EQUIPE = [
 ];
 
 /**
+ * Páginas que EXISTEM em app/ e exigem apenas ESTAR AUTENTICADO: a área do
+ * usuário (RF11).
+ *
+ * TERCEIRA CATEGORIA, e ela precisa existir separada das outras duas.
+ * `PAGINAS_PRONTAS` é consumida por testes que buscam a página e afirmam
+ * coisas sobre o conteúdo dela — `<main id="conteudo">`, `<h1>`, os 11 links
+ * do menu, links internos que resolvem. `/minha-conta` REDIRECIONA para
+ * `/entrar` quem não tem sessão (app/minha-conta/page.tsx), e `/entrar` tem
+ * todas essas coisas: pôr a rota ali deixaria a suíte verde medindo a tela
+ * de entrar e dizendo, no nome do teste, que mediu a área do usuário. É o
+ * mesmo raciocínio que criou `PAGINAS_SO_PARA_EQUIPE` na Tarefa P1, onde o
+ * que respondia no lugar era o 404.
+ *
+ * E ELA NÃO É `PAGINAS_SO_PARA_EQUIPE`, apesar de as duas listas ficarem
+ * fora dos mesmos testes: a guarda é outra e o desfecho da recusa é outro
+ * (redirect, não 404). O porquê de as duas guardas serem diferentes está
+ * escrito no cabeçalho de app/minha-conta/page.tsx — quem ler as telas lado
+ * a lado vai achar que uma está errada.
+ *
+ * NÃO É ITEM DE MENU, e não deve ser: o menu é o mesmo para toda visita, e
+ * um item "Minha conta" ali apontaria, para a esmagadora maioria anônima, a
+ * uma tela que só redireciona. O caminho até ela é o NOME DE QUEM ENTROU no
+ * cabeçalho, que virou link nesta tarefa (componentes/Cabecalho.tsx).
+ *
+ * O que cobre esta rota é testes/minha-conta.test.mjs.
+ */
+export const PAGINAS_SO_PARA_QUEM_ENTROU = ['/minha-conta'];
+
+/**
  * Toda página real de app/, pública ou não — é ESTA lista que precisa
  * bater com o sistema de arquivos.
  *
@@ -140,7 +169,9 @@ export const PAGINAS_SO_PARA_EQUIPE = [
  * `app/admin/publicacoes/page.tsx` na Tarefa P2 e não cadastrar a rota aqui
  * quebra os dois testes.
  */
-export const PAGINAS_CATALOGADAS = [...PAGINAS_PRONTAS, ...PAGINAS_SO_PARA_EQUIPE];
+export const PAGINAS_CATALOGADAS = [
+  ...PAGINAS_PRONTAS, ...PAGINAS_SO_PARA_EQUIPE, ...PAGINAS_SO_PARA_QUEM_ENTROU
+];
 
 const DIRETORIO_APP = fileURLToPath(new URL('../../app/', import.meta.url));
 

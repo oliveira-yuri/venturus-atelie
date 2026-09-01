@@ -166,9 +166,11 @@ test('as rotas que ficam fora do buscador para sempre (fluxo de e-mail e painel)
 
   // `/admin` entra na Tarefa P1 do painel (RF33), pelo terceiro motivo
   // escrito em app/robots.ts: painel não é conteúdo público, e a regra por
-  // prefixo cobre também as telas de P2/P3/P4. Ele também NÃO sai no
+  // prefixo cobre também as telas de P2/P3/P4. `/minha-conta` entra na RF11
+  // (área do usuário) pelo mesmo motivo: a tela mostra nome, e-mail,
+  // telefone e histórico de doação de uma pessoa. Nenhum dos dois sai no
   // lançamento.
-  for (const rota of ['/auth/confirm', '/nova-senha', '/admin']) {
+  for (const rota of ['/auth/confirm', '/nova-senha', '/admin', '/minha-conta']) {
     assert.match(
       corpo,
       new RegExp(`^\\s*Disallow:\\s*${rota}\\s*$`, 'im'),

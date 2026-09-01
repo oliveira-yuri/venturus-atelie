@@ -79,6 +79,21 @@
      esta usando um celular compartilhado e justamente perder a informacao
      que este bloco existe para dar. Ele quebra em duas linhas e pronto. */
   overflow-wrap: anywhere;
+
+  /* VIROU LINK NA RF11 (para /minha-conta) — antes era um <span>. O que
+     muda aqui e so o que um <a> precisa para ser ALCANCAVEL COM O DEDO
+     (RNF08, alvo de 44px): altura minima e uma area de toque de verdade. O
+     sublinhado vem do estilo base de <a> e fica: sem ele, o unico sinal de
+     que o nome e clicavel seria a cor, e cor sozinha nao e sinal (regra 8). */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo-toque);
+}
+
+.cabecalho__sessao-nome[aria-current="page"] {
+  /* Mesma marca do link "Entrar" quando a rota e a dele: quem ja esta em
+     /minha-conta ve que aquele link aponta para onde ele esta. */
+  text-decoration-thickness: 3px;
 }
 
 /* Mesma caixa do link "Entrar" (as duas classes andam juntas no HTML) — o
@@ -670,3 +685,51 @@
   font-size: var(--texto-base);
   line-height: 1.5;
 }
+
+/* ---------- Area do usuario (RF11) ----------
+   As duas listas de /minha-conta: candidaturas ao voluntariado e doacoes.
+   O formulario de "Meus dados" nao precisa de nada novo — ele usa
+   `.formulario` e `.campo`, que ja existem acima, como todos os
+   formularios do site.
+
+   POUCAS REGRAS DE PROPOSITO. Esta tela e leitura, e o que ela mostra sao
+   fatos curtos: uma situacao, uma data, um texto. Cada classe nova aqui e
+   uma classe a mais para envelhecer quando RF25 e RF19–RF22 existirem e
+   houver dado de verdade para desenhar. */
+
+.conta__lista {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-4);
+}
+
+/* Mesmo "aplique" (deslocamento solido, sem textura) das outras caixas do
+   site — ver estilos/base.css. O azul, e nao o amarelo, para nao competir
+   com a caixa de aviso, que aparece logo acima e usa amarelo/marrom. */
+.conta__item {
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--azul);
+  padding: var(--espaco-4);
+}
+
+.conta__item > p { margin: 0 0 var(--espaco-2); }
+.conta__item > p:last-child { margin-bottom: 0; }
+
+/* A situacao e a primeira coisa que a pessoa procura ("respondeu?"), entao
+   ela e a linha forte do cartao — nao um selo colorido: cor sozinha nao e
+   sinal (regra 8 do CLAUDE.md). */
+.conta__situacao {
+  font-family: var(--display);
+  font-weight: 700;
+  color: var(--tinta);
+}
+
+.conta__data {
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+.conta__resposta { color: var(--tinta); }
