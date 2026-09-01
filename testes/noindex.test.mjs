@@ -148,21 +148,27 @@ test('os três continuam em modo PRÉVIA — quando o site lançar, este teste s
   }
 });
 
-test('as rotas do fluxo de e-mail continuam fora do buscador — ESTE teste NÃO sai no lançamento', async () => {
+test('as rotas que ficam fora do buscador para sempre (fluxo de e-mail e painel) continuam fora — ESTE teste NÃO sai no lançamento', async () => {
   // ATENÇÃO A QUEM VIER NO DIA DO LANÇAMENTO: o teste acima existe para
   // quebrar uma vez e ser APAGADO; este aqui existe para FICAR. São coisas
   // diferentes no mesmo arquivo, e confundir as duas apaga a única trava que
   // sobra depois que a prévia acabar.
   //
-  // Hoje o `Disallow: /` da prévia já cobre tudo e estas duas linhas são
+  // Hoje o `Disallow: /` da prévia já cobre tudo e estas linhas são
   // redundantes. No dia em que ele virar `allow: '/'`, elas passam a ser a
-  // única coisa mantendo `/auth/confirm` e `/nova-senha` fora do rastreio —
-  // e o motivo está escrito em app/robots.ts: rastreador que abre um link de
-  // confirmação GASTA o token, que é de uso único, e quem recebeu o e-mail
-  // descobre depois que o link "já não vale", sem entender por quê.
+  // única coisa mantendo `/auth/confirm`, `/nova-senha` e `/admin` fora do
+  // rastreio — e o motivo está escrito em app/robots.ts: rastreador que abre
+  // um link de confirmação GASTA o token, que é de uso único, e quem recebeu
+  // o e-mail descobre depois que o link "já não vale", sem entender por quê.
+  // Para `/admin` o motivo é outro, e está no mesmo arquivo: o painel não é
+  // conteúdo público.
   const corpo = await fetch(`${BASE}/robots.txt`).then((resposta) => resposta.text());
 
-  for (const rota of ['/auth/confirm', '/nova-senha']) {
+  // `/admin` entra na Tarefa P1 do painel (RF33), pelo terceiro motivo
+  // escrito em app/robots.ts: painel não é conteúdo público, e a regra por
+  // prefixo cobre também as telas de P2/P3/P4. Ele também NÃO sai no
+  // lançamento.
+  for (const rota of ['/auth/confirm', '/nova-senha', '/admin']) {
     assert.match(
       corpo,
       new RegExp(`^\\s*Disallow:\\s*${rota}\\s*$`, 'im'),

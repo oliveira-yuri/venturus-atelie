@@ -65,8 +65,34 @@ import type { MetadataRoute } from 'next';
  * NÃO É PROTEÇÃO DE SEGREDO, e não deve ser confundida com uma: o token
  * viaja na query e quem tiver o link entra. Isto reduz ruído e um modo de
  * falha real; a validade curta e o uso único do token é que são a defesa.
+ *
+ * A TERCEIRA ENTRADA, `/admin`, chega com a Tarefa P1 do painel (RF33) e
+ * tem outro motivo: o painel não é conteúdo público. `Disallow: /admin`
+ * cobre também tudo o que P2/P3/P4 pendurarem embaixo
+ * (`/admin/publicacoes`, `/admin/galeria`, `/admin/atividades`), porque a
+ * regra do robots.txt é por prefixo.
+ *
+ * O INCÔMODO DESTA LINHA, dito em voz alta porque ele é real: robots.txt é
+ * um arquivo PÚBLICO, então escrever `/admin` aqui NOMEIA o caminho do
+ * painel para qualquer pessoa que abra `/robots.txt` — e o painel responde
+ * 404 a quem não é equipe justamente para não confirmar que existe
+ * (app/admin/layout.tsx). Pesado dos dois lados, a linha fica:
+ *
+ *   · `/admin` é o caminho mais adivinhável que existe. A lista de
+ *     endereços de painel que um rastreador tenta sozinho começa nele;
+ *   · `Disallow` não prova existência nenhuma — bloquear caminho que não
+ *     existe é comum e não diz nada a quem lê;
+ *   · o que ela evita é concreto: no dia em que o `noindex` de prévia sair
+ *     (item 0c do CLAUDE.md), um link de painel que vaze num print, num
+ *     grupo de WhatsApp ou no histórico de um navegador compartilhado
+ *     poderia levar uma página autenticada para o índice de um buscador.
+ *
+ * O que de fato protege continua sendo a guarda (404) e a RLS; isto é
+ * higiene, e o `noindex` da própria página (metadata em
+ * app/admin/layout.tsx) é a metade que não depende de ninguém obedecer ao
+ * robots.txt.
  */
-const FORA_DO_BUSCADOR = ['/auth/confirm', '/nova-senha'];
+const FORA_DO_BUSCADOR = ['/auth/confirm', '/nova-senha', '/admin'];
 
 export default function robots(): MetadataRoute.Robots {
   return {

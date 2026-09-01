@@ -1,0 +1,156 @@
+/* =====================================================================
+   Painel administrativo (RF33) — mobile-first porque não há alternativa.
+
+   A ONG NÃO POSSUI COMPUTADOR (regra 4 do CLAUDE.md). Toda operação
+   acontece no celular pessoal da equipe, muitas vezes de pé, no meio de um
+   evento, com uma mão só. Então "mobile-first" aqui não é ordem de escrita
+   de media query: é o único cenário que existe de verdade. Tela larga é o
+   caso raro, e por isso é ela que fica no `@media`.
+
+   O QUE ISSO OBRIGA, item por item:
+     · uma coluna. Duas colunas num celular viram duas colunas estreitas;
+     · alvo de toque inteiro. O cartão todo é o link, nunca só a palavra;
+     · nada que dependa de passar o mouse — não existe mouse aqui. `:hover`
+       aparece uma vez neste arquivo, e sempre como REFORÇO de algo que já
+       está visível sem ele;
+     · nada de `vw` em texto (regra 8, e o aviso escrito em
+       estilos/tokens.css): com `vw` o texto para de responder ao botão A+.
+       Tudo abaixo é `rem`, herdado ou token.
+
+   O CSS do painel antigo (`git show main:site/assets/css/admin.css`) foi
+   lido como referência de INTENÇÃO — a barra inferior na zona do polegar, o
+   alvo de 44px, a tabela que vira cartão. Nada dele foi copiado: aquele
+   arquivo estilizava seis telas que nunca existiram, e esta tarefa tem uma.
+   O que ainda não existe não ganha CSS aqui; cada tarefa do bloco traz o
+   seu.
+
+   Sem gesto visual novo: continua valendo o "Aplique" (estilos/tokens.css)
+   — deslocamento sólido, canto vivo, fundo chapado, nenhuma textura.
+   ===================================================================== */
+
+/* O invólucro que app/admin/layout.tsx desenha em volta de toda tela do
+   painel. Existe para dar um lugar de onde pendurar o que for do painel e
+   só dele — sem isso, toda regra daqui teria de disputar especificidade
+   com estilos/base.css no site inteiro. */
+.painel {
+  /* A faixa do painel é mais estreita que a do site: linha de texto curta
+     se lê melhor no celular, e no desktop evita que um cartão sozinho
+     atravesse a tela inteira. */
+  --largura-painel: 46rem;
+}
+
+.painel__conteudo {
+  max-width: var(--largura-painel);
+  /* Menos ar em cima que o `.conteudo` do site (--espaco-5): aqui não há
+     página institucional a apresentar, há trabalho a fazer, e cada rolagem
+     a mais é um gesto a mais de pé no meio de um evento. */
+  padding-top: var(--espaco-4);
+}
+
+/* ---------- A lista de telas ----------
+   Uma coluna no celular, sempre. */
+
+.painel__telas {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-4);
+}
+
+/* O gap precisa caber o deslocamento do aplique (8px, 5px no celular):
+   com gap menor que ele, a sombra de um cartão encosta no cartão de baixo. */
+
+.painel__tela { margin: 0; }
+
+/* O CARTÃO INTEIRO É O ALVO. `display: block` num <a> que embrulha título e
+   descrição: o dedo acerta qualquer ponto do retângulo. É a diferença entre
+   funcionar de pé e exigir mira. */
+.painel__tela-alvo {
+  display: block;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--amarelo);
+  color: var(--tinta);
+  text-decoration: none;
+}
+
+/* Sublinhado só no título, e só no que é LINK DE VERDADE — daí o seletor
+   começar em `a.`, e não em `.painel__tela-alvo`.
+
+   DEFEITO MEDIDO E CORRIGIDO NA PRÓPRIA TAREFA P1: sem o `a.`, o título das
+   telas em preparo (que são `<div>`, não `<a>`) vinha sublinhado, ou seja,
+   com a única marca visual que a web usa para dizer "isto é clicável" —
+   numa tela que existe justamente para não prometer clique. Foi visto
+   abrindo a página, não pelos testes, que estavam todos verdes (regra 10 do
+   CLAUDE.md). */
+a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
+
+.painel__tela-alvo:hover {
+  background: var(--tinta);
+  color: var(--cal);
+}
+
+/* O QUE AINDA NÃO EXISTE NÃO PARECE CLICÁVEL.
+   Sem `<a>` no HTML (ver componentes/PainelInicio.ts), e aqui sem a cara de
+   cartão vivo: fundo do próprio fundo, contorno tracejado, sem aplique. A
+   diferença NÃO é confiada à cor — a frase "ainda não está pronta" está
+   escrita no cartão, e é ela que quem usa leitor de tela ouve. */
+.painel__tela-alvo--em-preparo {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+  color: var(--tinta-suave);
+}
+
+.painel__tela-titulo {
+  display: block;
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.painel__tela-preparo {
+  display: block;
+  margin-top: var(--espaco-1);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  text-transform: none;
+  color: var(--tinta-suave);
+}
+
+.painel__tela-descricao {
+  display: block;
+  margin-top: var(--espaco-1);
+  /* `inherit` e não um token de cor: dentro do cartão em foco/hover o fundo
+     vira escuro, e uma cor fixa aqui sumiria contra ele. */
+  color: inherit;
+  font-size: var(--texto-base);
+  line-height: 1.5;
+}
+
+.painel__tela-alvo--em-preparo .painel__tela-descricao { color: var(--tinta-suave); }
+
+/* ---------- O aviso do que ainda não abre ---------- */
+
+.painel__aviso {
+  max-width: 62ch;
+  padding-left: var(--espaco-3);
+  border-left: 5px solid var(--azul);
+  color: var(--tinta-suave);
+  font-size: var(--texto-pequeno);
+}
+
+/* ---------- Tela larga ----------
+   O caso raro. Duas colunas só quando cabem duas colunas inteiras: abaixo
+   disso, uma. 34rem é o mesmo limiar que estilos/base.css usa para trocar o
+   comportamento no celular. */
+@media (min-width: 34rem) {
+  .painel__telas { grid-template-columns: repeat(2, 1fr); }
+
+  /* O cartão respira mais quando há largura para isso. */
+  .painel__tela-alvo { padding: var(--espaco-4) var(--espaco-3); }
+}

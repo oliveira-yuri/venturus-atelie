@@ -30,7 +30,7 @@ import assert from 'node:assert/strict';
 import { Builder } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
 import {
-  PAGINAS_PRONTAS, ROTAS_PRONTAS_MENU, ROTAS_PENDENTES, rotasReaisDoApp
+  PAGINAS_PRONTAS, PAGINAS_CATALOGADAS, ROTAS_PRONTAS_MENU, ROTAS_PENDENTES, rotasReaisDoApp
 } from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
@@ -104,13 +104,20 @@ for (const pagina of PAGINAS) {
   });
 }
 
-test('PAGINAS_PRONTAS bate com as páginas reais em app/ (page.tsx) — esquecer de acrescentar uma quebra aqui', async () => {
+/**
+ * Reconcilia contra PAGINAS_CATALOGADAS (Tarefa P1 do painel): `app/admin/`
+ * é página real de `app/` que NÃO entra na bateria acima, porque para quem
+ * roda esta suíte — sem sessão nenhuma — ela responde o 404, e as três
+ * verificações passariam medindo a página de erro sob o nome do painel.
+ * O motivo completo da separação está em testes/apoio/rotas-migracao.mjs.
+ */
+test('PAGINAS_CATALOGADAS bate com as páginas reais em app/ (page.tsx) — esquecer de acrescentar uma quebra aqui', async () => {
   const reais = await rotasReaisDoApp();
 
   assert.deepEqual(
-    [...PAGINAS_PRONTAS].sort(),
+    [...PAGINAS_CATALOGADAS].sort(),
     [...reais].sort(),
-    'PAGINAS_PRONTAS (testes/apoio/rotas-migracao.mjs) e as páginas reais em app/ divergem — '
-    + 'uma página nova sem entrada na lista fica sem a bateria sem-JavaScript deste arquivo'
+    'as listas de testes/apoio/rotas-migracao.mjs e as páginas reais em app/ divergem — '
+    + 'uma página nova sem entrada em nenhuma delas fica sem a bateria sem-JavaScript deste arquivo'
   );
 });

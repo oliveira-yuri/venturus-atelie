@@ -21,8 +21,16 @@
  * verificar é que muda. Um `test.todo` conta em toda rodada de `npm test`;
  * código comentado não aparece em relatório nenhum.
  *
- * Reativação: nove dos doze dependem de uma tela de PAINEL que só existe no
- * Bloco B, ainda sem plano escrito, e continuam `test.todo`. Três NÃO —
+ * Reativação: nove dos doze dependem de ver a tela do PAINEL renderizada, e
+ * continuam `test.todo` — agora por um motivo mais preciso que "a tela não
+ * existe". Desde a Tarefa P1 (31/08/2026) ela existe: `/admin` é rota real,
+ * com guarda, home e estilo. O que não existe é SESSÃO DE EQUIPE (ver "O
+ * que trava hoje", itens 1 e 2), e sem ela `/admin` responde 404 para todo
+ * mundo — inclusive para esta suíte. Medir alvo de toque, rolagem
+ * horizontal e zona do polegar num 404 seria medir o 404.
+ * O que JÁ dá para medir sem sessão está em `testes/painel-guarda.test.mjs`
+ * (a recusa, a falha fechada, o não-vazamento) e em
+ * `testes/painel-inicio.test.mjs` (o que a home desenha, por unidade). Três NÃO —
  * "rótulo vinculado", "as duas abas funcionam pelo teclado" e "RF12: a
  * caixa de maioridade" verificavam marcação e interação de teclado em
  * `/entrar`, sem precisar de autenticação nenhuma — e a Tarefa A6 (que
@@ -55,34 +63,41 @@ before(async () => {
 after(async () => { await navegador?.quit(); });
 
 test.todo('a navegação fica na parte de baixo no celular — zona do polegar '
-  + '(RNF08: painel mobile-first; reativar contra a tela nova do Bloco B)');
+  + '(RNF08: painel mobile-first; reativar quando houver sessão de equipe para ver a tela)');
 
 test.todo('a navegação do painel não cobre o conteúdo '
-  + '(RNF08; reativar contra a tela nova do Bloco B)');
+  + '(RNF08; reativar quando houver sessão de equipe para ver a tela)');
 
 test.todo('todo alvo de toque do painel tem 44px no celular '
-  + '(RNF08 + acessibilidade, regra 8 do CLAUDE.md; reativar contra a tela nova do Bloco B)');
+  + '(RNF08 + acessibilidade, regra 8 do CLAUDE.md; reativar quando houver sessão de equipe)');
 
 test.todo('o painel não rola na horizontal no celular '
-  + '(RNF08; reativar contra a tela nova do Bloco B)');
+  + '(RNF08; reativar quando houver sessão de equipe para ver a tela)');
 
 test.todo('no desktop a navegação vira lateral '
-  + '(RF33; reativar contra a tela nova do Bloco B)');
+  + '(RF33; reativar quando houver sessão de equipe para ver a tela)');
 
 test.todo('os ícones da navegação são decorativos para o leitor de tela '
-  + '(acessibilidade, regra 8 do CLAUDE.md; reativar contra a tela nova do Bloco B)');
+  + '(acessibilidade, regra 8 do CLAUDE.md; reativar quando houver sessão de equipe)');
 
 test.todo('o painel pede noindex — não é conteúdo público '
-  + '(RF33/RN05; reativar contra a tela nova do Bloco B)');
+  + '(RF33/RN05; o /robots.txt já é medido em testes/noindex.test.mjs — falta a página real, que exige sessão de equipe)');
 
-test.todo('o painel recusa quem não está autenticado — redireciona para /entrar E preserva '
-  + 'o destino de retorno (parâmetro destino=), para voltar ao painel depois de entrar em vez '
-  + 'da home '
-  + '(RN05 + RF34: dados pessoais só para a equipe; reativar contra a tela nova do Bloco B, '
-  + 'com o fluxo de autenticação real que a Tarefa A6 traz para /entrar)');
+// REESCRITO NA TAREFA P1, porque o texto anterior descrevia um desenho que
+// foi DECIDIDO CONTRA: "redireciona para /entrar e preserva o destino de
+// retorno (destino=)". O plano do painel decidiu 404 sem explicação — negar
+// com explicação conta que o painel existe —, e é isso que
+// `app/admin/layout.tsx` faz. Um `test.todo` descrevendo o desenho recusado
+// é um mapa que mente.
+// O caso ANÔNIMO já não é `todo`: está medido em
+// testes/painel-guarda.test.mjs. O que sobra, e depende de conta, é o outro:
+test.todo('o painel recusa quem ESTÁ autenticado e não é equipe — 404, igual ao de quem não '
+  + 'entrou, sem dizer que o painel existe '
+  + '(RN05 + RF34; exige uma conta comum confirmada, que não existe hoje — itens 1 e 2 de '
+  + '"O que trava hoje". O caso anônimo já é medido em testes/painel-guarda.test.mjs)');
 
 test.todo('o painel pede noindex na página real '
-  + '(RF33; reativar contra a tela nova do Bloco B)');
+  + '(RF33; reativar quando houver sessão de equipe para ver a tela)');
 
 // =====================================================================
 // Reativados pela Tarefa A6 contra /entrar de verdade (app/entrar/page.tsx

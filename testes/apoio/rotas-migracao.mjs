@@ -74,8 +74,47 @@ export const ROTAS_PENDENTES = [];
 // que a varredura encontra.
 export const PAGINAS_PRONTAS_FORA_DO_MENU = ['/privacidade', '/recuperar-acesso', '/nova-senha'];
 
-// Toda página que já existe de verdade no Next, item de menu ou não.
+// Toda página PÚBLICA que já existe de verdade no Next, item de menu ou não.
 export const PAGINAS_PRONTAS = [...ROTAS_PRONTAS_MENU, ...PAGINAS_PRONTAS_FORA_DO_MENU];
+
+/**
+ * Páginas que EXISTEM em app/ e respondem 404 para quase todo mundo: o
+ * painel administrativo (RF33, Tarefa P1 do Bloco B).
+ *
+ * POR QUE ELAS NÃO ENTRAM EM PAGINAS_PRONTAS, e isto não é preciosismo de
+ * nomenclatura. Aquela lista é consumida por testes que buscam a página e
+ * afirmam coisas sobre o conteúdo dela — `<main id="conteudo">`, `<h1>`, os
+ * 11 links do menu, os contatos do rodapé, links internos que resolvem.
+ * `/admin` responde 404 para quem não é equipe (`app/admin/layout.tsx`), e
+ * o 404 deste projeto tem TODAS essas coisas (app/not-found.tsx). Ou seja:
+ * pôr `/admin` ali deixaria a suíte verde medindo a página de erro e
+ * dizendo, no nome do teste, que mediu o painel. Teste que passa pelo
+ * motivo errado é pior que teste ausente — ele afirma.
+ *
+ * NÃO SÃO ITEM DE MENU, e nunca serão: o painel não é conteúdo público,
+ * não foi divulgado, e um item no menu de toda página anunciaria a
+ * existência dele justamente para quem a guarda responde 404 (a decisão de
+ * responder 404 em vez de "acesso negado" está em app/admin/layout.tsx).
+ * Pelo mesmo motivo elas ficam fora do buscador (FORA_DO_BUSCADOR, em
+ * app/robots.ts).
+ *
+ * O que cobre estas rotas é testes/painel-guarda.test.mjs: 404 para
+ * anônimo, o layout inteiro no HTML servido, nada do painel vazando, e a
+ * decisão de permissão exercitada por unidade.
+ */
+export const PAGINAS_SO_PARA_EQUIPE = ['/admin'];
+
+/**
+ * Toda página real de app/, pública ou não — é ESTA lista que precisa
+ * bater com o sistema de arquivos.
+ *
+ * A reconciliação (em testes/links.test.mjs e testes/sem-javascript
+ * .test.mjs) existe para que uma página nova não fique sem cobertura
+ * nenhuma em silêncio. Ela continua valendo com o painel: quem criar
+ * `app/admin/publicacoes/page.tsx` na Tarefa P2 e não cadastrar a rota aqui
+ * quebra os dois testes.
+ */
+export const PAGINAS_CATALOGADAS = [...PAGINAS_PRONTAS, ...PAGINAS_SO_PARA_EQUIPE];
 
 const DIRETORIO_APP = fileURLToPath(new URL('../../app/', import.meta.url));
 

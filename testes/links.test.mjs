@@ -27,12 +27,16 @@
  * cópia. Isso sozinho não bastava: a revisão apontou que nada conferia
  * PAGINAS_PRONTAS contra a realidade — uma página nova que alguém esquecesse
  * de acrescentar à lista ficava sem cobertura aqui e a suíte continuava
- * verde. O teste "PAGINAS_PRONTAS bate com..." abaixo fecha esse buraco,
- * comparando a lista contra o que de fato existe em app/ (rotasReaisDoApp).
+ * verde. O teste "PAGINAS_CATALOGADAS bate com..." abaixo fecha esse buraco,
+ * comparando as listas contra o que de fato existe em app/ (rotasReaisDoApp)
+ * — desde a Tarefa P1 do painel são duas listas, porque nem toda página de
+ * app/ é pública; ver testes/apoio/rotas-migracao.mjs.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PAGINAS_PRONTAS, ROTAS_PENDENTES, rotasReaisDoApp } from './apoio/rotas-migracao.mjs';
+import {
+  PAGINAS_PRONTAS, PAGINAS_CATALOGADAS, ROTAS_PENDENTES, rotasReaisDoApp
+} from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
 
@@ -137,14 +141,23 @@ test('rota pendente referenciada fora do menu continua sem página — se migrou
     `rota pendente respondeu diferente de 404 — parece migrada, atualizar as duas listas:\n  ${pareceMigrada.join('\n  ')}`);
 });
 
-test('PAGINAS_PRONTAS bate com as páginas reais em app/ (page.tsx) — esquecer de acrescentar uma quebra aqui', async () => {
+/**
+ * Reconcilia contra PAGINAS_CATALOGADAS, não contra PAGINAS_PRONTAS
+ * (Tarefa P1 do painel): desde `app/admin/`, existe página real em `app/`
+ * que NÃO é pública — ela responde 404 para quem não é equipe. As duas
+ * listas e o motivo da separação estão em testes/apoio/rotas-migracao.mjs.
+ * O que este teste garante continua igual: nenhuma página nasce em `app/`
+ * sem alguém cadastrá-la em ALGUMA das duas listas, e nenhuma entrada
+ * sobra sem página real por trás.
+ */
+test('PAGINAS_CATALOGADAS bate com as páginas reais em app/ (page.tsx) — esquecer de acrescentar uma quebra aqui', async () => {
   const reais = await rotasReaisDoApp();
 
   assert.deepEqual(
-    [...PAGINAS_PRONTAS].sort(),
+    [...PAGINAS_CATALOGADAS].sort(),
     [...reais].sort(),
-    'PAGINAS_PRONTAS (testes/apoio/rotas-migracao.mjs) e as páginas reais em app/ divergem — '
-    + 'uma página nova sem entrada na lista fica sem a cobertura deste arquivo; '
+    'as listas de testes/apoio/rotas-migracao.mjs e as páginas reais em app/ divergem — '
+    + 'uma página nova sem entrada em nenhuma delas fica sem a cobertura deste arquivo; '
     + 'uma entrada sem página real por trás é lixo na lista'
   );
 });

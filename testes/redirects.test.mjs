@@ -90,6 +90,25 @@ const SEM_REDIRECT_DE_PROPOSITO = ['admin/index.html'];
 const PAGINAS_SEM_URL_ANTIGA = ['/nova-senha'];
 
 /**
+ * O contrário da lista acima: página de `app/` que TEVE URL antiga e mesmo
+ * assim fica sem redirect apontando para ela.
+ *
+ * Uma só, `/admin` — o painel (RF33), publicado pela Tarefa P1 do Bloco B.
+ * A decisão de não redirecionar `/admin/index.html` foi revisitada naquela
+ * tarefa e mantida; o porquê, agora que o painel existe, está no bloco de
+ * comentário do fim deste arquivo.
+ *
+ * Duas listas separadas, e não uma de "ignore o que não bater", porque os
+ * motivos são diferentes e envelhecem de formas diferentes: acima, páginas
+ * que nunca tiveram URL antiga (cobrá-las seria inventar história); aqui,
+ * uma que teve e cuja URL antiga foi deliberadamente deixada em 404.
+ */
+const PAGINAS_ANTIGAS_SEM_REDIRECT = ['/admin'];
+
+/** As duas juntas: o que a reconciliação de destinos não cobra. */
+const FORA_DA_RECONCILIACAO = [...PAGINAS_SEM_URL_ANTIGA, ...PAGINAS_ANTIGAS_SEM_REDIRECT];
+
+/**
  * Varre recursivamente os `.html` congelados do site antigo — a fonte das
  * URLs antigas que já circularam. `LEIA-ME.txt` e qualquer outro arquivo
  * que não termine em `.html` ficam de fora pelo filtro abaixo.
@@ -211,7 +230,7 @@ test('a query string do link antigo sobrevive ao redirect', async () => {
 test('todo destino de compartilhado/redirects-antigos.ts é uma página real de app/, sem sobra de nenhum lado', async () => {
   const destinosConfigurados = REDIRECTS_ANTIGOS.map((redirect) => redirect.destino).sort();
   const rotasReais = (await rotasReaisDoApp())
-    .filter((rota) => !PAGINAS_SEM_URL_ANTIGA.includes(rota))
+    .filter((rota) => !FORA_DA_RECONCILIACAO.includes(rota))
     .sort();
 
   assert.deepEqual(
@@ -225,55 +244,67 @@ test('todo destino de compartilhado/redirects-antigos.ts é uma página real de 
   // A lista de exceções não pode envelhecer em silêncio: uma entrada que
   // deixe de corresponder a uma página real é lixo que afrouxa o teste.
   const rotasTodas = await rotasReaisDoApp();
-  const sobrando = PAGINAS_SEM_URL_ANTIGA.filter((rota) => !rotasTodas.includes(rota));
+  const sobrando = FORA_DA_RECONCILIACAO.filter((rota) => !rotasTodas.includes(rota));
   assert.deepEqual(sobrando, [],
-    `PAGINAS_SEM_URL_ANTIGA cita página que não existe mais em app/: ${sobrando.join(', ')}`);
+    `PAGINAS_SEM_URL_ANTIGA/PAGINAS_ANTIGAS_SEM_REDIRECT citam página que não existe em app/: ${sobrando.join(', ')}`);
 });
 
 /**
- * `/admin/index.html` é a 15ª URL antiga, e a única sem resposta óbvia: o
- * painel (Bloco B) nunca existiu no ar — RF33 é só a casca da home segundo
- * o CLAUDE.md, não há conta de administrador criada e o cadastro está
- * travado pelo limite de e-mail do Supabase. Quem tem esse link é a equipe
- * de cinco pessoas da ONG, não o público: o painel nunca foi divulgado, não
- * está no menu, não aparece na matéria da Folha nem circulou no Instagram.
+ * `/admin/index.html` é a 15ª URL antiga, e a única sem redirect.
  *
- * Decisão (coordenador, 30/08/2026): NÃO redirecionar. As alternativas
- * enganam mais do que ajudam — mandar para `/entrar` sugere que existe um
- * painel funcionando do outro lado do login, quando não existe nada; e
- * redirecionar para `/admin` hoje seria 301 permanente apontando para uma
- * rota que ainda não existe, exatamente um 404 disfarçado. O 404 que sobra
- * não é seco: `app/not-found.tsx` entrega página real, em português, com
- * `<main id="conteudo">` e caminho de volta (provado em
- * `testes/rota-inexistente.test.mjs`).
+ * A DECISÃO ORIGINAL (coordenador, 30/08/2026) foi tomada quando o painel
+ * não existia em lugar nenhum: mandar para `/entrar` sugeriria um painel
+ * funcionando do outro lado do login, e mandar para `/admin` seria um 301
+ * permanente apontando para rota inexistente — um 404 disfarçado. O teste
+ * que fechava aquele bloco existia para QUEBRAR no dia em que `app/admin/`
+ * nascesse, obrigando a decidir de novo em vez de a mudança passar
+ * despercebida.
  *
- * A TRAVA CERTA (corrigida na rodada de correção 1 — a primeira versão
- * media o caminho ERRADO). A versão anterior só testava que
- * `/admin/index.html` continuava 404, e isso NÃO prova nada sobre a
- * decisão: MEDIDO — criar `app/admin/page.tsx` faz `/admin` existir, mas o
- * Next não mapeia `/admin/index.html` para essa página (esse caminho
- * literal não corresponde a rota nenhuma do App Router). Com o painel
- * criado, os testes deste arquivo continuavam todos verdes — a decisão
- * estava destravada e o comentário anterior afirmava o contrário.
+ * ESSE DIA CHEGOU: Tarefa P1 do Bloco B, 31/08/2026. `/admin` existe.
  *
- * A trava certa observa a condição de que a decisão realmente depende:
- * `/admin` (não `/admin/index.html`) ainda não existir. No dia em que o
- * Bloco B publicar `app/admin/`, o teste abaixo vira vermelho — obrigando a
- * decidir de novo o destino de `/admin/index.html` (provavelmente `/admin`)
- * em vez de a mudança passar despercebida. Provado nesta rodada: criado
- * `app/admin/page.tsx`, rodada a suite, este teste específico ficou
- * vermelho; apagado o arquivo, voltou a verde.
+ * A DECISÃO FOI REVISITADA E MANTIDA — não redirecionar —, agora por
+ * motivos diferentes dos de ontem:
+ *
+ *  1. o painel responde 404 para quem não é equipe (app/admin/layout.tsx),
+ *     e hoje isso é TODO MUNDO: não há conta de equipe utilizável neste
+ *     projeto (CLAUDE.md, "O que trava hoje", itens 1 e 2). Um 301 levaria
+ *     a pessoa ao mesmo 404, com um salto a mais no meio;
+ *  2. um redirect é PÚBLICO e permanente: ele confirmaria, para qualquer
+ *     um que peça `/admin/index.html`, que `/admin` é o endereço novo do
+ *     painel. É exatamente o que a decisão de responder 404 (em vez de
+ *     "acesso negado") recusa fazer. Não redirecionar mantém as duas
+ *     respostas iguais e mudas;
+ *  3. quem tem o link antigo é a equipe de cinco pessoas da ONG — o painel
+ *     nunca foi divulgado, não está no menu, não aparece na matéria da
+ *     Folha nem no Instagram. Para essas cinco pessoas o endereço novo se
+ *     resolve dizendo o endereço novo, não com um 301.
+ *
+ * O 404 que sobra não é seco: `app/not-found.tsx` entrega página real, em
+ * português, com `<main id="conteudo">` e caminho de volta (provado em
+ * testes/rota-inexistente.test.mjs).
+ *
+ * A TRAVA, agora, é outra — e é o primeiro teste abaixo. A condição de que
+ * esta decisão depende deixou de ser "`/admin` não existe" (existe) e
+ * passou a ser "`/admin` responde 404 para quem não é equipe". No dia em
+ * que a guarda mudar — um redirect para `/entrar`, um "acesso negado", uma
+ * home de painel aberta —, o teste fica vermelho e obriga a decidir de
+ * novo o destino de `/admin/index.html`.
+ *
+ * O que este arquivo NÃO consegue medir, e por isso não afirma: o caminho
+ * de quem É equipe. Sem sessão utilizável, todo fetch daqui é anônimo. O
+ * que dá para provar sem sessão está em testes/painel-guarda.test.mjs.
  */
-test('/admin ainda não existe — publicá-lo (Bloco B) exige revisitar esta decisão (ver comentário acima)', async () => {
+test('/admin responde 404 para quem não é equipe — a guarda do painel, medida sem sessão', async () => {
   const resposta = await fetch(`${BASE}/admin`, { redirect: 'manual' });
   assert.equal(
     resposta.status, 404,
-    `/admin respondeu ${resposta.status}: parece que o Bloco B publicou o painel — hora de decidir `
-    + 'o redirect de /admin/index.html e atualizar este teste, não apagar a trava'
+    `/admin respondeu ${resposta.status} para uma requisição ANÔNIMA. Se a guarda de `
+    + 'app/admin/layout.tsx mudou de propósito, a decisão de deixar /admin/index.html sem '
+    + 'redirect depende dela — revisitar o comentário acima, não apagar a trava'
   );
 });
 
-test('/admin/index.html não redireciona hoje — estado atual, decisão registrada acima', async () => {
+test('/admin/index.html não redireciona — decisão revisitada e mantida na Tarefa P1, ver acima', async () => {
   const resposta = await fetch(`${BASE}/admin/index.html`, { redirect: 'manual' });
   assert.equal(resposta.status, 404, `/admin/index.html respondeu ${resposta.status}, esperava 404`);
 });

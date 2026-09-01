@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (490 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (491)
+npm test                        # suíte completa, modo offline (509 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (510)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,8 +41,11 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 490 são 478 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
-(RF33), que descrevem requisitos válidos cuja forma de verificar só existe no Bloco B. Dois
+Os 509 são 497 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
+(RF33), que descrevem requisitos válidos cuja forma de verificar depende de uma sessão de
+equipe, que ainda não existe (ver "O que trava hoje", itens 1 e 2). Os 19 que entraram em
+31/08/2026 são da Tarefa P1 do painel: `testes/painel-guarda.test.mjs` (a guarda, a falha
+fechada e o não-vazamento) e `testes/painel-inicio.test.mjs` (a home). Dois
 dos pulados nasceram na revisão final do Bloco A: `ROTAS_PENDENTES` está vazia desde a A6, e
 os testes que iteravam sobre ela passavam sem verificar nada — pular com motivo escrito é a
 contagem honesta.
@@ -113,6 +116,16 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   `verifyOtp()` que grava o cookie de sessão, e escrever cookie durante a renderização de um
   Server Component é impossível (ver o `catch` do `setAll` em `servidor/supabase.ts`). O `type`
   da URL passa por lista fechada em `compartilhado/links-de-email.ts` — é entrada de usuário.
+- **A guarda do painel fica na PÁGINA, não só no layout** (`app/admin/`, RF33).
+  `servidor/permissao.ts` (`ehEquipe()`) consulta `perfis` no banco — nunca o metadata da
+  conta, que a própria pessoa edita (regra 6) — e **falha FECHADA**: erro de consulta, prazo
+  estourado, sem sessão, sem Supabase, tudo vira `notFound()`. É o CONTRÁRIO da política de
+  degradação do resto do site, de propósito: conteúdo público degrada para continuar no ar;
+  o painel não abre na dúvida (`compartilhado/permissao-de-equipe.ts` explica). MEDIDO: com
+  a guarda só no layout, `/admin` respondia 404 **e** entregava a página inteira do painel
+  no payload de hidratação — `notFound()` num layout não impede a página filha de renderizar
+  e ser serializada. Um `export const metadata` com título vaza o título pelo mesmo caminho;
+  por isso o metadata do painel é `generateMetadata` guardado.
 - **Camada de dados isolada e só do servidor:** páginas falam com `servidor/dados/*.ts`, nunca com
   `supabase-js` direto, e todo módulo de `servidor/` começa com `import 'server-only'`.
 - **Fonte dupla:** `servidor/dados/conteudo.ts` lê o JSON versionado de `dados-iniciais/` quando não
@@ -137,7 +150,8 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
 
 ## Status por módulo
 
-Atualizado em 30/08/2026 (fim do Bloco A da fase 2, rodada de correção 1). O status descreve
+Atualizado em 31/08/2026 (Tarefa P1 do painel; antes disso, fim do Bloco A da fase 2,
+rodada de correção 1). O status descreve
 **esta branch**, já sem o `site/` estático — e por isso foi conferido linha a linha contra o que
 existe aqui, não contra o que existia na `main`.
 
@@ -191,7 +205,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. Provado contra o Auth real só o caminho da recusa: **entrar de verdade ninguém conseguiu ainda**, porque não existe conta confirmada (item 1 e item 2 de "O que trava hoje"). A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva |
 | RF11 | Área do usuário | **falta** — Bloco B |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
-| RF33 | Painel administrativo | **falta** — Bloco B. A casca que existia no site antigo não foi portada; `/admin` dá 404 de propósito |
+| RF33 | Painel administrativo | **a fundação existe** (Tarefa P1, 31/08/2026): `/admin` é rota real, com guarda (`app/admin/layout.tsx` + `app/admin/page.tsx`), home "o que você quer fazer?" e `estilos/admin.css`. **Nenhum CRUD ainda** — publicações, galeria e atividades são P2/P3/P4. Quem não é equipe recebe **404**, medido; quem É equipe ninguém viu ainda, porque não há sessão utilizável |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
 ### M3 — Eventos
@@ -287,9 +301,12 @@ versões para manter em paralelo aqui.
   repositório que cite um caminho `site/...` está falando do site antigo, que vive no histórico:
   `git show main:site/index.html`.
 
-**O que ainda não existe no Next:** o painel administrativo (RF33) e a área do usuário (RF11) —
-Bloco B. `/admin` dá 404 de propósito, e há teste que falha no dia em que deixar de dar, para
-obrigar a revisitar a decisão do redirect.
+**O que ainda não existe no Next:** a área do usuário (RF11) e o CRUD do painel (P2/P3/P4).
+O painel em si passou a existir em 31/08/2026 (Tarefa P1): `/admin` é rota real e responde
+**404 para quem não é equipe** — o que continua sendo o comportamento certo, e o que
+`testes/redirects.test.mjs` agora vigia (a trava mudou de "`/admin` não existe" para
+"`/admin` recusa quem não é equipe"). `/admin/index.html` segue sem redirect, decisão
+revisitada e mantida naquela tarefa.
 
 ### O que a fase 1 entregou além das páginas
 
@@ -335,10 +352,12 @@ obrigar a revisitar a decisão do redirect.
    2. `X-Robots-Tag` em **`netlify.toml`** — vale para o que a CDN serve direto, inclusive
       os caminhos que o `matcher` do middleware exclui;
    3. **`app/robots.ts`** — trocar o `disallow: '/'` por `allow: '/'`. **Atenção:** desde a
-      Tarefa 4 aquele arquivo lista também `/auth/confirm` e `/nova-senha`, em
-      `FORA_DO_BUSCADOR` — essas duas NÃO saem no lançamento, viram o `disallow` ao lado do
-      `allow`. Rastreador que abre um link de confirmação gasta o token, que é de uso único.
-      Há teste só para elas em `testes/noindex.test.mjs`, e ele TAMBÉM não sai.
+      Tarefa 4 aquele arquivo lista também `/auth/confirm` e `/nova-senha` em
+      `FORA_DO_BUSCADOR`, e desde a Tarefa P1 do painel, `/admin` — essas TRÊS NÃO saem no
+      lançamento, viram o `disallow` ao lado do `allow`. Rastreador que abre um link de
+      confirmação gasta o token, que é de uso único; e o painel não é conteúdo público
+      (`Disallow: /admin` cobre por prefixo as telas de P2/P3/P4). Há teste só para elas em
+      `testes/noindex.test.mjs`, e ele TAMBÉM não sai.
 
    Esquecer qualquer um deles **não quebra nada que se veja**: o site sobe, as pessoas
    navegam, a suíte fica verde, e só o buscador some. Um `X-Robots-Tag: noindex` que
@@ -391,6 +410,16 @@ obrigar a revisitar a decisão do redirect.
    rota de defeito proposital fechada por variável de ambiente, no espírito de
    `/diagnostico/origem-dos-dados`. Enquanto não houver, toda afirmação sobre ela vale só até
    alguém medir de novo.
+   **(c) O MESMO VALE PARA O `notFound()` EM TEMPO DE EXECUÇÃO**, medido em 31/08/2026 na
+   Tarefa P1, em três formas (chamado do layout, da página, e com um `not-found.tsx` local
+   dentro de `app/admin/`): as três respondem **404 com o `<body>` vazio**, com o conteúdo
+   do 404 só no payload de hidratação — sem JavaScript, tela branca. NÃO é o mesmo caminho
+   de um endereço inexistente (`/rota-que-nao-existe`), que continua vindo com a página
+   inteira no HTML, porque ali o Next renderiza a rota `/_not-found` em vez de tratar uma
+   exceção no meio da renderização. Consequência prática hoje: quem cai na recusa do painel
+   sem script vê branco. Não foi "consertado" com um teste que exija tela branca — está
+   escrito aqui e em `testes/painel-guarda.test.mjs`, que mede o que é verdade (404, o 404
+   do projeto, e a tela inteira para quem tem script).
 0g. **Herdada, não corrigida: `vw` em texto no menu.** `estilos/componentes.css:93`,
    `.cabecalho__menu a { font-size: clamp(0.84rem, 1.15vw, 0.95rem) }` (e o `padding` da
    linha 87). Contra a regra 8 e contra o aviso escrito em `estilos/tokens.css:43` — dentro
@@ -399,10 +428,20 @@ obrigar a revisitar a decisão do redirect.
    estático, não da migração. **Não foi mexida na revisão final do Bloco A**: trocar por
    `rem` muda a largura do menu em telas grandes, e isso é decisão de desenho, não de
    unidade — precisa de olho humano na tela, não de um commit.
-0h. **Decisão pendente: o VLibras roda no layout raiz**, e a CSP usa `strict-dynamic`, que
-   dá confiança em cadeia a tudo que ele carregar. Quando o painel existir (RF33), isso
-   significa código de terceiro com confiança total na tela que mostra nome, telefone e
-   responsável de crianças. O caminho barato é não montar o VLibras em `/admin`.
+0h. **Decisão tomada, risco aceito: o VLibras continua no painel.** Ele é montado no
+   layout raiz, que envolve também `/admin`, e a CSP usa `strict-dynamic` — confiança em
+   cadeia para tudo que ele carregar, numa tela que vai mostrar nome, telefone e
+   responsável de crianças a partir de 10 anos. Até 31/08/2026 isto era uma *pendência*
+   aqui, com "não montar o VLibras em `/admin`" como caminho barato. **O dono do projeto
+   decidiu o contrário, em 31/08/2026, com o risco à vista** (registrado também no plano
+   do bloco, `docs/superpowers/plans/2026-08-31-painel-administrativo.md`): tirar a
+   tradução justo da tela de trabalho da equipe excluiria quem usa Libras, e
+   acessibilidade é requisito da ONG (regra 8), não enfeite.
+   O que muda de status: isto **não é mais uma decisão a tomar**, é um risco em aberto e
+   conhecido. O que o reduziria sem tirar a tradução — e continua valendo como próximo
+   passo, se alguém quiser gastar nisso: apertar a CSP para o painel (sem
+   `strict-dynamic`, com os hosts do VLibras listados um a um), o que exige medir
+   caminho a caminho como a fase 1 fez. A Tarefa P1 não mexeu nisso.
 
 **Do projeto, válidos para as duas branches:**
 
@@ -418,12 +457,23 @@ obrigar a revisitar a decisão do redirect.
    criá-la pelo painel do Supabase com *Auto Confirm User* (item 2).
 2. **Não existe conta de administrador.** Criar pelo painel do Supabase com *Auto Confirm User* e
    promover com `update public.perfis set eh_equipe = true where email = '...'`.
-3. **O painel inteiro é dívida do Bloco B.** No site antigo existia só a home do painel, e ela
-   prometia seis telas que nunca existiram (`eventos`, `presenca`, `contatos`, `mais`, `doacoes`,
-   `publicacoes`). Nada disso foi portado: nesta branch `/admin` dá 404, vigiado por
-   `testes/redirects.test.mjs`. Os 12 `test.todo` de `testes/painel.test.mjs` guardam os
-   requisitos (RF33/RNF08/RN01/RN05) até haver tela para medir — 9 continuam `todo`, 3 já foram
+3. **O painel existe, e ninguém o viu pelo caminho normal.** A Tarefa P1 (31/08/2026)
+   construiu a fundação: guarda, home e estilo. O que trava é o mesmo do item 1 — sem sessão
+   de equipe, **o caminho autenticado nunca foi percorrido**: a home do painel foi conferida
+   com o navegador só depois de um remendo local temporário no `ehEquipe()`, que não foi
+   commitado, e por teste de unidade do componente (`testes/painel-inicio.test.mjs`). Não
+   existe porta de diagnóstico para o painel, de propósito — uma variável que abra o painel
+   é uma variável que abre o painel, e as telas de P2/P3/P4 penduram dado pessoal ali.
+   Os 12 `test.todo` de `testes/painel.test.mjs` guardam os requisitos
+   (RF33/RNF08/RN01/RN05) — 9 continuam `todo` porque medem a tela renderizada (alvo de
+   44px, sem rolagem horizontal, navegação na zona do polegar) e ela exige a sessão; 3 foram
    reativados contra `/entrar` pela Tarefa A6.
+   **O que a P1 deixou provado, e vale para P2/P3/P4:** a guarda precisa estar na PÁGINA, não
+   só no layout. MEDIDO — com a guarda só em `app/admin/layout.tsx`, `/admin` respondia 404
+   **e** mandava a página inteira do painel no payload de hidratação; e um `export const
+   metadata` com título vaza o título do mesmo jeito. Toda página sob `app/admin/` chama
+   `ehEquipe()` no corpo E no `generateMetadata`; `testes/painel-guarda.test.mjs` varre
+   `app/admin/**` e falha se alguma esquecer.
 4. **Conteúdo por validar com a ONG:** citações e números lidos da matéria da Folha, sinopse de 6
    espetáculos, se "Nathi Nunes" é a mesma pessoa que Nathália Monteiro.
 5. **Nenhuma autorização de uso de imagem** — por isso não há uma única foto no site.
