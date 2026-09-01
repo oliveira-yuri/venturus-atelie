@@ -220,3 +220,36 @@ export function avisoDeContatos(valor: unknown): AvisoDoPainel | null {
   // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
   return Object.hasOwn(AVISOS_DE_CONTATOS, valor) ? AVISOS_DE_CONTATOS[valor] : null;
 }
+
+/**
+ * Os avisos da EXPORTAÇÃO em CSV (RF31) — mostrados na HOME do painel, que é
+ * de onde os dois downloads saem.
+ *
+ * UMA CHAVE SÓ, E ELA É DE FRACASSO. Não existe aviso de sucesso aqui, e a
+ * ausência é a decisão: quando o arquivo é gerado, a resposta É o arquivo —
+ * o navegador salva e a pessoa continua na mesma tela, sem recarregar nada.
+ * Não há para onde mandar um "pronto", e inventar um redirect só para
+ * exibi-lo tiraria da equipe o próprio download.
+ *
+ * O caso que precisa de frase é o outro: a consulta falhou e
+ * app/admin/exportar/[conjunto]/route.ts recusou gerar o arquivo, de
+ * propósito, para não entregar uma planilha vazia que parece um retrato do
+ * banco. Sem esta frase, o que a equipe veria era o painel recarregando
+ * sozinho sem baixar nada — o que se lê como "o botão não funciona", e não
+ * como "o banco não respondeu".
+ */
+const AVISOS_DE_EXPORTACAO: Record<string, AvisoDoPainel> = {
+  'exportacao-erro': {
+    texto: 'Não deu para gerar o arquivo agora: o banco de dados não respondeu. Nenhum arquivo '
+      + 'foi baixado, e isso é de propósito — uma planilha vazia pareceria dizer que não há '
+      + 'ninguém na lista. Tente de novo em alguns instantes.',
+    ok: false
+  }
+};
+
+export function avisoDaExportacao(valor: unknown): AvisoDoPainel | null {
+  if (typeof valor !== 'string') return null;
+
+  // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
+  return Object.hasOwn(AVISOS_DE_EXPORTACAO, valor) ? AVISOS_DE_EXPORTACAO[valor] : null;
+}

@@ -1029,3 +1029,216 @@ a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
      linha inteira só existe para o polegar. */
   .contato__botao--responder { flex: 0 0 auto; padding: 0 var(--espaco-5); }
 }
+
+/* =====================================================================
+   Indicadores e exportação (RF30/RF31) — a home do painel
+
+   Duas seções novas, as duas ABAIXO da lista de telas: os números
+   (.painel__numeros) e os downloads em CSV (.painel__exportacoes). O porquê
+   da posição está em componentes/PainelNumeros.ts, e é a única decisão de
+   desenho que importa aqui — num celular de 375px, o que está em cima é o
+   que se vê sem rolar, e a home existe para levar a equipe ao TRABALHO,
+   não para mostrar o retrato dele.
+
+   Continua valendo tudo do topo deste arquivo: uma coluna, alvo de toque
+   inteiro, nada que dependa de mouse, nada de `vw` em texto.
+   ===================================================================== */
+
+/* A frase que explica o que os números são. Curta, e com a mesma cor suave
+   dos outros textos de apoio do painel. */
+.painel__numeros-explicacao {
+  margin: 0 0 var(--espaco-3);
+  max-width: 62ch;
+  color: var(--tinta-suave);
+  font-size: var(--texto-pequeno);
+}
+
+/* ---------- Os números ----------
+
+   DUAS COLUNAS JÁ NO CELULAR, e é a única grade deste arquivo que começa
+   assim. A lista de telas é de uma coluna porque cada item carrega uma
+   frase inteira; aqui o conteúdo é um algarismo e um rótulo curto, e uma
+   coluna só transformaria seis números em seis telas de rolagem. Com duas,
+   os seis cabem em três linhas. */
+.numeros {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  /* O gap precisa caber o deslocamento do aplique curto (4px), senão a
+     sombra de um cartão encosta no de baixo. */
+  gap: var(--espaco-3);
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.numeros__item { margin: 0; }
+
+/* O CARTÃO INTEIRO É O ALVO, como na lista de telas: no celular, de pé, o
+   dedo não pode precisar acertar o algarismo (regra 4).
+
+   `height: 100%` porque os rótulos têm tamanhos diferentes e, sem isto, o
+   cartão de "Fotos no ar agora" fica mais baixo que o vizinho na mesma
+   linha — e a grade passa a parecer desalinhada por defeito, não por
+   conteúdo. */
+.numeros__alvo {
+  display: block;
+  height: 100%;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique-curto) var(--azul);
+  color: var(--tinta);
+  text-decoration: none;
+}
+
+/* O que NÃO tem tela não parece clicável — mesma regra, e mesmo desenho, do
+   cartão "ainda não está pronta" da lista de telas: sem <a> no HTML (ver
+   componentes/PainelNumeros.ts), e aqui sem a cara de cartão vivo. A
+   diferença não é confiada à cor: a frase "não existe tela para ler as
+   candidaturas ainda" está escrita dentro do cartão. */
+.numeros__alvo--sem-tela {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+}
+
+a.numeros__alvo:hover { background: var(--tinta); color: var(--cal); }
+
+/* O ALGARISMO. `--texto-titulo` e não `--texto-destaque`: um número gigante
+   é o gesto de painel que este projeto recusa (o contador que existe para
+   impressionar quem olha). Ele precisa ser lido de relance, não dominar a
+   tela.
+
+   `rem`, herdado do token — nunca `vw`, que ignora o botão A+ (regra 8). */
+.numeros__valor {
+  display: block;
+  font-family: var(--display);
+  font-size: var(--texto-titulo);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.numeros__rotulo {
+  display: block;
+  margin-top: var(--espaco-1);
+  /* `inherit` e não um token de cor: no cartão em foco/hover o fundo vira
+     escuro, e uma cor fixa aqui sumiria contra ele. */
+  color: inherit;
+  font-size: var(--texto-base);
+  line-height: 1.35;
+}
+
+/* A frase de "não há tela para isto" ocupa as duas colunas quando existe:
+   ela é a explicação de um beco, e precisa caber inteira. */
+.numeros__sem-tela {
+  display: block;
+  margin-top: var(--espaco-2);
+  color: var(--tinta-suave);
+  font-size: var(--texto-pequeno);
+  line-height: 1.4;
+}
+
+/* O item sem tela ocupa a LINHA INTEIRA: ele carrega a frase que explica
+   onde a coisa se resolve, e essa frase não cabe numa coluna de ~190px.
+   A marca vem do componente (`--largo`), não de `:has(.numeros__sem-tela)`,
+   porque a regra do vizinho logo abaixo precisa de um `:has()` de um nível
+   só — ver o comentário em componentes/PainelNumeros.ts. */
+.numeros__item--largo { grid-column: 1 / -1; }
+
+/* DEFEITO VISTO NA BANCADA, a 375px e a 1280px — não pelos testes, que
+   estavam todos verdes (regra 10 do CLAUDE.md).
+
+   Um item que ocupa a linha inteira não cabe ao lado do anterior, então ele
+   pula para a linha seguinte e deixa um BURACO onde estaria o vizinho: a
+   375px, uma célula vazia ao lado de "Mensagens esperando resposta"; a
+   1280px, duas. Buraco em grade não parece decisão, parece coisa que não
+   carregou.
+
+   A correção é dizer que quem vem imediatamente ANTES de um item de linha
+   inteira também ocupa a linha inteira. Não é hierarquia inventada: o item
+   que hoje ocupa a linha é o único sem tela, e o que vem antes dele é
+   "mensagens esperando resposta" — os dois números sobre GENTE ESPERANDO
+   ganham a largura, que é a ordem de importância que a lista já declara em
+   compartilhado/indicadores.ts.
+
+   Escrito por relação e não por posição (`:nth-child`) de propósito: a
+   ordem da lista é decisão de outro arquivo, e um número fixo aqui ficaria
+   errado no dia em que ela mudar, em silêncio.
+
+   A PRIMEIRA TENTATIVA FOI `:has(+ .numeros__item:has(...))` E NÃO FEZ
+   NADA: `:has()` não pode ser aninhado dentro de `:has()`, o seletor
+   inteiro é inválido, e um seletor inválido não avisa — o buraco continuou
+   na tela com a suíte verde. Daí a classe `--largo`, posta pelo
+   componente. */
+.numeros__item:has(+ .numeros__item--largo) { grid-column: 1 / -1; }
+
+/* ---------- Os downloads em CSV ---------- */
+
+.painel__exportacoes { margin-top: var(--espaco-5); }
+
+/* O aviso de dado pessoal não é mais um texto de apoio: ele fica ANTES dos
+   links e carrega a cor de terra, que neste projeto marca o que exige
+   cuidado (é a mesma escolha de .midia__escolhido--grande). A diferença
+   nunca é só a cor — a frase diz o que está em jogo. */
+.painel__aviso--pessoal {
+  border-left-color: var(--marrom);
+  color: var(--tinta);
+  font-weight: 700;
+}
+
+.exportacoes {
+  list-style: none;
+  margin: 0 0 var(--espaco-3);
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-4);
+}
+
+.exportacoes__item { margin: 0; }
+
+/* Mesmo cartão da lista de telas, com o aplique amarelo: baixar um arquivo é
+   um gesto de trabalho, não um aviso. O alvo é o cartão inteiro. */
+.exportacoes__alvo {
+  display: block;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--amarelo);
+  color: var(--tinta);
+  text-decoration: none;
+}
+
+.exportacoes__alvo:hover { background: var(--tinta); color: var(--cal); }
+
+/* Sublinhado só no rótulo, como em a.painel__tela-alvo: é ele que diz "isto
+   é clicável". */
+.exportacoes__alvo .exportacoes__rotulo { text-decoration: underline; }
+
+.exportacoes__rotulo {
+  display: block;
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.exportacoes__descricao {
+  display: block;
+  margin-top: var(--espaco-1);
+  color: inherit;
+  font-size: var(--texto-base);
+  line-height: 1.5;
+}
+
+/* ---------- Tela larga ----------
+   O caso raro (ver o topo deste arquivo). Três colunas de números só quando
+   cabem três inteiras, e os dois downloads lado a lado. */
+@media (min-width: 34rem) {
+  .numeros { grid-template-columns: repeat(3, 1fr); }
+
+  .exportacoes { grid-template-columns: repeat(2, 1fr); }
+
+  .exportacoes__alvo { padding: var(--espaco-4) var(--espaco-3); }
+}
