@@ -72,7 +72,19 @@ export const ROTAS_PENDENTES = [];
 // ao que já acontece com /diagnostico/origem-dos-dados. Acrescentá-la aqui
 // quebraria os dois testes de reconciliação, que comparam esta lista com o
 // que a varredura encontra.
-export const PAGINAS_PRONTAS_FORA_DO_MENU = ['/privacidade', '/recuperar-acesso', '/nova-senha'];
+// RF25 acrescenta `/voluntariado/candidatura`: a tela de candidatar-se ao
+// voluntariado. Ela é PÚBLICA de verdade — quem não tem sessão lê por que
+// candidatar-se exige conta e recebe o caminho para criar uma, em vez de
+// ser redirecionado como acontece em /minha-conta. Por isso entra AQUI, ao
+// lado de /recuperar-acesso (que também é página pública com formulário,
+// alcançada só por um botão de outra tela), e NÃO em
+// PAGINAS_SO_PARA_QUEM_ENTROU: os testes desta lista buscam a página e
+// afirmam coisas sobre o conteúdo dela, e aqui há conteúdo próprio para
+// afirmar mesmo sem sessão. O que muda com sessão (o formulário, ou a
+// candidatura que já existe) é medido em testes/voluntariado.test.mjs.
+export const PAGINAS_PRONTAS_FORA_DO_MENU = [
+  '/privacidade', '/recuperar-acesso', '/nova-senha', '/voluntariado/candidatura'
+];
 
 // Toda página PÚBLICA que já existe de verdade no Next, item de menu ou não.
 export const PAGINAS_PRONTAS = [...ROTAS_PRONTAS_MENU, ...PAGINAS_PRONTAS_FORA_DO_MENU];

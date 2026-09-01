@@ -569,12 +569,56 @@ test('a ficha NÃO desenha eh_equipe em lugar nenhum', () => {
   assert.doesNotMatch(html, /equipe/i);
 });
 
-test('sem candidatura, a tela diz o que fazer hoje — sem prometer um botão que não existe', () => {
+test('sem candidatura, a tela manda para o caminho que EXISTE hoje', () => {
+  // MUDOU NA RF25, e a mudança é o ponto. Este estado vazio dizia
+  // "candidatar-se pelo site ainda não existe" e mandava direto para o
+  // WhatsApp — era verdade, e virou mentira no dia em que
+  // /voluntariado/candidatura passou a existir. Um estado vazio que
+  // descreve o site de ontem DESVIA a pessoa do caminho que funciona.
   const html = desenhar(createElement(MinhasCandidaturas, { candidaturas: [], degradou: false }));
 
   assert.match(html, /estado--vazio/);
-  assert.match(html, /\(11\) 95396-8344/, 'sem canal real, o estado vazio é um beco');
-  assert.doesNotMatch(html, /candidatar-se aqui|clique no botão/i);
+  assert.match(html, /página de voluntariado/,
+    'o estado vazio precisa apontar para onde a pessoa se candidata de verdade');
+  assert.doesNotMatch(html, /ainda não existe/,
+    'o estado vazio continua dizendo que candidatar-se pelo site não existe — existe desde a '
+    + 'RF25 (app/voluntariado/candidatura/page.tsx)');
+  assert.match(html, /\(11\) 95396-8344/,
+    'quem prefere conversar antes precisa continuar tendo um canal real');
+});
+
+test('a candidatura mostra as áreas escolhidas — é a única coisa que a pessoa escolheu', () => {
+  const html = desenhar(createElement(MinhasCandidaturas, {
+    degradou: false,
+    candidaturas: [{
+      id: ID,
+      mensagem: 'Posso às terças à tarde.',
+      situacao: 'novo',
+      criado_em: '2026-09-01T13:00:00.000Z',
+      areas: ['Organização do acervo', 'Comunicação']
+    }]
+  }));
+
+  assert.match(html, /Organização do acervo, Comunicação/);
+  assert.match(html, /Posso às terças à tarde\./);
+  assert.match(html, /Recebida, ainda sem resposta/);
+});
+
+test('candidatura SEM área não fica calada — é o desfecho parcial das duas tabelas', () => {
+  // `acoes/voluntariado.ts` grava em `voluntarios` e `voluntario_areas` sem
+  // transação. Quando a segunda falha, a candidatura existe e a escolha se
+  // perdeu — e é aqui, na tela da própria pessoa, que isso precisa
+  // aparecer. Omitir a linha esconderia justamente o que ela precisa saber
+  // para completar por outro canal.
+  const html = desenhar(createElement(MinhasCandidaturas, {
+    degradou: false,
+    candidaturas: [{
+      id: ID, mensagem: null, situacao: 'novo', criado_em: '2026-09-01T13:00:00.000Z', areas: []
+    }]
+  }));
+
+  assert.match(html, /não ficaram registradas/);
+  assert.match(html, /\(11\) 95396-8344/, 'sem canal real, a pessoa fica sabendo do defeito e sem saída');
 });
 
 test('banco fora do ar NÃO vira "você não tem nada" — a lista diz que não deu para perguntar', () => {

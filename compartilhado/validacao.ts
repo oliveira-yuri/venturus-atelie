@@ -1219,3 +1219,185 @@ export function colunasDoPerfil(campos: CamposMeusDados): {
     tipo_pessoa: campos.tipo_pessoa || null
   };
 }
+
+// =====================================================================
+// Candidatura ao voluntariado (RF25)
+//
+// A pessoa escolhe uma ou mais das CINCO ÁREAS REAIS da ONG (RF24,
+// `public.areas_voluntariado`) e, se quiser, escreve por quê. Grava em
+// `public.voluntarios` + `public.voluntario_areas` (004_pessoas.sql).
+//
+// DOIS CAMPOS, E O QUE FICA DE FORA É A PARTE IMPORTANTE. `lerCandidatura`
+// conhece `areas` e `mensagem`, e mais nada. Em particular:
+//
+//  · `perfil_id` — DE QUEM é a candidatura NÃO vem do formulário em
+//    caminho nenhum. Vem da sessão verificada (`usuarioAtual()`), dentro
+//    da Action. É a mesma disciplina de acoes/conta.ts, e aqui ela tem
+//    prova: MEDIDO em 01/09/2026 contra o Supabase real, com sessão de
+//    verdade, um insert com `perfil_id` de outra pessoa respondeu
+//    `42501 new row violates row-level security policy for table
+//    "voluntarios"` — a política `voluntarios: a pessoa se candidata`
+//    (`with check (perfil_id = auth.uid())`) recusa. A leitura campo a
+//    campo é a primeira trava; a RLS é a última;
+//  · `situacao` — é o fluxo de atendimento da ONG ('novo' -> 'em_contato'
+//    -> 'ativo'/'inativo'), não campo de quem se candidata. A política de
+//    insert do banco NÃO diz nada sobre ela: quem monta a requisição à mão
+//    poderia mandar `situacao=ativo` e nascer voluntário ativo sem
+//    ninguém da ONG ter falado com a pessoa. Quem impede é esta leitura, e
+//    `colunasDaCandidatura()` abaixo, que não conhece a coluna — nem para
+//    escrever 'novo', que é o `default` dela. Mesma decisão de
+//    acoes/contato.ts com `origem` e `situacao`.
+//
+// NÃO HÁ CAIXA DE CONSENTIMENTO AQUI, ao contrário de /contato, e a
+// ausência é decisão: quem se candidata JÁ TEM CONTA, e o consentimento de
+// uso de dados foi dado no cadastro (`validarCadastro`, RN01/LGPD). Uma
+// segunda caixa sem coluna onde gravar — `public.voluntarios` não tem
+// `consentimento_dados` — seria teatro: a tela pediria uma afirmação que
+// nada registra.
+// =====================================================================
+
+/**
+ * O que o formulário de candidatura manda — e é a lista COMPLETA do que a
+ * Action aceita.
+ */
+export type CamposCandidatura = {
+  /** Os `id` das áreas escolhidas, sem repetição. */
+  areas: string[];
+  /** Texto livre, opcional. '' significa "não quis escrever" e vira NULL. */
+  mensagem: string;
+};
+
+/**
+ * Teto da mensagem, pelo mesmo motivo dos outros: a coluna é `text` no
+ * Postgres (sem limite nenhum) e a Action é endpoint HTTP público (spec
+ * §4.5), então sem teto qualquer pessoa manda megabytes num campo.
+ *
+ * 2.000 é menor que os 5.000 de /contato de propósito. Lá a mensagem é a
+ * coisa toda — pode ser um pedido de escola inteiro. Aqui ela é uma
+ * apresentação: o que a ONG precisa para começar a conversa é a área e um
+ * parágrafo. O resto acontece na conversa, que é o que a própria página
+ * promete ("A gente lê sua candidatura e entra em contato").
+ */
+export const LIMITE_MOTIVO = 2_000;
+
+/**
+ * Campos do formulário de candidatura
+ * (componentes/FormularioCandidatura.tsx).
+ *
+ * `areas` é o ÚNICO campo do site lido com `getAll()`, porque é o único
+ * grupo de caixas de marcar que compartilham o mesmo `name` — é assim que
+ * um formulário HTML manda "escolhi três das cinco". As três precauções do
+ * bloco "Leitura do FormData" continuam valendo uma a uma:
+ *
+ *  1. `getAll()` devolve `(string | File)[]`: um File no meio viraria
+ *     "[object File]" e iria ao banco como `area_id`. Por isso o
+ *     `typeof === 'string'`;
+ *  2. campo fora desta lista não existe para o resto do sistema;
+ *  3. aqui não há caixa "ligada/desligada" para interpretar — o valor de
+ *     cada caixa é o `id` da área, e o navegador só manda as marcadas.
+ *     Por isso `marcado()` não serve, e não é usado.
+ *
+ * SEM REPETIÇÃO, e não é cosmético: `voluntario_areas` tem
+ * `primary key (voluntario_id, area_id)`, então mandar a mesma área duas
+ * vezes — trivial numa requisição montada à mão — faria o insert das áreas
+ * falhar com violação de chave primária DEPOIS de a candidatura já estar
+ * gravada. O `Set` resolve antes de sair daqui.
+ *
+ * O que NÃO é resolvido aqui é se cada id EXISTE: isso é
+ * `validarCandidatura`, que precisa da lista real de áreas — ela vem do
+ * banco, não de uma cópia versionada.
+ */
+export function lerCandidatura(dados: FormData): CamposCandidatura {
+  const escolhidas = new Set<string>();
+
+  for (const valor of dados.getAll('areas')) {
+    if (typeof valor !== 'string') continue;
+    const limpo = valor.trim();
+    if (limpo) escolhidas.add(limpo);
+  }
+
+  return { areas: [...escolhidas], mensagem: textoDoCampo(dados, 'mensagem') };
+}
+
+/**
+ * TODOS os erros de uma vez — a regra do topo deste arquivo.
+ *
+ * `idsDasAreas` são os `id` que EXISTEM em `public.areas_voluntariado`,
+ * lidos do banco por quem chama. Não há cópia versionada deles neste
+ * repositório de propósito: as cinco áreas são conteúdo da ONG (regra 2 do
+ * CLAUDE.md) e podem mudar sem que ninguém toque no código.
+ *
+ * QUEM CHAMA NÃO PODE PASSAR LISTA VAZIA. Com `[]`, toda escolha vira
+ * "essa área não está mais na lista" — uma frase que acusa a pessoa de um
+ * defeito do servidor. É por isso que `acoes/voluntariado.ts` verifica se
+ * a consulta das áreas DEGRADOU antes de chegar aqui, e responde outra
+ * coisa nesse caso.
+ *
+ * Quem de fato impede um id inventado é a chave estrangeira
+ * `area_id references public.areas_voluntariado(id)`, que responderia
+ * `23503`. A validação daqui existe para a pessoa ler uma frase em vez de
+ * um erro de banco — e para o erro não chegar DEPOIS de a candidatura já
+ * estar gravada, que é a ordem em que as duas tabelas são escritas.
+ */
+export function validarCandidatura(
+  campos: CamposCandidatura,
+  idsDasAreas: string[]
+): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (campos.areas.length === 0) {
+    erros.areas = 'Escolha pelo menos uma área. É por ela que a gente sabe com quem falar '
+      + 'primeiro — e dá para marcar mais de uma.';
+  } else {
+    const desconhecidas = campos.areas.filter((id) => !idsDasAreas.includes(id));
+    if (desconhecidas.length > 0) {
+      // Só acontece com quem monta a requisição à mão, ou com quem deixou
+      // a página aberta enquanto a ONG mexia nas áreas. A frase serve aos
+      // dois casos sem acusar ninguém.
+      erros.areas = 'Uma das áreas escolhidas não está mais na lista. Atualize a página e '
+        + 'escolha de novo.';
+    }
+  }
+
+  if (campos.mensagem.length > LIMITE_MOTIVO) {
+    erros.mensagem = `O texto passou de ${LIMITE_MOTIVO} caracteres. Conte o essencial por `
+      + 'aqui — o resto a gente conversa quando entrar em contato.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/**
+ * AS COLUNAS QUE VÃO PARA O `insert` de `public.voluntarios`, montadas
+ * chave por chave.
+ *
+ * ESTA FUNÇÃO EXISTE PARA PODER SER MEDIDA, mesmo motivo de
+ * `colunasDoPerfil()`: o objeto podia ser escrito dentro de
+ * acoes/voluntariado.ts, mas aquele arquivo importa `server-only` e o
+ * Supabase, ou seja, não entra num `node --test`. Aqui ele é uma função
+ * pura, e testes/voluntariado.test.mjs a alimenta com um FormData hostil
+ * (`situacao=ativo`, `perfil_id=<outra pessoa>`, `eh_equipe=true`) e prova
+ * que nada disso aparece no objeto que vai ao banco.
+ *
+ * `perfil_id` é ARGUMENTO, e não campo: ele vem da sessão verificada. E
+ * `situacao` não aparece nem como chave — nem para escrever 'novo', que é
+ * o `default` da coluna. Escrever o default à mão seria abrir, no código,
+ * o único lugar por onde essa coluna poderia passar a vir de fora.
+ */
+export function colunasDaCandidatura(
+  campos: CamposCandidatura,
+  perfilId: string
+): { perfil_id: string; mensagem: string | null } {
+  return { perfil_id: perfilId, mensagem: campos.mensagem || null };
+}
+
+/**
+ * As linhas de `public.voluntario_areas` — a segunda tabela, escrita
+ * depois de a candidatura existir e ter id.
+ */
+export function linhasDasAreas(
+  voluntarioId: string,
+  areas: string[]
+): Array<{ voluntario_id: string; area_id: string }> {
+  return areas.map((area) => ({ voluntario_id: voluntarioId, area_id: area }));
+}

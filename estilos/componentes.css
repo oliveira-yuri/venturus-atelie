@@ -571,6 +571,30 @@
   padding: 0 var(--espaco-2);
 }
 
+/* Grupo de ESCOLHAS onde as caixas sao o gesto principal da tela — hoje so
+   as cinco areas de /voluntariado/candidatura (RF25).
+
+   MEDIDO no Firefox a 375px, com sessao de verdade: cada linha de caixa
+   tinha 33px de altura, e o alvo que a pessoa acerta e o <label>, nao o
+   quadradinho de 1.6rem. Sao cinco escolhas adjacentes, no celular, de pe
+   (regra 4 + RNF08) — errar a de cima marca a de baixo. O `min-height` do
+   rotulo leva a linha inteira ao alvo de toque.
+
+   POR QUE UMA CLASSE NOVA, E NAO `.campo--caixa` direto: aquela classe
+   tambem desenha as caixas de /entrar e /contato (consentimento,
+   maioridade, papeis), que sao caixas SOLITARIAS dentro de um formulario
+   de texto. Aumenta-las mudaria o espacamento daquelas telas, e isso e
+   decisao de desenho de quem cuida delas — nao efeito colateral desta
+   tarefa. */
+.grupo-campos--escolhas .campo--caixa label {
+  display: flex;
+  align-items: center;
+  min-height: var(--alvo-toque);
+}
+
+.grupo-campos--escolhas .campo--caixa input[type="checkbox"] { margin-top: 0; }
+.grupo-campos--escolhas .campo--caixa .campo__linha { align-items: center; }
+
 /* ---------- Aviso ---------- */
 
 .aviso {
@@ -733,3 +757,9 @@
 }
 
 .conta__resposta { color: var(--tinta); }
+
+/* As areas escolhidas na candidatura (RF25). Cor de corpo, e nao a suave da
+   data: e o que a pessoa escolheu, nao metadado. Sem lista com marcador —
+   sao no maximo cinco nomes curtos, e cinco <li> num cartao de celular
+   ocupam mais altura do que informam. */
+.conta__areas { color: var(--tinta); }

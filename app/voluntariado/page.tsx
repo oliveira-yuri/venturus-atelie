@@ -19,9 +19,11 @@
 // AS CINCO ÁREAS DE VOLUNTARIADO (RF24) VÊM DO BANCO — diferente das
 // quatro páginas da Tarefa A4 (agenda/notícias/galeria/acervo), a tabela
 // `areas_voluntariado` TEM dado real hoje (supabase/seed.sql). A busca
-// mora em servidor/dados/voluntariado.ts (só `listarAreas()` — o porte NÃO
-// inclui `candidatar()`, RF25, que é Bloco B e depende de perfil
-// autenticado). A apresentação (os cartões, ou o estado vazio) mora em
+// mora em servidor/dados/voluntariado.ts. A CANDIDATURA (RF25) existe
+// desde 01/09/2026, mas não aqui: ela é rota própria
+// (`/voluntariado/candidatura`) e a escrita é Server Action
+// (`acoes/voluntariado.ts`) — o porquê de ser outra página está no
+// cabeçalho daquele page.tsx. A apresentação (os cartões, ou o estado vazio) mora em
 // componentes/ListaAreas.ts — ver o comentário lá para o motivo de o caso
 // vazio, mesmo sendo excepcional aqui (só acontece em modo offline, sem
 // JSON de fallback para esta tabela), ainda assim desenhar um estado
@@ -73,8 +75,23 @@ export default async function Voluntariado() {
           Para criar conta é preciso ter 18 anos ou mais. Crianças e adolescentes participam das
           atividades por inscrição feita por um responsável.
         </p>
+        {/*
+          O DESTINO DE "Quero me candidatar" MUDOU NA RF25: era /entrar,
+          agora é /voluntariado/candidatura. O TEXTO não mudou, e isso não é
+          acaso — testes/paridade-texto.test.mjs compara o texto do <main>
+          desta página com o do HTML original congelado, palavra por
+          palavra, e uma frase nova aqui exigiria excluir esta seção
+          daquela comparação.
+
+          Por que o destino novo é melhor para os dois públicos: /entrar era
+          honesto (candidatar-se exige conta) mas seco — quem já tinha conta
+          era mandado para uma tela de login sem saber por quê, e quem não
+          tinha via um formulário de cadastro sem entender o que aquilo
+          tinha a ver com voluntariado. A rota nova explica a exigência para
+          quem não entrou e mostra o formulário para quem entrou.
+        */}
         <p className="abertura__acoes">
-          <Link className="botao" href="/entrar">Quero me candidatar</Link>{' '}
+          <Link className="botao" href="/voluntariado/candidatura">Quero me candidatar</Link>{' '}
           <Link className="botao botao--secundario" href="/contato">Tenho uma dúvida</Link>
         </p>
       </section>
