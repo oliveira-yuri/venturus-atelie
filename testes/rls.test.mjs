@@ -428,6 +428,78 @@ describe('a equipe enxerga o que precisa', () => {
   }
 });
 
+/**
+ * RF29 — a triagem das mensagens recebidas, do lado do BANCO.
+ *
+ * ESTE BLOCO É A ÚNICA MEDIÇÃO REAL DA ESCRITA DESTA TELA. A tela
+ * (/admin/contatos) e a Server Action (acoes/contatos.ts) estão atrás de
+ * `ehEquipe()`, e a suíte não tem sessão de equipe — testes/contatos
+ * .test.mjs só alcança as decisões puras, o que o componente desenha e a
+ * recusa por HTTP. Aqui, contra um Postgres de verdade com as migrations
+ * reais, dá para exercitar o `update` que a Action faz.
+ */
+describe('RF29: a equipe tria as mensagens recebidas', () => {
+  const MENSAGEM = `select situacao from public.contatos where email = 'escola@exemplo.test'`;
+
+  test('a equipe muda a situação de uma mensagem', async () => {
+    const { linhas, erro } = await comoEVerificar(
+      'authenticated', EQUIPE,
+      `update public.contatos set situacao = 'em_contato' where email = 'escola@exemplo.test'`,
+      MENSAGEM
+    );
+
+    assert.equal(erro, null, `a equipe foi bloqueada: ${erro?.message}`);
+    assert.equal(linhas[0].situacao, 'em_contato',
+      'a equipe não conseguiu marcar o andamento do atendimento');
+  });
+
+  test('anônimo não muda a situação de nada', async () => {
+    // A RLS não gera erro num update bloqueado: ela simplesmente não alcança
+    // linha nenhuma. O que importa é que nada mudou — e a verificação
+    // acontece DENTRO da transação, senão o rollback faria o teste passar
+    // com a falha presente.
+    const { linhas } = await comoEVerificar(
+      'anon', null,
+      `update public.contatos set situacao = 'concluido'`,
+      MENSAGEM
+    );
+
+    assert.equal(linhas[0].situacao, 'novo',
+      'VAZAMENTO: anônimo mexeu na fila de atendimento da ONG');
+  });
+
+  test('anônimo não LÊ mensagem nenhuma — é o que torna a tela da equipe necessária', async () => {
+    // `anon` tem `grant insert` em contatos e mais nada (004_pessoas.sql):
+    // o erro aqui é de permissão de tabela, antes mesmo da RLS. É por isso
+    // que quem escreve pelo formulário não recebe a linha de volta (ver o
+    // comentário do `.insert()` sem `.select()` em acoes/contato.ts).
+    const { erro } = await comoAnonimo('select * from public.contatos');
+    assert.ok(erro !== null, 'VAZAMENTO: anônimo leu as mensagens recebidas');
+  });
+
+  test('situação inventada é recusada pelo banco, não só pela tela', async () => {
+    // compartilhado/triagem-de-contatos.ts tem a mesma lista fechada, e é
+    // ela que impede a requisição de chegar aqui. Esta é a segunda tranca.
+    const { erro } = await comoPessoa(
+      `update public.contatos set situacao = 'arquivado'`, EQUIPE);
+    assert.ok(erro !== null, 'o check de situacao deixou passar um valor fora da lista');
+  });
+
+  test('o banco PERMITE apagar mensagem — quem recusa é acoes/contatos.ts', async () => {
+    // A política é `for all`, e `authenticated` tem `grant delete`. A tela
+    // não oferece o gesto, de propósito (apagar não tem desfazer e apagaria
+    // a prova de que houve contato), e há teste que falha no dia em que um
+    // `.delete(` aparecer naquele arquivo. Este teste existe para que a
+    // distinção fique escrita: a recusa é do CÓDIGO, não do banco — quem
+    // precisar apagar a pedido de quem escreveu (LGPD) faz pelo SQL Editor.
+    const { erro } = await comoPessoa(
+      `delete from public.contatos where email = 'escola@exemplo.test'`, EQUIPE);
+    assert.equal(erro, null,
+      `a equipe não consegue apagar nem pelo SQL: ${erro?.message} — se isto mudou, a promessa `
+      + 'de exclusão de /privacidade ficou sem caminho nenhum');
+  });
+});
+
 describe('regras de negócio impostas pelo banco', () => {
   test('RN02: inscrição de menor sem responsável é recusada', async () => {
     const { erro } = await comoAnonimo(`

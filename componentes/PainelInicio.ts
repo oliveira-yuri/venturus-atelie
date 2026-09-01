@@ -54,13 +54,16 @@ export type TelaDoPainel = {
 };
 
 /**
- * As três telas do plano do painel (docs/superpowers/plans/
- * 2026-08-31-painel-administrativo.md), na ordem em que serão construídas.
+ * As telas do painel, na ordem em que foram construídas: as três do plano
+ * do bloco (docs/superpowers/plans/2026-08-31-painel-administrativo.md) e,
+ * desde o RF29, a de mensagens recebidas — que não estava naquele plano e
+ * entrou porque o formulário público de /contato (RF07) passou a gravar de
+ * verdade e não havia onde ler.
  *
  * Nenhuma outra entra aqui por antecipação: indicadores (RF30–RF32),
- * eventos (RF13), presença (RF17) e gestão de voluntários (RF26) estão
- * fora do bloco, e listá-los seria de novo prometer tela que ninguém vai
- * construir tão cedo.
+ * eventos (RF13), presença (RF17) e gestão de voluntários (RF26) continuam
+ * fora, e listá-los seria de novo prometer tela que ninguém vai construir
+ * tão cedo.
  */
 export const TELAS_DO_PAINEL: TelaDoPainel[] = [
   {
@@ -92,6 +95,21 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     // testes/painel-inicio.test.mjs cobra nos dois sentidos. A descrição
     // continua falando só em CORRIGIR porque é só isso que a tela faz: não
     // se cria nem se apaga atividade por ali (ver acoes/atividades.ts).
+    pronta: true
+  },
+  {
+    caminho: '/admin/contatos',
+    titulo: 'Mensagens recebidas',
+    descricao: 'Ler o que as pessoas escrevem pelo formulário do site e marcar o andamento.',
+    // Virou `true` no RF29, no mesmo commit que criou app/admin/contatos/ —
+    // é o que o teste de reconciliação em testes/painel-inicio.test.mjs
+    // cobra nos dois sentidos.
+    //
+    // ELA É A ÚNICA DAS QUATRO QUE NÃO MEXE NO SITE, e a descrição diz isso
+    // sem usar a palavra "publicar": as outras três existem para pôr coisa
+    // no ar; esta existe para não perder gente. Entrou depois porque o
+    // formulário público que a alimenta (RF07) só passou a gravar de
+    // verdade em 01/09/2026 — até então não havia o que ler.
     pronta: true
   }
 ];

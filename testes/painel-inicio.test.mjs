@@ -110,6 +110,43 @@ test('TELAS_DO_PAINEL diz a verdade sobre o que existe em app/', async () => {
   );
 });
 
+/**
+ * O OUTRO SENTIDO DA MESMA TRAVA — e ele NÃO existia até o RF29.
+ *
+ * MEDIDO nesta tarefa: apagando a entrada de `/admin/contatos` da lista
+ * acima, com a rota existindo em `app/`, a suíte inteira ficava VERDE. O
+ * teste anterior itera sobre TELAS_DO_PAINEL, então uma tela que não está
+ * lá não é comparada com nada — só o `pronta` mentiroso era pego, nunca a
+ * ausência.
+ *
+ * O defeito que isso deixaria passar é o espelho do defeito do painel
+ * antigo. Lá, a home PROMETIA seis telas que não existiam; aqui ela
+ * ESCONDERIA uma tela que existe — e o painel é 404 para o mundo, não é
+ * item de menu e não tem busca: a home é o único caminho até ele. Uma tela
+ * fora desta lista é uma tela que só quem sabe a URL de cor alcança.
+ *
+ * A regra é sobre rota de PRIMEIRO nível: `/admin/publicacoes/editar`,
+ * `/admin/galeria/apagar` e `/admin/atividades/editar` são passos DENTRO de
+ * uma tela, alcançados por um botão dela, e listá-los na home seria
+ * oferecer "editar notícia" sem dizer qual.
+ */
+test('toda tela de primeiro nível do painel está na home — nenhuma fica alcançável só de cor', async () => {
+  const reais = await rotasReaisDoApp();
+
+  const telasDeVerdade = reais.filter((rota) =>
+    rota.startsWith('/admin/') && rota.split('/').length === 3);
+
+  const listadas = new Set(TELAS_DO_PAINEL.map((tela) => tela.caminho));
+  const esquecidas = telasDeVerdade.filter((rota) => !listadas.has(rota));
+
+  assert.deepEqual(
+    esquecidas, [],
+    'tela do painel que existe em app/ e não aparece na home:\n  ' + esquecidas.join('\n  ')
+    + '\n  A home é o único caminho até ela: o painel responde 404 para o mundo, não é item de'
+    + '\n  menu e não tem busca. Acrescentar a entrada em componentes/PainelInicio.ts.'
+  );
+});
+
 test('TELAS_DO_PAINEL não repete caminho nem lista rota fora de /admin', () => {
   const caminhos = TELAS_DO_PAINEL.map((tela) => tela.caminho);
 

@@ -779,3 +779,227 @@ a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
 @media (min-width: 34rem) {
   .atividade-painel { padding: var(--espaco-4); }
 }
+
+/* =====================================================================
+   Mensagens recebidas (RF29)
+
+   Uma tela: /admin/contatos. Continua valendo tudo do topo deste arquivo —
+   uma coluna, alvo de toque inteiro, nada que dependa de mouse, nada de
+   `vw` em texto.
+
+   O QUE ESTA TELA TEM DE DIFERENTE DAS OUTRAS: o conteúdo dela é TEXTO
+   LIVRE ESCRITO POR OUTRA PESSOA, de tamanho imprevisível, e dado de
+   contato que precisa ser tocável (e-mail, telefone). Toda regra abaixo
+   sai de um desses dois fatos.
+
+   O aplique é AMARELO, a cor da home do painel. As três cores da ONG
+   (regra 3) já estavam em uso nas outras telas; o amarelo aqui é o mesmo
+   da lista de "o que você quer fazer?", e a repetição é aceita — o que
+   distingue esta tela das outras é o formato do cartão (ficha de contato +
+   dobra), não a cor.
+   ===================================================================== */
+
+.contatos {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  /* O gap precisa caber o deslocamento do aplique (8px), senão a sombra de
+     um cartão encosta no cartão de baixo — mesma conta de .publicacoes. */
+  gap: var(--espaco-4);
+}
+
+.contato {
+  margin: 0;
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--amarelo);
+}
+
+/* As duas marcas do topo (situação e origem) lado a lado quando cabem,
+   empilhadas quando não. `wrap` em vez de media query, porque quem decide é
+   o tamanho do texto (que a pessoa pode aumentar com o A+), não a largura
+   da tela. */
+.contato__marcas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  margin: 0 0 var(--espaco-2);
+}
+
+/* NOVA, EM CONTATO e CONCLUÍDA não se distinguem só pela cor: a palavra
+   está escrita no cartão (componentes/ListaContatos.ts). O que muda aqui é
+   o PESO visual — o que ainda espera resposta é preenchido, o resto é
+   contorno —, para que a diferença sobreviva também em alto contraste, onde
+   a paleta some. Mesma regra de .publicacao__estado e .atividade-painel__
+   estado, e de propósito: são a mesma ideia em telas diferentes. */
+.contato__estado {
+  display: inline-block;
+  padding: var(--espaco-1) var(--espaco-2);
+  border: 2px solid var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta);
+  background: transparent;
+}
+
+.contato__estado--nova { background: var(--amarelo); }
+
+/* A origem é informação de CONTEXTO, não de estado: ela nunca muda e não
+   pede gesto nenhum. Por isso não tem a caixa do estado — é texto marcado,
+   com peso menor, para não competir com a marca que a equipe usa para
+   trabalhar. */
+.contato__origem {
+  display: inline-block;
+  padding: var(--espaco-1) 0;
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  color: var(--tinta-suave);
+}
+
+.contato__nome {
+  margin: 0 0 var(--espaco-2);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+  /* Nome de outra pessoa pode ser longo e sem espaço útil para quebrar; sem
+     isto ele empurra o cartão para fora da tela a 375px. */
+  overflow-wrap: anywhere;
+}
+
+/* ---------- A ficha de contato ----------
+   Uma linha por dado, rótulo em cima do valor: a 375px, rótulo e valor lado
+   a lado deixariam o e-mail com metade da largura, e e-mail é justamente o
+   que não pode quebrar em qualquer lugar. */
+
+.contato__ficha {
+  margin: 0 0 var(--espaco-3);
+}
+
+.contato__ficha > div { margin: 0 0 var(--espaco-2); }
+
+.contato__ficha dt {
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  color: var(--tinta-suave);
+}
+
+.contato__ficha dd {
+  margin: 0;
+  font-size: var(--texto-base);
+  line-height: 1.5;
+  /* E-mail é uma palavra só e comprida. Sem isto, a 375px, um endereço
+     longo atravessa a borda do cartão. */
+  overflow-wrap: anywhere;
+}
+
+/* O e-mail e o telefone são LINKS, e o alvo precisa ter altura de dedo: sem
+   o padding vertical eles têm a altura de uma linha de texto (~24px), abaixo
+   dos 44px que a RNF08 pede. */
+.contato__ficha dd a {
+  display: inline-block;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2) 0;
+  color: var(--azul-texto);
+  font-weight: 700;
+}
+
+/* ---------- A mensagem ----------
+   Dentro da dobra `.painel__dobra`, que já é estilizada acima (Atividades).
+   O que muda aqui é só o texto de dentro. */
+
+.contato__dobra { margin-bottom: var(--espaco-3); }
+
+/* `pre-wrap`: as quebras de linha que a pessoa escreveu ficam como ela
+   escreveu — em texto de recado elas SÃO a estrutura. E `overflow-wrap`
+   porque texto colado de celular vem com URL e palavra sem espaço. */
+.contato__mensagem {
+  /* SEM padding lateral: `.painel__dobra > *:not(summary)` (seção
+     Atividades, acima) já dá a margem dos dois lados. DEFEITO VISTO
+     ABRINDO A TELA (regra 10) e não pelos testes, que estavam verdes: com
+     o padding aqui, o recuo saía dobrado e a linha de texto encurtava à
+     toa justamente onde ela é mais longa — a mensagem de outra pessoa,
+     num celular. */
+  margin: 0;
+  padding: 0 0 var(--espaco-3);
+  font-size: var(--texto-base);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- A autorização de uso dos dados ---------- */
+
+.contato__consentimento {
+  margin: 0 0 var(--espaco-3);
+  padding-left: var(--espaco-3);
+  border-left: 5px solid var(--azul);
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+/* O caso que o `check` do banco torna impossível hoje. Marrom (a cor de
+   terra da paleta) e peso cheio, como o estado "sem autorização" da
+   galeria: não é defeito do sistema, é um impedimento de responder. */
+.contato__consentimento--sem {
+  border-left-color: var(--marrom);
+  color: var(--tinta);
+  font-weight: 700;
+}
+
+/* ---------- Os botões ---------- */
+
+.contato__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.contato__form { margin: 0; }
+
+/* Um <a> e um <button> com a MESMA cara, como em .publicacao__botao: para
+   quem usa, os dois são "um botão". A diferença de tag é semântica
+   (navegar/escrever x agir) e importa para o leitor de tela, não para o
+   dedo. */
+.contato__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.contato__botao:hover { background: var(--tinta); color: var(--cal); }
+
+/* Responder é o gesto que a tela existe para provocar: ele carrega a cor da
+   ONG e ocupa a linha inteira no celular, porque é o alvo que o polegar
+   procura primeiro. Marcar a situação é registro do que já foi feito e fica
+   nos botões neutros. */
+.contato__botao--responder {
+  flex: 1 1 100%;
+  background: var(--amarelo);
+}
+
+.contato__botao--responder:hover { background: var(--tinta); color: var(--amarelo); }
+
+@media (min-width: 34rem) {
+  .contato { padding: var(--espaco-4); }
+
+  /* Com largura, responder volta a ser um botão do tamanho do texto: a
+     linha inteira só existe para o polegar. */
+  .contato__botao--responder { flex: 0 0 auto; padding: 0 var(--espaco-5); }
+}

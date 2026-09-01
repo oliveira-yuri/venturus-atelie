@@ -1044,3 +1044,39 @@ export function validarContato(campos: CamposContato): ResultadoValidacao {
 
   return { valido: Object.keys(erros).length === 0, erros };
 }
+
+// =====================================================================
+// Triagem das mensagens recebidas (RF29) — a OUTRA metade do formulário
+// acima
+//
+// O bloco de cima é o que a pessoa de fora escreve; este é o que a equipe
+// faz com o que chegou. As duas metades ficam no mesmo arquivo pelo motivo
+// escrito no cabeçalho: leitura de FormData num lugar só, com as três
+// precauções do bloco "Leitura do FormData" valendo igual.
+//
+// O QUE ESTE BLOCO NÃO DECIDE, e é a diferença para `lerAlternancia`:
+// quais situações existem. Essa lista fechada mora em
+// compartilhado/triagem-de-contatos.ts porque ela decide TRÊS coisas — os
+// botões que a tela desenha, o que a Action aceita, e a ordem da lista —,
+// e duas cópias divergiriam num botão que a Action recusa. Aqui só se LÊ.
+// =====================================================================
+
+/**
+ * O que o botão de triagem manda: qual mensagem e para qual situação.
+ *
+ * Dois campos e mais nada. Nome, e-mail, telefone e o texto da mensagem
+ * NÃO passam por aqui em caminho nenhum — o que a pessoa escreveu é
+ * registro, e esta tela não edita registro (ver o cabeçalho de
+ * acoes/contatos.ts). Um campo `mensagem` no corpo da requisição não tem
+ * como chegar ao banco porque nada o lê.
+ *
+ * `situacao` volta como texto CRU, sem lista fechada: quem aplica a lista é
+ * `ehSituacaoDeContato`, em compartilhado/triagem-de-contatos.ts. Ver o
+ * bloco acima.
+ */
+export function lerMudancaDeSituacao(dados: FormData): { id: string; situacao: string } {
+  return {
+    id: textoDoCampo(dados, 'id'),
+    situacao: textoDoCampo(dados, 'situacao')
+  };
+}

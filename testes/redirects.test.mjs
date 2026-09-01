@@ -113,7 +113,15 @@ const PAGINAS_SEM_URL_ANTIGA = [
   // de quem desenvolve (é o que RF03 registrava como "edição pela equipe
   // falta").
   '/admin/atividades',
-  '/admin/atividades/editar'
+  '/admin/atividades/editar',
+  // RF29, mesmo motivo, e vale a pena escrever a diferença: "contatos"
+  // APARECE no painel antigo congelado — mas como CONTADOR
+  // (`data-indicador="contatos"`, um número no topo), nunca como link para
+  // uma tela. Os quatro links de lá eram eventos, presenca, publicacoes e
+  // doacoes, e nenhum dos arquivos existe no diretório congelado. Ou seja:
+  // nenhuma URL antiga apontou para uma tela de mensagens recebidas, porque
+  // essa tela nunca existiu — quem quisesse ler abria o painel do Supabase.
+  '/admin/contatos'
 ];
 
 /**

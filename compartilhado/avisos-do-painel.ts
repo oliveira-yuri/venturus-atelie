@@ -174,3 +174,49 @@ export function avisoDeAtividades(valor: unknown): AvisoDoPainel | null {
   // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
   return Object.hasOwn(AVISOS_DE_ATIVIDADES, valor) ? AVISOS_DE_ATIVIDADES[valor] : null;
 }
+
+/**
+ * Os avisos das MENSAGENS RECEBIDAS (RF29) — lista separada das outras
+ * três, pelo mesmo motivo escrito acima: as frases são de assuntos
+ * diferentes e envelhecem separadamente.
+ *
+ * O QUE ESTAS FRASES TÊM DE PRÓPRIO: nenhuma delas fala em "publicar",
+ * "site" ou "ar". Esta é a única tela do painel que não muda nada do que o
+ * público vê — o que ela muda é a marca do atendimento, para a equipe se
+ * entender. Reaproveitar as palavras das outras telas aqui faria a pessoa
+ * achar que acabou de mexer no site.
+ *
+ * E NENHUMA promete que a pessoa foi respondida: o que a tela registra é
+ * que ALGUÉM DA EQUIPE marcou. Responder acontece no e-mail ou no WhatsApp,
+ * fora daqui, e uma frase como "resposta enviada" seria o painel afirmando
+ * o que não tem como saber.
+ */
+const AVISOS_DE_CONTATOS: Record<string, AvisoDoPainel> = {
+  nova: {
+    texto: 'Marcada como nova de novo. Ela volta para o começo da lista, com quem ainda '
+      + 'espera resposta.',
+    ok: true
+  },
+  'em-contato': {
+    texto: 'Marcada como "em contato". Ela continua no começo da lista até alguém marcar como '
+      + 'concluída.',
+    ok: true
+  },
+  concluida: {
+    texto: 'Marcada como concluída. Ela desce para o fim da lista e continua guardada aqui, '
+      + 'com o texto inteiro — nada foi apagado.',
+    ok: true
+  },
+  erro: {
+    texto: 'Não deu para fazer isso agora. Tente de novo em alguns instantes — nenhuma '
+      + 'mensagem foi perdida nem alterada.',
+    ok: false
+  }
+};
+
+export function avisoDeContatos(valor: unknown): AvisoDoPainel | null {
+  if (typeof valor !== 'string') return null;
+
+  // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
+  return Object.hasOwn(AVISOS_DE_CONTATOS, valor) ? AVISOS_DE_CONTATOS[valor] : null;
+}

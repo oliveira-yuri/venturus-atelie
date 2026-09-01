@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (674 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (675)
+npm test                        # suíte completa, modo offline (722 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (723)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,14 +41,20 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 674 são 3 pulados com motivo declarado, 9 `test.todo`, e o resto passando **menos 1 a 3
-vermelhos que não são do projeto**: os três testes de `testes/csp-vlibras.test.mjs` que
-dependem de o serviço do VLibras traduzir de verdade. Em 01/09/2026 eles variaram entre
-rodadas (3 vermelhos, depois 2), o que já os identifica como serviço externo instável, e a
-prova está feita: com a árvore LIMPA (`git stash`, build próprio) falham igual — não é o
-RF07. Os outros três daquele arquivo (nonce, política, montagem do widget) continuam verdes
-sempre. Se voltarem a passar sozinhos, apague este parágrafo; enquanto não voltarem, o
-número honesto é 662 alcançáveis, com 660 medidos na última rodada. Os 44 que entraram em 01/09/2026 com o RF07 são
+Os 722 são 707 passando, 6 pulados com motivo declarado e 9 `test.todo`. **Duas fontes de
+vermelho intermitente, nenhuma delas do projeto:** os três testes de
+`testes/csp-vlibras.test.mjs` que dependem de o serviço do VLibras traduzir de verdade (em
+01/09/2026 variaram entre rodadas — 3 vermelhos, depois 2, depois nenhum; com a árvore LIMPA
+falham igual) e, na rodada do RF29, uma falha isolada de `testes/foco-navegacao.test.mjs`
+que não repetiu na rodada seguinte. Se o VLibras voltar a passar sozinho, apague esta
+observação. Os 42 que entraram em 01/09/2026 com o RF29 são `testes/contatos.test.mjs` (36),
+o bloco RF29 de `testes/rls.test.mjs` (5) e um teste novo em
+`testes/painel-inicio.test.mjs`: a lista fechada de situações reconciliada contra o `check`
+do banco, a ordem da fila de atendimento, o que a lista da equipe desenha, a varredura que
+exige `ehEquipe()` na Action **e que o `update` grave uma coluna só**, o 404 da rota nova, e
+— o que faltava desde a Tarefa P1 — a reconciliação NO SENTIDO INVERSO: uma tela de primeiro
+nível do painel que existe em `app/` e não aparece na home. MEDIDO: até o RF29, apagar a
+entrada de uma tela de `TELAS_DO_PAINEL` deixava a suíte inteira VERDE. Os 44 que entraram em 01/09/2026 com o RF07 são
 `testes/contato.test.mjs` (32) e o bloco novo de `testes/rls.test.mjs` (12): a validação do
 formulário público, a origem do visitante e o hash conferido contra um Postgres de verdade,
 a varredura que exige que `acoes/contato.ts` **NÃO** chame `ehEquipe()` (o contrário da do
@@ -67,7 +73,7 @@ rotas novas. Os de `testes/galeria.test.mjs` são da Tarefa P3, e os 34 de 01/09
 não uuid), a validação do formulário de dez campos, o que a lista da equipe desenha, a
 varredura que exige `ehEquipe()` em toda Action de atividades **e que não exista `insert`
 nem `delete` ali**, e a que exige que a leitura do PAINEL não caia para o JSON versionado.
-No modo `test:supabase` a contagem é 675, um a mais e dois pulados a mais. O pulado novo é
+No modo `test:supabase` a contagem é 723, um a mais e dois pulados a mais. O pulado novo é
 o do RF07 — "sem JavaScript: o envio válido atravessa a validação e chega ao corpo da
 Action" (`testes/contato.test.mjs`), que só roda no modo offline: com credenciais ele
 gravaria uma linha inventada em `public.contatos` do projeto de produção A CADA RODADA, e
@@ -182,6 +188,16 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   a equipe lê tudo (`using (publicado or eh_equipe())`), então o `update` pede `.select('id')` —
   sem ele um update que não casa linha nenhuma é sucesso com zero linhas no PostgREST, e editar
   uma notícia apagada responderia "guardado" sem ter guardado nada.
+- **A mesma tabela, duas Actions com políticas OPOSTAS, e os nomes quase iguais.**
+  `acoes/contato.ts` (singular) é o formulário PÚBLICO que grava em `public.contatos`;
+  `acoes/contatos.ts` (plural) é a triagem da equipe (RF29), que muda a coluna `situacao` e
+  exige `ehEquipe()`. A leitura é só da equipe — MEDIDO contra o Supabase de PRODUÇÃO em
+  01/09/2026: `select` anônimo em `contatos` responde `42501 permission denied`, antes mesmo
+  da RLS, porque `anon` só tem `grant insert`. É por isso que o insert público não pede a
+  linha de volta e o update da triagem pede: no mesmo lugar, a mesma escolha se inverte.
+  **A tela de triagem lê e organiza; ela não apaga e não edita a mensagem** — o texto que a
+  pessoa escreveu é registro, e `testes/contatos.test.mjs` falha se aparecer um `.insert(`,
+  um `.delete(` ou um `update` que grave qualquer coisa além de `{ situacao }`.
 - **`acoes/contato.ts` é a ÚNICA Action sem `ehEquipe()`, e a ausência é o desenho.** RF07:
   quem escreve para a ONG não tem conta, e a política do banco diz o mesmo (`contatos:
   qualquer pessoa escreve`, `for insert with check (true)`). A consequência é que a
@@ -233,8 +249,8 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
 
 ## Status por módulo
 
-Atualizado em 01/09/2026 (RF07 — formulário de contato + migration 007; antes, no mesmo dia,
-as Tarefas P2, P3 e P4 do painel; antes disso, P1 em 31/08 e o fim do
+Atualizado em 01/09/2026 (RF29 — a tela da equipe para ler as mensagens; antes, no mesmo dia,
+o RF07 — formulário de contato + migration 007 — e as Tarefas P2, P3 e P4 do painel; antes disso, P1 em 31/08 e o fim do
 Bloco A da fase 2, rodada de correção 1). O status descreve
 **esta branch**, já sem o `site/` estático — e por isso foi conferido linha a linha contra o que
 existe aqui, não contra o que existia na `main`.
@@ -276,7 +292,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem DENTRO de uma publicação continua faltando: a P3 fez a galeria (`public.midia`), não `publicacoes.imagem_caminho` |
 | RF05 | Galeria | **tela e envio prontos** (Tarefa P3, 01/09/2026) — `/galeria` lê `public.midia` (`servidor/dados/galeria.ts`, agrupando por álbum) e a equipe sobe foto, publica, tira do ar e apaga em `/admin/galeria`. A tabela está VAZIA e **nenhum byte foi escrito no bucket por este código**, em ambiente nenhum: falta sessão de equipe. RN07 honrada em três camadas independentes (RLS do banco, guarda dentro da Action, tela). Só IMAGEM — vídeo não cabe no limite de corpo de uma Server Action (ver `next.config.ts`) |
 | RF06 | Contato institucional | **pronto** |
-| RF07 | Formulário de contato | **pronto, e é o PRIMEIRO caminho de sucesso do projeto medido de ponta a ponta** (01/09/2026) — `/contato` grava em `public.contatos` por `acoes/contato.ts`, sem sessão nenhuma (o formulário é público: `anon` tem `grant insert` e a política é `with check (true)`). MEDIDO contra o Supabase real, sem JavaScript: preencher, enviar, redirect para `/contato?aviso=enviada` e a linha gravada. **Uma linha de teste ficou no banco de produção e precisa ser apagada à mão** — ver "O que trava hoje", item 0m. O formulário fica DEPOIS dos canais diretos de propósito: a tela da equipe para ler estes registros (RF29) ainda não existe |
+| RF07 | Formulário de contato | **pronto, e é o PRIMEIRO caminho de sucesso do projeto medido de ponta a ponta** (01/09/2026) — `/contato` grava em `public.contatos` por `acoes/contato.ts`, sem sessão nenhuma (o formulário é público: `anon` tem `grant insert` e a política é `with check (true)`). MEDIDO contra o Supabase real, sem JavaScript: preencher, enviar, redirect para `/contato?aviso=enviada` e a linha gravada. **Uma linha de teste ficou no banco de produção e precisa ser apagada à mão** — ver "O que trava hoje", item 0m. A tela da equipe para ler estes registros passou a existir no mesmo dia (RF29, `/admin/contatos`). O formulário continua DEPOIS dos canais diretos: WhatsApp e telefone a ONG lê hoje, todos os dias, e a fila do painel depende de alguém abri-la |
 | RF38 | Para escolas | **pronto** |
 | RF39 | Prova social (14 registros) | **pronto** |
 
@@ -289,7 +305,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. Provado contra o Auth real só o caminho da recusa: **entrar de verdade ninguém conseguiu ainda**, porque não existe conta confirmada (item 1 e item 2 de "O que trava hoje"). A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva |
 | RF11 | Área do usuário | **falta** — Bloco B |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
-| RF33 | Painel administrativo | **a primeira tela de trabalho existe** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). P4 (01/09) fechou o bloco com **atividades**: `/admin/atividades` (as 11 reais, com tirar do ar/pôr de volta) e `/admin/atividades/editar?id=` (corrigir o texto — sem criar e sem apagar). Quem não é equipe recebe **404** nas sete rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável. O que FOI medido sem sessão está nos relatórios de P2/P3/P4 e em `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs` e `testes/atividades.test.mjs` |
+| RF33 | Painel administrativo | **quatro telas de trabalho** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). P4 (01/09) fechou o bloco com **atividades**: `/admin/atividades` (as 11 reais, com tirar do ar/pôr de volta) e `/admin/atividades/editar?id=` (corrigir o texto — sem criar e sem apagar). O RF29 (01/09) acrescentou a quinta, que não estava no plano do bloco: `/admin/contatos`, as mensagens recebidas. Quem não é equipe recebe **404** nas oito rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável na suíte. O que FOI medido sem sessão está nos relatórios de P2/P3/P4/RF29 e em `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs`, `testes/atividades.test.mjs` e `testes/contatos.test.mjs` |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
 ### M3 — Eventos
@@ -322,7 +338,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF37 | Publicação de material | **falta** |
 | RF27 | Mural de avisos | **falta** |
 | RF28 | Mensagem para grupo | **falta** |
-| RF29 | Registro central de contatos | **metade** — a tabela `public.contatos` passou a RECEBER de verdade com o RF07 (01/09/2026), e continua sem tela: quem quiser ler as mensagens precisa abrir o painel do Supabase. É a lacuna mais urgente depois desta tarefa — um formulário público que grava onde ninguém lê é pior que não ter formulário |
+| RF29 | Registro central de contatos | **pronto** (01/09/2026) — `/admin/contatos` lê `public.contatos` (`servidor/dados/contatos.ts`) e a equipe marca o andamento do atendimento: nova → em contato → concluída, e de volta, em qualquer sentido (`acoes/contatos.ts`, uma Action, um `update` de uma coluna). A fila começa por quem ainda espera resposta e o que foi concluído DESCE, nunca some. **Ela lê e tria: não apaga e não edita a mensagem** — o texto recebido é registro. Consequência LGPD em aberto: /privacidade promete exclusão a pedido, e isso só se faz no SQL Editor (item 0n). Ninguém percorreu o caminho autenticado — não há sessão de equipe na suíte; o que foi medido está no relatório e em `testes/contatos.test.mjs` + o bloco RF29 de `npm run rls` |
 | RF30–RF32 | Indicadores, CSV, PDF | **falta** — os indicadores da home do painel existiam no site antigo e **não foram portados**; só na `main` |
 
 ### Infraestrutura
@@ -387,9 +403,9 @@ versões para manter em paralelo aqui.
   repositório que cite um caminho `site/...` está falando do site antigo, que vive no histórico:
   `git show main:site/index.html`.
 
-**O que ainda não existe no Next:** a área do usuário (RF11) e a tela da equipe para LER as
-mensagens de contato (RF29) — que passou a importar mais em 01/09/2026, quando o RF07 ligou o
-formulário público e a tabela começou a receber de verdade.
+**O que ainda não existe no Next:** a área do usuário (RF11). A tela da equipe para LER as
+mensagens de contato (RF29) passou a existir em 01/09/2026, fechando o buraco que o RF07
+tinha aberto no mesmo dia — formulário público gravando onde ninguém lia.
 O painel em si passou a existir em 31/08/2026 (Tarefa P1): `/admin` é rota real e responde
 **404 para quem não é equipe** — o que continua sendo o comportamento certo, e o que
 `testes/redirects.test.mjs` agora vigia (a trava mudou de "`/admin` não existe" para
@@ -528,6 +544,14 @@ revisitada e mantida naquela tarefa.
    do bloco, `docs/superpowers/plans/2026-08-31-painel-administrativo.md`): tirar a
    tradução justo da tela de trabalho da equipe excluiria quem usa Libras, e
    acessibilidade é requisito da ONG (regra 8), não enfeite.
+   **O RF29 AGRAVOU ISTO, e não mudou o comportamento.** Até 01/09/2026 o que estava
+   pendurado embaixo do `strict-dynamic` era dado da própria equipe e conteúdo
+   institucional. `/admin/contatos` é a primeira tela do projeto com dado pessoal de
+   TERCEIROS em volume — nome, e-mail, telefone e texto livre de quem escreveu para a ONG,
+   na tela, em texto. A decisão de 31/08 continua valendo pelo mesmo motivo (tirar a
+   tradução da tela de trabalho excluiria quem usa Libras), e continua sendo do dono do
+   projeto; o que mudou foi o tamanho do que está exposto se o widget algum dia for
+   comprometido.
    O que muda de status: isto **não é mais uma decisão a tomar**, é um risco em aberto e
    conhecido. O que o reduziria sem tirar a tradução — e continua valendo como próximo
    passo, se alguém quiser gastar nisso: apertar a CSP para o painel (sem
@@ -631,6 +655,29 @@ revisitada e mantida naquela tarefa.
    Nenhum teste automático grava em `contatos`: o único que gravaria está com `skip` no
    modo com credenciais, com o motivo escrito (ver "Comandos").
 
+   **Desde o RF29 essa linha APARECE numa tela** (`/admin/contatos`), para quem for equipe.
+   A tela deixa marcá-la como concluída — o que a tira do topo da fila —, mas **não apaga**:
+   o `delete` acima continua sendo o único caminho, e é de propósito (item 0n).
+
+0n. **A tela de mensagens não apaga, e /privacidade promete exclusão a pedido.** Nasceu com
+   o RF29 (01/09/2026). `/admin/contatos` lê e tria; `acoes/contatos.ts` não tem `insert`
+   nem `delete`, e o `update` grava só a coluna `situacao` — porque o texto que a pessoa
+   escreveu é registro, e apagar num celular, de pé, não tem desfazer. **O banco permite as
+   duas coisas** (`contatos: equipe gerencia`, `for all`, e `authenticated` tem `grant
+   delete` — MEDIDO em `npm run rls`, bloco RF29): quem recusa é o código.
+
+   A consequência em aberto: /privacidade diz que a pessoa pode "pedir a exclusão dos seus
+   dados", e hoje isso só acontece no SQL Editor do Supabase, à mão. A tela DIZ isso por
+   escrito ("fale com quem cuida do site"), e há teste que falha se a frase sumir — mas
+   dizer não é cumprir. Fechar de verdade é decisão do grupo: ou uma tela de apagar com
+   confirmação (o desenho da galeria, `/admin/galeria/apagar`), ou um procedimento escrito
+   no manual da ONG (RNF07, que também falta).
+
+   **Segunda ponta, do mesmo item:** a lista NÃO TEM LIMITE nem paginação. Com uma linha na
+   tabela isso é grátis, e um `.limit(n)` numa fila de atendimento esconderia mensagem sem
+   dizer que escondeu. No dia em que a lista não couber numa rolagem, o caminho é filtro por
+   situação com o total escrito na tela — nunca um corte silencioso.
+
 **Do projeto, válidos para as duas branches:**
 
 1. **O e-mail do Supabase é o que separa "conta criada" de "consegue entrar".** Duas coisas, e a
@@ -645,19 +692,31 @@ revisitada e mantida naquela tarefa.
    criá-la pelo painel do Supabase com *Auto Confirm User* (item 2).
 2. **Não existe conta de administrador.** Criar pelo painel do Supabase com *Auto Confirm User* e
    promover com `update public.perfis set eh_equipe = true where email = '...'`.
-3. **O painel existe INTEIRO (P1 a P4), e ninguém o viu pelo caminho normal.** A Tarefa P1
-   (31/08/2026) construiu a fundação: guarda, home e estilo; P2, P3 e P4 (01/09/2026) as três
-   telas de trabalho. O que trava é o mesmo do item 1 — sem sessão
-   de equipe, **o caminho autenticado nunca foi percorrido**: a home do painel foi conferida
+3. **O painel existe INTEIRO (P1 a P4, mais o RF29), e ninguém o viu pelo caminho normal.**
+   A Tarefa P1 (31/08/2026) construiu a fundação: guarda, home e estilo; P2, P3 e P4
+   (01/09/2026) as três telas de trabalho, e o RF29 (01/09/2026) a quinta,
+   `/admin/contatos`. O que trava é o mesmo do item 1 — sem sessão
+   de equipe NA SUÍTE, **o caminho autenticado nunca foi percorrido por um teste**: a home
+   do painel foi conferida
    com o navegador só depois de um remendo local temporário no `ehEquipe()`, que não foi
    commitado, e por teste de unidade do componente (`testes/painel-inicio.test.mjs`). Não
    existe porta de diagnóstico para o painel, de propósito — uma variável que abra o painel
-   é uma variável que abre o painel, e as telas de P2/P3/P4 penduram dado pessoal ali. A P4
+   é uma variável que abre o painel, e as telas de P2/P3/P4/RF29 penduram dado pessoal ali. A P4
    conferiu as duas telas dela com o navegador de outro jeito, declarado no relatório:
    montando os COMPONENTES REAIS com o CSS real numa bancada local (`react-dom/server` +
    um `http` de brinquedo), a 375px e a 1280px. É a tela desenhada, não a tela servida —
    foi assim que se viu que o `<summary>` da ficha técnica tinha perdido o triângulo de
    "isto abre" por causa de um `display: flex` (regra 10 de novo).
+   **O RF29 foi mais longe e mediu a tela SERVIDA**, com o mesmo remendo local não commitado
+   (`ehEquipe()` devolvendo true por variável de ambiente, mais três mensagens de mentira no
+   lugar da consulta): `next build` + `next start`, Firefox headless, `javascript.enabled =
+   false`. O que isso provou e a bancada de componentes não provaria: o `<details>` da
+   mensagem abre e fecha sem uma linha de script, e **o botão de triagem faz o POST, chega à
+   Server Action, volta em 303 e a caixa de aviso aparece na lista** — no caso medido com
+   `?aviso=erro`, porque a sessão do cliente era anônima e o Postgres recusou o `update`
+   (`42501`, visto no log). É o mais perto do caminho autenticado que se chegou; o que
+   continua sem medição é o `update` dando CERTO. E foi assim que se viu que o parágrafo da
+   mensagem estava com o recuo dobrado a 375px (regra 10 de novo).
    Os 12 `test.todo` de `testes/painel.test.mjs` guardam os requisitos
    (RF33/RNF08/RN01/RN05) — 9 continuam `todo` porque medem a tela renderizada (alvo de
    44px, sem rolagem horizontal, navegação na zona do polegar) e ela exige a sessão; 3 foram

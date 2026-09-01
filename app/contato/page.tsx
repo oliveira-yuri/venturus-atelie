@@ -27,11 +27,13 @@
 // ===================================================================
 //
 // Telefone, WhatsApp e e-mail são canais que a ONG lê hoje, todos os dias.
-// A mensagem enviada por aqui vai para `public.contatos`, e a TELA da
-// equipe para ler esse registro (RF29, "registro central de contatos")
-// AINDA NÃO EXISTE nesta branch — quem lê precisa abrir o painel do
-// Supabase. Enquanto for assim, pôr o formulário acima dos canais seria
-// empurrar quem tem pressa para o caminho mais lento.
+// A mensagem enviada por aqui vai para `public.contatos`, e desde o RF29
+// (01/09/2026) existe a TELA da equipe para ler esse registro:
+// /admin/contatos. A ordem NÃO mudou por causa disso, e a decisão foi
+// revisitada: a fila do painel depende de alguém da equipe abrir o painel,
+// e o WhatsApp toca no bolso. Enquanto a ONG não tiver rotina de abrir a
+// tela, pôr o formulário acima dos canais continua sendo empurrar quem tem
+// pressa para o caminho mais lento.
 //
 // A ordem também é o que mantém testes/paridade-texto.test.mjs honesto: a
 // <section> nova é excluída da comparação com o HTML original (ela é texto

@@ -121,7 +121,13 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // page.tsx); sem o parâmetro ela é 404, como qualquer endereço que não
   // existe.
   '/admin/atividades',
-  '/admin/atividades/editar'
+  '/admin/atividades/editar',
+  // RF29: a tela onde a equipe LÊ o que o formulário público de /contato
+  // grava. Uma rota só — não há tela de detalhe, porque a mensagem inteira
+  // já cabe no cartão (dentro de um <details>, ver componentes/
+  // ListaContatos.ts) e uma segunda rota seria mais uma guarda para
+  // esquecer.
+  '/admin/contatos'
 ];
 
 /**
