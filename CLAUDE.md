@@ -411,7 +411,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | `/robots.txt` (`app/robots.ts`) | **pronto** — em modo prévia, ver "O que trava hoje" 0c |
 | Supabase Storage (bucket `galeria`) | **ligado pelo código** (P3) — `upload`, `remove` e `getPublicUrl`, com o host do projeto acrescentado ao `img-src` da CSP (e **não** ao `connect-src`). **Nenhum arquivo real subiu**: falta sessão de equipe |
 | Edge Function de e-mail | **falta** |
-| Manual da ONG (RNF07) | **falta** |
+| Manual da ONG (RNF07) | **escrito, não verificado com a equipe** (01/09/2026) — `docs/manual-da-equipe.md` (as quatro telas do painel, entrar/sair/senha, RN07 explicada, o que o painel NÃO faz e por quê, o que fazer quando dá erro) e `docs/guia-rapido-da-equipe.md` (uma página para imprimir). Escrito lendo as telas, passo a passo; **ninguém percorreu o painel autenticado para conferir** (item 3 de "O que trava hoje"), e o treinamento presencial que a RNF07 também pede continua faltando |
 
 ---
 
