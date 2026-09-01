@@ -310,6 +310,17 @@
   color: var(--tinta-suave);
 }
 
+/* A data de uma notícia (RF04, Tarefa P2 do painel) — a ÚNICA classe nova
+   que /noticias precisou: o título e a chamada reaproveitam
+   .atividade__titulo/.atividade__resumo, porque o papel é o mesmo dos
+   cartões de /projetos e /agenda (ver componentes/ListaNoticias.ts).
+   Discreta de propósito: quem chega quer ler a notícia, não a data. */
+.noticia__data {
+  margin: calc(var(--espaco-2) * -1) 0 var(--espaco-3);
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
 .atividade__ficha {
   margin: var(--espaco-4) 0 0;
   padding-top: var(--espaco-3);

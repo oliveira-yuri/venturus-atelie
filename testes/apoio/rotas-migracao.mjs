@@ -102,7 +102,14 @@ export const PAGINAS_PRONTAS = [...ROTAS_PRONTAS_MENU, ...PAGINAS_PRONTAS_FORA_D
  * anônimo, o layout inteiro no HTML servido, nada do painel vazando, e a
  * decisão de permissão exercitada por unidade.
  */
-export const PAGINAS_SO_PARA_EQUIPE = ['/admin'];
+export const PAGINAS_SO_PARA_EQUIPE = [
+  '/admin',
+  // Tarefa P2: a lista de notícias da equipe e a tela de escrever/editar.
+  // São UMA rota para criar e editar (`/admin/publicacoes/editar`, com `?id=`
+  // quando é edição) — ver o cabeçalho daquele page.tsx.
+  '/admin/publicacoes',
+  '/admin/publicacoes/editar'
+];
 
 /**
  * Toda página real de app/, pública ou não — é ESTA lista que precisa

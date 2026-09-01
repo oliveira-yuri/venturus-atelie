@@ -154,3 +154,187 @@ a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
   /* O cartão respira mais quando há largura para isso. */
   .painel__tela-alvo { padding: var(--espaco-4) var(--espaco-3); }
 }
+
+/* =====================================================================
+   Publicações (RF04) — Tarefa P2
+
+   Duas telas: a lista (/admin/publicacoes) e o formulário
+   (/admin/publicacoes/editar). Continua valendo tudo do topo deste arquivo:
+   uma coluna, alvo de toque inteiro, nada que dependa de mouse, nada de
+   `vw` em texto.
+   ===================================================================== */
+
+/* ---------- Caminho de volta ----------
+   Fica no TOPO do conteúdo, antes do <h1>, e não numa barra fixa: barra
+   fixa come a faixa mais valiosa da tela do celular, e aqui a hierarquia é
+   rasa (painel -> notícias -> escrever). Uma linha de texto resolve. */
+
+.painel__voltar {
+  margin: 0 0 var(--espaco-3);
+  font-weight: 700;
+}
+
+/* O alvo de toque vale para o link inteiro, não só para a palavra: sem o
+   padding vertical, "← Notícias" tem a altura de uma linha de texto (~24px)
+   e fica abaixo dos 44px que a RNF08 pede. */
+.painel__voltar a {
+  display: inline-block;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-2) 0;
+  color: var(--azul-texto);
+}
+
+/* ---------- A ação principal da tela ----------
+   "Escrever notícia" é o motivo de a tela existir. Botão cheio, largura
+   inteira no celular: nada de disputar espaço com a lista. */
+
+.painel__acoes { margin: 0 0 var(--espaco-4); }
+
+.painel__acao-principal {
+  display: block;
+  min-height: var(--alvo-toque);
+  padding: var(--espaco-3);
+  background: var(--tinta);
+  border: 2px solid var(--tinta);
+  box-shadow: var(--aplique) var(--amarelo);
+  color: var(--cal);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.painel__acao-principal:hover { background: var(--cal); color: var(--tinta); }
+
+/* ---------- A lista de notícias do painel ---------- */
+
+.publicacoes {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  /* O gap precisa caber o deslocamento do aplique (8px), senão a sombra de
+     um cartão encosta no cartão de baixo — mesma conta de .painel__telas. */
+  gap: var(--espaco-4);
+}
+
+.publicacao {
+  margin: 0;
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--azul);
+}
+
+/* NO AR e RASCUNHO não se distinguem só pela cor: a palavra está escrita no
+   cartão (componentes/ListaPublicacoes.ts). O que muda aqui é o PESO visual
+   — o rascunho é contorno, o publicado é preenchido —, para que a diferença
+   sobreviva também em alto contraste, onde a paleta some. */
+.publicacao__estado {
+  display: inline-block;
+  margin: 0 0 var(--espaco-2);
+  padding: var(--espaco-1) var(--espaco-2);
+  border: 2px solid var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta);
+  background: transparent;
+}
+
+.publicacao__estado--no-ar { background: var(--amarelo); }
+
+.publicacao__titulo {
+  margin: 0 0 var(--espaco-1);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.publicacao__quando {
+  margin: 0 0 var(--espaco-3);
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+/* Os dois botões lado a lado quando cabem, empilhados quando não — `wrap` em
+   vez de media query, porque quem decide é o tamanho do texto (que a pessoa
+   pode aumentar com o A+), não a largura da tela. */
+.publicacao__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.publicacao__form { margin: 0; }
+
+/* Um <a> e um <button> com a MESMA cara, de propósito: para quem usa, os
+   dois são "um botão". A diferença de tag é semântica (navegar x agir) e
+   importa para o leitor de tela, não para o dedo. */
+.publicacao__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.publicacao__botao:hover { background: var(--tinta); color: var(--cal); }
+
+/* Publicar é o gesto que muda o site: ele carrega a cor da ONG. Tirar do ar
+   é o gesto de recuo, e fica neutro — não vermelho de "perigo", porque não
+   há perda nenhuma (o texto continua guardado; ver ListaPublicacoes.ts). */
+.publicacao__botao--publicar { background: var(--amarelo); }
+.publicacao__botao--publicar:hover { background: var(--tinta); color: var(--amarelo); }
+
+/* ---------- O formulário de escrever ---------- */
+
+/* No painel o formulário ocupa a largura toda: `.formulario` do site tem
+   `max-width: 36rem`, que numa tela de trabalho deixa o campo de texto mais
+   estreito que a coluna à toa. */
+.painel__conteudo .formulario { max-width: none; }
+
+/* O TEXTO DA NOTÍCIA PRECISA DE ESPAÇO PARA SER LIDO ENQUANTO SE ESCREVE.
+   `.campo textarea` do site tem 8rem — cerca de cinco linhas, o suficiente
+   para um recado e pouco para uma notícia: com ele, revisar o terceiro
+   parágrafo obriga a rolar dentro de uma caixinha, dentro de uma página que
+   também rola. Em `rem`, então cresce com o A+ (regra 8). */
+.painel__conteudo .campo textarea[name="corpo"] { min-height: 18rem; }
+
+.painel__conteudo .campo textarea[name="resumo"] { min-height: 6rem; }
+
+/* O botão de guardar ocupa a largura toda no celular: é o fim de um
+   formulário longo, e um botão pequeno no fim de uma rolagem longa é um alvo
+   difícil de acertar com o polegar. */
+.painel__conteudo .formulario button[type="submit"] {
+  justify-self: stretch;
+  width: 100%;
+}
+
+/* ---------- Tela larga ----------
+   O caso raro (ver o topo do arquivo). A lista continua em UMA coluna: cada
+   item tem título, estado e dois botões — em duas colunas eles ficariam
+   estreitos e a leitura vertical, que é a de uma lista, se perderia. */
+@media (min-width: 34rem) {
+  .painel__acao-principal { display: inline-block; padding: var(--espaco-3) var(--espaco-5); }
+
+  .publicacao { padding: var(--espaco-4); }
+
+  .painel__conteudo .formulario button[type="submit"] {
+    justify-self: start;
+    width: auto;
+    padding: 0 var(--espaco-5);
+  }
+}

@@ -67,7 +67,10 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     caminho: '/admin/publicacoes',
     titulo: 'Notícias e campanhas',
     descricao: 'Escrever, editar e publicar o que aparece na página de notícias.',
-    pronta: false
+    // Virou `true` na Tarefa P2, no mesmo commit que criou
+    // app/admin/publicacoes/ — é o que o teste de reconciliação em
+    // testes/painel-inicio.test.mjs cobra nos dois sentidos.
+    pronta: true
   },
   {
     caminho: '/admin/galeria',

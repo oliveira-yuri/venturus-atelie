@@ -87,7 +87,19 @@ const SEM_REDIRECT_DE_PROPOSITO = ['admin/index.html'];
  * que uma página PORTADA que ficasse sem redirect continue quebrando o
  * teste. Toda entrada aqui precisa de um motivo escrito.
  */
-const PAGINAS_SEM_URL_ANTIGA = ['/nova-senha'];
+const PAGINAS_SEM_URL_ANTIGA = [
+  '/nova-senha',
+  // Tarefa P2 do painel. As duas telas de publicações NUNCA existiram como
+  // arquivo: a home do painel antigo (hoje congelada em
+  // testes/apoio/html-original/admin/index.html) LINKAVA para "publicacoes",
+  // mas o arquivo não existe no diretório congelado — é um dos seis becos
+  // que aquela tela prometia, e o defeito que componentes/PainelInicio.ts
+  // existe para não repetir. Cobrar redirect de uma URL que nunca respondeu
+  // nada seria inventar história; pior, criaria um 301 permanente para uma
+  // tela que responde 404 a quem não é equipe.
+  '/admin/publicacoes',
+  '/admin/publicacoes/editar'
+];
 
 /**
  * O contrário da lista acima: página de `app/` que TEVE URL antiga e mesmo

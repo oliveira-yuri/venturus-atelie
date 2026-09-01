@@ -1,9 +1,21 @@
 /**
- * Validação de formulários de conta.
+ * Validação dos formulários deste site — os de conta (RF08–RF12) e, desde a
+ * Tarefa P2 do painel, o de notícia (RF04).
  *
- * Módulo puro, sem DOM: é o miolo testável dos formulários de cadastro e
- * entrada. As mensagens seguem a seção 11 do escopo — dizem o que houve e o
- * que fazer, sem vaguidão e sem pedir desculpas.
+ * TODOS NO MESMO ARQUIVO, e isso é decisão: o CLAUDE.md nomeia este módulo
+ * como O lugar onde "o FormData é lido campo a campo por nome". Um segundo
+ * arquivo de leitura de FormData seria uma segunda cópia das três precauções
+ * do bloco "Leitura do FormData", lá embaixo — e a primeira que alguém
+ * "simplificasse" para `String(dados.get(nome))` abriria de novo a porta que
+ * a regra 6 fechou. Há também um motivo mecânico: este arquivo NÃO IMPORTA
+ * NADA, o que é o que permite ao `node --test` importá-lo direto (o runtime
+ * nativo do Node não resolve o alias `@/...` do tsconfig nem caminho
+ * relativo sem extensão). Um módulo separado que importasse daqui deixaria
+ * de ser testável sem subir o Next.
+ *
+ * Módulo puro, sem DOM: é o miolo testável dos formulários. As mensagens
+ * seguem a seção 11 do escopo — dizem o que houve e o que fazer, sem
+ * vaguidão e sem pedir desculpas.
  *
  * Toda validação devolve TODOS os erros de uma vez. Formulário que revela um
  * erro por vez faz a pessoa tentar várias vezes até acertar.
@@ -254,8 +266,20 @@ export function validarRecuperacao(dados: { email?: string }): ResultadoValidaca
 //     presença.
 // =====================================================================
 
-/** Texto de um campo, já sem espaço nas pontas. Nunca `undefined`. */
-function texto(dados: FormData, nome: string): string {
+/**
+ * Texto de um campo, já sem espaço nas pontas. Nunca `undefined`.
+ *
+ * RENOMEADA NA TAREFA P2 DO PAINEL (era `texto`) e exportada, porque o
+ * bloco "Publicações", no fim deste arquivo, também precisa dela — e porque
+ * o nome antigo, dentro de uma função que trata de texto de notícia, dizia
+ * muito pouco. Continua valendo a precaução 1 do bloco acima: `dados.get()`
+ * devolve `string | File | null`, e um File no campo "corpo" viraria a
+ * string "[object File]" gravada no banco.
+ *
+ * O `trim` NÃO estraga texto longo: ele apara só as pontas, e as quebras de
+ * linha do meio (que é o que separa os parágrafos de uma notícia) ficam.
+ */
+export function textoDoCampo(dados: FormData, nome: string): string {
   const valor = dados.get(nome);
   return typeof valor === 'string' ? valor.trim() : '';
 }
@@ -300,9 +324,9 @@ export function lerCadastro(dados: FormData): DadosCadastro {
   if (marcado(dados, 'doador')) papeis.push('doador');
 
   return {
-    nome: texto(dados, 'nome'),
-    email: texto(dados, 'email'),
-    telefone: texto(dados, 'telefone'),
+    nome: textoDoCampo(dados, 'nome'),
+    email: textoDoCampo(dados, 'email'),
+    telefone: textoDoCampo(dados, 'telefone'),
     senha: senhaBruta(dados, 'senha'),
     maioridade: marcado(dados, 'maioridade'),
     consentimento: marcado(dados, 'consentimento'),
@@ -313,12 +337,149 @@ export function lerCadastro(dados: FormData): DadosCadastro {
 /** Campos do formulário "Entrar". */
 export function lerEntrada(dados: FormData): DadosEntrada {
   return {
-    email: texto(dados, 'email'),
+    email: textoDoCampo(dados, 'email'),
     senha: senhaBruta(dados, 'senha')
   };
 }
 
 /** Campo do formulário de /recuperar-acesso. */
 export function lerRecuperacao(dados: FormData): { email: string } {
-  return { email: texto(dados, 'email') };
+  return { email: textoDoCampo(dados, 'email') };
+}
+
+// =====================================================================
+// Publicações — o formulário de notícia do painel (RF04/RF33, Tarefa P2)
+//
+// Separado das funções de conta acima por assunto, não por natureza: as
+// mesmas três precauções de leitura de FormData valem, e é por elas que
+// estas funções moram aqui e não num arquivo próprio (ver o cabeçalho).
+//
+// O QUE ESTE BLOCO NÃO DECIDE: se a pessoa pode gravar. Isso é `ehEquipe()`
+// dentro de cada Server Action (acoes/publicacoes.ts) e a RLS no banco
+// (regras 5 e 6 do CLAUDE.md). E ele NÃO LÊ o campo `publicado` — publicar é
+// um ato separado, com Action própria e botão próprio: um formulário de
+// texto que também pudesse ligar o "no ar" faria uma correção de vírgula às
+// 23h virar uma publicação acidental.
+// =====================================================================
+
+/**
+ * O que o formulário de notícia manda — e é a lista COMPLETA do que a Action
+ * aceita. Campo que não está aqui não existe para o resto do sistema.
+ *
+ * `imagem_caminho` e `imagem_alt` existem na tabela e NÃO estão aqui de
+ * propósito: upload é a Tarefa P3, que faz o trabalho de Supabase Storage.
+ * Um meio-caminho (um campo de texto pedindo o caminho do arquivo à mão)
+ * seria pior que a ausência — a coluna tem `check` exigindo `imagem_alt`
+ * junto, e quem preenchesse na mão levaria um erro de banco cru.
+ */
+export type CamposPublicacao = {
+  /** Vazio quando é notícia nova; o uuid da linha quando é edição. */
+  id: string;
+  titulo: string;
+  resumo: string;
+  corpo: string;
+};
+
+/**
+ * Limites de tamanho — e eles NÃO vêm do banco, vêm daqui.
+ *
+ * As colunas são `text` no Postgres, ou seja, sem limite nenhum. Como a
+ * Action é endpoint HTTP público (spec §4.5), sem um teto qualquer pessoa
+ * pode mandar megabytes num campo e a única defesa seria o limite de corpo
+ * de requisição do runtime — que devolve um erro que ninguém entende.
+ *
+ * Os números são de uso, não de tecnologia: um título que não cabe em duas
+ * linhas de celular já é grande demais; o resumo é a frase que aparece na
+ * lista; e 20 mil caracteres são cerca de dez páginas, muito além de
+ * qualquer notícia de ONG e ainda assim longe de ser um problema para o
+ * banco.
+ */
+export const LIMITE_TITULO = 160;
+export const LIMITE_RESUMO = 400;
+export const LIMITE_CORPO = 20_000;
+
+/**
+ * O formato de um `uuid` do Postgres (`gen_random_uuid()`).
+ *
+ * Serve para separar "criar" de "editar" ANTES de falar com o banco: sem
+ * isto, um `id` com lixo dentro iria para o `.eq('id', ...)` e voltaria como
+ * erro de sintaxe do Postgres (22P02), que a tela mostraria como falha
+ * genérica. Com isto, a Action sabe que aquilo nunca foi um identificador e
+ * responde o que de fato aconteceu.
+ *
+ * NÃO É AUTORIZAÇÃO E NÃO PROVA QUE A LINHA EXISTE: um uuid bem formado de
+ * outra publicação passa por aqui igual. Quem decide o que pode ser lido e
+ * escrito é a RLS.
+ */
+const FORMATO_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function ehIdentificador(valor: unknown): boolean {
+  return typeof valor === 'string' && FORMATO_UUID.test(valor);
+}
+
+/**
+ * Campos do formulário de notícia (componentes/FormularioPublicacao.tsx).
+ *
+ * Um a um, por nome, pelo motivo do bloco "Leitura do FormData": espalhar o
+ * FormData num objeto seria abrir de novo a porta por onde `publicado` (ou
+ * `eh_equipe`, no cadastro) entraria pela frente.
+ */
+export function lerPublicacao(dados: FormData): CamposPublicacao {
+  return {
+    id: textoDoCampo(dados, 'id'),
+    titulo: textoDoCampo(dados, 'titulo'),
+    resumo: textoDoCampo(dados, 'resumo'),
+    corpo: textoDoCampo(dados, 'corpo')
+  };
+}
+
+/** TODOS os erros de uma vez — a regra do topo deste arquivo. */
+export function validarPublicacao(campos: CamposPublicacao): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!campos.titulo) {
+    erros.titulo = 'Escreva um título para a notícia.';
+  } else if (campos.titulo.length > LIMITE_TITULO) {
+    erros.titulo = `O título passou de ${LIMITE_TITULO} caracteres. Encurte um pouco.`;
+  }
+
+  // `resumo` é opcional: a coluna aceita null, e nem toda notícia precisa de
+  // uma chamada separada do texto. O que não pode é passar do tamanho.
+  if (campos.resumo.length > LIMITE_RESUMO) {
+    erros.resumo = `O resumo passou de ${LIMITE_RESUMO} caracteres. Ele é a chamada curta, `
+      + 'não o texto inteiro.';
+  }
+
+  if (!campos.corpo) {
+    erros.corpo = 'Escreva o texto da notícia.';
+  } else if (campos.corpo.length > LIMITE_CORPO) {
+    erros.corpo = `O texto passou de ${LIMITE_CORPO} caracteres.`;
+  }
+
+  // Edição: o id vem do link que a própria lista do painel montou. Se chegou
+  // preenchido e não é um uuid, alguém montou a requisição à mão — a Action
+  // recusa em vez de perguntar ao Postgres.
+  if (campos.id && !ehIdentificador(campos.id)) {
+    erros.id = 'Não foi possível identificar qual notícia é esta. Volte à lista e abra de novo.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/** O que o botão de publicar/tirar do ar manda. */
+export type AcaoDePublicacao = 'publicar' | 'despublicar';
+
+/**
+ * Lê o botão de publicar/tirar do ar — LISTA FECHADA, como o `type` do link
+ * de e-mail em compartilhado/links-de-email.ts.
+ *
+ * O valor vem de um `<input type="hidden">`, ou seja, é entrada de usuário
+ * como qualquer outra. Sem a lista fechada, um valor inesperado cairia num
+ * `else` e viraria "despublicar" (ou "publicar") em silêncio.
+ */
+export function lerAlternancia(dados: FormData): { id: string; acao: AcaoDePublicacao | null } {
+  const pedida = textoDoCampo(dados, 'acao');
+  const acao = pedida === 'publicar' || pedida === 'despublicar' ? pedida : null;
+
+  return { id: textoDoCampo(dados, 'id'), acao };
 }

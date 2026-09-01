@@ -26,7 +26,7 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (509 testes)
+npm test                        # suíte completa, modo offline (544 testes)
 npm run test:supabase           # a mesma suíte, contra o banco real (510)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
@@ -41,11 +41,15 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 509 são 497 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
+Os 544 são 532 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
 (RF33), que descrevem requisitos válidos cuja forma de verificar depende de uma sessão de
 equipe, que ainda não existe (ver "O que trava hoje", itens 1 e 2). Os 19 que entraram em
 31/08/2026 são da Tarefa P1 do painel: `testes/painel-guarda.test.mjs` (a guarda, a falha
-fechada e o não-vazamento) e `testes/painel-inicio.test.mjs` (a home). Dois
+fechada e o não-vazamento) e `testes/painel-inicio.test.mjs` (a home). Os 35 de 01/09/2026
+são da Tarefa P2 (`testes/publicacoes.test.mjs`): a validação do formulário de notícia, o
+que as duas telas desenham, a varredura que exige `ehEquipe()` em toda Server Action de
+publicações — a de `painel-guarda` cobre `app/admin/**` e NÃO alcança Action — e o 404 das
+rotas novas. Dois
 dos pulados nasceram na revisão final do Bloco A: `ROTAS_PENDENTES` está vazia desde a A6, e
 os testes que iteravam sobre ela passavam sem verificar nada — pular com motivo escrito é a
 contagem honesta.
@@ -142,7 +146,21 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   pular, A+/contraste, VLibras — só aparece **depois de hidratar**. Sem JavaScript, tela
   branca. Ver o bloco MEDIDO no topo de `app/error.tsx`.
 - **Insert público sem `.select()`:** em `inscricoes` e `contatos` a leitura é negada; pedir a linha
-  de volta faz a inserção *parecer* que falhou.
+  de volta faz a inserção *parecer* que falhou. Em `publicacoes` é o CONTRÁRIO, e é de propósito:
+  a equipe lê tudo (`using (publicado or eh_equipe())`), então o `update` pede `.select('id')` —
+  sem ele um update que não casa linha nenhuma é sucesso com zero linhas no PostgREST, e editar
+  uma notícia apagada responderia "guardado" sem ter guardado nada.
+- **Toda Server Action do painel chama `ehEquipe()` sozinha.** A varredura de
+  `testes/painel-guarda.test.mjs` exige a guarda em toda página de `app/admin/**` e **não
+  alcança Action** — Action é endpoint HTTP público (spec §4.5) e não passa por página nem por
+  layout. `testes/publicacoes.test.mjs` tem a varredura irmã, para as Actions. MEDIDO em
+  01/09/2026, sem JavaScript, com as guardas das PÁGINAS desligadas de propósito: o envio chega
+  à Action, a guarda dela recusa e o formulário volta preenchido.
+- **Publicar é um ato separado de escrever.** `salvarPublicacao` não conhece a coluna
+  `publicado` — nem para gravar `false` —, então nada vai ao ar por acidente; `publicado` só
+  muda por `alternarPublicacao`, que é um `<form>` com botão próprio. Ao publicar, `publicado_em`
+  só é carimbado se ainda for nulo (corrigir e republicar não é republicar); ao tirar do ar, a
+  data FICA — ela é um fato, e apagá-la seria destruir informação num gesto sem desfazer.
 - **Design "Aplique":** um gesto só — deslocamento sólido que simula peça costurada. Nenhuma
   textura de fundo repetida. Fontes servidas localmente, sem Google Fonts.
 
@@ -189,7 +207,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF01 | Página inicial | **pronto** |
 | RF02 | Quem somos | **pronto** |
 | RF03 | Projetos e atividades (11, do banco) | **pronto** — edição pela equipe falta |
-| RF04 | Notícias e campanhas | página pronta, **sem CRUD e sem dados** |
+| RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem em publicação é P3 |
 | RF05 | Galeria | página pronta, **sem CRUD e sem dados** |
 | RF06 | Contato institucional | **pronto** |
 | RF07 | Formulário de contato | **falta** — depende da tela e do envio |
@@ -205,7 +223,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. Provado contra o Auth real só o caminho da recusa: **entrar de verdade ninguém conseguiu ainda**, porque não existe conta confirmada (item 1 e item 2 de "O que trava hoje"). A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva |
 | RF11 | Área do usuário | **falta** — Bloco B |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
-| RF33 | Painel administrativo | **a fundação existe** (Tarefa P1, 31/08/2026): `/admin` é rota real, com guarda (`app/admin/layout.tsx` + `app/admin/page.tsx`), home "o que você quer fazer?" e `estilos/admin.css`. **Nenhum CRUD ainda** — publicações, galeria e atividades são P2/P3/P4. Quem não é equipe recebe **404**, medido; quem É equipe ninguém viu ainda, porque não há sessão utilizável |
+| RF33 | Painel administrativo | **a primeira tela de trabalho existe** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). Galeria e atividades são P3/P4. Quem não é equipe recebe **404** nas três rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável. O que FOI medido sem sessão está no relatório da P2 e em `testes/publicacoes.test.mjs` |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
 ### M3 — Eventos
