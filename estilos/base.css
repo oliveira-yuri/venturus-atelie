@@ -193,6 +193,50 @@ main section { margin-bottom: var(--espaco-6); }
   line-height: var(--alvo-toque);
 }
 
+/* ---------------------------------------------------------------------
+   Retorno ao toque — o gesto do sistema, acionado pelo dedo
+
+   Ate aqui os botoes so respondiam a :hover, que NAO EXISTE em celular. E a
+   ONG opera do celular (regra 4 do CLAUDE.md): tocar um botao nao dava
+   retorno nenhum, e num envio lento a pessoa nao sabia se o toque pegou.
+
+   Nao e efeito novo: e o aplique. A peca desliza na direcao da propria
+   sombra, como um recorte de tecido apertado contra o pano. Direcao unica,
+   para baixo e para a direita, igual ao deslocamento da sombra.
+
+   DUAS INTENSIDADES, porque nem todo botao tem sombra:
+     - com aplique (.painel__acao-principal): 4px, e a sombra encolhe de
+       --aplique para --aplique-curto. O vao se fecha pela metade;
+     - sem aplique (.botao, .publicacao__botao, submit de formulario): 2px.
+       So o movimento, porque nao ha vao para fechar. Mover 4px sem sombra
+       seria deslocamento sem metafora.
+
+   :disabled fica de fora — botao que nao age nao deve parecer que agiu.
+
+   MOVIMENTO REDUZIDO: a regra global logo abaixo zera a transicao, entao
+   quem pediu menos movimento recebe a mudanca de estado INSTANTANEA. O
+   retorno continua existindo; o que some e a animacao. Sumir com o retorno
+   puniria justamente quem mais depende dele.
+   --------------------------------------------------------------------- */
+
+button:not(:disabled),
+.botao,
+.publicacao__botao,
+.painel__acao-principal {
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+}
+
+button:not(:disabled):active,
+.botao:active,
+.publicacao__botao:active {
+  transform: translate(2px, 2px);
+}
+
+.painel__acao-principal:active {
+  transform: translate(4px, 4px);
+  box-shadow: var(--aplique-curto) var(--amarelo);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 0.01ms !important;
