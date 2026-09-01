@@ -456,6 +456,22 @@ a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
   background: var(--areia, var(--cal));
 }
 
+/* O que ocupa o lugar da miniatura quando a foto ficou sem endereço
+   (URL assinada que não veio — ver componentes/ListaMidia.ts). Mesma caixa,
+   mesma borda: a lista não perde o ritmo, e o motivo está ESCRITO, nunca
+   codificado numa cor (regra 8). */
+.midia__sem-endereco {
+  display: flex;
+  align-items: center;
+  min-height: 8rem;
+  margin: 0 0 var(--espaco-3);
+  padding: var(--espaco-3);
+  border: 2px dashed var(--borda);
+  background: var(--areia, var(--cal));
+  font-size: var(--texto-base);
+  line-height: 1.5;
+}
+
 .midia__album {
   margin: 0 0 var(--espaco-2);
   font-family: var(--display);
@@ -545,6 +561,16 @@ a.painel__tela-alvo .painel__tela-titulo { text-decoration: underline; }
   object-fit: contain;
   margin: 0 0 var(--espaco-3);
   border: 2px solid var(--borda);
+}
+
+/* Substitui a prévia quando a URL assinada não veio. Ver o page.tsx. */
+.apagar__sem-foto {
+  margin: 0 0 var(--espaco-3);
+  padding: var(--espaco-3);
+  border: 2px dashed var(--borda);
+  background: var(--areia, var(--cal));
+  font-size: var(--texto-base);
+  line-height: 1.5;
 }
 
 .apagar__ficha p {

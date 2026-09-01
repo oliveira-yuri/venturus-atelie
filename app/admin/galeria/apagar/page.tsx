@@ -87,8 +87,22 @@ export default async function PaginaDeApagar(
       <figure className="apagar__previa">
         {/* `alt=""` com a descrição escrita logo abaixo: repeti-la no `alt`
             faria o leitor de tela ler a mesma frase duas vezes seguidas. O
-            que a pessoa precisa aqui é CONFERIR que é esta foto mesmo. */}
-        <img className="apagar__foto" src={midia.url} alt="" aria-hidden="true" />
+            que a pessoa precisa aqui é CONFERIR que é esta foto mesmo.
+
+            `midia.url` pode ser NULA desde que o bucket ficou privado
+            (008_galeria_privada.sql): o endereço é uma URL assinada, e
+            pedi-la pode falhar — inclusive porque o arquivo não está mais
+            no bucket. A tela DIZ isso em vez de mostrar imagem quebrada, e
+            o botão de apagar continua ali de propósito: linha órfã é
+            exatamente o que precisa ser apagado. */}
+        {midia.url
+          ? <img className="apagar__foto" src={midia.url} alt="" aria-hidden="true" />
+          : (
+            <p className="apagar__sem-foto">
+              Não deu para carregar a imagem desta foto — o arquivo pode não estar mais guardado.
+              Confira pelos dados abaixo se é esta que você quer apagar.
+            </p>
+          )}
         <figcaption className="apagar__ficha">
           <p><strong>Álbum:</strong> {midia.album}</p>
           <p><strong>Descrição:</strong> {midia.alt}</p>

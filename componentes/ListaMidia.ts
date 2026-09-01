@@ -49,9 +49,13 @@ import type { MidiaComEndereco } from '@/servidor/dados/galeria';
  *
  * A decisão e o porquê estão em acoes/galeria.ts (`apagarMidia`), em
  * resumo: um texto guardado e fora do ar não faz mal a ninguém; uma foto
- * guardada e fora do ar continua legível por quem tiver a URL, porque o
- * bucket é público. Se a autorização for retirada, só apagar resolve — e é
- * o que a RN07 exige.
+ * guardada e fora do ar continua existindo como arquivo. Desde
+ * supabase/migrations/008_galeria_privada.sql o bucket é privado e o
+ * endereço vence em uma hora, então "Tirar do ar" passou a resolver — com
+ * atraso de até uma hora. Para o caso urgente da RN07 (autorização
+ * retirada, foto de criança subida por engano) uma hora é tempo demais, e
+ * só apagar age no mesmo instante: sem arquivo, toda URL assinada viva
+ * morre junto.
  *
  * O "Apagar" daqui é um LINK, não um botão de formulário: ele leva à tela
  * de confirmação (/admin/galeria/apagar?id=...), que mostra a foto e
@@ -75,6 +79,24 @@ const SEM_AUTORIZACAO = 'Sem autorização de imagem';
  */
 const EXPLICACAO_SEM_AUTORIZACAO = 'Esta foto não pode ir ao ar: a autorização de uso de imagem '
   + 'não foi declarada quando ela subiu. Suba de novo marcando a caixa, ou apague esta.';
+
+/**
+ * O que aparece NO LUGAR da miniatura quando a foto ficou sem endereço.
+ *
+ * Desde supabase/migrations/008_galeria_privada.sql o endereço de cada foto
+ * é uma URL assinada, pedida ao Storage — e pedir pode falhar: o arquivo
+ * não está mais no bucket (a linha ficou órfã), a política recusou, a rede
+ * caiu no meio. `servidor/dados/galeria.ts` devolve `url` nula nesse caso.
+ *
+ * A galeria PÚBLICA omite a foto; esta lista NÃO, e a diferença é o ponto:
+ * é aqui que está a pessoa que pode consertar, e o gesto que resolve
+ * (apagar a linha órfã) precisa continuar ao alcance. Um `<img src="">`
+ * desenharia o ícone de imagem quebrada do navegador, que não diz nada e
+ * não é lido por leitor de tela.
+ */
+const SEM_ENDERECO = 'Não deu para carregar esta foto agora — o arquivo pode não estar mais '
+  + 'guardado. Os dados abaixo são o que o site sabe sobre ela; se o arquivo sumiu, "Apagar" '
+  + 'limpa a lista.';
 
 type AcaoDeFormulario = string | ((dados: FormData) => void | Promise<void>);
 
@@ -158,14 +180,18 @@ export function ListaMidia(
           // escrito logo abaixo, como conteúdo da tela (é o que a equipe
           // precisa CONFERIR). Repeti-lo no `alt` faria o leitor de tela
           // ler a mesma frase duas vezes seguidas.
-          createElement('img', {
-            className: 'midia__miniatura',
-            src: midia.url,
-            alt: '',
-            'aria-hidden': 'true',
-            loading: 'lazy',
-            decoding: 'async'
-          }),
+          //
+          // `midia.url` pode ser NULA — ver SEM_ENDERECO acima.
+          midia.url
+            ? createElement('img', {
+              className: 'midia__miniatura',
+              src: midia.url,
+              alt: '',
+              'aria-hidden': 'true',
+              loading: 'lazy',
+              decoding: 'async'
+            })
+            : createElement('p', { className: 'midia__sem-endereco' }, SEM_ENDERECO),
 
           createElement('h2', { className: 'midia__album' }, midia.album),
 

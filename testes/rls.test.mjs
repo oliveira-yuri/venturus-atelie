@@ -800,3 +800,135 @@ describe('limite de envio por visitante (migration 007)', () => {
       `a origem do visitante sobreviveu à transação e ficou grudada na conexão: ${rows[0].origem}`);
   });
 });
+
+// =====================================================================
+// O BUCKET DA GALERIA É PRIVADO — supabase/migrations/008_galeria_privada.sql
+//
+// A brecha que esta migration fecha estava no item 0j do CLAUDE.md: o
+// bucket `galeria` nascia público (006_storage.sql), e por isso uma foto
+// GUARDADA, uma foto SEM AUTORIZAÇÃO e uma foto TIRADA DO AR continuavam
+// baixáveis por quem tivesse o endereço. A coluna `publicado` governava o
+// que a página desenhava; nunca governou o arquivo.
+//
+// ESTE BLOCO É A VERIFICAÇÃO MAIS FORTE QUE ESTA TAREFA CONSEGUE FAZER. A
+// migration não pode ser aplicada no projeto real (não existe service_role
+// — spec §4.1), então ninguém a viu valendo em produção; aqui ela roda
+// contra um Postgres de verdade, com as políticas reais, e o que se mede é
+// exatamente o que o Storage mede na hora de assinar uma URL: um `select`
+// em `storage.objects`.
+//
+// Se o `select` volta vazio, `createSignedUrl` recusa — e sem URL assinada
+// não há como baixar arquivo de um bucket privado.
+// =====================================================================
+describe('RN07 no ARQUIVO: quem lê storage.objects no bucket galeria', () => {
+  const PUBLICADA = 'evento/aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa.jpg';
+  const GUARDADA = 'evento/bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb.jpg';
+  const SEM_AUTORIZACAO = 'evento/cccccccc-3333-4333-8333-cccccccccccc.jpg';
+  const ORFA = 'evento/dddddddd-4444-4444-8444-dddddddddddd.jpg';
+  const NO_ACERVO = 'cartilhas/apostila.pdf';
+
+  before(async () => {
+    // Três linhas em public.midia, uma para cada estado que a tela conhece,
+    // mais um arquivo SEM linha nenhuma (o órfão que `enviarMidia` pode
+    // deixar quando o insert falha depois de o upload ter dado certo).
+    await cliente.query(`
+      insert into public.midia (album, tipo, caminho, alt, autorizacao_registrada, publicado)
+      values
+        ('Evento', 'imagem', '${PUBLICADA}',       'Foto publicada',  true,  true),
+        ('Evento', 'imagem', '${GUARDADA}',        'Foto guardada',   true,  false),
+        ('Evento', 'imagem', '${SEM_AUTORIZACAO}', 'Sem autorizacao', false, false);
+
+      insert into storage.objects (bucket_id, name) values
+        ('galeria', '${PUBLICADA}'),
+        ('galeria', '${GUARDADA}'),
+        ('galeria', '${SEM_AUTORIZACAO}'),
+        ('galeria', '${ORFA}'),
+        ('acervo',  '${NO_ACERVO}');
+    `);
+  });
+
+  const nomes = (linhas) => linhas.map((l) => l.name).sort();
+
+  test('o bucket galeria deixou de ser público, e SÓ ele', async () => {
+    const { rows } = await cliente.query('select id, public from storage.buckets order by id');
+    const porId = Object.fromEntries(rows.map((r) => [r.id, r.public]));
+
+    assert.equal(porId.galeria, false,
+      'o bucket galeria continua público: o endereço /object/public/galeria/... serve arquivo '
+      + 'sem chave nenhuma, e a RN07 não vale para o arquivo');
+    // A instrução da tarefa foi explícita: acervo e identidade são material
+    // feito para download livre (RF35/RF36) e ficam como estavam.
+    assert.equal(porId.acervo, true, 'o bucket acervo mudou — download livre é requisito (RF36)');
+    assert.equal(porId.identidade, true, 'o bucket identidade mudou');
+  });
+
+  test('anônimo só alcança o arquivo de uma foto publicada E autorizada', async () => {
+    const { linhas, erro } = await comoAnonimo(
+      `select name from storage.objects where bucket_id = 'galeria'`);
+
+    assert.equal(erro, null, `anon não conseguiu nem consultar: ${erro?.message}`);
+    assert.deepEqual(nomes(linhas), [PUBLICADA],
+      'VAZAMENTO: anônimo alcança arquivo que a RN07 não deixa. Guardada, sem autorização e '
+      + 'órfã não podem ter endereço assinável');
+  });
+
+  test('a equipe alcança tudo — inclusive o órfão, que é o que ela precisa apagar', async () => {
+    const { linhas, erro } = await como('authenticated', EQUIPE,
+      `select name from storage.objects where bucket_id = 'galeria'`);
+
+    assert.equal(erro, null, `a equipe não conseguiu consultar: ${erro?.message}`);
+    assert.deepEqual(nomes(linhas), [PUBLICADA, GUARDADA, SEM_AUTORIZACAO, ORFA].sort(),
+      'a equipe deixou de ver algum arquivo: o painel mostra a miniatura de cada foto, e é '
+      + 'olhando que a pessoa decide se apaga');
+  });
+
+  test('tirar do ar FECHA o arquivo, e não só a listagem', async () => {
+    // O gesto exato do painel: `porNoAr` grava `publicado = false`. Antes de
+    // 008 isso não mexia no arquivo — era o item 0j inteiro.
+    await cliente.query('begin');
+    try {
+      await cliente.query(
+        `update public.midia set publicado = false where caminho = '${PUBLICADA}'`);
+
+      await cliente.query(`select set_config('request.jwt.claims', '', true)`);
+      await cliente.query('set local role anon');
+      const { rows } = await cliente.query(
+        `select name from storage.objects where bucket_id = 'galeria'`);
+      await cliente.query('reset role');
+
+      assert.deepEqual(nomes(rows), [],
+        'depois de "Tirar do ar" o arquivo continua alcançável: a brecha do item 0j não foi '
+        + 'fechada');
+    } finally {
+      await cliente.query('rollback');
+    }
+  });
+
+  test('acervo e identidade continuam de leitura aberta', async () => {
+    const { linhas, erro } = await comoAnonimo(
+      `select name from storage.objects where bucket_id in ('acervo', 'identidade')`);
+
+    assert.equal(erro, null, `anon perdeu a leitura do acervo: ${erro?.message}`);
+    assert.deepEqual(nomes(linhas), [NO_ACERVO],
+      'a política recriada por 008 fechou material que é para download livre (RF35/RF36) — '
+      + 'a instrução era não encostar nesses dois buckets');
+  });
+
+  test('a política permissiva antiga não sobrou ao lado da nova', async () => {
+    // Políticas do Postgres se SOMAM com OU. Se "arquivos publicos: leitura"
+    // continuasse citando `galeria`, tudo acima passaria a valer nada — e
+    // os testes de vazamento não acusariam nada, porque eles medem o efeito
+    // e o efeito seria "vê tudo".
+    const { rows } = await cliente.query(`
+      select polname, pg_get_expr(polqual, polrelid) as expressao
+      from pg_policy
+      where polrelid = 'storage.objects'::regclass and polcmd = 'r'
+      order by polname
+    `);
+
+    const permissiva = rows.find((r) => r.polname === 'arquivos publicos: leitura');
+    assert.ok(permissiva, 'a política de leitura de acervo/identidade sumiu');
+    assert.ok(!permissiva.expressao.includes('galeria'),
+      `"arquivos publicos: leitura" ainda cita galeria: ${permissiva.expressao}`);
+  });
+});

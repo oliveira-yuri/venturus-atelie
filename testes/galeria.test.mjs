@@ -31,6 +31,12 @@
  *      não vazam nada do painel no HTML servido.
  *   6. A CSP DEIXANDO A FOTO CARREGAR — e continuando a NÃO deixar o
  *      navegador falar com o Supabase. Ver a seção 6.
+ *   7. O BUCKET PRIVADO (seção 7, 01/09/2026): as decisões puras do
+ *      conserto do item 0j — a leitura da sonda, o prazo da assinatura, os
+ *      avisos —, as varreduras que impedem a volta do endereço público, e
+ *      o que a lista desenha quando a assinatura não vem. **A metade do
+ *      BANCO é medida em `npm run rls`**, contra um Postgres de verdade,
+ *      no bloco "RN07 no ARQUIVO".
  *
  * O QUE FICA SEM MEDIÇÃO, dito em voz alta: nenhum byte foi escrito no
  * bucket `galeria` nem em `public.midia` por este código, em ambiente
@@ -51,6 +57,10 @@ import {
   BYTES_PARA_RECONHECER, TIPOS_ACEITOS
 } from '../compartilhado/validacao.ts';
 import { avisoDaGaleria, avisoDaLista } from '../compartilhado/avisos-do-painel.ts';
+import {
+  lerRespostaDaSonda, VALIDADE_DA_ASSINATURA_SEGUNDOS, MIGRATION_DA_GALERIA,
+  AVISO_BUCKET_ABERTO, AVISO_SONDA_SEM_RESPOSTA
+} from '../compartilhado/galeria-privada.ts';
 import { ListaAlbuns } from '../componentes/ListaAlbuns.ts';
 import { ListaMidia } from '../componentes/ListaMidia.ts';
 
@@ -756,6 +766,217 @@ test('SUPABASE_URL malformada não estraga a política inteira', async () => {
   }
 });
 
+// =====================================================================
+// 7. O BUCKET PRIVADO (item 0j do CLAUDE.md, fechado em 01/09/2026)
+//
+// A brecha: com o bucket público, uma foto GUARDADA ou TIRADA DO AR
+// continuava baixável por quem tivesse o endereço — a coluna `publicado`
+// governava a listagem, nunca o arquivo. O conserto tem duas metades, e as
+// duas precisam de vigia:
+//
+//   · A METADE DO BANCO — supabase/migrations/008_galeria_privada.sql. Ela
+//     é medida contra um Postgres de VERDADE em `npm run rls`, no bloco
+//     "RN07 no ARQUIVO". Aqui só se confere o texto do arquivo, porque a
+//     suíte offline não sobe Postgres.
+//   · A METADE DO SITE — URL assinada em vez de `getPublicUrl`, com prazo,
+//     e o defeito aparecendo quando a assinatura não vem.
+//
+// E uma terceira coisa, que não é conserto e sim ALARME: a migration não
+// pode ser aplicada por este repositório (não há service_role — spec §4.1),
+// e enquanto ninguém a rodar NADA QUEBRA. A sonda existe para essa falha
+// não ser silenciosa.
+// =====================================================================
+
+test('a sonda lê as duas respostas MEDIDAS do Storage, e não deduz o resto', () => {
+  // Os dois corpos abaixo foram copiados de uma medição real contra o
+  // projeto do Ateliê, em 01/09/2026, sem mandar chave nenhuma. Ver o
+  // cabeçalho de compartilhado/galeria-privada.ts.
+  const bucketPublico = '{"statusCode":"404","error":"not_found",'
+    + '"message":"Object not found","code":"NoSuchKey"}';
+  const bucketFechado = '{"statusCode":"404","error":"Bucket not found",'
+    + '"message":"Bucket not found","code":"NoSuchBucket"}';
+
+  assert.equal(lerRespostaDaSonda(400, bucketPublico), 'aberto',
+    'a resposta que o Storage dá quando o bucket AINDA É PÚBLICO deixou de disparar o alarme');
+  assert.equal(lerRespostaDaSonda(400, bucketFechado), 'fechado');
+
+  // Dúvida NUNCA vira silêncio: é o contrário do padrão de falha deste
+  // projeto. Um corpo desconhecido, um HTML de proxy, um 500 — tudo
+  // 'nao-sei', que a tela mostra como aviso, não como "tudo certo".
+  assert.equal(lerRespostaDaSonda(500, '{"code":"AlgoNovo"}'), 'nao-sei');
+  assert.equal(lerRespostaDaSonda(502, '<html>Bad Gateway</html>'), 'nao-sei');
+  assert.equal(lerRespostaDaSonda(400, ''), 'nao-sei');
+
+  // 200 significa que o endereço público SERVIU alguma coisa sem chave.
+  assert.equal(lerRespostaDaSonda(200, 'nao e json'), 'aberto');
+});
+
+test('os dois avisos da tela dizem o que fazer, com o nome do arquivo', () => {
+  // Um aviso que só diz "atenção" faz a pessoa fechar a tela. Este precisa
+  // levar ao gesto: rodar a migration.
+  assert.match(AVISO_BUCKET_ABERTO, new RegExp(MIGRATION_DA_GALERIA),
+    'o aviso não diz QUAL arquivo precisa ser rodado');
+  assert.match(AVISO_BUCKET_ABERTO, /Apagar/,
+    'o aviso não diz que, enquanto isso, só "Apagar" tira a foto de circulação');
+  assert.match(AVISO_SONDA_SEM_RESPOSTA, /Apagar/);
+  assert.notEqual(AVISO_BUCKET_ABERTO, AVISO_SONDA_SEM_RESPOSTA,
+    '"está aberto" e "não deu para conferir" não podem chegar à tela como a mesma frase');
+});
+
+test('o prazo da assinatura é uma hora, e é ELE que a camada de dados usa', async () => {
+  // O número sozinho não prova nada: o risco real é alguém escrever outro
+  // valor direto na chamada e deixar a constante (com o parágrafo que a
+  // justifica) como enfeite.
+  assert.equal(VALIDADE_DA_ASSINATURA_SEGUNDOS, 3600);
+
+  const fonte = await readFile(
+    fileURLToPath(new URL('../servidor/dados/galeria.ts', import.meta.url)), 'utf8');
+
+  assert.match(fonte, /createSignedUrls\(caminhos, VALIDADE_DA_ASSINATURA_SEGUNDOS\)/,
+    'a assinatura deixou de usar a constante de compartilhado/galeria-privada.ts — o prazo '
+    + 'passou a ser um número solto, e o raciocínio que o escolheu virou enfeite');
+});
+
+/**
+ * O código de um arquivo, sem comentário nenhum.
+ *
+ * Existe porque as varreduras abaixo procuram CHAMADAS, e os comentários
+ * deste projeto citam as chamadas o tempo todo para explicar por que elas
+ * saíram. Sem isto, escrever "não usamos mais getPublicUrl" reprovaria o
+ * teste que exige não usar getPublicUrl.
+ */
+function semComentarios(fonte) {
+  return fonte.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
+
+test('a camada de dados NÃO volta a usar getPublicUrl na galeria', async () => {
+  // Esta é a regressão que reabre o item 0j inteiro, e ela pareceria uma
+  // simplificação: `getPublicUrl` é síncrona, não custa rede e "funciona".
+  // Funciona porque serve o arquivo para qualquer pessoa, para sempre.
+  const fonte = semComentarios(await readFile(
+    fileURLToPath(new URL('../servidor/dados/galeria.ts', import.meta.url)), 'utf8'));
+
+  assert.doesNotMatch(fonte, /getPublicUrl/,
+    'servidor/dados/galeria.ts voltou a montar endereço público. Isso reabre a brecha do item '
+    + '0j: foto guardada e foto tirada do ar voltam a ser baixáveis por quem tiver a URL');
+  assert.match(fonte, /createSignedUrls/,
+    'a galeria deixou de assinar URL');
+
+  // servidor/dados/acervo.ts CONTINUA com getPublicUrl, e é o certo: o
+  // acervo é material feito para download livre, sem cadastro (RF35/RF36).
+  const acervo = semComentarios(await readFile(
+    fileURLToPath(new URL('../servidor/dados/acervo.ts', import.meta.url)), 'utf8'));
+  assert.match(acervo, /getPublicUrl/,
+    'o acervo perdeu o endereço público: download livre é requisito (RF36), não descuido');
+});
+
+test('a migration 008 fecha a galeria e não encosta em acervo nem identidade', async () => {
+  // O efeito das políticas é medido contra Postgres de verdade em
+  // `npm run rls`. O que se lê aqui é o que aquele teste NÃO alcança: que a
+  // migration existe neste repositório e continua com as três decisões que
+  // a tarefa pediu.
+  const sql = await readFile(
+    fileURLToPath(new URL(`../supabase/migrations/${MIGRATION_DA_GALERIA}`, import.meta.url)),
+    'utf8');
+
+  assert.match(sql, /update storage\.buckets set public = false where id = 'galeria'/,
+    'a migration deixou de tornar o bucket privado');
+
+  // A permissiva antiga PRECISA cair: políticas do Postgres somam com OU, e
+  // enquanto ela citasse `galeria` a política nova valeria nada.
+  assert.match(sql, /drop policy if exists "arquivos publicos: leitura"/);
+  assert.match(sql, /using \(bucket_id in \('acervo', 'identidade'\)\)/,
+    'a leitura livre de acervo/identidade não foi recriada — os dois são material para '
+    + 'download livre (RF35/RF36) e a instrução era não encostar neles');
+
+  assert.doesNotMatch(sql, /'acervo'\s*,\s*'identidade'\s*\)\s*\)\s*;[\s\S]*update storage\.buckets/,
+    'a ordem mudou: o bucket precisa virar privado antes de qualquer coisa depender disso');
+
+  assert.match(sql, /public\.midia\.publicado/,
+    'a política do bucket deixou de exigir `publicado`');
+  assert.match(sql, /public\.midia\.autorizacao_registrada/,
+    'a política do bucket deixou de exigir a autorização de imagem — é a RN07, regra 9');
+});
+
+test('sem endereço, o painel escreve o motivo em vez de mostrar imagem quebrada', () => {
+  // `url` nula é o estado novo: a assinatura pode falhar (arquivo fora do
+  // bucket, RLS recusando, rede caindo). A galeria PÚBLICA omite a foto; o
+  // painel mantém, porque é aqui que está quem pode apagar a linha órfã.
+  const html = renderToStaticMarkup(createElement(ListaMidia, {
+    midias: [exemplo({ url: null })],
+    acaoPorNoAr: '/acao',
+    caminhoApagar: '/admin/galeria/apagar',
+    degradou: false
+  }));
+
+  assert.doesNotMatch(html, /<img/,
+    'a lista desenhou um <img> sem endereço: o navegador mostra o ícone de imagem quebrada, '
+    + 'que não diz nada e não é lido por leitor de tela');
+  assert.match(html, /Não deu para carregar esta foto agora/,
+    'a falha ficou muda na tela');
+  assert.match(html, /midia__sem-endereco/);
+  // O gesto que resolve precisa continuar ao alcance.
+  assert.match(html, /Apagar/, 'a foto sem endereço perdeu o botão de apagar');
+
+  // E com endereço, nada mudou.
+  const comFoto = renderToStaticMarkup(createElement(ListaMidia, {
+    midias: [exemplo()],
+    acaoPorNoAr: '/acao',
+    caminhoApagar: '/admin/galeria/apagar',
+    degradou: false
+  }));
+  assert.match(comFoto, /<img class="midia__miniatura"/);
+});
+
+test('a URL ASSINADA passa pelo mesmo img-src que a pública passava', async () => {
+  // MEDIÇÃO, não dedução. Três fatos, e o terceiro é o que se afirma:
+  //
+  //  1. `getPublicUrl` produz, contra o projeto real,
+  //     https://<projeto>.supabase.co/storage/v1/object/public/galeria/<caminho>
+  //     (medido em 01/09/2026);
+  //  2. `createSignedUrls` monta `signedUrl` como `${url}${signedURL}`, onde
+  //     `url` é `${SUPABASE_URL}/storage/v1` — está no código do
+  //     @supabase/storage-js instalado, e a resposta do endpoint traz só o
+  //     caminho relativo `/object/sign/<bucket>/<caminho>?token=...`
+  //     (medido: o lote respondeu 200 com essa forma);
+  //  3. logo, as duas URLs têm A MESMA ORIGEM, e uma diretiva de CSP com
+  //     host-source casa qualquer caminho e qualquer query naquela origem.
+  //
+  // Este teste trava o (3) contra a política que o servidor de verdade
+  // manda, para o dia em que alguém mexer em `hostDoSupabase()`.
+  const { subirServidor } = await import('./apoio/servidor-de-teste.mjs');
+
+  const PROJETO = 'https://projeto-de-teste.supabase.co';
+
+  const servidor = await subirServidor({
+    ambiente: { SUPABASE_URL: PROJETO, SUPABASE_CHAVE_PUBLICAVEL: 'chave-que-nao-vai-a-lugar-nenhum' }
+  });
+
+  try {
+    const politica = (await fetch(`${servidor.base}/galeria`))
+      .headers.get('content-security-policy');
+    const imgSrc = politica.split('; ').find((d) => d.startsWith('img-src'));
+
+    const assinada = `${PROJETO}/storage/v1/object/sign/galeria/album/x.jpg?token=abc.def.ghi`;
+    const publica = `${PROJETO}/storage/v1/object/public/galeria/album/x.jpg`;
+
+    assert.equal(new URL(assinada).origin, new URL(publica).origin,
+      'a URL assinada mudou de origem: o img-src precisaria de host novo');
+
+    assert.ok(imgSrc.split(' ').includes(new URL(assinada).origin),
+      `o img-src não lista a origem da URL assinada — as fotos seriam bloqueadas em silêncio. `
+      + `img-src: ${imgSrc}`);
+
+    // A outra metade, de novo: assinar acontece no SERVIDOR. O navegador
+    // continua sem poder falar com o Supabase.
+    const connectSrc = politica.split('; ').find((d) => d.startsWith('connect-src'));
+    assert.doesNotMatch(connectSrc, /supabase/,
+      'o host do Supabase entrou no connect-src');
+  } finally {
+    servidor.encerrar();
+  }
+});
+
 /*
  * O QUE FICOU SEM TESTE AQUI, e por que não se inventou um:
  *
@@ -772,5 +993,15 @@ test('SUPABASE_URL malformada não estraga a política inteira', async () => {
  *    real, subindo uma foto de ~3,5 MB;
  *  · o comportamento de `<input type="file">` num navegador sem JavaScript
  *    está em testes/sem-javascript.test.mjs (a rota) e foi medido à mão nesta
- *    tarefa; o que não dá para medir sem sessão é o envio completando.
+ *    tarefa; o que não dá para medir sem sessão é o envio completando;
+ *  · UMA URL ASSINADA DE VERDADE. Assinar exige um arquivo no bucket, e
+ *    não há nenhum — nem dá para pôr um, porque subir exige sessão de
+ *    equipe. O que está medido é a FORMA (o código do storage-js que monta
+ *    o endereço, e a resposta real do endpoint de assinar em lote, que
+ *    voltou 200 com `signedURL: null` porque o arquivo não existe);
+ *  · O LADO FECHADO DA SONDA. `lerRespostaDaSonda` é exercitada com os dois
+ *    corpos, mas só o "aberto" veio de uma medição contra o projeto real —
+ *    o outro exigiria a migration aplicada, e ninguém pode aplicá-la daqui
+ *    (não há service_role, spec §4.1). Quando alguém rodar a migration, a
+ *    confirmação é abrir /admin/galeria e ver o aviso sumir.
  */

@@ -1,12 +1,14 @@
 /**
  * Guardiao do deploy.
  *
- * SETE secoes, nesta ordem: (1) o aceite bloqueante da secao 12 do escopo
+ * OITO secoes, nesta ordem: (1) o aceite bloqueante da secao 12 do escopo
  * roda de verdade; (2) o teste de vazamento E o de procedencia do dado
  * rodam contra um build feito COM as credenciais; (3) os diretorios que
  * vao ao ar sao varridos atras de
  * chave secreta; (4) nenhum .html solto em public/; (5) os VALORES das
- * variaveis de ambiente; (6) RLS em toda tabela; (7) grant em toda tabela.
+ * variaveis de ambiente; (6) RLS em toda tabela; (7) grant em toda tabela;
+ * (8) o bucket `galeria` ja e privado? — a unica que ALERTA sem bloquear,
+ * pelo motivo escrito la embaixo.
  * As secoes 2 a 5 nasceram na revisao final da fase 1 — as tres ultimas
  * estavam previstas na spec §7.3 e nunca tinham sido feitas, e a varredura
  * ainda olhava `site/`, que deixou de ser o que a Netlify publica. A
@@ -485,8 +487,86 @@ if (semGrant.length > 0) {
 }
 
 // ---------------------------------------------------------------------
+// 8. O bucket `galeria` ja e privado? (item 0j do CLAUDE.md)
+//
+// A migration supabase/migrations/008_galeria_privada.sql fecha a brecha da
+// RN07 no ARQUIVO: com o bucket publico, uma foto guardada, uma sem
+// autorizacao e uma tirada do ar continuam baixaveis por quem tiver o
+// endereco. **Este repositorio nao consegue aplicar a migration** — nao
+// existe service_role (spec §4.1) — e, enquanto ela nao for rodada, nada
+// quebra: URL assinada funciona em bucket publico tambem, a suite fica
+// verde, o site sobe. Seria mais um item 0e.
+//
+// A pergunta e feita do jeito mais direto que existe: bate no endereco
+// publico do bucket SEM CHAVE NENHUMA, como faria um estranho de posse de
+// uma URL. A leitura da resposta (e a medicao que a fundamenta) esta em
+// compartilhado/galeria-privada.ts.
+//
+// ISTO NAO BLOQUEIA O DEPLOY, e a escolha e deliberada: hoje a tabela
+// `public.midia` esta vazia e nenhum byte subiu ao bucket em ambiente
+// nenhum, entao nao ha foto exposta — bloquear a primeira publicacao desta
+// branch (item 0) por uma brecha sem conteudo dentro seria trocar um risco
+// por outro. Transformar isto em `relatar(...)` e uma linha, e passa a ser
+// a escolha certa no dia em que a primeira foto real subir. Enquanto isso,
+// o alerta sai aqui, no log do servidor e na tela de /admin/galeria.
+// ---------------------------------------------------------------------
+const alertas = [];
+
+if (ambiente.SUPABASE_URL) {
+  const { lerRespostaDaSonda, MIGRATION_DA_GALERIA } =
+    await import('../compartilhado/galeria-privada.ts');
+
+  let origem = null;
+  try {
+    origem = new URL(ambiente.SUPABASE_URL).origin;
+  } catch {
+    // A secao 5 ja reclamou de SUPABASE_URL malformada.
+  }
+
+  if (origem) {
+    let estado = 'nao-sei';
+    let motivo = '';
+
+    try {
+      const resposta = await fetch(
+        `${origem}/storage/v1/object/public/galeria/sonda-da-migration-008`,
+        { cache: 'no-store', signal: AbortSignal.timeout(8_000) }
+      );
+      estado = lerRespostaDaSonda(resposta.status, await resposta.text());
+    } catch (erro) {
+      motivo = erro instanceof Error ? erro.message : String(erro);
+    }
+
+    if (estado === 'aberto') {
+      alertas.push(
+        'O bucket "galeria" AINDA E PUBLICO\n'
+        + `  ${origem}/storage/v1/object/public/galeria/... serve arquivo SEM CHAVE NENHUMA.\n`
+        + '  Toda foto que subir pelo painel fica baixavel por quem tiver o caminho dela,\n'
+        + '  publicada ou nao — "Tirar do ar" nao fecha isso, so "Apagar". Isto viola a RN07\n'
+        + '  (regra 9 do CLAUDE.md), num site cujo publico inclui criancas a partir de 10 anos.\n'
+        + `  CONSERTO: colar supabase/migrations/${MIGRATION_DA_GALERIA} no SQL Editor do\n`
+        + '  painel do Supabase. Ninguem consegue rodar pelo codigo: nao ha service_role aqui.\n'
+        + '  Ver "O que trava hoje", item 0j.'
+      );
+    } else if (estado === 'nao-sei') {
+      alertas.push(
+        'Nao deu para conferir se o bucket "galeria" ja e privado\n'
+        + `  Motivo: ${motivo || 'resposta em formato desconhecido'}\n`
+        + '  Duvida aqui NUNCA vira silencio: confira a mao antes de anunciar o endereco.\n'
+        + '  Ver "O que trava hoje", item 0j.'
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
 // Resultado
 // ---------------------------------------------------------------------
+if (alertas.length > 0) {
+  console.error(`\n  ATENÇÃO — ${alertas.length} alerta(s) que NÃO bloqueiam o deploy:\n`);
+  for (const alerta of alertas) console.error(`  ! ${alerta}\n`);
+}
+
 if (problemas.length === 0) {
   console.log('\n  Verificação de deploy: tudo certo.\n');
   process.exit(0);
