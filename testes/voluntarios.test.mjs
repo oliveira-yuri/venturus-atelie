@@ -649,9 +649,20 @@ test('a Action não escreve em public.perfis — a tabela onde mora eh_equipe', 
 test('a leitura do painel DECLARA a falha em vez de servir lista vazia calada', async () => {
   const codigo = await fonte('../servidor/dados/voluntarios.ts');
 
-  assert.match(codigo, /consultarComEstado/,
+  // O CORPO da função, e não o arquivo inteiro. MEDIDO na rodada de prova
+  // desta tarefa: com `assert.match(codigo, /consultarComEstado/)` a
+  // verificação passava mesmo trocando a CHAMADA por outra coisa — o
+  // `import` no topo continuava citando o nome, e o teste lia a citação. Um
+  // teste que se satisfaz com o import não mede a consulta.
+  const inicio = codigo.indexOf('export async function listarCandidaturas');
+  assert.notEqual(inicio, -1, 'não achei listarCandidaturas');
+  const corpo = codigo.slice(inicio);
+
+  assert.match(corpo, /await\s+consultarComEstado</,
     'listarCandidaturas precisa devolver Degradavel, para a tela distinguir "ninguém se '
     + 'candidatou" de "o banco não respondeu" — a indistinção mais cara desta tela');
+  assert.match(codigo, /Promise<Degradavel<CandidaturaDaEquipe\[\]>>/,
+    'a assinatura deixou de devolver Degradavel: a bandeira de falha some do caminho todo');
   assert.doesNotMatch(codigo, /dados-iniciais/,
     'apareceu uma cópia versionada de candidatura: seria dado pessoal de terceiro dentro do '
     + 'repositório');
