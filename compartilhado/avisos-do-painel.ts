@@ -353,3 +353,50 @@ export function avisoDeEventos(valor: unknown): AvisoDoPainel | null {
   // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
   return Object.hasOwn(AVISOS_DE_EVENTOS, valor) ? AVISOS_DE_EVENTOS[valor] : null;
 }
+
+/**
+ * Os avisos do ACERVO (RF36/RF37) — lista separada das outras quatro, pelo
+ * mesmo motivo escrito acima: as frases são de assuntos diferentes e
+ * envelhecem separadamente.
+ *
+ * O QUE ESTAS FRASES TÊM DE PRÓPRIO, e é a razão de não reaproveitar as da
+ * galeria: **o bucket `acervo` é público** (006_storage.sql), ao contrário
+ * do da galeria desde 008. Então "tirar do ar" aqui significa uma coisa
+ * mais estreita do que lá — o material some da página, e o ARQUIVO continua
+ * baixável por quem já tiver o endereço. Dizer isso é o que impede a equipe
+ * de usar "Tirar do ar" achando que resolveu o caso do arquivo errado, que
+ * é o caso em que só "Apagar" resolve.
+ */
+const AVISOS_DO_ACERVO: Record<string, AvisoDoPainel> = {
+  enviado: {
+    texto: 'Material guardado. Ele ainda NÃO está no site: para publicar, use o botão '
+      + '"Publicar" no item abaixo.',
+    ok: true
+  },
+  publicado: {
+    texto: 'Publicado. O material já aparece no acervo do site, com o botão de baixar.',
+    ok: true
+  },
+  retirado: {
+    texto: 'Tirado do ar. O material sumiu da página do acervo e continua guardado aqui. '
+      + 'Atenção: o arquivo em si continua acessível para quem já tiver o endereço dele — se '
+      + 'foi o arquivo ERRADO que subiu, use "Apagar", que é o único gesto que o remove.',
+    ok: true
+  },
+  apagado: {
+    texto: 'Apagado. O material saiu do site e o arquivo foi removido — não dá para recuperar.',
+    ok: true
+  },
+  erro: {
+    texto: 'Não deu para fazer isso agora. Tente de novo em alguns instantes — se continuar, '
+      + 'nenhum material foi perdido.',
+    ok: false
+  }
+};
+
+export function avisoDoAcervo(valor: unknown): AvisoDoPainel | null {
+  if (typeof valor !== 'string') return null;
+
+  // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
+  return Object.hasOwn(AVISOS_DO_ACERVO, valor) ? AVISOS_DO_ACERVO[valor] : null;
+}

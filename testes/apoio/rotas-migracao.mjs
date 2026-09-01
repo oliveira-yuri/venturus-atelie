@@ -152,7 +152,16 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // correção) — e, ao contrário de atividades, o caso SEM `?id=` existe e é
   // o principal: eventos são marcados o tempo todo.
   '/admin/eventos',
-  '/admin/eventos/editar'
+  '/admin/eventos/editar',
+
+  // RF37: a tela onde a equipe sobe material do acervo (o formulário vive na
+  // própria lista, como na galeria — ver o cabeçalho daquele page.tsx) e a
+  // tela de confirmação de apagar. Apagar existe aqui pelo mesmo motivo da
+  // galeria e por uma causa diferente: o bucket `acervo` é PÚBLICO de
+  // propósito (download livre é o RF36), então "tirar do ar" não tira o
+  // arquivo do ar.
+  '/admin/acervo',
+  '/admin/acervo/apagar'
 ];
 
 /**

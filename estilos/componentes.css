@@ -763,3 +763,19 @@
    sao no maximo cinco nomes curtos, e cinco <li> num cartao de celular
    ocupam mais altura do que informam. */
 .conta__areas { color: var(--tinta); }
+
+/* ---------- Acervo: os dois botões de cada material (RF36) ----------
+
+   São dois links para o mesmo arquivo — "Abrir para ler" e "Baixar
+   material" (componentes/ListaMateriais.ts). Empilham no celular e ficam
+   lado a lado quando cabe: `wrap` em vez de media query, porque o que
+   decide é o espaço, não o tamanho da tela.
+
+   O `gap` é o mesmo alvo de toque de sempre, para dois botões vizinhos
+   não virarem um só sob o polegar (regra 4). */
+.material__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  margin: var(--espaco-3) 0 0;
+}

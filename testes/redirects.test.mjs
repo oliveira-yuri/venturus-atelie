@@ -158,7 +158,17 @@ const PAGINAS_SEM_URL_ANTIGA = [
   // apontou para uma tela de candidaturas porque não havia candidatura: a
   // tabela `public.voluntarios` exige perfil autenticado, e a autenticação
   // do site antigo era JavaScript no navegador.
-  '/admin/voluntarios'
+  '/admin/voluntarios',
+
+  // RF37, o acervo da equipe. O site antigo tinha `acervo.html` — a página
+  // PÚBLICA, que continua com o redirect dela, intacto —, e nada do lado de
+  // quem publica: os materiais eram (e ainda são) subidos à mão pelo painel
+  // do Supabase. "acervo" também não está entre os seis becos que a home do
+  // painel antigo prometia (eventos, presenca, publicacoes, mais, doacoes,
+  // contatos). A tela de confirmação de apagar nasceu aqui, para substituir
+  // um `confirm()` do navegador, que não existe sem JavaScript.
+  '/admin/acervo',
+  '/admin/acervo/apagar'
 ];
 
 /**
