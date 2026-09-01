@@ -82,8 +82,17 @@ export const ROTAS_PENDENTES = [];
 // afirmam coisas sobre o conteúdo dela, e aqui há conteúdo próprio para
 // afirmar mesmo sem sessão. O que muda com sessão (o formulário, ou a
 // candidatura que já existe) é medido em testes/voluntariado.test.mjs.
+// RF19 acrescenta `/doar/ofertar`: a tela de oferecer uma doação. Mesmo
+// caso de `/voluntariado/candidatura`, e pelos mesmos motivos — é PÚBLICA
+// de verdade (quem não tem sessão lê por que ofertar exige conta e recebe o
+// caminho para criar uma, em vez de ser redirecionado como acontece em
+// /minha-conta), tem <main> e conteúdo próprio para os testes desta lista
+// afirmarem, e só não é item de menu porque se chega nela por um botão de
+// /doar e de /minha-conta. O que muda COM sessão (o formulário) é medido em
+// testes/doacoes.test.mjs.
 export const PAGINAS_PRONTAS_FORA_DO_MENU = [
-  '/privacidade', '/recuperar-acesso', '/nova-senha', '/voluntariado/candidatura'
+  '/privacidade', '/recuperar-acesso', '/nova-senha', '/voluntariado/candidatura',
+  '/doar/ofertar'
 ];
 
 // Toda página PÚBLICA que já existe de verdade no Next, item de menu ou não.
@@ -139,7 +148,17 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // já cabe no cartão (dentro de um <details>, ver componentes/
   // ListaContatos.ts) e uma segunda rota seria mais uma guarda para
   // esquecer.
-  '/admin/contatos'
+  '/admin/contatos',
+  // RF19–RF22: a fila de doações. TRÊS rotas, e cada uma tem motivo —
+  // a lista, a análise de UMA doação (`?id=`, sempre; sem o parâmetro é
+  // 404, como em /admin/atividades/editar) e o registro de uma doação que
+  // chegou por fora do site, que é a outra ponta da decisão "ofertar exige
+  // conta" (ver o cabeçalho de acoes/doacoes.ts). A análise não cabe em
+  // botões dentro do cartão como a triagem de mensagens porque a resposta
+  // é TEXTO, e um <textarea> por cartão numa tela de 375px não se usa.
+  '/admin/doacoes',
+  '/admin/doacoes/responder',
+  '/admin/doacoes/registrar'
 ];
 
 /**

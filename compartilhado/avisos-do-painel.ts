@@ -220,3 +220,43 @@ export function avisoDeContatos(valor: unknown): AvisoDoPainel | null {
   // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
   return Object.hasOwn(AVISOS_DE_CONTATOS, valor) ? AVISOS_DE_CONTATOS[valor] : null;
 }
+
+/**
+ * Os avisos das DOAÇÕES (RF19–RF22) — lista separada das outras quatro,
+ * pelo mesmo motivo escrito acima: as frases são de assuntos diferentes e
+ * envelhecem separadamente.
+ *
+ * O QUE ESTAS FRASES TÊM DE PRÓPRIO, e é o que impede de reaproveitar as
+ * de contatos: aqui o que a equipe faz TEM efeito fora do painel. A
+ * resposta escrita aparece na conta de quem ofereceu (RF22), e as frases
+ * dizem isso — porque é a diferença entre marcar uma coisa para a equipe se
+ * entender e escrever para outra pessoa ler.
+ *
+ * E NENHUMA fala em dinheiro recebido como se o site o tivesse recebido:
+ * RN08, o site registra doação e nunca processa pagamento. "Registrada"
+ * significa que ficou escrito, não que entrou em conta nenhuma.
+ */
+const AVISOS_DE_DOACOES: Record<string, AvisoDoPainel> = {
+  respondida: {
+    texto: 'Resposta guardada. Quem ofereceu já vê a situação nova e o que você escreveu, na '
+      + 'conta dele.',
+    ok: true
+  },
+  registrada: {
+    texto: 'Doação registrada como recebida. Ela entra na lista abaixo — e não fica ligada a '
+      + 'conta nenhuma, porque veio de fora do site.',
+    ok: true
+  },
+  erro: {
+    texto: 'Não deu para fazer isso agora. Tente de novo em alguns instantes — nenhuma doação '
+      + 'foi perdida nem alterada.',
+    ok: false
+  }
+};
+
+export function avisoDeDoacoes(valor: unknown): AvisoDoPainel | null {
+  if (typeof valor !== 'string') return null;
+
+  // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
+  return Object.hasOwn(AVISOS_DE_DOACOES, valor) ? AVISOS_DE_DOACOES[valor] : null;
+}
