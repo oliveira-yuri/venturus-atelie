@@ -128,7 +128,15 @@ const PAGINAS_SEM_URL_ANTIGA = [
   // é literalmente o buraco que esta tarefa fecha. Nenhuma URL `.html`
   // apontou para uma área de conta porque ela nunca existiu; cobrar um
   // redirect de um endereço que jamais circulou seria inventar história.
-  '/minha-conta'
+  '/minha-conta',
+  // RF25, a candidatura ao voluntariado. O site antigo tinha
+  // `voluntariado.html`, e o botão "Quero me candidatar" dela apontava para
+  // `entrar.html` — não havia tela de candidatura, porque não havia como
+  // gravar candidatura nenhuma (a autenticação ali era JavaScript no
+  // navegador e `public.voluntarios` exige perfil autenticado). Ou seja:
+  // nenhuma URL `.html` apontou para cá porque este endereço nunca
+  // circulou. `/voluntariado` continua com o redirect dela, intacto.
+  '/voluntariado/candidatura'
 ];
 
 /**

@@ -68,6 +68,41 @@ const AVISOS: Record<string, AvisoDaConta> = {
     texto: 'Seus dados foram atualizados. Só o nome no topo da tela continua sendo o antigo — '
       + 'ele volta ao normal na próxima vez que você entrar.',
     ok: true
+  },
+  /**
+   * RF25. A confirmação da candidatura chega AQUI, e não na tela onde o
+   * formulário estava, porque é aqui que ela existe: a lista logo abaixo
+   * mostra a candidatura com a situação e as áreas escolhidas. Uma
+   * confirmação que mostra o registro vale mais que uma que promete que ele
+   * existe.
+   *
+   * NÃO PROMETE PRAZO (regra 2 do CLAUDE.md aplicada a uma confirmação): a
+   * ONG é uma equipe pequena e a tela de gestão de voluntários (RF26) ainda
+   * não existe. O que a frase diz é verdade — a candidatura está registrada
+   * — e aponta para o único lugar onde a pessoa acompanha o resto.
+   */
+  candidatura: {
+    texto: 'Candidatura registrada. Ela está aqui embaixo, com as áreas que você escolheu — '
+      + 'e é neste mesmo lugar que a situação dela vai mudando conforme a gente conversa.',
+    ok: true
+  },
+  /**
+   * O DESFECHO PARCIAL, e ele existe pelo mesmo motivo do
+   * 'salvo-cabecalho-velho' acima: a candidatura é gravada em DUAS tabelas
+   * sem transação (`voluntarios` e `voluntario_areas`, ver
+   * acoes/voluntariado.ts). Quando a segunda falha, a candidatura EXISTE e
+   * a ONG a vê; o que falta é para qual área.
+   *
+   * Dizer só "registrada" seria mentir por omissão sobre a única coisa que
+   * a pessoa escolheu; dizer "não deu" seria mentir sobre a gravação e
+   * fazê-la mandar de novo — e mandar de novo bate na recusa de candidatura
+   * duplicada, ou seja, ela leria duas mensagens que se contradizem.
+   */
+  'candidatura-sem-areas': {
+    texto: 'Candidatura registrada, mas as áreas que você escolheu não foram guardadas. Não '
+      + 'precisa mandar de novo: chame no WhatsApp (11) 95396-8344 e diga em qual área você '
+      + 'quer ajudar, que a gente completa por aqui.',
+    ok: true
   }
 };
 

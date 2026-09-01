@@ -5,6 +5,7 @@ import {
   buscarMeuPerfil, listarMinhasCandidaturas, listarMinhasDoacoes
 } from '@/servidor/dados/conta';
 import { avisoDaConta } from '@/compartilhado/avisos-da-conta';
+import { candidaturaEmAndamento } from '@/compartilhado/candidatura';
 import { FichaDaConta, MinhasCandidaturas, MinhasDoacoes } from '@/componentes/MinhaConta';
 import FormularioMeusDados from '@/componentes/FormularioMeusDados';
 
@@ -243,10 +244,33 @@ export default async function MinhaConta(
           degradou={candidaturasDegradaram}
         />
 
-        <p>
-          As áreas em que o Ateliê precisa de gente estão na{' '}
-          <Link href="/voluntariado">página de voluntariado</Link>.
-        </p>
+        {/*
+          O BOTÃO SÓ APARECE PARA QUEM NÃO TEM CANDIDATURA EM ANDAMENTO, e é
+          a mesma regra que a tela de candidatura e a Server Action aplicam
+          (compartilhado/candidatura.ts). Oferecer "Candidatar-se" a quem já
+          se candidatou seria oferecer um gesto que o servidor recusa — e,
+          pior, uma linha repetida que só a equipe do Ateliê consegue
+          apagar (não há política de delete para a própria pessoa em
+          `public.voluntarios`).
+
+          `.botao`, e não um link em linha corrida: isto é uma AÇÃO, e alvo
+          de ação precisa de 44px de altura (RNF08, regra 4 do CLAUDE.md) —
+          a mesma medição que motivou o "Trocar minha senha" acima.
+        */}
+        {candidaturaEmAndamento(candidaturas)
+          ? (
+            <p>
+              As áreas em que o Ateliê precisa de gente estão na{' '}
+              <Link href="/voluntariado">página de voluntariado</Link>.
+            </p>
+          )
+          : (
+            <p className="abertura__acoes">
+              <Link className="botao" href="/voluntariado/candidatura">
+                Candidatar-se ao voluntariado
+              </Link>
+            </p>
+          )}
       </section>
 
       <section aria-labelledby="titulo-doacoes">

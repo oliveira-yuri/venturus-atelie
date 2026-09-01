@@ -90,32 +90,88 @@ export async function buscarMeuPerfil(perfilId: string): Promise<Degradavel<Perf
 }
 
 /**
- * Uma candidatura ao voluntariado (RF25/RF26).
+ * Uma candidatura ao voluntariado (RF25/RF26), COM as áreas escolhidas.
  *
- * SEM as áreas escolhidas (`public.voluntario_areas`), e é decisão: a tabela
- * `voluntarios` está vazia, ninguém se candidatou por lugar nenhum, e uma
- * segunda consulta para juntar áreas a zero candidaturas seria trabalho para
- * desenhar nada. Entra junto com RF25, que é quem cria a linha — e a
- * política de leitura das áreas da própria pessoa já existe no banco
- * (`voluntario_areas: a pessoa le as proprias`), esperando.
+ * AS ÁREAS ENTRARAM COM A RF25, e o comentário que vivia aqui já dizia que
+ * seria assim: até 01/09/2026 a tabela `voluntarios` estava vazia, ninguém
+ * se candidatava por lugar nenhum, e uma segunda consulta para juntar áreas
+ * a zero candidaturas era trabalho para desenhar nada. Agora existe o
+ * formulário (`/voluntariado/candidatura`), e sem as áreas esta tela
+ * mostraria "Recebida, ainda sem resposta" sem dizer PARA QUÊ — que é a
+ * única coisa que a pessoa escolheu.
+ *
+ * Tem uma segunda função, e ela é a razão de não adiar mais: a candidatura
+ * é gravada em DUAS tabelas, sem transação (não existe RPC para isto, e
+ * criar migration não é desta tarefa). Quando a segunda gravação falha, a
+ * candidatura existe SEM áreas — e é aqui, na tela da própria pessoa, que
+ * esse desfecho parcial precisa aparecer, senão ele é invisível para todo
+ * mundo menos para o log. Ver `acoes/voluntariado.ts`.
+ *
+ * O JOIN É DO POSTGREST ("resource embedding"), não um segundo `await`:
+ * `voluntario_areas(areas_voluntariado(id, nome))` sai numa requisição só,
+ * pela chave estrangeira que já está declarada em 004_pessoas.sql. As duas
+ * tabelas embutidas têm política de leitura própria — `voluntario_areas: a
+ * pessoa le as proprias` e `areas: leitura publica` —, então o embed não
+ * fura nada: a RLS vale por tabela, inclusive dentro do join.
+ *
+ * MEDIDO em 01/09/2026 contra o Supabase real, com sessão de verdade: a
+ * consulta com o embed responde sem erro. Isso importa porque relação que
+ * o PostgREST não encontra vira `PGRST200` — um erro que, aqui, viraria
+ * "não deu para consultar suas candidaturas" para todo mundo, para sempre.
  */
 export type Candidatura = {
   id: string;
   mensagem: string | null;
   situacao: string;
   criado_em: string;
+  /** Os NOMES das áreas, já prontos para desenhar. Vazio é desfecho parcial. */
+  areas: string[];
+};
+
+/**
+ * A forma CRUA que o PostgREST devolve, antes de virar `Candidatura`.
+ *
+ * O aninhamento é o do embed, e não o da tela: cada linha de
+ * `voluntario_areas` traz um objeto `areas_voluntariado` dentro. Ele pode
+ * vir `null` — não acontece hoje (a chave estrangeira garante a área), mas
+ * o tipo do PostgREST admite, e um `.nome` em cima de `null` derrubaria a
+ * área do usuário inteira com um TypeError, não com um estado vazio.
+ */
+type CandidaturaCrua = Omit<Candidatura, 'areas'> & {
+  voluntario_areas: Array<{ areas_voluntariado: { id: string; nome: string } | null }> | null;
 };
 
 export async function listarMinhasCandidaturas(
   perfilId: string
 ): Promise<Degradavel<Candidatura[]>> {
-  return consultarComEstado<Candidatura[]>('voluntarios (minha conta)', async () =>
-    (await obterCliente())
-      .from('voluntarios')
-      .select('id, mensagem, situacao, criado_em')
-      .eq('perfil_id', perfilId)
-      .order('criado_em', { ascending: false }),
-  []);
+  const resposta = await consultarComEstado<CandidaturaCrua[]>(
+    'voluntarios (minha conta)',
+    async () =>
+      (await obterCliente())
+        .from('voluntarios')
+        .select('id, mensagem, situacao, criado_em, voluntario_areas(areas_voluntariado(id, nome))')
+        .eq('perfil_id', perfilId)
+        .order('criado_em', { ascending: false }),
+    []
+  );
+
+  // O achatamento acontece AQUI, e não no componente, pelo motivo de sempre
+  // neste projeto: componentes/MinhaConta.ts é montado por
+  // testes/minha-conta.test.mjs com `react-dom/server`, e um componente que
+  // conhecesse a forma do embed do PostgREST obrigaria o teste a escrever
+  // aquela forma à mão para desenhar uma lista.
+  return {
+    degradou: resposta.degradou,
+    valor: resposta.valor.map((linha) => ({
+      id: linha.id,
+      mensagem: linha.mensagem,
+      situacao: linha.situacao,
+      criado_em: linha.criado_em,
+      areas: (linha.voluntario_areas ?? [])
+        .map((ligacao) => ligacao.areas_voluntariado?.nome)
+        .filter((nome): nome is string => Boolean(nome))
+    }))
+  };
 }
 
 /**

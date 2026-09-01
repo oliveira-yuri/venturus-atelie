@@ -86,6 +86,24 @@ interface PropsCampoFormulario {
    */
   valorInicial?: string;
   /**
+   * O `value` do controle — hoje só para CAIXA DE MARCAR DE UM GRUPO.
+   *
+   * Nasceu na RF25 (candidatura ao voluntariado), onde cinco caixas
+   * compartilham o mesmo `name="areas"` e o servidor precisa saber QUAL
+   * delas foi marcada. Sem `value`, o navegador manda "on" para qualquer
+   * caixa marcada — e as cinco áreas ficariam indistinguíveis no FormData.
+   *
+   * NÃO É `valorInicial`, e a diferença importa: `valorInicial` é o que o
+   * controle MOSTRA de volta depois de uma recusa (aqui, se a caixa nasce
+   * marcada); `valor` é o que ele MANDA. Numa caixa de marcar as duas
+   * coisas são independentes, e é por isso que as duas props coexistem.
+   *
+   * Não torna a caixa "controlada" (o que controla um checkbox no React é
+   * `checked`, não `value`), então continua valendo o que a pessoa fizer
+   * depois de a página carregar.
+   */
+  valor?: string;
+  /**
    * Prefixo de id — Rodada de correção 1 da Tarefa A6. Achado da revisão:
    * `componentes/AbasEntrar.tsx` monta os dois `<form>` (entrar e criar
    * conta) sempre os DOIS no DOM ao mesmo tempo — o painel oculto só ganha
@@ -116,6 +134,7 @@ export function CampoFormulario({
   erro,
   prefixo,
   valorInicial,
+  valor,
   accept,
   capture
 }: PropsCampoFormulario) {
@@ -160,7 +179,11 @@ export function CampoFormulario({
       (opcoes ?? []).map((item) => createElement('option', { key: item.valor, value: item.valor }, item.texto || item.valor))
     );
   } else if (tipo === 'checkbox') {
-    controle = createElement('input', { ...atributosComuns, type: 'checkbox' });
+    // `value` só entra quando quem chama pediu: sem ele o navegador manda
+    // "on", que é o que as caixas solitárias do site (consentimento,
+    // maioridade, papéis) sempre mandaram — e `marcado()`, em
+    // compartilhado/validacao.ts, lê exatamente isso.
+    controle = createElement('input', { ...atributosComuns, type: 'checkbox', value: valor });
   } else if (tipo === 'file') {
     controle = createElement('input', { ...atributosComuns, type: 'file', accept, capture });
   } else {

@@ -185,6 +185,20 @@ function naoDeuParaConsultar(oQue: string) {
 
 /**
  * RF11 — as candidaturas ao voluntariado da própria pessoa (RF25/RF26).
+ *
+ * O ESTADO VAZIO MUDOU NA RF25, e é a mudança que esta tarefa existe para
+ * fazer. Ele dizia "candidatar-se pelo site ainda não existe" e mandava
+ * para o WhatsApp — era verdade até 01/09/2026, e virou mentira no dia em
+ * que `/voluntariado/candidatura` passou a existir. Um estado vazio que
+ * descreve o site de ontem é pior que nenhum: ele DESVIA a pessoa do
+ * caminho que funciona.
+ *
+ * AS ÁREAS SÃO DESENHADAS, e a ausência delas também. Uma candidatura sem
+ * área é o desfecho parcial de acoes/voluntariado.ts (duas tabelas, sem
+ * transação): a candidatura existe e a escolha se perdeu. Omitir a linha
+ * nesse caso esconderia da pessoa exatamente o que ela precisa saber para
+ * completar por outro canal — por isso a lista diz que ficou faltando, em
+ * vez de simplesmente não aparecer.
  */
 export function MinhasCandidaturas(
   { candidaturas, degradou }: { candidaturas: Candidatura[]; degradou: boolean }
@@ -195,9 +209,9 @@ export function MinhasCandidaturas(
     return createElement(
       'p',
       { className: 'estado estado--vazio' },
-      'Você ainda não tem candidatura registrada. Candidatar-se pelo site ainda não existe: '
-      + `hoje o caminho é falar com a gente pelo WhatsApp ${WHATSAPP} ou pelo e-mail `
-      + `${EMAIL_ATELIE}, contando em qual área você quer ajudar.`
+      'Você ainda não tem candidatura registrada. Para se candidatar, escolha as áreas em que '
+      + 'você quer ajudar na página de voluntariado — leva um minuto. Se preferir conversar '
+      + `antes, o WhatsApp ${WHATSAPP} e o e-mail ${EMAIL_ATELIE} são nossos.`
     );
   }
 
@@ -219,6 +233,14 @@ export function MinhasCandidaturas(
           'Enviada em ',
           createElement('time', { dateTime: candidatura.criado_em },
             dataPorExtenso(candidatura.criado_em))
+        ),
+        createElement(
+          'p',
+          { className: 'conta__areas' },
+          candidatura.areas && candidatura.areas.length > 0
+            ? `Áreas: ${candidatura.areas.join(', ')}`
+            : 'As áreas que você escolheu não ficaram registradas — chame no WhatsApp '
+              + `${WHATSAPP} e a gente completa.`
         ),
         candidatura.mensagem ? createElement('p', null, candidatura.mensagem) : null
       )

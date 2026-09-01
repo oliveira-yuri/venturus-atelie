@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (770 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (771)
+npm test                        # suíte completa, modo offline (803 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (804)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,20 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 770 são 758 passando, 3 pulados com motivo declarado e 9 `test.todo`. Os 13 que
+Os 803 são 791 passando, 3 pulados com motivo declarado e 9 `test.todo` (MEDIDO em
+01/09/2026, depois de juntar as três frentes que rodaram em paralelo). Os 33 que entraram com a RF25 (candidatura ao voluntariado)
+são 28 em `testes/voluntariado.test.mjs`, 2 novos em `testes/minha-conta.test.mjs` e 3 que
+`testes/sem-javascript.test.mjs` gera sozinho por rota nova: a trava do corpo hostil
+(`situacao=ativo`, `perfil_id` de outra pessoa) percorrendo `lerCandidatura` →
+`colunasDaCandidatura`, que é literalmente o objeto do `.insert()`; a deduplicação das áreas,
+sem a qual uma área repetida no corpo derrubaria o insert DEPOIS de a candidatura já estar
+gravada; a reconciliação de `SITUACOES_EM_ANDAMENTO` com o `check` de `public.voluntarios`,
+com `inativo` obrigatoriamente FORA (quem encerrou precisa poder voltar); as duas pontas do
+prefixo `area:`, que são strings em arquivos diferentes e, quando divergem, devolvem o
+formulário com as caixas desmarcadas sem erro nenhum; a varredura que exige `usuarioAtual()`
+na Action **e que ela NÃO chame `ehEquipe()`**; e a ordem das duas gravações.
+
+Os 13 que
 entraram em 01/09/2026 com o bucket privado (item 0j) estão na seção 7 de
 `testes/galeria.test.mjs`: a leitura da sonda que descobre se a migration 008 foi rodada
 (com os DOIS corpos que o Storage devolve, copiados de uma medição real), o prazo da
@@ -94,7 +107,7 @@ rotas novas. Os de `testes/galeria.test.mjs` são da Tarefa P3, e os 34 de 01/09
 não uuid), a validação do formulário de dez campos, o que a lista da equipe desenha, a
 varredura que exige `ehEquipe()` em toda Action de atividades **e que não exista `insert`
 nem `delete` ali**, e a que exige que a leitura do PAINEL não caia para o JSON versionado.
-No modo `test:supabase` a contagem é 771, um a mais e dois pulados a mais. O pulado novo é
+No modo `test:supabase` a contagem é 804, um a mais e dois pulados a mais (MEDIDO: 790 passando, 5 pulados, 9 todo). O pulado novo é
 o do RF07 — "sem JavaScript: o envio válido atravessa a validação e chega ao corpo da
 Action" (`testes/contato.test.mjs`), que só roda no modo offline: com credenciais ele
 gravaria uma linha inventada em `public.contatos` do projeto de produção A CADA RODADA, e
@@ -293,6 +306,36 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   `email` acrescentados como campos escondidos gravou o nome e **não mexeu em nada disso** —
   `eh_equipe` continuou `false`, o e-mail continuou o mesmo e a linha atualizada foi a da
   própria pessoa. O `id` da linha vem da sessão verificada, nunca do corpo.
+- **Candidatar-se ao voluntariado EXIGE CONTA, e o formulário de contato não — a diferença
+  é do esquema, não de gosto (RF25).** `public.voluntarios.perfil_id` é `not null
+  references public.perfis(id)` e a política de insert é `with check (perfil_id =
+  auth.uid())`: sem sessão não existe linha possível. MEDIDO contra o Supabase de produção,
+  com sessão de verdade: um insert com `perfil_id` de outra pessoa responde `42501 new row
+  violates row-level security policy`. A alternativa considerada — gravar em
+  `public.contatos` com `origem = 'voluntariado'` para quem não tem conta — foi recusada
+  porque perderia as ÁREAS (não há para onde apontá-las), perderia a SITUAÇÃO que a pessoa
+  acompanha em `/minha-conta`, e criaria uma segunda porta para a mesma coisa dentro do
+  registro central de contatos (RF29). O preço está na tela: `/voluntariado/candidatura` é
+  PÚBLICA e explica a exigência a quem não entrou, em vez de redirecionar.
+- **A candidatura são DUAS tabelas sem transação, e o desfecho parcial é visível.**
+  `voluntarios` primeiro (a segunda referencia o id dela), `voluntario_areas` depois. Não há
+  como fazer as duas de uma vez sem uma função no banco (como `registrar_contato`, de 007),
+  e migration não era desta tarefa. Então o único desfecho parcial possível é o menos ruim —
+  candidatura registrada, áreas de fora — e ele NÃO é silencioso: a pessoa recebe
+  `?aviso=candidatura-sem-areas`, que diz o que faltou e por onde completar, e a lista de
+  `/minha-conta` escreve que as áreas não ficaram registradas. Dizer "pronto" ali seria
+  mentir sobre a única coisa que a pessoa escolheu; dizer "não deu" a faria mandar de novo —
+  e o segundo envio bate na recusa de candidatura duplicada.
+- **Candidatar-se NÃO TEM DESFAZER, e é isso que justifica a regra de duplicata.** MEDIDO
+  contra o Supabase real: `delete` da própria candidatura responde sucesso com ZERO linhas —
+  `public.voluntarios` tem política de insert e de select para a própria pessoa, e nenhuma de
+  delete (apagar é de quem é equipe). Por isso quem já tem candidatura em andamento não vê o
+  formulário, e `acoes/voluntariado.ts` recusa de novo por conta própria
+  (`compartilhado/candidatura.ts` guarda a regra, para as duas pontas não divergirem).
+  'inativo' fica FORA da lista de "em andamento" de propósito: quem encerrou o voluntariado
+  precisa poder voltar. **O que isso NÃO resolve:** dois envios simultâneos — as duas
+  requisições consultam, as duas não encontram nada, as duas gravam. Fechar de verdade é um
+  índice único parcial, ou seja, migration.
 - **Publicar é um ato separado de escrever.** `salvarPublicacao` não conhece a coluna
   `publicado` — nem para gravar `false` —, então nada vai ao ar por acidente; `publicado` só
   muda por `alternarPublicacao`, que é um `<form>` com botão próprio. Ao publicar, `publicado_em`
@@ -314,9 +357,10 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
 
 ## Status por módulo
 
-Atualizado em 01/09/2026 (o bucket privado da galeria — item 0j, a única correção deste
-dia que é de SEGURANÇA e não de funcionalidade; antes, no mesmo dia, a RF11 — a área do
-usuário; antes, o RF29,
+Atualizado em 01/09/2026 (três frentes em paralelo, cada uma no seu worktree: a RF25 — a
+candidatura ao voluntariado; o bucket privado da galeria — item 0j, a única correção deste
+dia que é de SEGURANÇA e não de funcionalidade; e o manual da equipe, RNF07. Antes, no
+mesmo dia, a RF11 — a área do usuário; o RF29,
 que deu à equipe a tela para ler as mensagens; e antes disso,
 o RF07 — formulário de contato + migration 007 — e as Tarefas P2, P3 e P4 do painel; antes disso, P1 em 31/08 e o fim do
 Bloco A da fase 2, rodada de correção 1). O status descreve
@@ -379,7 +423,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | RF08 | Cadastro de voluntário | **pronto** (Tarefa 3: `componentes/AbasEntrar.tsx` chama `criarConta`). **Desde que `mailer_autoconfirm` virou `true` no projeto Supabase, a conta criada já vem com sessão e a pessoa entra na hora** — MEDIDO em 01/09/2026 (RF11): criar conta pelo Auth real devolveu `access_token`, e `signInWithPassword` com o mesmo par funcionou. Era o item 1 de "O que trava hoje", e encolheu. A confirmação por e-mail deixou de barrar a entrada; o envio nativo com cota baixa continua importando para RECUPERAR SENHA e para trocar de e-mail. Falta a gestão pela equipe (RF26) |
 | RF09 | Cadastro de doador | idem RF08: é o mesmo formulário, com a caixa "Quero doar ou apoiar" virando `eh_doador` |
 | RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. **Entrar de verdade passou a funcionar em 01/09/2026** (RF11): com `mailer_autoconfirm` agora `true`, criar conta devolve sessão e `/entrar` autentica — medido no Firefox contra o Auth de produção, com e sem JavaScript, e o cabeçalho mostrou o nome de quem entrou por ter entrado. O caminho da recusa continua provado por `npm run test:supabase`. A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva — e desde a RF11 o nome é um LINK para `/minha-conta`, único caminho até a área do usuário |
-| RF11 | Área do usuário | **pronto, e é o primeiro caminho AUTENTICADO do projeto medido de ponta a ponta** (01/09/2026) — `/minha-conta` mostra a ficha da conta, o formulário de nome/telefone/tipo de pessoa (`acoes/conta.ts`), as candidaturas ao voluntariado e as doações registradas. Quem chega sem sessão é mandado para `/entrar` (redirect, não 404 — o porquê está no cabeçalho da página). MEDIDO contra o Supabase de produção, no Firefox, **com e sem JavaScript**: entrar, abrir a área pelo nome no cabeçalho, corrigir o nome, ver o cabeçalho acompanhar, e a recusa de validação devolvendo o formulário preenchido. **Sem bloco de inscrições**, e não é esquecimento: `public.inscricoes` não tem política de leitura para a própria pessoa NEM coluna ligando inscrição a conta (decisão D4) — ver o fim de `servidor/dados/conta.ts`. As tabelas `voluntarios` e `doacoes` estão VAZIAS: o que se vê hoje são os estados vazios |
+| RF11 | Área do usuário | **pronto, e é o primeiro caminho AUTENTICADO do projeto medido de ponta a ponta** (01/09/2026) — `/minha-conta` mostra a ficha da conta, o formulário de nome/telefone/tipo de pessoa (`acoes/conta.ts`), as candidaturas ao voluntariado e as doações registradas. Quem chega sem sessão é mandado para `/entrar` (redirect, não 404 — o porquê está no cabeçalho da página). MEDIDO contra o Supabase de produção, no Firefox, **com e sem JavaScript**: entrar, abrir a área pelo nome no cabeçalho, corrigir o nome, ver o cabeçalho acompanhar, e a recusa de validação devolvendo o formulário preenchido. **Sem bloco de inscrições**, e não é esquecimento: `public.inscricoes` não tem política de leitura para a própria pessoa NEM coluna ligando inscrição a conta (decisão D4) — ver o fim de `servidor/dados/conta.ts`. **Desde a RF25 (mesmo dia) a lista de candidaturas ENCHE de verdade**: `listarMinhasCandidaturas` traz as áreas junto, por embed do PostgREST, e o estado vazio deixou de dizer "candidatar-se pelo site ainda não existe" — ele agora manda para `/voluntariado/candidatura`. `doacoes` continua VAZIA |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
 | RF33 | Painel administrativo | **quatro telas de trabalho** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). P4 (01/09) fechou o bloco com **atividades**: `/admin/atividades` (as 11 reais, com tirar do ar/pôr de volta) e `/admin/atividades/editar?id=` (corrigir o texto — sem criar e sem apagar). O RF29 (01/09) acrescentou a quinta, que não estava no plano do bloco: `/admin/contatos`, as mensagens recebidas. Quem não é equipe recebe **404** nas oito rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável na suíte. O que FOI medido sem sessão está nos relatórios de P2/P3/P4/RF29 e em `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs`, `testes/atividades.test.mjs` e `testes/contatos.test.mjs` |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
@@ -401,9 +445,9 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 |---|---|---|
 | RF19–RF22 | Oferta, análise, registro, histórico | **falta** |
 | RF23 | Meios de doação | **pronto** — chave Pix pendente (D7) |
-| RF24 | Página de voluntariado (5 áreas, do banco) | **pronto** |
-| RF25 | Candidatura | **falta** |
-| RF26 | Gestão de voluntários | **falta** |
+| RF24 | Página de voluntariado (5 áreas, do banco) | **pronto** — e desde a RF25 o botão "Quero me candidatar" aponta para `/voluntariado/candidatura`, não mais para `/entrar`. O TEXTO do botão não mudou, de propósito: o `<main>` desta página é comparado palavra por palavra com o HTML original congelado (`testes/paridade-texto.test.mjs`) |
+| RF25 | Candidatura | **pronto** (01/09/2026) — `/voluntariado/candidatura` grava em `public.voluntarios` + `public.voluntario_areas` por `acoes/voluntariado.ts`, e a candidatura aparece em `/minha-conta` com situação, data e áreas. **Exige conta**, e o porquê está no cabeçalho da Action: `perfil_id` é `not null` e a política de insert é `perfil_id = auth.uid()`; gravar em `contatos` com `origem='voluntariado'` para quem não tem conta perderia as áreas, a situação e a RF26. Quem chega sem sessão NÃO é redirecionado: lê por que precisa de conta e recebe o caminho. MEDIDO contra o Supabase de produção, no Firefox, **sem JavaScript**: entrar, marcar duas áreas, enviar, redirect para `/minha-conta?aviso=candidatura`, e a candidatura desenhada com as duas áreas. **Uma candidatura de teste ficou no banco de produção** — item 0q. Quem já tem candidatura em andamento não vê o formulário, e a Action recusa de novo (medido com a guarda da PÁGINA desligada de propósito). **Sem desfazer**: não há política de delete para a própria pessoa |
+| RF26 | Gestão de voluntários | **falta, e desde a RF25 há fila esperando** — as candidaturas chegam em `public.voluntarios` com `situacao='novo'`, e nenhuma tela da equipe as lê: hoje isso é o painel do Supabase. A política de leitura da equipe já existe (`voluntarios: equipe gerencia`). Atenção ao item 0q: a primeira linha da tabela é uma candidatura de TESTE |
 
 ### M9 — Acervo · M6 — Comunicação · M7 — Relatórios
 
@@ -480,8 +524,11 @@ versões para manter em paralelo aqui.
   repositório que cite um caminho `site/...` está falando do site antigo, que vive no histórico:
   `git show main:site/index.html`.
 
-**Todas as páginas planejadas existem no Next.** A área do usuário (RF11) foi a última, em
-01/09/2026: `/minha-conta`, alcançada pelo nome de quem entrou no cabeçalho. Antes dela, no
+**Todas as páginas planejadas existem no Next.** A candidatura ao voluntariado (RF25) foi a
+última, em 01/09/2026: `/voluntariado/candidatura`, alcançada pelo botão "Quero me
+candidatar" de `/voluntariado` — uma rota que NUNCA existiu no site antigo (por isso ela
+entra em `PAGINAS_SEM_URL_ANTIGA`, em `testes/redirects.test.mjs`). Antes dela, no mesmo dia,
+a área do usuário (RF11): `/minha-conta`, alcançada pelo nome de quem entrou no cabeçalho. Antes dela, no
 mesmo dia, a tela da equipe para LER as mensagens de contato (RF29), que fechou o buraco que
 o RF07 tinha aberto — formulário público gravando onde ninguém lia. O que falta agora não é
 tela portada: são requisitos que nunca tiveram tela (RF13–RF22, RF26–RF32).
@@ -829,6 +876,31 @@ revisitada e mantida naquela tarefa.
    código enviado por e-mail antes de aceitar senha nova) — o que reintroduz a dependência do
    envio de e-mail, hoje com cota baixa. É decisão do grupo, não de quem implementa. Enquanto
    não for tomada, o que existe é o "Sair" no cabeçalho, em toda página.
+
+0q. **Uma segunda conta de teste e UMA CANDIDATURA ficaram no banco de PRODUÇÃO, e este
+   repositório não consegue apagar nenhuma das duas.** Foram criadas em 01/09/2026 para
+   medir a RF25 de ponta a ponta, sem JavaScript, que é a única forma de saber se
+   candidatar-se funciona.
+
+   - conta: `rf25.teste@exemplo.test`, nome "TESTE AUTOMATIZADO - apagar (RF25)",
+     `eh_equipe` **false** (e precisa continuar sendo). Apagar é no painel do Supabase
+     (*Authentication → Users → Delete user*), que leva `public.perfis` junto pelo
+     `on delete cascade`;
+   - **1 linha em `public.voluntarios`** (situação `novo`, mensagem "Texto que não pode se
+     perder.") e **2 em `public.voluntario_areas`** (`acervo` e `comunicacao`). Apagar a
+     conta leva as três junto, pelo mesmo cascade. Se alguém quiser apagar só a candidatura,
+     é no SQL Editor — `anon` e `authenticated` não têm política de delete nesta tabela
+     (MEDIDO: `delete` responde sucesso com zero linhas).
+
+   **A senha NÃO está neste repositório, de propósito** — a mesma disciplina do item 0o.
+   Para medir de novo, defina uma nova pelo painel do Supabase.
+
+   **Consequência para a RF26 (gestão de voluntários), quando ela existir:** a primeira
+   candidatura que a equipe vai ver na tela é esta, de teste. Ou se apaga antes, ou a tela
+   nasce com uma linha que não é de ninguém.
+
+   Nenhum teste automático cria candidatura: os 28 da RF25 são puros, varredura de código
+   ou requisições anônimas.
 
 **Do projeto, válidos para as duas branches:**
 
