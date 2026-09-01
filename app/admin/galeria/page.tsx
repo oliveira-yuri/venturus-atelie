@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ehEquipe } from '@/servidor/permissao';
-import { listarTodasAsMidias } from '@/servidor/dados/galeria';
+import { listarTodasAsMidias, bucketAindaAberto } from '@/servidor/dados/galeria';
 import { porNoAr } from '@/acoes/galeria';
 import { avisoDaGaleria } from '@/compartilhado/avisos-do-painel';
+import { AVISO_BUCKET_ABERTO, AVISO_SONDA_SEM_RESPOSTA } from '@/compartilhado/galeria-privada';
 import { ListaMidia } from '@/componentes/ListaMidia';
 import FormularioMidia from '@/componentes/FormularioMidia';
 
@@ -61,6 +62,17 @@ export default async function PaginaDaGaleria(
 
   const { valor: midias, degradou } = await listarTodasAsMidias();
 
+  // A MIGRATION 008 JÁ FOI RODADA? Ninguém consegue aplicá-la pelo código
+  // (não há service_role — spec §4.1), e enquanto ela não for rodada NADA
+  // QUEBRA: URL assinada funciona em bucket público também. Seria mais uma
+  // falha silenciosa, o padrão de defeito deste projeto. Por isso a sonda
+  // pergunta, e o que ela responde vira aviso NA TELA de quem pode agir —
+  // não só uma linha de log que ninguém abre.
+  //
+  // Custa uma requisição UMA VEZ POR PROCESSO (ver bucketAindaAberto), não
+  // uma por render. E nunca derruba a página: dúvida vira 'nao-sei'.
+  const estadoDoBucket = await bucketAindaAberto();
+
   // O resultado da última Action chega pela URL (as Actions terminam em
   // redirect, que é o que as faz funcionar sem JavaScript, e um redirect não
   // carrega estado). `?aviso=` é escrito por quem quiser, então passa por
@@ -72,6 +84,21 @@ export default async function PaginaDaGaleria(
       <p className="painel__voltar"><Link href="/admin">← Painel</Link></p>
 
       <h1>Galeria</h1>
+
+      {/*
+        `role="alert"` e não `role="status"`, ao contrário da caixa de aviso
+        logo abaixo, e a diferença é de conteúdo: aquela relata o que a
+        pessoa acabou de fazer; esta relata que as fotos desta tela estão
+        desprotegidas agora, sem que ninguém tenha feito nada. É o único
+        lugar do painel onde interromper é o comportamento certo.
+      */}
+      {estadoDoBucket !== 'fechado'
+        ? (
+          <div className="aviso aviso--erro" role="alert">
+            <p>{estadoDoBucket === 'aberto' ? AVISO_BUCKET_ABERTO : AVISO_SONDA_SEM_RESPOSTA}</p>
+          </div>
+        )
+        : null}
 
       {/*
         `role="status"` e não `role="alert"`, pelo mesmo motivo escrito em

@@ -21,7 +21,8 @@
  * elas são de sistemas diferentes:
  *   · `midia: equipe gerencia` (RLS da tabela, 002_conteudo.sql);
  *   · `arquivos publicos: equipe envia/atualiza/remove` (RLS do Storage,
- *     006_storage.sql — política de Storage também é RLS).
+ *     006_storage.sql — política de Storage também é RLS), mais a leitura
+ *     reescrita por 008_galeria_privada.sql.
  * O cliente deste projeto usa a sessão de quem pediu e não existe chave de
  * serviço no repositório (spec §4.1): mesmo que alguém contornasse o `if`,
  * o Postgres recusaria as duas. O que a guarda faz é transformar a recusa
@@ -34,7 +35,7 @@
  * É a regra 9 do CLAUDE.md, e é o motivo de não haver UMA foto no site
  * inteiro hoje. O público da ONG inclui crianças a partir de 10 anos.
  *
- * A regra é honrada em três lugares, e nenhum deles depende dos outros:
+ * A regra é honrada em quatro lugares, e nenhum deles depende dos outros:
  *
  *   1. NO BANCO. A política de leitura de `public.midia` é
  *      `(publicado and autorizacao_registrada) or eh_equipe()`. Uma linha
@@ -48,17 +49,27 @@
  *   3. NA TELA. A caixa de autorização não diz "aceito os termos": diz o
  *      que a pessoa está AFIRMANDO — que existe autorização registrada
  *      para quem aparece ali (componentes/FormularioMidia.tsx).
+ *   4. NO ARQUIVO, desde 01/09/2026. Até a Tarefa P3 as três camadas acima
+ *      protegiam a LISTAGEM e nenhuma protegia o ARQUIVO: o bucket
+ *      `galeria` nascia público em 006_storage.sql, e toda foto enviada
+ *      ficava baixável para sempre por quem tivesse o caminho, publicada
+ *      ou não. Era o item 0j do CLAUDE.md, e a medição está no cabeçalho
+ *      de supabase/migrations/008_galeria_privada.sql. Agora o bucket é
+ *      privado e o endereço é uma URL assinada de uma hora
+ *      (servidor/dados/galeria.ts), emitida só para foto publicada E
+ *      autorizada — a mesma condição das outras três, aplicada ao arquivo.
  *
- * O QUE ISSO NÃO RESOLVE, e precisa estar escrito porque é limite real: o
- * bucket `galeria` é PÚBLICO (006_storage.sql cria os três buckets com
- * `public: true` e uma política de select sem condição). Ou seja, **todo
- * arquivo enviado é legível por quem tiver a URL, publicado ou não**. O que
- * existe contra isso é (a) o caminho ser `<álbum>/<uuid>.<ext>`, que não é
- * adivinhável, e (b) a URL só sair no HTML de uma foto publicada. Isso é
- * obscuridade, não permissão. A correção de verdade é bucket privado com
- * URL assinada, que é migration nova — fora desta tarefa, que tinha
- * instrução explícita de não criar migration. **É por isso que esta tela
- * tem "Apagar", ao contrário da de notícias** (ver `apagarMidia`).
+ * O QUE CONTINUA SEM RESOLVER, e precisa estar escrito porque é limite
+ * real: **a migration 008 ainda não foi rodada em lugar nenhum**. Ninguém
+ * consegue aplicá-la pelo código (não há `service_role` — spec §4.1), e
+ * enquanto ela não for colada no SQL Editor do painel do Supabase o bucket
+ * segue público, sem nada quebrar. Contra esse silêncio existe a sonda de
+ * `bucketAindaAberto()` (servidor/dados/galeria.ts), que grita no log e
+ * desenha um aviso permanente no topo de /admin/galeria.
+ *
+ * E, mesmo com a migration aplicada, uma URL assinada é um PORTADOR: quem
+ * tiver o link entra até ele vencer. Por isso **esta tela continua tendo
+ * "Apagar", ao contrário da de notícias** (ver `apagarMidia`).
  *
  * ===================================================================
  * `publicado` E `autorizacao_registrada` NUNCA VÊM ESPALHADOS DO FORMULÁRIO
@@ -94,7 +105,7 @@ import { revalidatePath } from 'next/cache';
 import { obterCliente } from '@/servidor/supabase';
 import { temSupabase, descrever } from '@/servidor/dados/degradacao';
 import { ehEquipe } from '@/servidor/permissao';
-import { buscarMidia } from '@/servidor/dados/galeria';
+import { buscarLinhaDaMidia } from '@/servidor/dados/galeria';
 import {
   lerMidia, validarMidia, lerAlternancia, ehIdentificador,
   tipoDaImagem, caminhoNoBucket, BYTES_PARA_RECONHECER
@@ -104,7 +115,7 @@ import type { EstadoFormulario } from './autenticacao';
 /** A tela para onde tudo volta. */
 const LISTA = '/admin/galeria';
 
-/** O bucket de 006_storage.sql. Não existe migration nova nesta tarefa. */
+/** O bucket, privado desde supabase/migrations/008_galeria_privada.sql. */
 const BUCKET = 'galeria';
 
 /** Mensagem única de "o formulário voltou com campo errado". */
@@ -345,8 +356,9 @@ export async function porNoAr(dados: FormData): Promise<void> {
 
   try {
     // Ler antes de escrever, por causa da RN07 (ver acima).
-    // `buscarMidia` já é degradável e nunca lança.
-    const { valor: atual } = await buscarMidia(id);
+    // `buscarLinhaDaMidia` já é degradável e nunca lança — e não assina
+    // endereço nenhum, que seria uma ida à rede a mais só para decidir.
+    const { valor: atual } = await buscarLinhaDaMidia(id);
 
     if (atual && publicando && !atual.autorizacao_registrada) {
       desfecho = 'sem-autorizacao';
@@ -393,12 +405,24 @@ export async function porNoAr(dados: FormData): Promise<void> {
  * único gesto sem desfazer — feito num celular, de pé, no meio de um
  * evento. Aqui o argumento se INVERTE, e a inversão tem uma causa concreta.
  *
- * Um texto guardado e fora do ar não faz mal a ninguém. Uma FOTO guardada e
- * fora do ar continua **legível por quem tiver a URL**: o bucket `galeria`
- * é público (006_storage.sql), e "tirar do ar" mexe só na tabela — o
- * arquivo continua lá. Se a autorização de uso de imagem for retirada, ou
- * se a foto de uma criança subir por engano, tirar do ar NÃO resolve. Só
- * apagar resolve, e é isso que a RN07 exige.
+ * Um texto guardado e fora do ar não faz mal a ninguém. Uma FOTO guardada
+ * e fora do ar continua existindo como arquivo, e o que muda com
+ * 008_galeria_privada.sql é O TAMANHO DA JANELA, não a existência dela:
+ *
+ *   · ANTES (bucket público): "tirar do ar" mexia só na tabela e o arquivo
+ *     continuava baixável **para sempre** por quem tivesse a URL. Tirar do
+ *     ar não cumpria a RN07 de jeito nenhum.
+ *   · AGORA (bucket privado, URL assinada de uma hora): tirar do ar faz o
+ *     banco parar de emitir endereço novo na hora, e as URLs já emitidas
+ *     morrem em no máximo uma hora. Tirar do ar passa a cumprir a RN07 —
+ *     **com atraso de até uma hora**.
+ *
+ * E é esse atraso que mantém o "Apagar" nesta tela. No caso urgente da
+ * RN07 — autorização retirada, foto de criança subida por engano — uma
+ * hora é tempo demais, e apagar é o único gesto que age no mesmo instante:
+ * sem o arquivo no bucket, toda URL assinada viva morre junto. O argumento
+ * mudou de "tirar do ar não resolve" para "tirar do ar demora até uma
+ * hora", e a conclusão continua a mesma.
  *
  * O RISCO DE APAGAR POR ENGANO É TRATADO COM UMA TELA, NÃO COM UM
  * `confirm()`: `/admin/galeria/apagar?id=...` mostra a foto e pergunta.
@@ -407,7 +431,8 @@ export async function porNoAr(dados: FormData): Promise<void> {
  *
  * A ORDEM É ARQUIVO PRIMEIRO, LINHA DEPOIS — o inverso da ordem de
  * `enviarMidia`, e de propósito. O desfecho ruim aqui é sobrar arquivo sem
- * linha (invisível, mas ainda legível por URL), e ele é pior que sobrar
+ * linha (invisível, e alcançável por qualquer URL assinada que ainda esteja viva),
+ * e ele é pior que sobrar
  * linha sem arquivo (imagem quebrada, visível, corrigível). Apagando o
  * arquivo primeiro, uma falha no meio deixa o caso VISÍVEL na tela, onde
  * alguém pode agir — e não o caso invisível, que é o que a RN07 não pode
@@ -428,7 +453,7 @@ export async function apagarMidia(dados: FormData): Promise<void> {
   let apagou = false;
 
   try {
-    const { valor: atual } = await buscarMidia(id);
+    const { valor: atual } = await buscarLinhaDaMidia(id);
 
     if (atual) {
       const supabase = await obterCliente();

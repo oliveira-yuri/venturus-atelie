@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (757 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (758)
+npm test                        # suíte completa, modo offline (770 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (771)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,17 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 757 são 742 passando, 6 pulados com motivo declarado e 9 `test.todo`. Os 35 que entraram
+Os 770 são 758 passando, 3 pulados com motivo declarado e 9 `test.todo`. Os 13 que
+entraram em 01/09/2026 com o bucket privado (item 0j) estão na seção 7 de
+`testes/galeria.test.mjs`: a leitura da sonda que descobre se a migration 008 foi rodada
+(com os DOIS corpos que o Storage devolve, copiados de uma medição real), o prazo da
+assinatura **e a exigência de que seja a constante que a camada de dados passa**, a
+varredura que impede `getPublicUrl` de voltar a `servidor/dados/galeria.ts` (e a que exige
+que ele CONTINUE em `acervo.ts`), o texto da migration, o que o painel desenha quando a
+assinatura não vem, e a reconciliação da URL assinada com o `img-src`. A metade do BANCO
+está em `npm run rls` (63 → 69 testes), no bloco "RN07 no ARQUIVO": as políticas novas
+contra um Postgres de verdade, inclusive a prova de que "Tirar do ar" passou a fechar o
+ARQUIVO e não só a listagem. Os 35 que entraram
 em 01/09/2026 com a RF11 (área do usuário) são `testes/minha-conta.test.mjs`: a trava da
 regra 6 exercitada com um FormData HOSTIL (`eh_equipe=true`, `id` de outra pessoa, papéis
 inventados) percorrendo `lerMeusDados` → `colunasDoPerfil`, que é literalmente o objeto que
@@ -84,7 +94,7 @@ rotas novas. Os de `testes/galeria.test.mjs` são da Tarefa P3, e os 34 de 01/09
 não uuid), a validação do formulário de dez campos, o que a lista da equipe desenha, a
 varredura que exige `ehEquipe()` em toda Action de atividades **e que não exista `insert`
 nem `delete` ali**, e a que exige que a leitura do PAINEL não caia para o JSON versionado.
-No modo `test:supabase` a contagem é 758, um a mais e dois pulados a mais. O pulado novo é
+No modo `test:supabase` a contagem é 771, um a mais e dois pulados a mais. O pulado novo é
 o do RF07 — "sem JavaScript: o envio válido atravessa a validação e chega ao corpo da
 Action" (`testes/contato.test.mjs`), que só roda no modo offline: com credenciais ele
 gravaria uma linha inventada em `public.contatos` do projeto de produção A CADA RODADA, e
@@ -214,6 +224,16 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   `<div hidden>` e scripts), e o layout — cabeçalho, rodapé, `<main id="conteudo">`, link de
   pular, A+/contraste, VLibras — só aparece **depois de hidratar**. Sem JavaScript, tela
   branca. Ver o bloco MEDIDO no topo de `app/error.tsx`.
+- **O bucket da galeria é privado, e o endereço de cada foto é uma URL assinada de uma
+  hora** (`supabase/migrations/008_galeria_privada.sql` + `servidor/dados/galeria.ts`). A
+  política do Storage exige a linha de `public.midia` publicada E autorizada, ou seja, a
+  RN07 passou a valer para o ARQUIVO e não só para a listagem. Três consequências que não
+  são dedutíveis: assinar **custa uma requisição** (por isso a forma plural,
+  `createSignedUrls`, uma para a lista inteira, e por isso as Actions usam
+  `buscarLinhaDaMidia`, que não assina nada); o endereço **pode faltar**, e aí a galeria
+  pública omite a foto enquanto o painel a mantém com o motivo escrito; e `acervo` continua
+  com `getPublicUrl`, de propósito, porque download livre é requisito (RF36). **A migration
+  ainda não foi aplicada** — ver item 0j.
 - **Insert público sem `.select()`:** em `inscricoes` e `contatos` a leitura é negada; pedir a linha
   de volta faz a inserção *parecer* que falhou. Em `publicacoes` é o CONTRÁRIO, e é de propósito:
   a equipe lê tudo (`using (publicado or eh_equipe())`), então o `update` pede `.select('id')` —
@@ -294,7 +314,9 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
 
 ## Status por módulo
 
-Atualizado em 01/09/2026 (RF11 — a área do usuário; antes, no mesmo dia, o RF29,
+Atualizado em 01/09/2026 (o bucket privado da galeria — item 0j, a única correção deste
+dia que é de SEGURANÇA e não de funcionalidade; antes, no mesmo dia, a RF11 — a área do
+usuário; antes, o RF29,
 que deu à equipe a tela para ler as mensagens; e antes disso,
 o RF07 — formulário de contato + migration 007 — e as Tarefas P2, P3 e P4 do painel; antes disso, P1 em 31/08 e o fim do
 Bloco A da fase 2, rodada de correção 1). O status descreve
@@ -344,7 +366,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | RF02 | Quem somos | **pronto** |
 | RF03 | Projetos e atividades (11, do banco) | **pronto**, agora inclusive a edição pela equipe (Tarefa P4, 01/09): `/admin/atividades` lista as 11 e `/admin/atividades/editar?id=` corrige nome, resumo, sinopse e ficha técnica. **Só editar**: não cria e não apaga (o banco permite; a tela não oferece, e diz por quê). Tirar do ar/pôr de volta existe, num botão separado. Ninguém percorreu o caminho autenticado — não há sessão de equipe |
 | RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem DENTRO de uma publicação continua faltando: a P3 fez a galeria (`public.midia`), não `publicacoes.imagem_caminho` |
-| RF05 | Galeria | **tela e envio prontos** (Tarefa P3, 01/09/2026) — `/galeria` lê `public.midia` (`servidor/dados/galeria.ts`, agrupando por álbum) e a equipe sobe foto, publica, tira do ar e apaga em `/admin/galeria`. A tabela está VAZIA e **nenhum byte foi escrito no bucket por este código**, em ambiente nenhum: falta sessão de equipe. RN07 honrada em três camadas independentes (RLS do banco, guarda dentro da Action, tela). Só IMAGEM — vídeo não cabe no limite de corpo de uma Server Action (ver `next.config.ts`) |
+| RF05 | Galeria | **tela e envio prontos** (Tarefa P3, 01/09/2026) — `/galeria` lê `public.midia` (`servidor/dados/galeria.ts`, agrupando por álbum) e a equipe sobe foto, publica, tira do ar e apaga em `/admin/galeria`. A tabela está VAZIA e **nenhum byte foi escrito no bucket por este código**, em ambiente nenhum: falta sessão de equipe. RN07 honrada em **quatro** camadas independentes: RLS da tabela, guarda dentro da Action, tela, e — desde 01/09/2026 — o ARQUIVO, com o bucket privado e URL assinada de uma hora (`supabase/migrations/008_galeria_privada.sql`, item 0j). **A migration 008 ainda não foi rodada por ninguém**, e enquanto não for o bucket segue público sem nada quebrar: a sonda de `bucketAindaAberto()` grita no log e põe um aviso permanente no topo de `/admin/galeria`. Só IMAGEM — vídeo não cabe no limite de corpo de uma Server Action (ver `next.config.ts`) |
 | RF06 | Contato institucional | **pronto** |
 | RF07 | Formulário de contato | **pronto, e é o PRIMEIRO caminho de sucesso do projeto medido de ponta a ponta** (01/09/2026) — `/contato` grava em `public.contatos` por `acoes/contato.ts`, sem sessão nenhuma (o formulário é público: `anon` tem `grant insert` e a política é `with check (true)`). MEDIDO contra o Supabase real, sem JavaScript: preencher, enviar, redirect para `/contato?aviso=enviada` e a linha gravada. **Uma linha de teste ficou no banco de produção e precisa ser apagada à mão** — ver "O que trava hoje", item 0m. A tela da equipe para ler estes registros passou a existir no mesmo dia (RF29, `/admin/contatos`). O formulário continua DEPOIS dos canais diretos: WhatsApp e telefone a ONG lê hoje, todos os dias, e a fila do painel depende de alguém abri-la |
 | RF38 | Para escolas | **pronto** |
@@ -409,7 +431,8 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | Deploy Netlify | **nunca rodou** — config pronta e pinada (Node 24.15.0, plugin 5.15.13); falta publicar |
 | Página de erro 500 (`app/error.tsx`) | **pronto** — com o layout inteiro, como o 404 |
 | `/robots.txt` (`app/robots.ts`) | **pronto** — em modo prévia, ver "O que trava hoje" 0c |
-| Supabase Storage (bucket `galeria`) | **ligado pelo código** (P3) — `upload`, `remove` e `getPublicUrl`, com o host do projeto acrescentado ao `img-src` da CSP (e **não** ao `connect-src`). **Nenhum arquivo real subiu**: falta sessão de equipe |
+| Supabase Storage (bucket `galeria`) | **ligado pelo código** (P3) — `upload`, `remove` e, desde 01/09/2026, `createSignedUrls` no lugar de `getPublicUrl` (item 0j), com o host do projeto no `img-src` da CSP (e **não** no `connect-src`; a URL assinada tem a MESMA origem, medido). **Nenhum arquivo real subiu**: falta sessão de equipe |
+| Migration 008 (bucket `galeria` privado) | **escrita e testada, NÃO APLICADA** — `supabase/migrations/008_galeria_privada.sql`. Mesma situação da 007: este repositório não tem credencial para aplicar migration (spec §4.1); quem aplica é uma pessoa, no SQL Editor do Supabase. Provada contra Postgres real em `npm run rls` (bloco "RN07 no ARQUIVO", 6 testes). **Diferente da 007, a falta desta é ANUNCIADA**: a sonda de `bucketAindaAberto()` bate no endereço público sem chave nenhuma e, enquanto ele responder, o painel mostra o aviso. Ver item 0j |
 | Edge Function de e-mail | **falta** |
 | Manual da ONG (RNF07) | **escrito, não verificado com a equipe** (01/09/2026) — `docs/manual-da-equipe.md` (as quatro telas do painel, entrar/sair/senha, RN07 explicada, o que o painel NÃO faz e por quê, o que fazer quando dá erro) e `docs/guia-rapido-da-equipe.md` (uma página para imprimir). Escrito lendo as telas, passo a passo; **ninguém percorreu o painel autenticado para conferir** (item 3 de "O que trava hoje"), e o treinamento presencial que a RNF07 também pede continua faltando |
 
@@ -473,9 +496,11 @@ revisitada e mantida naquela tarefa.
 - **O navegador não fala com o Supabase**, garantido em três camadas: `import 'server-only'`
   (erro de build, provado), variáveis sem `NEXT_PUBLIC_` não embutidas, e o `connect-src`
   da CSP sem o Supabase. **Desde a Tarefa P3 o host do Supabase aparece no `img-src`**, e
-  isso NÃO é uma quarta porta: `img-src` autoriza baixar imagem (as fotos da galeria, de um
-  bucket público), e quem governa fetch/XHR/WebSocket é o `connect-src`, que continua sem
-  ele. Há teste para os dois lados em `testes/galeria.test.mjs`
+  isso NÃO é uma quarta porta: `img-src` autoriza baixar imagem (as fotos da galeria) e
+  quem governa fetch/XHR/WebSocket é o `connect-src`, que continua sem ele. Há teste para
+  os dois lados em `testes/galeria.test.mjs`. **Desde 01/09/2026 o bucket é privado e o
+  endereço é uma URL assinada** — o que não mexeu no `img-src`, porque a URL assinada tem a
+  mesma origem (medido; ver item 0j)
 - **Política de conteúdo com nonce**, medida caminho a caminho contra o VLibras — cinco
   hosts, todos com uso demonstrado. Nenhuma diretiva ali é dedutível: veio de medição
 - **VLibras traduzindo sob a política**, incluindo o Dicionário. Duas vezes ele passou por
@@ -630,16 +655,54 @@ revisitada e mantida naquela tarefa.
    codificados, sob o limite documentado de 6 MB da plataforma — **conta, não medição**.
    Conferir no primeiro deploy real, subindo uma foto de ~3,5 MB pelo painel. Se a Netlify
    recusar antes, a mensagem será dela, não nossa, e o número aqui precisa cair.
-0j. **O bucket `galeria` é PÚBLICO: foto guardada e fora do ar continua legível por quem
-   tiver a URL.** É o que `supabase/migrations/006_storage.sql` criou (os três buckets com
-   `public: true` e uma política de select sem condição), e a Tarefa P3 não mexeu nisso —
-   a instrução era não criar migration. O que existe contra isso: o caminho é
-   `<álbum>/<uuid>.<extensão>`, que não é adivinhável, e a URL só sai no HTML de uma foto
-   publicada. **Isso é obscuridade, não permissão.** A correção de verdade é bucket privado
-   com URL assinada, e é migration nova. Enquanto não for feita, **"Tirar do ar" NÃO
-   resolve o caso da RN07** (autorização retirada, foto de criança subida por engano): só
-   "Apagar" resolve, porque ele remove o arquivo do bucket — e é por isso que a galeria tem
-   apagar e a tela de notícias não.
+0j. **O conserto do bucket público está ESCRITO e NÃO APLICADO — e é a única coisa que
+   falta agora.** Reescrito em 01/09/2026, quando o problema foi corrigido no código.
+
+   **O que era o problema.** `supabase/migrations/006_storage.sql` criou os três buckets
+   com `public: true` e uma política de select sem condição. Consequência: uma foto
+   GUARDADA, uma SEM AUTORIZAÇÃO e uma TIRADA DO AR continuavam baixáveis por quem tivesse
+   o endereço. A coluna `publicado` governava o que a página desenhava; nunca governou o
+   arquivo. **MEDIDO em 01/09/2026 contra o projeto de verdade, sem mandar chave nenhuma:**
+   `GET /storage/v1/object/public/galeria/nao-existe.jpg` respondeu
+   `{"code":"NoSuchKey","message":"Object not found"}` — leia o código: `NoSuchKey`, não
+   `NoSuchBucket`. O endereço aceitou o bucket e só reclamou da chave. (Um bucket que não
+   existe responde `NoSuchBucket`; a diferença também foi medida.)
+
+   **O que já mudou, no código desta branch:**
+   1. `supabase/migrations/008_galeria_privada.sql` torna `galeria` privado e troca a
+      leitura de `storage.objects` por uma que exige a linha de `public.midia` publicada E
+      autorizada. `acervo` e `identidade` NÃO foram tocados — são material para download
+      livre (RF35/RF36); a política deles precisou ser recriada só porque a original cobria
+      os três num `in (...)` só, e política do Postgres soma com OU;
+   2. `servidor/dados/galeria.ts` trocou `getPublicUrl` por `createSignedUrls` — plural, uma
+      requisição para a lista inteira. **`getPublicUrl` continua em `acervo.ts`, de
+      propósito.** O prazo é **uma hora**, com a conta escrita em
+      `compartilhado/galeria-privada.ts`: prazo curto quebra o `loading="lazy"` (foto abaixo
+      da dobra só é baixada quando a pessoa rola até ela, o que pode ser meia hora depois);
+      prazo longo recria a brecha com data de validade;
+   3. o endereço passou a poder ser NULO, e as duas telas tratam isso de formas opostas: a
+      galeria pública OMITE a foto, o painel MANTÉM a linha com uma frase no lugar da
+      miniatura — porque é ali que está quem pode apagar a linha órfã.
+
+   **O QUE FALTA, e é uma pessoa:** rodar `008_galeria_privada.sql` no SQL Editor do painel
+   do Supabase. Este repositório não tem, e não vai ter, credencial capaz de aplicar
+   migration (não existe service_role — spec §4.1). **Enquanto não for rodada, NADA
+   QUEBRA** — URL assinada funciona em bucket público também —, e por isso a falta seria
+   mais um item 0e. Contra isso existe uma sonda: `bucketAindaAberto()` bate no endereço
+   público sem chave nenhuma, e enquanto ele responder `NoSuchKey` o painel desenha um aviso
+   permanente no topo de `/admin/galeria` **e** o servidor grita `[galeria] O BUCKET
+   "galeria" AINDA É PÚBLICO` no log. Quando a migration for aplicada, o aviso some sozinho
+   — e é assim que se confere, porque o lado fechado da sonda não pôde ser medido daqui.
+   Depois disso, apagar este item.
+
+   **O QUE MUDA NO RACIOCÍNIO DO "APAGAR", e é sutil.** Antes: "tirar do ar" não cumpria a
+   RN07 de jeito nenhum, e só "Apagar" cumpria. Com a migration aplicada, tirar do ar passa
+   a cumprir — **com atraso de até uma hora**, porque uma URL assinada é um PORTADOR e as já
+   emitidas continuam valendo até vencer. Para o caso urgente da RN07 (autorização retirada,
+   foto de criança subida por engano) uma hora é tempo demais, e apagar continua sendo o
+   único gesto que age no mesmo instante: sem o arquivo no bucket, toda URL assinada viva
+   morre junto. **A galeria continua tendo "Apagar" e a tela de notícias não; o argumento
+   mudou de "tirar do ar não resolve" para "tirar do ar demora até uma hora".**
 0k. **A fonte dupla das atividades passou a poder DIVERGIR, e nada disso dá erro visível.**
    Nasceu com a Tarefa P4 (01/09/2026): a equipe corrige o texto das 11 atividades em
    `/admin/atividades`, a correção vai para `public.atividades` e **não volta** para

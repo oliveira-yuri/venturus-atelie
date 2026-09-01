@@ -235,8 +235,19 @@ export async function middleware(requisicao: NextRequest) {
     // camada continua intacta — `img-src` permite BAIXAR IMAGEM daquele
     // host, e nada mais. Nao permite fetch, nao permite XHR, nao permite
     // WebSocket: a diretiva que governa isso e `connect-src`, logo abaixo,
-    // e o host do Supabase continua fora dela. E o bucket ja e publico por
-    // decisao do projeto, entao a imagem nao carrega credencial nenhuma.
+    // e o host do Supabase continua fora dela.
+    //
+    // ATUALIZADO EM 01/09/2026 (bucket privado, migration 008): o bucket
+    // `galeria` DEIXOU de ser publico, e o endereco de cada foto passou a
+    // ser uma URL assinada. Isso NAO muda nada aqui, e a checagem foi
+    // feita: `createSignedUrls` monta o endereco como
+    // `${SUPABASE_URL}/storage/v1/object/sign/...?token=...`, ou seja, a
+    // MESMA ORIGEM que `getPublicUrl` produzia — e uma diretiva de CSP com
+    // host-source casa qualquer caminho e qualquer query naquela origem.
+    // O teste "a URL ASSINADA passa pelo mesmo img-src" (testes/galeria)
+    // trava isso. O que mudou de fato: a imagem agora carrega um token de
+    // portador na query. Ele nao e a sessao de ninguem — vale so para
+    // aquele arquivo, por uma hora (compartilhado/galeria-privada.ts).
     //
     // MONTADO EM EXECUCAO a partir de SUPABASE_URL, e nao escrito a mao:
     // duas cópias do host (uma na variavel de ambiente, outra aqui) e a
