@@ -149,3 +149,93 @@ export function mensagemDeErroDeAutenticacao(erro: unknown): ErroDeAutenticacao 
     conhecido: false
   };
 }
+
+// =====================================================================
+// Envio de formulário público (RF07)
+//
+// Separada das duas de cima pelo mesmo critério que separa aquelas entre
+// si: `mensagemDeErro()` traduz falha de LEITURA de conteúdo público,
+// `mensagemDeErroDeAutenticacao()` traduz uma tentativa de entrar, e esta
+// traduz uma tentativa de GRAVAR vinda de quem não tem conta.
+//
+// O caso que só existe aqui é o limite de envio do BANCO — a exceção
+// P0001 levantada por `public.limitar_envios()`
+// (supabase/migrations/005_contencao.sql, revista em 007). Ela chega ao
+// site como erro do PostgREST com a mensagem em português técnico
+// ("muitos envios em pouco tempo..."), escrita para o log, não para a
+// tela: sem tradução, quem lê não sabe se o problema é dela, se a
+// mensagem foi enviada, nem o que fazer agora.
+// =====================================================================
+
+export type ErroDeEnvio = {
+  /** O que a pessoa lê. */
+  mensagem: string;
+  /**
+   * Falso quando o código não estava previsto aqui — o chamador registra o
+   * erro inteiro no log, que passa a ser a única cópia, já que a tela
+   * recebe a mensagem genérica. Mesma disciplina de `ErroDeAutenticacao`.
+   */
+  conhecido: boolean;
+};
+
+/**
+ * O código de erro do PostgREST/Postgres, se houver.
+ *
+ * Erro do PostgREST não é um `Error`: é um objeto simples com
+ * message/code/details/hint (o mesmo que `descrever()` em
+ * servidor/dados/degradacao.ts trata).
+ */
+function codigoDoPostgrest(erro: unknown): string {
+  if (!erro || typeof erro !== 'object') return '';
+  const bruto = (erro as { code?: unknown }).code;
+  return typeof bruto === 'string' ? bruto : '';
+}
+
+/**
+ * `PGRST202` — "não achei essa função no schema".
+ *
+ * Não é um erro de quem enviou: é `supabase/migrations/
+ * 007_limite_por_visitante.sql` ainda não aplicado no projeto. Quem chama
+ * usa isto para cair no caminho antigo (INSERT direto) em vez de mostrar
+ * uma falha — ver acoes/contato.ts.
+ */
+export const FUNCAO_NAO_EXISTE = 'PGRST202';
+
+/** O limite de envio do banco, levantado por `public.limitar_envios()`. */
+export const LIMITE_DE_ENVIOS = 'P0001';
+
+export function mensagemDeErroDeEnvio(erro: unknown): ErroDeEnvio {
+  const codigo = codigoDoPostgrest(erro);
+
+  if (codigo === LIMITE_DE_ENVIOS) {
+    return {
+      // Diz o que houve, quanto tempo esperar, e o caminho que não depende
+      // de esperar — seção 11 do escopo. Não acusa quem está lendo: na
+      // maioria das vezes quem bate no limite está numa rede compartilhada
+      // (celular, laboratório de escola), e não enviou nada demais.
+      mensagem: 'Já entraram muitas mensagens deste mesmo ponto de acesso na última hora, '
+        + 'então o site pausou os envios por um tempo. Tente de novo daqui a pouco — ou fale '
+        + `com a gente agora pelo WhatsApp ${WHATSAPP} ou pelo e-mail ${EMAIL_ATELIE}.`,
+      conhecido: true
+    };
+  }
+
+  // A constraint de LGPD do banco (`consentimento_obrigatorio`). A
+  // validação da tela já recusa antes; chegar aqui significa que alguém
+  // montou a requisição sem a caixa — e a resposta certa continua sendo
+  // uma frase, não um erro de banco.
+  if (codigo === '23514') {
+    return {
+      mensagem: 'Não foi possível registrar a mensagem sem o consentimento de uso dos dados. '
+        + 'Marque a caixa e envie de novo.',
+      conhecido: true
+    };
+  }
+
+  return {
+    mensagem: 'Não deu para enviar agora. Tente de novo em alguns instantes — o que você '
+      + `escreveu continua nesta tela. Se continuar sem funcionar, o WhatsApp ${WHATSAPP} e o `
+      + `e-mail ${EMAIL_ATELIE} são nossos e funcionam sempre.`,
+    conhecido: false
+  };
+}

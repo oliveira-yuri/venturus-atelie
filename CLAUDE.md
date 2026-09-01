@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (630 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (631)
+npm test                        # suíte completa, modo offline (674 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (675)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,20 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 630 são 618 passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
+Os 674 são 3 pulados com motivo declarado, 9 `test.todo`, e o resto passando **menos 1 a 3
+vermelhos que não são do projeto**: os três testes de `testes/csp-vlibras.test.mjs` que
+dependem de o serviço do VLibras traduzir de verdade. Em 01/09/2026 eles variaram entre
+rodadas (3 vermelhos, depois 2), o que já os identifica como serviço externo instável, e a
+prova está feita: com a árvore LIMPA (`git stash`, build próprio) falham igual — não é o
+RF07. Os outros três daquele arquivo (nonce, política, montagem do widget) continuam verdes
+sempre. Se voltarem a passar sozinhos, apague este parágrafo; enquanto não voltarem, o
+número honesto é 662 alcançáveis, com 660 medidos na última rodada. Os 44 que entraram em 01/09/2026 com o RF07 são
+`testes/contato.test.mjs` (32) e o bloco novo de `testes/rls.test.mjs` (12): a validação do
+formulário público, a origem do visitante e o hash conferido contra um Postgres de verdade,
+a varredura que exige que `acoes/contato.ts` **NÃO** chame `ehEquipe()` (o contrário da do
+painel — este formulário é público) e que não peça a linha de volta no insert, os dois
+baldes da migration 007, e o envio sem JavaScript no Firefox. Os 630 anteriores eram 618
+passando, 3 pulados com motivo declarado e 9 `test.todo` — os do painel
 (RF33), que descrevem requisitos válidos cuja forma de verificar depende de uma sessão de
 equipe, que ainda não existe (ver "O que trava hoje", itens 1 e 2). Os 19 que entraram em
 31/08/2026 são da Tarefa P1 do painel: `testes/painel-guarda.test.mjs` (a guarda, a falha
@@ -54,7 +67,12 @@ rotas novas. Os de `testes/galeria.test.mjs` são da Tarefa P3, e os 34 de 01/09
 não uuid), a validação do formulário de dez campos, o que a lista da equipe desenha, a
 varredura que exige `ehEquipe()` em toda Action de atividades **e que não exista `insert`
 nem `delete` ali**, e a que exige que a leitura do PAINEL não caia para o JSON versionado.
-No modo `test:supabase` a contagem é 631, um a mais e um pulado a mais: o teste do `img-src`
+No modo `test:supabase` a contagem é 675, um a mais e dois pulados a mais. O pulado novo é
+o do RF07 — "sem JavaScript: o envio válido atravessa a validação e chega ao corpo da
+Action" (`testes/contato.test.mjs`), que só roda no modo offline: com credenciais ele
+gravaria uma linha inventada em `public.contatos` do projeto de produção A CADA RODADA, e
+`anon` não tem `delete` para desfazer (não existe service_role neste projeto, spec §4.1).
+O outro é o teste do `img-src`
 "sem Supabase" (`testes/galeria.test.mjs`) mede o servidor compartilhado da suíte e só vale
 no modo offline — ficava vermelho com credenciais, e a Tarefa P4 o marcou com `skip` nesse
 modo (o irmão "com Supabase" sobe servidor próprio e continua medindo). Dois
@@ -164,6 +182,29 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   a equipe lê tudo (`using (publicado or eh_equipe())`), então o `update` pede `.select('id')` —
   sem ele um update que não casa linha nenhuma é sucesso com zero linhas no PostgREST, e editar
   uma notícia apagada responderia "guardado" sem ter guardado nada.
+- **`acoes/contato.ts` é a ÚNICA Action sem `ehEquipe()`, e a ausência é o desenho.** RF07:
+  quem escreve para a ONG não tem conta, e a política do banco diz o mesmo (`contatos:
+  qualquer pessoa escreve`, `for insert with check (true)`). A consequência é que a
+  validação de `compartilhado/validacao.ts` é a única barreira antes de uma tabela com dado
+  pessoal — por isso ela roda inteira no servidor e lê o FormData campo a campo, e por isso
+  `origem` e `situacao` (colunas de trabalho da ONG) são escritas pelo servidor, nunca pelo
+  formulário. `testes/contato.test.mjs` tem uma varredura que EXIGE a ausência de
+  `ehEquipe()` ali: ela existe porque quem ler as quatro Actions do painel vai achar que
+  aqui faltou a guarda.
+- **O limite de envio é por VISITANTE, e isso custa duas metades que precisam viajar
+  juntas.** `005_contencao.sql` identificava a origem pelo `x-forwarded-for` que o PostgREST
+  expõe ao Postgres — o que funcionava quando o navegador de cada pessoa falava direto com o
+  Supabase. Aqui quem fala é sempre o servidor, então aquele cabeçalho é o mesmo para todo
+  mundo e o limite viraria um balde global de 10/hora para o site inteiro: negação de
+  serviço contra quem usa (spec §4.6). O conserto é `compartilhado/origem-do-visitante.ts`
+  (lê `x-nf-client-connection-ip`, depois `x-forwarded-for`, e calcula o SHA-256 — nessa
+  ordem, porque o segundo pode ser forjado e o primeiro é escrito pela Netlify) mais
+  `supabase/migrations/007_limite_por_visitante.sql`, que recebe o hash como parâmetro. São
+  30 envios/hora por origem e por tabela (cabe uma turma de escola saindo por um IP só, que
+  é o caminho de `/para-escolas`) com um teto de 300/hora no site inteiro — o teto existe
+  porque o hash vem de quem chama: sem ele, quem tivesse a chave publicável inseriria sem
+  limite nenhum, o que seria PIOR que hoje. **O IP nunca é gravado**, só o hash, e é o que a
+  política de privacidade promete a quem lê.
 - **Toda Server Action do painel chama `ehEquipe()` sozinha.** A varredura de
   `testes/painel-guarda.test.mjs` exige a guarda em toda página de `app/admin/**` e **não
   alcança Action** — Action é endpoint HTTP público (spec §4.5) e não passa por página nem por
@@ -192,7 +233,8 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
 
 ## Status por módulo
 
-Atualizado em 01/09/2026 (Tarefas P2, P3 e P4 do painel; antes disso, P1 em 31/08 e o fim do
+Atualizado em 01/09/2026 (RF07 — formulário de contato + migration 007; antes, no mesmo dia,
+as Tarefas P2, P3 e P4 do painel; antes disso, P1 em 31/08 e o fim do
 Bloco A da fase 2, rodada de correção 1). O status descreve
 **esta branch**, já sem o `site/` estático — e por isso foi conferido linha a linha contra o que
 existe aqui, não contra o que existia na `main`.
@@ -234,7 +276,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem DENTRO de uma publicação continua faltando: a P3 fez a galeria (`public.midia`), não `publicacoes.imagem_caminho` |
 | RF05 | Galeria | **tela e envio prontos** (Tarefa P3, 01/09/2026) — `/galeria` lê `public.midia` (`servidor/dados/galeria.ts`, agrupando por álbum) e a equipe sobe foto, publica, tira do ar e apaga em `/admin/galeria`. A tabela está VAZIA e **nenhum byte foi escrito no bucket por este código**, em ambiente nenhum: falta sessão de equipe. RN07 honrada em três camadas independentes (RLS do banco, guarda dentro da Action, tela). Só IMAGEM — vídeo não cabe no limite de corpo de uma Server Action (ver `next.config.ts`) |
 | RF06 | Contato institucional | **pronto** |
-| RF07 | Formulário de contato | **falta** — depende da tela e do envio |
+| RF07 | Formulário de contato | **pronto, e é o PRIMEIRO caminho de sucesso do projeto medido de ponta a ponta** (01/09/2026) — `/contato` grava em `public.contatos` por `acoes/contato.ts`, sem sessão nenhuma (o formulário é público: `anon` tem `grant insert` e a política é `with check (true)`). MEDIDO contra o Supabase real, sem JavaScript: preencher, enviar, redirect para `/contato?aviso=enviada` e a linha gravada. **Uma linha de teste ficou no banco de produção e precisa ser apagada à mão** — ver "O que trava hoje", item 0m. O formulário fica DEPOIS dos canais diretos de propósito: a tela da equipe para ler estes registros (RF29) ainda não existe |
 | RF38 | Para escolas | **pronto** |
 | RF39 | Prova social (14 registros) | **pronto** |
 
@@ -280,7 +322,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | RF37 | Publicação de material | **falta** |
 | RF27 | Mural de avisos | **falta** |
 | RF28 | Mensagem para grupo | **falta** |
-| RF29 | Registro central de contatos | **falta** |
+| RF29 | Registro central de contatos | **metade** — a tabela `public.contatos` passou a RECEBER de verdade com o RF07 (01/09/2026), e continua sem tela: quem quiser ler as mensagens precisa abrir o painel do Supabase. É a lacuna mais urgente depois desta tarefa — um formulário público que grava onde ninguém lê é pior que não ter formulário |
 | RF30–RF32 | Indicadores, CSV, PDF | **falta** — os indicadores da home do painel existiam no site antigo e **não foram portados**; só na `main` |
 
 ### Infraestrutura
@@ -288,6 +330,7 @@ traduzido por `compartilhado/erros.ts`, e um token recusado vira `/nova-senha?er
 | Item | Status |
 |---|---|
 | Banco: 15 tabelas, todas com RLS | **pronto** |
+| Migration 007 (limite de envio por visitante) | **escrita e testada, NÃO APLICADA** — `supabase/migrations/007_limite_por_visitante.sql`. Este repositório não tem credencial para aplicar migration (spec §4.1) e nunca vai ter: quem aplica é uma pessoa, no SQL Editor do Supabase, com `supabase/aplicar-tudo.sql` ou só o 007. Provada contra Postgres real em `npm run rls` (12 testes). Ver "O que trava hoje", item 0l |
 | Aceite bloqueante da seção 12 | **passa** contra o banco real |
 | Seed com conteúdo real | **pronto** — 11 atividades, 14 clipping, 5 áreas |
 | Acervo tratado (233 MB → 27 MB) | **pronto** |
@@ -344,7 +387,9 @@ versões para manter em paralelo aqui.
   repositório que cite um caminho `site/...` está falando do site antigo, que vive no histórico:
   `git show main:site/index.html`.
 
-**O que ainda não existe no Next:** a área do usuário (RF11) e a última tela do painel, atividades (P4).
+**O que ainda não existe no Next:** a área do usuário (RF11) e a tela da equipe para LER as
+mensagens de contato (RF29) — que passou a importar mais em 01/09/2026, quando o RF07 ligou o
+formulário público e a tabela começou a receber de verdade.
 O painel em si passou a existir em 31/08/2026 (Tarefa P1): `/admin` é rota real e responde
 **404 para quem não é equipe** — o que continua sendo o comportamento certo, e o que
 `testes/redirects.test.mjs` agora vigia (a trava mudou de "`/admin` não existe" para
@@ -545,6 +590,46 @@ revisitada e mantida naquela tarefa.
    JSON); em `npm run test:supabase`, a primeira atividade tirada do ar ou o primeiro resumo
    preenchido pela equipe deixa um deles vermelho — será a suíte cobrando conteúdo, não
    defeito de código.
+
+0l. **A migration 007 está escrita, testada e NÃO APLICADA — e o site não avisa por si.**
+   Nasceu com o RF07 (01/09/2026). `supabase/migrations/007_limite_por_visitante.sql`
+   troca o limite de envio "por cabeçalho" (que neste desenho é sempre o SERVIDOR, ou
+   seja, um balde global de 10/hora para o site inteiro — spec §4.6) por um balde por
+   VISITANTE, com o hash do IP passado como parâmetro explícito da função
+   `public.registrar_contato`. Este repositório **não tem, e não vai ter, credencial capaz
+   de aplicar migration** (não existe service_role — spec §4.1): quem aplica é uma pessoa,
+   no SQL Editor do Supabase.
+
+   **Enquanto não for aplicada, o formulário CONTINUA FUNCIONANDO** — e é essa a armadilha.
+   `acoes/contato.ts` chama a função, recebe `PGRST202` ("não achei essa função"), e cai no
+   caminho antigo: um INSERT direto, que grava a mensagem do mesmo jeito. MEDIDO contra o
+   Supabase real em 01/09/2026: o envio deu certo e a linha entrou. O que degrada é só a
+   qualidade do limite — 10 envios por hora para o site inteiro, e o primeiro spammer (ou a
+   primeira turma de escola) fecha o formulário para todo mundo. A única testemunha é uma
+   linha `[contato]` no log do servidor, com o nome do arquivo a aplicar.
+
+   **Como aplicar:** `./ferramentas/gerar-sql-completo.sh` já inclui o 007 em
+   `supabase/aplicar-tudo.sql`; para um banco que já existe, colar só o
+   `007_limite_por_visitante.sql` no SQL Editor. Depois disso, apagar este item.
+   `npm run rls` prova a migration contra um Postgres de verdade (12 testes), e é a única
+   verificação possível dela: `npm run test:supabase` fala com o projeto de produção, onde
+   ela não está.
+0m. **Uma linha de teste ficou em `public.contatos` do banco de PRODUÇÃO, e este
+   repositório não consegue apagá-la.** Foi gravada em 01/09/2026 para medir o caminho de
+   sucesso do RF07 de ponta a ponta (o primeiro do projeto — as quatro tarefas do painel
+   nunca conseguiram). É reconhecível pelo e-mail `teste-rf07@exemplo.invalid` e pelo nome
+   "TESTE AUTOMATIZADO - apagar (RF07)".
+
+   Apagar exige sessão de equipe: `anon` tem `grant insert` e mais nada em `contatos`
+   (medido — `delete` responde `42501 permission denied`, e `select` também). No SQL Editor
+   do Supabase:
+
+   ```sql
+   delete from public.contatos where email = 'teste-rf07@exemplo.invalid';
+   ```
+
+   Nenhum teste automático grava em `contatos`: o único que gravaria está com `skip` no
+   modo com credenciais, com o motivo escrito (ver "Comandos").
 
 **Do projeto, válidos para as duas branches:**
 

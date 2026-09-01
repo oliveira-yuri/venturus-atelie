@@ -18,6 +18,10 @@ import { readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import EmbeddedPostgres from 'embedded-postgres';
+// A metade do SITE do limite por visitante (migration 007). Importada aqui
+// para o teste comparar o hash dos DOIS lados contra um Postgres de
+// verdade — ver o bloco no fim deste arquivo.
+import { hashDaOrigem, SEM_IP } from '../compartilhado/origem-do-visitante.ts';
 
 const PASTA_DADOS = join(tmpdir(), `aac-rls-${process.pid}`);
 const PORTA = 54330 + (process.pid % 200);
@@ -460,5 +464,267 @@ describe('regras de negócio impostas pelo banco', () => {
       where busca @@ plainto_tsquery('portuguese', 'histórias')
     `);
     assert.equal(rows.length, 1, 'a busca em português não encontrou o material');
+  });
+});
+
+// =====================================================================
+// Limite de envio POR VISITANTE — supabase/migrations/007_limite_por_visitante.sql
+//
+// Este bloco tem uma propriedade que nenhum outro deste arquivo tem: ele é
+// a ÚNICA verificação possível da migration 007. Ela não está aplicada no
+// projeto Supabase de produção (aplicar migration exige credencial que este
+// repositório não tem, e não vai ter — spec §4.1), então
+// `npm run test:supabase` não a alcança. Aqui há um Postgres de verdade com
+// as migrations reais, e é onde ela pode ser exercitada.
+//
+// O QUE ESTÁ SENDO PROVADO, e por que cada coisa importa:
+//
+//  · que dois visitantes NÃO compartilham balde. É o defeito que a 007
+//    existe para consertar: com o `x-forwarded-for` do servidor, 10 envios
+//    de uma pessoa derrubavam o formulário para todo mundo (spec §4.6);
+//  · que o balde do visitante EXISTE, ou seja, que trocar o balde global
+//    por baldes por origem não desligou o limite;
+//  · que o hash calculado em compartilhado/origem-do-visitante.ts é
+//    exatamente o que o Postgres calcula. Este é o teste que mais paga: se
+//    os dois lados divergirem, nada quebra visivelmente — o limite
+//    simplesmente para de reconhecer a mesma pessoa, e ninguém descobre
+//    até chegar o envio em massa;
+//  · que `registrar_contato` não devolve a linha gravada. `anon` tem
+//    `grant insert` e NENHUM select em `public.contatos`: uma função que
+//    devolvesse a linha seria uma porta lateral de leitura numa tabela com
+//    dado pessoal.
+// =====================================================================
+
+describe('limite de envio por visitante (migration 007)', () => {
+  const VISITANTE_A = hashDaOrigem('203.0.113.7');
+  const VISITANTE_B = hashDaOrigem('203.0.113.99');
+
+  /** Chama registrar_contato como `anon`, dentro de uma transação isolada. */
+  function enviarComo(visitante, quantos = 1) {
+    const chamadas = Array.from({ length: quantos }, () => `
+      select public.registrar_contato(
+        '${visitante}', 'Fulana de Teste', 'fulana@exemplo.test',
+        'Mensagem de teste automatizado.', true, null, null);
+    `).join('\n');
+
+    return comoAnonimo(chamadas);
+  }
+
+  test('o hash do site é o MESMO que o Postgres calcula — os dois lados do balde', async () => {
+    // compartilhado/origem-do-visitante.ts usa node:crypto; a migration usa
+    // `encode(sha256(convert_to(ip, 'UTF8')), 'hex')`. Nada garante que os
+    // dois continuem iguais além desta linha.
+    const { rows } = await cliente.query(`
+      select encode(sha256(convert_to('203.0.113.7', 'UTF8')), 'hex') as hash,
+             encode(sha256(convert_to('desconhecida', 'UTF8')), 'hex') as sem_ip
+    `);
+
+    assert.equal(rows[0].hash, hashDaOrigem('203.0.113.7'),
+      'o hash do site e o do banco divergiram: os envios de uma mesma pessoa passam a cair em '
+      + 'baldes diferentes, e o limite deixa de existir sem nada acusar');
+    assert.equal(rows[0].sem_ip, hashDaOrigem(SEM_IP));
+  });
+
+  test('quem não tem conta consegue enviar pela função — RF07 depende disso', async () => {
+    const { erro } = await enviarComo(VISITANTE_A);
+    assert.equal(erro, null, `registrar_contato foi bloqueada para anon: ${erro?.message}`);
+  });
+
+  test('a mensagem chega mesmo à tabela, com origem "contato" e o consentimento gravado', async () => {
+    const { linhas } = await comoEVerificar(
+      'anon', null,
+      `select public.registrar_contato('${VISITANTE_A}', 'Fulana de Teste',
+         'fulana@exemplo.test', 'Mensagem de teste automatizado.', true,
+         '  ', 'EMEF de Teste')`,
+      `select origem, nome, telefone, instituicao, consentimento_dados, situacao
+       from public.contatos where email = 'fulana@exemplo.test'`
+    );
+
+    assert.equal(linhas.length, 1, 'a linha não foi gravada');
+    assert.equal(linhas[0].origem, 'contato',
+      '`origem` precisa ser escrita pela função, nunca por quem manda o corpo da requisição');
+    assert.equal(linhas[0].situacao, 'novo', 'a mensagem precisa nascer pendente para quem atende');
+    assert.equal(linhas[0].consentimento_dados, true);
+    assert.equal(linhas[0].telefone, null, 'telefone em branco precisa virar NULL, não string vazia');
+    assert.equal(linhas[0].instituicao, 'EMEF de Teste');
+  });
+
+  test('a função NÃO devolve a linha gravada — anon não tem select em contatos', async () => {
+    const { linhas, erro } = await enviarComo(VISITANTE_A);
+
+    assert.equal(erro, null);
+    // `returns void`: a única coluna do resultado vem vazia (o driver a
+    // entrega como string vazia, não como null). Se um dia alguém trocar
+    // por `returns public.contatos`, isto acusa.
+    assert.ok(
+      linhas[0].registrar_contato === '' || linhas[0].registrar_contato === null,
+      `VAZAMENTO: registrar_contato devolveu conteúdo para quem não pode ler a tabela: `
+      + JSON.stringify(linhas[0])
+    );
+  });
+
+  test('DOIS VISITANTES NÃO COMPARTILHAM BALDE — é o defeito que a 007 conserta', async () => {
+    // Antes da 007 a origem vinha do `x-forwarded-for`, que neste desenho é
+    // sempre o servidor: 10 envios de uma pessoa fechavam o formulário para
+    // o site inteiro.
+    const { erro } = await comoAnonimo(`
+      ${Array.from({ length: 30 }, () => `
+        select public.registrar_contato('${VISITANTE_A}', 'A', 'a@exemplo.test', 'oi', true, null, null);
+      `).join('\n')}
+      select public.registrar_contato('${VISITANTE_B}', 'B', 'b@exemplo.test', 'oi', true, null, null);
+    `);
+
+    assert.equal(erro, null,
+      `o balde de um visitante derrubou o envio de OUTRO: ${erro?.message}`);
+  });
+
+  test('o balde do visitante existe: o 31º envio da MESMA origem é recusado', async () => {
+    const { erro } = await enviarComo(VISITANTE_A, 31);
+
+    assert.ok(erro !== null, 'o limite por origem sumiu — 31 envios da mesma origem passaram');
+    assert.equal(erro.code, 'P0001',
+      'o código precisa ser P0001: é por ele que compartilhado/erros.ts traduz a recusa');
+  });
+
+  test('30 envios da mesma origem ainda passam — o número precisa caber numa turma de escola', async () => {
+    // O site tem /para-escolas, e o caminho natural dali é uma turma
+    // inteira saindo por um IP só. Turma de escola pública em São Paulo tem
+    // ~30 alunos; era por isso que o 10 de 005 precisava subir.
+    const { erro } = await enviarComo(VISITANTE_A, 30);
+    assert.equal(erro, null, `30 envios da mesma origem foram recusados: ${erro?.message}`);
+  });
+
+  test('origem forjada com formato inválido cai no balde de "desconhecida", não num balde novo', async () => {
+    // O hash chega como PARÂMETRO, ou seja, quem chama escolhe o valor.
+    // Isso é conhecido e está escrito na migration; o que não pode é lixo
+    // arbitrário virar chave em `envios_recentes`.
+    const { linhas } = await comoEVerificar(
+      'anon', null,
+      `select public.registrar_contato('nao-sou-um-hash; drop table x', 'A',
+         'a@exemplo.test', 'oi', true, null, null)`,
+      `select origem from public.envios_recentes where tabela = 'contatos' order by origem`
+    );
+
+    const origens = linhas.map((l) => l.origem);
+    assert.ok(origens.includes(hashDaOrigem(SEM_IP)),
+      `origem forjada não caiu no balde de "desconhecida": ${JSON.stringify(origens)}`);
+    assert.ok(!origens.some((o) => o.includes('drop table')),
+      'o valor recebido foi gravado cru em envios_recentes');
+  });
+
+  test('o teto do site existe — sem ele, quem tem a chave insere sem limite nenhum', async () => {
+    // O balde por visitante é escolhido por quem chama. Sozinho, ele seria
+    // PIOR que o limite global de hoje: bastaria mandar um hash novo a cada
+    // envio. O teto é o fusível que impede isso, num número que uso normal
+    // não alcança (300/hora).
+    // As 300 linhas entram como DONO do banco, e não como anon, de
+    // propósito: `anon` não tem grant nenhum em `envios_recentes` (quem
+    // escreve ali é o trigger, que roda como definer) e a primeira versão
+    // deste teste passou justamente por causa disso — recusa por
+    // privilégio (42501), não pelo teto. Um teste que confunde as duas
+    // recusas ficaria verde com o teto apagado.
+    await cliente.query('begin');
+    let erro = null;
+    try {
+      await cliente.query(`
+        insert into public.envios_recentes (origem, tabela)
+        select 'teto-do-site', 'contatos' from generate_series(1, 300)
+      `);
+      await cliente.query(`select set_config('request.jwt.claims', '', true)`);
+      await cliente.query('set local role anon');
+      await cliente.query(
+        `select public.registrar_contato('${VISITANTE_A}', 'A', 'a@exemplo.test',
+           'oi', true, null, null)`);
+    } catch (falha) {
+      erro = falha;
+    } finally {
+      await cliente.query('rollback');
+    }
+
+    assert.ok(erro !== null, 'o teto do site não recusou nada — 300 envios na hora passaram');
+    assert.equal(erro.code, 'P0001',
+      `a recusa veio por outro motivo (${erro.code}), não pelo teto`);
+  });
+
+  test('o caminho de 005 continua inteiro: insert direto ainda é limitado, pelo cabeçalho', async () => {
+    // `limitar_inscricoes` (RF15, ainda não escrito) e qualquer insert que
+    // não passe por `registrar_contato` continuam contando pelo
+    // `request.headers`. Um `create or replace` que quebrasse isso deixaria
+    // a tabela sem limite nenhum por esse caminho.
+    const { erro } = await comoAnonimo(`
+      ${Array.from({ length: 31 }, () => `
+        insert into public.contatos (nome, email, mensagem, consentimento_dados)
+        values ('A', 'a@exemplo.test', 'oi', true);
+      `).join('\n')}
+    `);
+
+    assert.ok(erro !== null, 'insert direto em contatos ficou sem limite nenhum');
+    assert.equal(erro.code, 'P0001');
+  });
+
+  test('cada envio conta nos DOIS baldes: o da origem e o do teto do site', async () => {
+    // Sem esta verificação, apagar a metade "teto-do-site" do insert do
+    // trigger não derrubaria nada: o teste do teto abaixo semeia as 300
+    // linhas por conta própria, então ele continuaria verde com o teto
+    // virando código morto em produção. MEDIDO: foi exatamente o que
+    // aconteceu ao apagar aquela metade — 57 testes, 57 verdes.
+    // Contagem por DELTA, e não em números absolutos: o `before()` deste
+    // arquivo já grava um contato (que dispara o trigger), então o balde do
+    // teto nunca começa em zero.
+    const CONTAR = `select origem, count(*)::int as quantas from public.envios_recentes
+                    where tabela = 'contatos' group by origem`;
+    const mapa = (linhas) => Object.fromEntries(linhas.map((l) => [l.origem, l.quantas]));
+
+    const antes = mapa((await cliente.query(CONTAR)).rows);
+
+    const { linhas } = await comoEVerificar(
+      'anon', null,
+      `select public.registrar_contato('${VISITANTE_A}', 'A', 'a@exemplo.test',
+         'oi', true, null, null)`,
+      CONTAR
+    );
+
+    const depois = mapa(linhas);
+    const cresceu = (origem) => (depois[origem] ?? 0) - (antes[origem] ?? 0);
+
+    assert.equal(cresceu(VISITANTE_A), 1, 'o envio não foi contado no balde da origem');
+    assert.equal(cresceu('teto-do-site'), 1,
+      'o envio não foi contado no teto do site — o teto vira código morto e quem tem a chave '
+      + 'volta a inserir sem limite nenhum');
+  });
+
+  test('a configuração da origem é da TRANSAÇÃO, e não fica grudada na conexão do pool', async () => {
+    // Se `set_config` fosse chamado sem `is_local => true`, o balde de uma
+    // pessoa vazaria para a próxima requisição que reaproveitasse a mesma
+    // conexão — no Supabase, que usa pool, isso acontece o tempo todo.
+    //
+    // ESTA CHAMADA COMMITA, e é o ponto do teste: dentro de uma transação
+    // que dá rollback (o `como()` do topo deste arquivo) as duas formas
+    // somem igual, e a diferença fica invisível. MEDIDO: com
+    // `is_local => false` na migration, a primeira versão deste teste
+    // passava do mesmo jeito.
+    //
+    // Visitante próprio, para a linha que fica committada em
+    // `envios_recentes` não entrar no balde que os outros testes contam.
+    const VISITANTE_C = hashDaOrigem('203.0.113.55');
+
+    await cliente.query(`select set_config('request.jwt.claims', '', false)`);
+    await cliente.query('set role anon');
+    try {
+      await cliente.query(`select public.registrar_contato('${VISITANTE_C}', 'C',
+        'c@exemplo.test', 'oi', true, null, null)`);
+    } finally {
+      await cliente.query('reset role');
+    }
+
+    const { rows } = await cliente.query(
+      `select current_setting('app.origem_do_visitante', true) as origem`);
+
+    // Limpeza antes do assert: um `set_config` não-local deixaria a sessão
+    // suja para os testes seguintes mesmo com este falhando.
+    await cliente.query(`select set_config('app.origem_do_visitante', '', false)`);
+
+    assert.ok(rows[0].origem === null || rows[0].origem === '',
+      `a origem do visitante sobreviveu à transação e ficou grudada na conexão: ${rows[0].origem}`);
   });
 });

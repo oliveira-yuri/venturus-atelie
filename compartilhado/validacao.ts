@@ -906,3 +906,141 @@ export function validarAtividade(campos: CamposAtividade): ResultadoValidacao {
 
   return { valido: Object.keys(erros).length === 0, erros };
 }
+
+// =====================================================================
+// Contato — o formulário público de /contato (RF07)
+//
+// Mesmo lugar dos três blocos acima, pelo mesmo motivo escrito no cabeçalho
+// deste arquivo: as três precauções de leitura de FormData valem igual, e
+// este módulo não importa nada, o que é o que permite ao `node --test`
+// exercitá-lo sem subir o Next.
+//
+// A DIFERENÇA QUE ESTE BLOCO TEM PARA OS OUTROS TRÊS, e ela muda o risco:
+// os três anteriores são do PAINEL, atrás de `ehEquipe()`. Este é público —
+// quem envia não tem conta, e a Server Action correspondente
+// (acoes/contato.ts) NÃO chama `ehEquipe()`, de propósito. Então esta é a
+// única barreira que existe antes do banco, e o que ela deixa passar chega
+// a uma tabela com dado pessoal (RF29).
+//
+// OS CAMPOS SAEM DO ESQUEMA, não de gosto: `public.contatos` em
+// supabase/migrations/004_pessoas.sql. `situacao` e `criado_em` são do
+// banco; `origem` é escrita pelo servidor com o literal 'contato' (ver
+// acoes/contato.ts e a função `registrar_contato` de
+// 007_limite_por_visitante.sql), nunca pelo formulário — ela tem
+// `check (origem in ('contato','escola','doacao','voluntariado'))` e deixar
+// o corpo da requisição escolher sujaria o registro central de graça.
+// =====================================================================
+
+/**
+ * O que o formulário de contato manda — e é a lista COMPLETA do que a
+ * Action aceita. Campo que não está aqui não existe para o resto do
+ * sistema.
+ */
+export type CamposContato = {
+  nome: string;
+  email: string;
+  telefone: string;
+  instituicao: string;
+  mensagem: string;
+  /** LGPD: o banco tem `check (consentimento_dados)` e recusa a linha sem. */
+  consentimento: boolean;
+};
+
+/**
+ * Tetos de tamanho — pelo mesmo motivo dos das publicações: as colunas são
+ * `text` no Postgres (sem limite nenhum) e a Action é endpoint HTTP público
+ * (spec §4.5), então sem um teto qualquer pessoa manda megabytes num campo.
+ *
+ * Os números são de uso:
+ *  · 120 para o nome — o maior nome real de dados-iniciais/ tem 34;
+ *  · 254 para o e-mail é o máximo que um endereço pode ter (RFC 5321), ou
+ *    seja, recusar acima disso não recusa endereço legítimo nenhum;
+ *  · 160 para a instituição cabe "EMEF" + nome de escola com folga;
+ *  · 5.000 para a mensagem são cerca de duas páginas e meia. Quem precisa
+ *    de mais que isso está mandando um anexo em texto, e o caminho para
+ *    isso é o e-mail da ONG, que está na mesma página.
+ */
+export const LIMITE_NOME = 120;
+export const LIMITE_EMAIL = 254;
+export const LIMITE_INSTITUICAO = 160;
+export const LIMITE_MENSAGEM = 5_000;
+
+/**
+ * Campos do formulário de contato (componentes/FormularioContato.tsx).
+ *
+ * Um a um, por nome, pelo motivo do bloco "Leitura do FormData". Aqui isso
+ * tem uma consequência específica: `consentimento_dados` é a coluna que a
+ * LGPD apoia e que o banco exige (`check (consentimento_dados)`). Espalhar
+ * o FormData faria um `consentimento_dados=true` mandado no corpo valer
+ * tanto quanto a caixa marcada por uma pessoa — que é exatamente a coisa
+ * que um consentimento não pode ser.
+ */
+export function lerContato(dados: FormData): CamposContato {
+  return {
+    nome: textoDoCampo(dados, 'nome'),
+    email: textoDoCampo(dados, 'email'),
+    telefone: textoDoCampo(dados, 'telefone'),
+    instituicao: textoDoCampo(dados, 'instituicao'),
+    mensagem: textoDoCampo(dados, 'mensagem'),
+    consentimento: marcado(dados, 'consentimento')
+  };
+}
+
+/**
+ * TODOS os erros de uma vez — a regra do topo deste arquivo.
+ *
+ * O QUE É OBRIGATÓRIO ESPELHA A TABELA, e nada além: `nome`, `email` e
+ * `mensagem` são `not null` em `public.contatos`; `telefone` e
+ * `instituicao` aceitam nulo. Pedir mais do que a ONG precisa para
+ * responder seria coleta acima do mínimo (RNF09) numa tela que qualquer
+ * pessoa abre.
+ */
+export function validarContato(campos: CamposContato): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!campos.nome) {
+    erros.nome = 'Escreva seu nome, para sabermos com quem estamos falando.';
+  } else if (campos.nome.length > LIMITE_NOME) {
+    erros.nome = `O nome passou de ${LIMITE_NOME} caracteres.`;
+  }
+
+  if (!campos.email || !FORMATO_EMAIL.test(campos.email)) {
+    erros.email = 'Confira o e-mail: ele precisa ter um endereço completo, como nome@exemplo.com. '
+      + 'É por ele que respondemos.';
+  } else if (campos.email.length > LIMITE_EMAIL) {
+    erros.email = `O e-mail passou de ${LIMITE_EMAIL} caracteres.`;
+  }
+
+  // Telefone é opcional (coleta mínima), mas se vier, vem completo — mesma
+  // regra de validarCadastro(), e de propósito: duas regras de telefone no
+  // mesmo site divergiriam.
+  if (campos.telefone) {
+    const digitos = apenasDigitos(campos.telefone);
+    if (digitos.length < 10 || digitos.length > 11) {
+      erros.telefone = 'O telefone precisa incluir o DDD, como (11) 95396-8344. '
+        + 'Se preferir não deixar telefone, apague o campo — ele é opcional.';
+    }
+  }
+
+  if (campos.instituicao.length > LIMITE_INSTITUICAO) {
+    erros.instituicao = `O nome da instituição passou de ${LIMITE_INSTITUICAO} caracteres.`;
+  }
+
+  if (!campos.mensagem) {
+    erros.mensagem = 'Escreva sua mensagem.';
+  } else if (campos.mensagem.length > LIMITE_MENSAGEM) {
+    erros.mensagem = `A mensagem passou de ${LIMITE_MENSAGEM} caracteres. Conte o essencial por `
+      + 'aqui — a gente responde e continua a conversa por e-mail.';
+  }
+
+  // A caixa é obrigatória na tela E o banco recusa a linha sem ela
+  // (`constraint consentimento_obrigatorio check (consentimento_dados)`,
+  // 004_pessoas.sql). A recusa daqui existe para a pessoa ler uma frase em
+  // vez de um erro de banco.
+  if (!campos.consentimento) {
+    erros.consentimento = 'Para enviar, precisamos que você concorde com o uso dos seus dados '
+      + 'para responder esta mensagem. O que fazemos com eles está na política de privacidade.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}

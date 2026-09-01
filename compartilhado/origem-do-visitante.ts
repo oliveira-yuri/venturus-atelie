@@ -1,0 +1,139 @@
+import { createHash } from 'node:crypto';
+
+/**
+ * compartilhado/origem-do-visitante.ts — quem enviou este formulário, para
+ * efeito de limite de envio. Nunca para efeito de identificar a pessoa.
+ *
+ * ===================================================================
+ * POR QUE ISTO EXISTE
+ * ===================================================================
+ *
+ * `supabase/migrations/005_contencao.sql` limitava os envios por origem, e
+ * descobria a origem lendo o `x-forwarded-for` que o PostgREST expõe ao
+ * Postgres. Aquilo funcionava quando o NAVEGADOR de cada pessoa falava
+ * direto com o Supabase.
+ *
+ * Neste desenho quem fala com o Supabase é sempre o servidor (spec §4.1),
+ * então aquele cabeçalho é o mesmo para todo mundo e o limite vira um balde
+ * global de 10/hora para o site inteiro — negação de serviço contra quem
+ * usa, não contenção (spec §4.6). O conserto tem duas metades: a do banco é
+ * `supabase/migrations/007_limite_por_visitante.sql`; esta é a do site.
+ *
+ * ===================================================================
+ * O QUE SAI DAQUI, E O QUE NUNCA SAI
+ * ===================================================================
+ *
+ * Sai um hash SHA-256 em hexadecimal. NÃO sai o endereço de IP, e ele não
+ * é gravado em lugar nenhum — é coleta mínima (RNF09), é o que
+ * `supabase/migrations/005_contencao.sql` já dizia no comentário da coluna,
+ * e é o que a política de privacidade promete a quem lê:
+ *
+ *   "Ao enviar um formulário, guardamos um código embaralhado derivado do
+ *    seu endereço de internet, apenas para impedir envio automatizado em
+ *    massa. O endereço em si não é guardado, e o código não permite chegar
+ *    de volta até você."
+ *
+ * O HASH NÃO É ANONIMATO FORTE, e isso precisa estar escrito: o espaço de
+ * endereços IPv4 é pequeno o bastante para ser varrido inteiro por quem
+ * tiver a tabela e vontade. O que ele dá é (a) o endereço não fica legível
+ * em texto para quem abrir a tabela, e (b) o registro é apagado em até um
+ * dia (`limpar_envios_antigos()`, 005). Quem quiser mais que isso precisa
+ * de um segredo por site misturado ao hash — que este projeto não tem onde
+ * guardar hoje.
+ *
+ * ===================================================================
+ * A ORDEM DOS CABEÇALHOS É UMA DECISÃO DE SEGURANÇA
+ * ===================================================================
+ *
+ * `x-forwarded-for` PODE SER FORJADO por quem faz a requisição: é só mandar
+ * o cabeçalho. Se ele viesse primeiro, qualquer pessoa trocaria de balde a
+ * cada envio e o limite não existiria.
+ *
+ * `x-nf-client-connection-ip` é escrito pela Netlify com o IP da conexão
+ * TCP e sobrescreve o que vier de fora — por isso ele vem primeiro. Em
+ * produção ele existe sempre; fora dela ele nunca existe, e aí o
+ * `x-forwarded-for` é o que resta (é o que o `next dev` atrás de um proxy
+ * local oferece).
+ *
+ * Ou seja: em produção o valor é confiável, e fora dela é uma conveniência
+ * de desenvolvimento. Não há terceira opção — `request.socket.remoteAddress`
+ * não é alcançável de dentro de uma Server Action.
+ *
+ * ===================================================================
+ * VIVE EM compartilhado/, NÃO EM servidor/
+ * ===================================================================
+ *
+ * Mesmo motivo de compartilhado/validacao.ts: `servidor/` obriga
+ * `import 'server-only'`, e isso impediria `node --test` de importar este
+ * arquivo — que é justamente onde a decisão testável mora
+ * (testes/contato.test.mjs compara o hash daqui com o que o Postgres
+ * calcula, em testes/rls.test.mjs).
+ *
+ * Ele importa `node:crypto` e nada mais. Não é importável por um Client
+ * Component, e não precisa ser: quem lê cabeçalho é o servidor.
+ */
+
+/**
+ * Os cabeçalhos consultados, NA ORDEM. Ver o bloco acima antes de mexer:
+ * a ordem é a defesa contra forjar o balde.
+ */
+export const CABECALHOS_DE_IP = [
+  // Netlify. Escrito pela plataforma, sobrescreve o que vier de fora.
+  'x-nf-client-connection-ip',
+  // `next dev` atrás de um proxy local, e qualquer outra hospedagem.
+  'x-forwarded-for',
+  // Último recurso; alguns proxies só põem este.
+  'x-real-ip'
+];
+
+/**
+ * O que se usa quando nenhum cabeçalho identifica o visitante.
+ *
+ * TODOS OS ENVIOS SEM IP IDENTIFICÁVEL COMPARTILHAM ESTE BALDE, e isso é
+ * deliberado (spec §4.6): degrada para o limite global de antes, em vez de
+ * desligar o limite. O valor precisa ser o mesmo string dos dois lados —
+ * `007_limite_por_visitante.sql` usa exatamente 'desconhecida'.
+ */
+export const SEM_IP = 'desconhecida';
+
+/**
+ * O IP do visitante a partir dos cabeçalhos, ou `SEM_IP`.
+ *
+ * Recebe uma função de leitura, e não o objeto de cabeçalhos do Next, de
+ * propósito: assim a decisão é pura e cabe num teste do Node, sem subir
+ * servidor. `acoes/contato.ts` passa `(nome) => (await headers()).get(nome)`.
+ *
+ * `x-forwarded-for` é uma LISTA ("cliente, proxy1, proxy2") — o primeiro
+ * item é quem originou. Pegar a lista inteira daria um balde por caminho de
+ * rede, não por pessoa.
+ */
+export function ipDoVisitante(ler: (nome: string) => string | null | undefined): string {
+  for (const nome of CABECALHOS_DE_IP) {
+    const bruto = ler(nome);
+    if (typeof bruto !== 'string') continue;
+
+    const primeiro = bruto.split(',')[0].trim();
+    if (primeiro.length > 0) return primeiro;
+  }
+
+  return SEM_IP;
+}
+
+/**
+ * O hash que vai para o banco. Precisa bater byte a byte com o que o
+ * Postgres calcula em `encode(sha256(convert_to(v_ip, 'UTF8')), 'hex')` —
+ * hexadecimal minúsculo, UTF-8, sem sal e sem nada em volta.
+ *
+ * Se um dos dois lados mudar sozinho, nada quebra visivelmente: o limite
+ * simplesmente para de contar a mesma pessoa duas vezes, e ninguém percebe
+ * até chegar o envio em massa. É por isso que existe um teste que compara
+ * os dois cálculos contra um Postgres de verdade (testes/rls.test.mjs).
+ */
+export function hashDaOrigem(ip: string): string {
+  return createHash('sha256').update(ip, 'utf8').digest('hex');
+}
+
+/** As duas coisas juntas, que é como a Server Action usa. */
+export function origemDoVisitante(ler: (nome: string) => string | null | undefined): string {
+  return hashDaOrigem(ipDoVisitante(ler));
+}

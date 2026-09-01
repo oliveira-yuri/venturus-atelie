@@ -240,10 +240,34 @@ const PAGINAS = [
     // "Doação em dinheiro" continua comparado byte a byte.
     idsExcluidos: ['dados-pix']
   },
-  // Tarefa A6. /contato não ganhou formulário nenhum nesta tarefa (ver o
-  // comentário de app/contato/page.tsx) — é uma migração 1:1 sem seção
-  // dinâmica, por isso não precisa de idsExcluidos.
-  { rota: '/contato', arquivoOriginal: 'testes/apoio/html-original/contato.html' },
+  {
+    rota: '/contato',
+    arquivoOriginal: 'testes/apoio/html-original/contato.html',
+    // RF07. Até aqui esta rota era migração 1:1 e não precisava de exclusão
+    // nenhuma — site/contato.html nunca teve formulário (ver o comentário de
+    // app/contato/page.tsx). A tarefa do RF07 acrescenta a <section
+    // aria-labelledby="titulo-mensagem">, que é texto NOVO: rótulos, textos
+    // de ajuda e a frase de consentimento, nada disso existe no HTML
+    // original nem poderia existir.
+    //
+    // Note a diferença para as outras exclusões desta lista: aquelas saem
+    // porque a div chegava VAZIA no estático e é preenchida com dado real
+    // agora. Esta sai porque é conteúdo que a migração acrescentou de
+    // propósito. O resto do <main> — o parágrafo de destaque, "Canais
+    // diretos", "Onde estamos" — continua comparado palavra por palavra, na
+    // mesma ordem, e foi por isso que a seção nova entrou ENTRE duas seções
+    // existentes em vez de no fim.
+    //
+    // A caixa de confirmação do envio (`?aviso=enviada`) NÃO precisa de
+    // exclusão: sem o parâmetro na URL ela não desenha nada, e este teste
+    // busca a rota sem parâmetro. Se alguém puser texto fixo ali, este teste
+    // é quem acusa.
+    //
+    // Vai em `idsAcrescentados`, e não em `idsExcluidos`, porque a seção só
+    // existe de um lado — ver o comentário daquela chave, logo abaixo desta
+    // lista.
+    idsAcrescentados: ['titulo-mensagem']
+  },
   {
     rota: '/entrar',
     arquivoOriginal: 'testes/apoio/html-original/entrar.html',
@@ -380,17 +404,48 @@ function extrairTextoDoMain(html, idsExcluidos = [], exigirPresenca = false) {
   return normalizarEspacos(decodificarEntidades(removerTags(miolo)));
 }
 
+/**
+ * `idsAcrescentados` — a segunda espécie de exclusão, nascida com o RF07.
+ *
+ * As doze primeiras exclusões desta lista têm todas a mesma forma: um
+ * elemento que EXISTE nos dois lados, vazio no HTML estático original
+ * (porque um script o preenchia depois) e cheio no renderizado. Por isso
+ * `exigirPresenca` cobra a presença do lado original: se o id sumir de lá,
+ * é erro de digitação ou alguém editou a cópia congelada.
+ *
+ * O formulário de contato é outra coisa: ele NÃO EXISTE no HTML original, e
+ * nunca existiu (site/contato.html nasceu sem formulário). Cobrar presença
+ * dele lá derrubaria o teste; não cobrar nada abriria a porta para excluir,
+ * por engano, um id que existe nos dois lados — que é exatamente a exclusão
+ * perigosa, a que apaga texto original da comparação sem ninguém notar.
+ *
+ * Então a exigência INVERTE: o id precisa estar AUSENTE do original. É uma
+ * verificação de verdade, não uma dispensa — trocar `idsAcrescentados` por
+ * `idsExcluidos` (ou vice-versa) derruba o teste nos dois sentidos.
+ */
 for (const pagina of PAGINAS) {
   test(`${pagina.rota}: texto visível do <main> é idêntico ao HTML original`, async () => {
     const idsExcluidos = pagina.idsExcluidos ?? [];
+    const idsAcrescentados = pagina.idsAcrescentados ?? [];
 
     const htmlOriginal = readFileSync(path.join(RAIZ, pagina.arquivoOriginal), 'utf-8');
+
+    for (const id of idsAcrescentados) {
+      assert.ok(
+        !removerElementoPorId(htmlOriginal, id).encontrado,
+        `"${id}" está declarado como idsAcrescentados (só existe na página nova), mas EXISTE no `
+        + 'HTML original — excluí-lo apagaria texto original da comparação. Se ele existe nos '
+        + 'dois lados, o lugar dele é idsExcluidos.'
+      );
+    }
+
     const textoOriginal = extrairTextoDoMain(htmlOriginal, idsExcluidos, /* exigirPresenca */ true);
 
     const resposta = await fetch(`${BASE}${pagina.rota}`);
     assert.equal(resposta.status, 200, `${pagina.rota} não respondeu 200`);
     const htmlRenderizado = await resposta.text();
-    const textoRenderizado = extrairTextoDoMain(htmlRenderizado, idsExcluidos, /* exigirPresenca */ false);
+    const textoRenderizado = extrairTextoDoMain(
+      htmlRenderizado, [...idsExcluidos, ...idsAcrescentados], /* exigirPresenca */ false);
 
     assert.equal(textoRenderizado, textoOriginal);
   });
@@ -482,6 +537,16 @@ const COBERTURA_DAS_EXCLUSOES = {
       + '<legend>Como você quer participar?</legend> (componentes/AbasEntrar.tsx) também não vem de '
       + 'CampoFormulario — coberta pelo mesmo teste novo de testes/pagina-entrar.test.mjs.'
   },
+  'titulo-mensagem': {
+    arquivo: 'testes/contato.test.mjs',
+    nota: 'RF07 — a seção inteira do formulário de contato sai daqui porque é texto NOVO, que '
+      + 'não existe no HTML original. A fronteira texto-elemento que ela esconde é o parágrafo '
+      + '"…está na <Link>política de privacidade</Link>." (o único lugar do formulário onde texto '
+      + 'encosta em elemento; o resto vem de CampoFormulario, em blocos próprios): comparado por '
+      + 'IGUALDADE, com o espaço antes do link, em "o parágrafo do consentimento aponta para a '
+      + 'política de privacidade, com o espaço no lugar". O título da seção e o rótulo da caixa de '
+      + 'consentimento também são comparados por igualdade no mesmo arquivo.'
+  },
   'form-recuperar': {
     arquivo: 'testes/campo-formulario.test.mjs',
     nota: 'mesmo componente e mesma fronteira de painel-entrar/painel-criar (um só campo obrigatório, '
@@ -491,7 +556,13 @@ const COBERTURA_DAS_EXCLUSOES = {
 };
 
 test('toda exclusão de paridade-texto tem cobertura registrada (arquivo existente, ou motivo de por que não precisa)', () => {
-  const todasAsExclusoes = [...new Set(PAGINAS.flatMap((p) => p.idsExcluidos ?? []))];
+  // As DUAS espécies de exclusão entram aqui: `idsExcluidos` (existe nos
+  // dois lados) e `idsAcrescentados` (só na página nova). A diferença entre
+  // elas é sobre o HTML original; o risco que esta tabela cobre é o mesmo
+  // nos dois casos — um bloco que este arquivo deixa de observar.
+  const todasAsExclusoes = [...new Set(
+    PAGINAS.flatMap((p) => [...(p.idsExcluidos ?? []), ...(p.idsAcrescentados ?? [])])
+  )];
 
   for (const id of todasAsExclusoes) {
     const entrada = COBERTURA_DAS_EXCLUSOES[id];
@@ -520,7 +591,7 @@ test('toda exclusão de paridade-texto tem cobertura registrada (arquivo existen
   for (const id of Object.keys(COBERTURA_DAS_EXCLUSOES)) {
     assert.ok(
       todasAsExclusoes.includes(id),
-      `COBERTURA_DAS_EXCLUSOES tem "${id}", que não está em nenhum idsExcluidos de PAGINAS — entrada morta`
+      `COBERTURA_DAS_EXCLUSOES tem "${id}", que não está em nenhum idsExcluidos/idsAcrescentados de PAGINAS — entrada morta`
     );
   }
 });

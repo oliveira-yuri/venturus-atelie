@@ -5,28 +5,85 @@
 // className, <main id="conteudo" class="conteudo"> preservado, <noscript>
 // saiu (a navegação chega pronta no HTML do servidor, via app/layout.tsx).
 //
-// SEM FORMULÁRIO, DE PROPÓSITO — decisão da Tarefa A6, que porta esta rota
-// junto com /entrar e /recuperar-acesso. O título da tarefa agrupa as três
-// como "telas com formulário", mas site/contato.html NUNCA teve um: git log
-// confirma que a página nasceu (commit 70cc9b7, fase 01) só com os canais
-// diretos e o endereço — RF07 ("Formulário de contato geral", ver a tabela
-// de status do CLAUDE.md) está listado como "falta — depende da tela e do
-// envio" porque a TELA em si nunca foi desenhada, nem no site estático.
-// Inventar agora os campos desse formulário (rótulos, textos de ajuda,
-// mensagem de consentimento) violaria a regra 2 do CLAUDE.md — a única
-// exceção de conteúdo novo aprovada para esta tarefa é o aviso de "envio
-// ainda não ativo" em /entrar e /recuperar-acesso, que JÁ têm formulário
-// real no HTML de origem. Por isso esta página é uma migração 1:1, sem
-// aviso nenhum: não há nada aqui que prometa enviar e não envie.
+// ===================================================================
+// AGORA TEM FORMULÁRIO (RF07) — e o comentário que dizia o contrário saiu
+// ===================================================================
+//
+// Até esta tarefa esta página era migração 1:1 e o comentário aqui
+// explicava por quê: site/contato.html NUNCA teve formulário (commit
+// 70cc9b7, fase 01 — só os canais diretos e o endereço), e a Tarefa A6, que
+// portou a rota, não podia inventar os campos, os rótulos e o texto de
+// consentimento sem violar a regra 2 do CLAUDE.md.
+//
+// O que mudou não foi a regra: foi o mandato. Esta tarefa é o RF07, e a
+// regra 2 continua sendo obedecida onde ela de fato manda — o texto do
+// CONSENTIMENTO não promete nada que a ONG não tenha declarado; ele aponta
+// para /privacidade, que é política real e escrita (ver o cabeçalho de
+// componentes/FormularioContato.tsx). Rótulo e texto de ajuda de campo são
+// escritos por quem implementa, como nas quatro tarefas anteriores.
+//
+// ===================================================================
+// O FORMULÁRIO VEM DEPOIS DOS CANAIS DIRETOS, E ISSO É DECISÃO
+// ===================================================================
+//
+// Telefone, WhatsApp e e-mail são canais que a ONG lê hoje, todos os dias.
+// A mensagem enviada por aqui vai para `public.contatos`, e a TELA da
+// equipe para ler esse registro (RF29, "registro central de contatos")
+// AINDA NÃO EXISTE nesta branch — quem lê precisa abrir o painel do
+// Supabase. Enquanto for assim, pôr o formulário acima dos canais seria
+// empurrar quem tem pressa para o caminho mais lento.
+//
+// A ordem também é o que mantém testes/paridade-texto.test.mjs honesto: a
+// <section> nova é excluída da comparação com o HTML original (ela é texto
+// que não existia lá), e o resto do <main> continua comparado palavra por
+// palavra, na mesma ordem de antes.
+import FormularioContato from '@/componentes/FormularioContato';
+import { avisoDeContato } from '@/compartilhado/avisos-de-contato';
+
 export const metadata = {
   title: 'Contato — Ateliê Afro Cultural',
   description: 'Telefone, WhatsApp, e-mail, redes sociais e endereço do Ateliê Afro Cultural, na Casa Verde, São Paulo.'
 };
 
-export default function Contato() {
+export default async function Contato(
+  { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
+) {
+  // O resultado de um envio bem-sucedido chega pela URL: `enviarContato`
+  // termina em redirect (POST-redirect-GET, que é o que impede a mensagem
+  // de ser reenviada num F5), e um redirect não carrega estado. `?aviso=` é
+  // escrito por quem quiser, então passa por LISTA FECHADA — o parâmetro
+  // escolhe uma frase nossa, nunca traz uma.
+  const aviso = avisoDeContato((await searchParams).aviso);
+
   return (
     <main id="conteudo" className="conteudo">
       <h1>Fale com a gente</h1>
+
+      {/*
+        A confirmação fica AQUI, logo abaixo do título, e não junto ao
+        formulário lá embaixo: depois do redirect o navegador entrega a
+        página nova pelo começo, e uma confirmação a três telas de rolagem
+        de distância é uma confirmação que ninguém lê. É a mesma posição, e
+        pelo mesmo motivo, do aviso das telas do painel.
+
+        `role="status"` e não `role="alert"`: esta caixa chega junto com uma
+        página NOVA, não aparece no meio de uma que já estava aberta —
+        `alert` anuncia interrupções. A recusa, que é o caso oposto, é
+        `role="alert"` e mora dentro do formulário
+        (componentes/FormularioContato.tsx).
+
+        Quando não há `?aviso=`, NADA é desenhado aqui — nem uma caixa
+        vazia. É o que mantém testes/paridade-texto.test.mjs comparando o
+        texto desta página com o do HTML original sem precisar excluir esta
+        parte.
+      */}
+      {aviso
+        ? (
+          <div className={aviso.ok ? 'aviso aviso--sucesso' : 'aviso aviso--erro'} role="status">
+            <p>{aviso.texto}</p>
+          </div>
+        )
+        : null}
 
       <p className="destaque">
         Escolas, instituições, empresas, imprensa ou qualquer pessoa que queira conhecer o
@@ -43,6 +100,19 @@ export default function Contato() {
           <div><dt>TikTok</dt><dd><a href="https://tiktok.com/@ateli.afro.cultur" rel="noopener">@ateli.afro.cultur</a></dd></div>
           <div><dt>YouTube</dt><dd><a href="https://www.youtube.com/channel/UCWeZ-53etejdUzUi3eR81zg" rel="noopener">Nosso canal</a></dd></div>
         </dl>
+      </section>
+
+      {/*
+        SEÇÃO NOVA (RF07). É ela que sai da comparação de
+        testes/paridade-texto.test.mjs, pelo id do próprio título — o texto
+        daqui não existe no HTML original, e não poderia existir. A
+        fronteira texto-elemento que essa exclusão deixa de observar (o
+        parágrafo com o link para /privacidade) é comparada por igualdade em
+        testes/contato.test.mjs; está registrado em COBERTURA_DAS_EXCLUSOES.
+      */}
+      <section aria-labelledby="titulo-mensagem">
+        <h2 id="titulo-mensagem">Ou mande uma mensagem por aqui</h2>
+        <FormularioContato />
       </section>
 
       <section aria-labelledby="titulo-endereco-contato">
