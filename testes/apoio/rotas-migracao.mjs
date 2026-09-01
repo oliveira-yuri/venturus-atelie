@@ -139,7 +139,13 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // já cabe no cartão (dentro de um <details>, ver componentes/
   // ListaContatos.ts) e uma segunda rota seria mais uma guarda para
   // esquecer.
-  '/admin/contatos'
+  '/admin/contatos',
+  // RF26: a tela onde a equipe LÊ as candidaturas que /voluntariado/candidatura
+  // grava, e marca em que pé está cada uma. Uma rota só, pelo mesmo motivo de
+  // /admin/contatos: a candidatura inteira já cabe no cartão (a mensagem dentro
+  // de um <details>, ver componentes/ListaVoluntarios.ts), e uma segunda rota
+  // seria mais uma guarda para esquecer.
+  '/admin/voluntarios'
 ];
 
 /**

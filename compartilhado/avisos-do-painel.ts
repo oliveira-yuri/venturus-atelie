@@ -247,9 +247,63 @@ const AVISOS_DE_EXPORTACAO: Record<string, AvisoDoPainel> = {
   }
 };
 
+/**
+ * Os avisos das CANDIDATURAS AO VOLUNTARIADO (RF26) — lista separada das
+ * outras quatro, pelo mesmo motivo escrito acima: as frases são de assuntos
+ * diferentes e envelhecem separadamente.
+ *
+ * O QUE ESTAS FRASES TÊM DE PRÓPRIO, e não é só o assunto:
+ *
+ *  · como as de contatos, nenhuma fala em "publicar", "site" ou "ar" — esta
+ *    tela não muda nada do que o público vê. E nenhuma promete que a pessoa
+ *    foi procurada: o painel registra que ALGUÉM DA EQUIPE marcou. Falar com
+ *    quem se candidatou acontece no e-mail ou no WhatsApp, fora daqui;
+ *  · a de "encerrada" diz uma coisa que NENHUM outro aviso do painel precisa
+ *    dizer: encerrar devolve à pessoa o direito de se candidatar de novo
+ *    ('inativo' fica fora de `SITUACOES_EM_ANDAMENTO`, em
+ *    compartilhado/candidatura.ts). É a única transição desta tela que muda
+ *    o que outra pessoa pode fazer no site, e sem esta frase a segunda
+ *    candidatura da mesma pessoa apareceria na fila como defeito.
+ */
+const AVISOS_DE_VOLUNTARIOS: Record<string, AvisoDoPainel> = {
+  nova: {
+    texto: 'Marcada como nova de novo. Ela volta para o começo da lista, com quem ainda '
+      + 'espera resposta.',
+    ok: true
+  },
+  'em-contato': {
+    texto: 'Marcada como "em contato". Ela continua no começo da lista até alguém marcar de '
+      + 'outro jeito.',
+    ok: true
+  },
+  ativa: {
+    texto: 'Marcada como voluntariando. A pessoa vê a mudança na conta dela, e a candidatura '
+      + 'desce na lista — o que ainda espera resposta continua em cima.',
+    ok: true
+  },
+  encerrada: {
+    texto: 'Encerrada. A candidatura desce para o fim da lista e continua guardada aqui, com o '
+      + 'texto e as áreas — nada foi apagado. Atenção: quem tem candidatura encerrada pode se '
+      + 'candidatar de novo pelo site, e a nova aparece aqui em cima.',
+    ok: true
+  },
+  erro: {
+    texto: 'Não deu para fazer isso agora. Tente de novo em alguns instantes — nenhuma '
+      + 'candidatura foi perdida nem alterada.',
+    ok: false
+  }
+};
+
 export function avisoDaExportacao(valor: unknown): AvisoDoPainel | null {
   if (typeof valor !== 'string') return null;
 
   // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
   return Object.hasOwn(AVISOS_DE_EXPORTACAO, valor) ? AVISOS_DE_EXPORTACAO[valor] : null;
+}
+
+export function avisoDeVoluntarios(valor: unknown): AvisoDoPainel | null {
+  if (typeof valor !== 'string') return null;
+
+  // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
+  return Object.hasOwn(AVISOS_DE_VOLUNTARIOS, valor) ? AVISOS_DE_VOLUNTARIOS[valor] : null;
 }

@@ -136,7 +136,16 @@ const PAGINAS_SEM_URL_ANTIGA = [
   // navegador e `public.voluntarios` exige perfil autenticado). Ou seja:
   // nenhuma URL `.html` apontou para cá porque este endereço nunca
   // circulou. `/voluntariado` continua com o redirect dela, intacto.
-  '/voluntariado/candidatura'
+  '/voluntariado/candidatura',
+  // RF26, a gestão de voluntários. Mesmo motivo do resto do painel, e
+  // MEDIDO no diretório congelado: `admin/index.html` não contém a palavra
+  // "voluntario" em lugar nenhum — nem link, nem contador —, e não existe
+  // `admin/voluntarios.html`. Os quatro links de lá eram eventos, presenca,
+  // publicacoes e doacoes, e nenhum dos arquivos existe. Nenhuma URL antiga
+  // apontou para uma tela de candidaturas porque não havia candidatura: a
+  // tabela `public.voluntarios` exige perfil autenticado, e a autenticação
+  // do site antigo era JavaScript no navegador.
+  '/admin/voluntarios'
 ];
 
 /**
