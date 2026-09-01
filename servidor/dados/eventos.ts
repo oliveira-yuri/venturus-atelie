@@ -1,6 +1,6 @@
 import 'server-only';
 import { obterCliente } from '../supabase';
-import { consultarOuDegradar } from './degradacao';
+import { consultarComEstado, consultarOuDegradar, type Degradavel } from './degradacao';
 
 /**
  * Eventos e agenda pública (RF13-RF18) — porte de
@@ -102,6 +102,98 @@ export async function listarPassados(): Promise<Evento[]> {
  */
 export async function buscarEvento(id: string): Promise<Evento | null> {
   return consultarOuDegradar<Evento | null>('eventos (por id)', async () =>
+    (await obterCliente())
+      .from('eventos')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle(),
+  null);
+}
+
+// =====================================================================
+// O que o PAINEL lê (RF13, Tarefa de eventos)
+//
+// A MESMA TABELA, DOIS LEITORES, E QUEM SEPARA OS DOIS É A RLS — o mesmo
+// desenho de servidor/dados/publicacoes.ts, e vale palavra por palavra. A
+// política do banco é
+//
+//     using (publicado or public.eh_equipe())
+//
+// (supabase/migrations/003_eventos.sql), ou seja, mesmo que alguém chamasse
+// `listarEventosDoPainel()` de uma página pública, o Postgres devolveria só
+// os publicados. O `.eq('publicado', true)` das duas funções lá em cima é
+// INTENÇÃO escrita — "esta consulta é a da agenda pública" —, não a tranca.
+//
+// AS DUAS FUNÇÕES ABAIXO DEVOLVEM `Degradavel<T>`, e as de cima não. Não é
+// inconsistência: na agenda, "não deu para perguntar" vira o estado vazio já
+// escrito e ninguém se machuca. No painel, uma lista vazia numa tela onde a
+// pessoa ACABOU de cadastrar um evento diria que o cadastro se perdeu, e a
+// reação natural a isso é cadastrar de novo — dois eventos iguais na agenda,
+// e nenhuma tela que apague um deles.
+// =====================================================================
+
+/**
+ * Um evento como a EQUIPE o vê. É `Evento` mais as duas colunas que só a
+ * tela de trabalho precisa desenhar.
+ *
+ * `publicado` está aqui, diferente de `Evento` (onde ele é só filtro de
+ * consulta), pelo mesmo motivo de `Publicacao`: o estado de cada item é a
+ * informação mais importante daquela lista, e é o que decide qual botão
+ * aparece.
+ *
+ * `criado_em` está aqui e NÃO é desenhado hoje — está no tipo porque é o
+ * critério de desempate da ordenação abaixo, e um campo que ordena a lista
+ * sem aparecer no tipo é um campo que some na primeira refatoração.
+ */
+export type EventoDoPainel = Evento & {
+  publicado: boolean;
+  criado_em: string;
+};
+
+/**
+ * Todos os eventos — rascunho e no ar —, do mais distante no futuro ao mais
+ * antigo no passado.
+ *
+ * A ORDENAÇÃO É POR `comeca_em` DESCENDENTE, e não por `criado_em` como na
+ * lista de notícias. A diferença vem do que a pessoa veio fazer: uma notícia
+ * é procurada por "o que eu escrevi por último"; um evento é procurado por
+ * QUANDO ELE ACONTECE. Descendente põe o que ainda vai acontecer no topo (as
+ * datas futuras são as maiores) e empurra o que já passou para baixo, na
+ * ordem em que aconteceu — que é a ordem em que se procura um arquivo.
+ *
+ * SEM `.limit()`, de propósito. Um corte silencioso numa agenda esconderia
+ * evento sem dizer que escondeu — a mesma decisão da fila de
+ * `servidor/dados/contatos.ts`. No dia em que a lista não couber numa
+ * rolagem, o caminho é separar "em breve" de "já aconteceu" com o total
+ * escrito na tela, nunca um `.limit(n)`.
+ */
+export async function listarEventosDoPainel(): Promise<Degradavel<EventoDoPainel[]>> {
+  return consultarComEstado<EventoDoPainel[]>('eventos (painel)', async () =>
+    (await obterCliente())
+      .from('eventos')
+      .select('*')
+      .order('comeca_em', { ascending: false }),
+  []);
+}
+
+/**
+ * Um evento pelo id, para a tela de edição e para a Action de
+ * publicar/tirar do ar.
+ *
+ * DEVOLVE `Degradavel`, e é isto que permite à tela de edição distinguir
+ * "este evento não existe" (404 honesto) de "o banco não respondeu" (aviso
+ * de falha, com o caminho de volta). Sem a distinção, uma queda do Supabase
+ * apareceria para a equipe como se o evento tivesse sumido — e a reação
+ * natural a isso é cadastrar tudo de novo.
+ *
+ * NÃO SUBSTITUI `buscarEvento()` acima, que continua existindo para o
+ * caminho PÚBLICO (RF15, inscrição, quando existir): aquela devolve só o que
+ * a agenda mostra e o valor puro; esta traz `publicado` junto, que é o que a
+ * equipe precisa ver. Unificar as duas faria a página pública carregar o
+ * estado de rascunho de um evento para dentro do HTML.
+ */
+export async function buscarEventoDoPainel(id: string): Promise<Degradavel<EventoDoPainel | null>> {
+  return consultarComEstado<EventoDoPainel | null>('eventos (painel, por id)', async () =>
     (await obterCliente())
       .from('eventos')
       .select('*')

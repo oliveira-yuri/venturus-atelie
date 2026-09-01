@@ -61,9 +61,9 @@ export type TelaDoPainel = {
  * verdade e não havia onde ler.
  *
  * Nenhuma outra entra aqui por antecipação: indicadores (RF30–RF32),
- * eventos (RF13), presença (RF17) e gestão de voluntários (RF26) continuam
- * fora, e listá-los seria de novo prometer tela que ninguém vai construir
- * tão cedo.
+ * presença (RF17) e gestão de voluntários (RF26) continuam fora, e listá-los
+ * seria de novo prometer tela que ninguém vai construir tão cedo. Eventos
+ * (RF13) SAIU dessa frase em 01/09/2026, porque a tela passou a existir.
  */
 export const TELAS_DO_PAINEL: TelaDoPainel[] = [
   {
@@ -95,6 +95,20 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     // testes/painel-inicio.test.mjs cobra nos dois sentidos. A descrição
     // continua falando só em CORRIGIR porque é só isso que a tela faz: não
     // se cria nem se apaga atividade por ali (ver acoes/atividades.ts).
+    pronta: true
+  },
+  {
+    caminho: '/admin/eventos',
+    titulo: 'Agenda',
+    descricao: 'Marcar oficina, apresentação e vivência, e publicar na agenda do site.',
+    // Virou `true` no RF13, no mesmo commit que criou app/admin/eventos/ — é
+    // o que o teste de reconciliação em testes/painel-inicio.test.mjs cobra
+    // nos dois sentidos.
+    //
+    // A DESCRIÇÃO NÃO FALA EM INSCRIÇÃO, e a ausência é deliberada: a tela
+    // publica a data, não recebe inscrito. Inscrição sem conta é RF15 e não
+    // existe — prometê-la aqui repetiria o defeito que este arquivo inteiro
+    // existe para não repetir.
     pronta: true
   },
   {

@@ -220,3 +220,49 @@ export function avisoDeContatos(valor: unknown): AvisoDoPainel | null {
   // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
   return Object.hasOwn(AVISOS_DE_CONTATOS, valor) ? AVISOS_DE_CONTATOS[valor] : null;
 }
+
+/**
+ * Os avisos dos EVENTOS DA AGENDA (RF13/RF14) — lista separada das outras
+ * quatro, pelo mesmo motivo escrito acima: as frases são de assuntos
+ * diferentes e envelhecem separadamente.
+ *
+ * O QUE ESTAS FRASES TÊM DE PRÓPRIO: elas dizem "agenda", e não "site". As
+ * outras três telas que publicam mandam coisas para lugares diferentes
+ * (notícias, galeria, projetos), e "já está no site" seria verdade e inútil
+ * nas quatro. Aqui a pessoa acabou de marcar uma DATA, e o que ela precisa
+ * confirmar é que aquela data está visível para quem vai aparecer.
+ *
+ * E NENHUMA delas fala em inscrição, nem para dizer que a pessoa vai poder
+ * se inscrever: RF15 não existe. Uma frase como "as pessoas já podem se
+ * inscrever" seria o painel prometendo à ONG um gesto que o site não tem.
+ */
+const AVISOS_DE_EVENTOS: Record<string, AvisoDoPainel> = {
+  criado: {
+    texto: 'Evento guardado como rascunho. Ele ainda NÃO aparece na agenda do site: para '
+      + 'colocar no ar, use o botão "Publicar" no item abaixo.',
+    ok: true
+  },
+  salvo: { texto: 'Alterações guardadas.', ok: true },
+  publicado: {
+    texto: 'Publicado. O evento já aparece na agenda do site, com o dia e a hora que você '
+      + 'escreveu.',
+    ok: true
+  },
+  retirado: {
+    texto: 'Tirado do ar. O evento sumiu da agenda do site e continua guardado aqui, com tudo '
+      + 'o que você escreveu.',
+    ok: true
+  },
+  erro: {
+    texto: 'Não deu para fazer isso agora. Tente de novo em alguns instantes — se continuar, '
+      + 'nenhum evento foi perdido.',
+    ok: false
+  }
+};
+
+export function avisoDeEventos(valor: unknown): AvisoDoPainel | null {
+  if (typeof valor !== 'string') return null;
+
+  // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
+  return Object.hasOwn(AVISOS_DE_EVENTOS, valor) ? AVISOS_DE_EVENTOS[valor] : null;
+}
