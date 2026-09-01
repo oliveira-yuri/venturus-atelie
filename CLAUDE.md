@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (803 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (804)
+npm test                        # suíte completa, modo offline (1077 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (1078)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -41,7 +41,7 @@ O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.loca
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
 ele, o site pode servir o JSON versionado com o Supabase configurado e ninguém saber.
 
-Os 803 são 791 passando, 3 pulados com motivo declarado e 9 `test.todo` (MEDIDO em
+Os 1077 são 1064 passando, 4 pulados com motivo declarado e 9 `test.todo` (MEDIDO em
 01/09/2026, depois de juntar as três frentes que rodaram em paralelo). Os 33 que entraram com a RF25 (candidatura ao voluntariado)
 são 28 em `testes/voluntariado.test.mjs`, 2 novos em `testes/minha-conta.test.mjs` e 3 que
 `testes/sem-javascript.test.mjs` gera sozinho por rota nova: a trava do corpo hostil
@@ -432,8 +432,8 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 
 | Req | O quê | Status |
 |---|---|---|
-| RF13 | Cadastro e edição de eventos | **falta** |
-| RF14 | Agenda pública | página pronta, **sem dados** |
+| RF13 | Cadastro e edição de eventos | **pronto** (01/09/2026) — `/admin/eventos` e `/admin/eventos/editar`. `salvarEvento` NÃO conhece `publicado` (a coluna é `not null default false`, como publicações e ao contrário de atividades), e a tela **não apaga**: `inscricoes.evento_id` tem `on delete cascade`, então apagar um evento apagaria a lista de inscritos. Caminho autenticado nunca percorrido |
+| RF14 | Agenda pública | **pronto** — deixou de ser "sem dados" com a RF13. ATENÇÃO: o parágrafo que promete inscrição sem conta é texto original da ONG, travado por `paridade-texto`, e passa a ser lido por quem quer participar assim que houver evento publicado. RF15 não existe — decisão do grupo |
 | RF15 | Inscrição sem conta | **falta** — tabela e política prontas |
 | RF16 | Consulta de inscritos | **falta** |
 | RF17 | Lista de presença pelo celular | **falta** |
@@ -443,23 +443,23 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 
 | Req | O quê | Status |
 |---|---|---|
-| RF19–RF22 | Oferta, análise, registro, histórico | **falta** |
+| RF19–RF22 | Oferta, análise, registro, histórico | **pronto** (01/09/2026) — `/doar/ofertar` (público, exige conta), `/admin/doacoes`, `/admin/doacoes/responder?id=` e `/admin/doacoes/registrar` (para doação que veio de fora do site: `doador_nome`/`doador_email` com `perfil_id` nulo). **Sem meio de pagamento e sem recibo** — o site registra, não cobra (RN08): `lerOferta` não lê campo de valor, e `valor` só é escrito pela equipe, depois do fato. MEDIDO: `anon` não tem grant nenhum em `doacoes` (`42501`), então o GRANT decide antes da política |
 | RF23 | Meios de doação | **pronto** — chave Pix pendente (D7) |
 | RF24 | Página de voluntariado (5 áreas, do banco) | **pronto** — e desde a RF25 o botão "Quero me candidatar" aponta para `/voluntariado/candidatura`, não mais para `/entrar`. O TEXTO do botão não mudou, de propósito: o `<main>` desta página é comparado palavra por palavra com o HTML original congelado (`testes/paridade-texto.test.mjs`) |
 | RF25 | Candidatura | **pronto** (01/09/2026) — `/voluntariado/candidatura` grava em `public.voluntarios` + `public.voluntario_areas` por `acoes/voluntariado.ts`, e a candidatura aparece em `/minha-conta` com situação, data e áreas. **Exige conta**, e o porquê está no cabeçalho da Action: `perfil_id` é `not null` e a política de insert é `perfil_id = auth.uid()`; gravar em `contatos` com `origem='voluntariado'` para quem não tem conta perderia as áreas, a situação e a RF26. Quem chega sem sessão NÃO é redirecionado: lê por que precisa de conta e recebe o caminho. MEDIDO contra o Supabase de produção, no Firefox, **sem JavaScript**: entrar, marcar duas áreas, enviar, redirect para `/minha-conta?aviso=candidatura`, e a candidatura desenhada com as duas áreas. **Uma candidatura de teste ficou no banco de produção** — item 0q. Quem já tem candidatura em andamento não vê o formulário, e a Action recusa de novo (medido com a guarda da PÁGINA desligada de propósito). **Sem desfazer**: não há política de delete para a própria pessoa |
-| RF26 | Gestão de voluntários | **falta, e desde a RF25 há fila esperando** — as candidaturas chegam em `public.voluntarios` com `situacao='novo'`, e nenhuma tela da equipe as lê: hoje isso é o painel do Supabase. A política de leitura da equipe já existe (`voluntarios: equipe gerencia`). Atenção ao item 0q: a primeira linha da tabela é uma candidatura de TESTE |
+| RF26 | Gestão de voluntários | **pronto** (01/09/2026) — `/admin/voluntarios` lê as candidaturas com embed de `perfis` e das áreas, e move `situacao` entre as quatro do check. Lê e tria: sem insert, sem delete. **Encerrar devolve à pessoa o direito de se candidatar de novo** (`inativo` fica fora de `SITUACOES_EM_ANDAMENTO`) — é a única ação do painel que muda o que outra pessoa pode fazer no site. ANTES DIZIA: falta, e desde a RF25 **falta, e desde a RF25 há fila esperando** — as candidaturas chegam em `public.voluntarios` com `situacao='novo'`, e nenhuma tela da equipe as lê: hoje isso é o painel do Supabase. A política de leitura da equipe já existe (`voluntarios: equipe gerencia`). Atenção ao item 0q: a primeira linha da tabela é uma candidatura de TESTE |
 
 ### M9 — Acervo · M6 — Comunicação · M7 — Relatórios
 
 | Req | O quê | Status |
 |---|---|---|
 | RF35 | Catálogo com busca | página e busca por `?busca` prontas, **sem dados** |
-| RF36 | Visualização e download | **falta** |
-| RF37 | Publicação de material | **falta** |
-| RF27 | Mural de avisos | **falta** |
-| RF28 | Mensagem para grupo | **falta** |
+| RF36 | Visualização e download | **pronto** (01/09/2026), menos o contador — dois caminhos por material: abrir e baixar. ACHADO: o botão de baixar **nunca baixou nada**, porque o atributo `download` do HTML é ignorado ENTRE ORIGENS e o arquivo mora em `<projeto>.supabase.co`; agora vai `?download=<nome>`, e o nome sai do título, não do uuid. A coluna `downloads` continua em zero e a tela não a mostra: contar visitante exige função `security definer` (MEDIDO: `update` anônimo → `42501`) |
+| RF37 | Publicação de material | **pronto** (01/09/2026) — `/admin/acervo` e `/admin/acervo/apagar`. Só PDF, por assinatura de bytes (`%PDF-`), até 4 MB. O bucket `acervo` é PÚBLICO de propósito (o oposto da galeria na 008): "tirar do ar" mexe só na tabela, então a tela tem apagar |
+| RF27 | Mural de avisos | **bloqueado por migration** (investigado em 01/09/2026, não é código faltando). O escopo pede "visível para voluntários autenticados", e `publicacoes` só sabe `publicado` (mundo) ou não (equipe) — MEDIDO: anônimo com a chave publicável lê `publicado=true` (HTTP 200). Nenhuma política do schema tem a forma `auth.uid() is not null`. Reaproveitar a tabela publicaria comunicação interna na internet aberta |
+| RF28 | Mensagem para grupo | **bloqueado pelo Brevo** — duas faltas independentes, as duas confirmadas em 01/09/2026: não existe `supabase/functions/` (a Edge Function `enviar-email` da spec §9 nunca foi escrita) e não há tabela de envios. Os destinatários existem; o que não existe é com o que enviar |
 | RF29 | Registro central de contatos | **pronto** (01/09/2026) — `/admin/contatos` lê `public.contatos` (`servidor/dados/contatos.ts`) e a equipe marca o andamento do atendimento: nova → em contato → concluída, e de volta, em qualquer sentido (`acoes/contatos.ts`, uma Action, um `update` de uma coluna). A fila começa por quem ainda espera resposta e o que foi concluído DESCE, nunca some. **Ela lê e tria: não apaga e não edita a mensagem** — o texto recebido é registro. Consequência LGPD em aberto: /privacidade promete exclusão a pedido, e isso só se faz no SQL Editor (item 0n). Ninguém percorreu o caminho autenticado — não há sessão de equipe na suíte; o que foi medido está no relatório e em `testes/contatos.test.mjs` + o bloco RF29 de `npm run rls` |
-| RF30–RF32 | Indicadores, CSV, PDF | **falta** — os indicadores da home do painel existiam no site antigo e **não foram portados**; só na `main` |
+| RF30–RF32 | Indicadores, CSV, PDF | **RF30 e RF31 prontos** (01/09/2026), RF32 (PDF) falta. Seis números na home do painel, abaixo dos cartões (no topo empurrariam o trabalho para fora da dobra a 375px), com `count` + `head: true` — nenhuma linha atravessa a rede para desenhar um algarismo. **Zero é número; contagem que falhou é traço**, nunca um zero inventado. CSV em `/admin/exportar/{contatos,voluntarios}`, com neutralização de fórmula (`= + - @`) — as aspas NÃO protegem disso. ANTES DIZIA: falta — **falta** — os indicadores da home do painel existiam no site antigo e **não foram portados**; só na `main` |
 
 ### Infraestrutura
 
@@ -901,6 +901,26 @@ revisitada e mantida naquela tarefa.
 
    Nenhum teste automático cria candidatura: os 28 da RF25 são puros, varredura de código
    ou requisições anônimas.
+
+0r. **Seis frentes rodaram em paralelo em 01/09/2026, e três coisas ficaram sabidas do
+   MÉTODO, não do produto.** (a) Worktree isolado resolve a colisão de commits, mas não a
+   de arquivo: `compartilhado/avisos-do-painel.ts`, `componentes/PainelInicio.ts`,
+   `estilos/admin.css`, `testes/apoio/rotas-migracao.mjs` e `testes/redirects.test.mjs`
+   conflitaram em quase toda integração — são listas que TODA tela nova precisa alimentar.
+   Quem integrar de novo: quase todo conflito é apêndice puro, e a receita que funcionou foi
+   conferir se a versão da branch é `base + apêndice` (`head -n <linhas da base>` + `cmp`) e,
+   sendo, anexar a cauda sobre a versão já integrada. (b) **Duas frentes criaram a MESMA
+   constante** (`LIMITE_FAIXA_ETARIA`, as duas com 80) e o build só acusou no merge —
+   unificada, com o porquê escrito em `compartilhado/validacao.ts`. (c) A suíte subia sempre
+   na porta 3123 e duas frentes se atropelavam; `PORTA_TESTES` existe desde então, e o
+   padrão continua 3123 para quem roda sozinho. **Sintoma a reconhecer:** rodar `npm test`
+   com outras frentes de pé deu 235 falhas de uma vez — era disputa de porta, não regressão.
+
+0s. **O `CLAUDE.md` foi atualizado CENTRALMENTE nessa rodada, não pelas frentes.** As seis
+   foram instruídas a não tocá-lo, para não conflitarem entre si, e a escrever no relatório o
+   que iria para cá. Isso funcionou, mas abre um buraco conhecido: o que não foi transcrito
+   se perdeu junto com os relatórios. Se algo aqui parecer incompleto sobre eventos, doações,
+   acervo, voluntários, indicadores ou o manual, a fonte é o relatório da tarefa, não o código.
 
 **Do projeto, válidos para as duas branches:**
 
