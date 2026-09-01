@@ -34,8 +34,25 @@ import { createElement } from 'react';
  * nativo do Node (que despe os tipos, mas não transforma JSX).
  */
 
+/**
+ * `datetime-local` entrou com o RF13 (agenda). Ele NÃO precisa de ramo
+ * próprio no `if` lá embaixo: cai no `else`, que monta um `<input>` com o
+ * `type` recebido — é o mesmo caminho de 'text', 'email' e 'tel'.
+ *
+ * O que ele muda de verdade é o CONTROLE que o sistema oferece: no celular,
+ * o seletor nativo de data e hora, que é o gesto certo para quem está de pé
+ * no meio de um evento (regra 4 do CLAUDE.md). Sem JavaScript ele continua
+ * sendo um campo de texto comum — e é por isso que `validarEvento`, no
+ * servidor, aceita e recusa a string por conta própria: navegador antigo
+ * degrada para texto livre, e a Action é endpoint HTTP público de qualquer
+ * jeito (spec §4.5).
+ *
+ * O VALOR É HORA DE PAREDE, sem fuso. Quem converte é
+ * `instanteDeSaoPaulo()` em compartilhado/validacao.ts — este componente não
+ * sabe nada sobre fuso, e é bom que continue assim.
+ */
 type TipoCampo = 'text' | 'email' | 'tel' | 'password' | 'checkbox' | 'textarea' | 'select'
-  | 'file';
+  | 'file' | 'datetime-local';
 
 interface OpcaoCampo {
   valor: string;

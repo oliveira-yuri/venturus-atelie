@@ -122,6 +122,19 @@ const PAGINAS_SEM_URL_ANTIGA = [
   // nenhuma URL antiga apontou para uma tela de mensagens recebidas, porque
   // essa tela nunca existiu — quem quisesse ler abria o painel do Supabase.
   '/admin/contatos',
+  // RF13/RF14, a agenda da equipe — e AQUI VALE UMA RESSALVA, porque é o
+  // caso mais parecido com um redirect legítimo de toda esta lista: a home
+  // do painel antigo (testes/apoio/html-original/admin/index.html) tem um
+  // `href="/admin/eventos.html"` de verdade, escrito no HTML. **O arquivo
+  // nunca existiu**: o diretório congelado tem só `index.html`, e aquele
+  // link é um dos seis becos que a tela prometia — o defeito que
+  // componentes/PainelInicio.ts existe para não repetir. Um 301 de
+  // `/admin/eventos.html` para cá seria redirect permanente de uma URL que
+  // nunca respondeu nada, apontando para uma tela que responde 404 a quem
+  // não é equipe. Mesma decisão, e mesmo motivo, de `/admin/index.html` em
+  // PAGINAS_ANTIGAS_SEM_REDIRECT.
+  '/admin/eventos',
+  '/admin/eventos/editar',
   // RF11, a área do usuário. O site antigo tinha `entrar.html` e
   // `recuperar-acesso.html` e mais nada de conta: a autenticação ali era
   // JavaScript no navegador, e depois de entrar não havia para onde ir —

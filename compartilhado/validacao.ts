@@ -1401,3 +1401,329 @@ export function linhasDasAreas(
 ): Array<{ voluntario_id: string; area_id: string }> {
   return areas.map((area) => ({ voluntario_id: voluntarioId, area_id: area }));
 }
+
+// =====================================================================
+// Eventos — o formulário da agenda no painel (RF13/RF14)
+//
+// Mesmo arquivo das publicações, da galeria e da candidatura, pelo mesmo
+// motivo escrito no cabeçalho: as três precauções de leitura de FormData
+// valem igual, e este módulo NÃO IMPORTA NADA, o que é o que permite ao
+// `node --test` exercitá-lo sem subir o Next. Um `compartilhado/fuso.ts`
+// separado seria mais bonito e não funcionaria: o runtime nativo do Node não
+// resolve o alias `@/...` do tsconfig, e um caminho relativo COM extensão
+// (`./fuso.ts`) derruba o `tsc` do build, que não liga
+// `allowImportingTsExtensions`.
+//
+// O QUE ESTE BLOCO NÃO DECIDE: se a pessoa pode gravar (isso é `ehEquipe()`
+// na Action e a RLS no banco). E ele NÃO LÊ o campo `publicado`, pela mesma
+// razão de `lerPublicacao`: publicar é ato separado, com Action e botão
+// próprios.
+//
+// E ELE NÃO LÊ `vagas` NEM `exige_cpf`, que existem em `public.eventos`
+// (003_eventos.sql) e ficam de fora DE PROPÓSITO: as duas só fazem sentido
+// com inscrição, que é RF15/RF16 e não existe. Um campo "vagas" na tela da
+// equipe prometeria à ONG um controle de vagas que o site não tem, e um
+// número de vagas na agenda faria o público procurar um botão de se
+// inscrever que não está lá.
+// =====================================================================
+
+/**
+ * O FUSO DA ONG, PELA QUARTA VEZ NO PROJETO — e a repetição é consciente.
+ *
+ * `FUSO_DA_ONG` já existe em componentes/ListaEventos.ts,
+ * componentes/ListaNoticias.ts e componentes/MinhaConta.ts, sempre com o
+ * mesmo valor e sempre repetido, porque esses arquivos são importados pelo
+ * runtime nativo do Node (ver o bloco acima). O que impede as cópias de
+ * divergirem em silêncio é um teste que lê os arquivos como TEXTO e exige
+ * que todos declarem o mesmo fuso: `testes/publicacoes.test.mjs` faz isso
+ * com três deles, e `testes/eventos.test.mjs` faz com estes mais este
+ * arquivo e o componente novo do painel.
+ *
+ * POR QUE ELE PRECISA ESTAR AQUI, e não só nos componentes que imprimem
+ * data: o formulário de evento manda hora de PAREDE ("2026-11-05T19:00",
+ * sem fuso nenhum), e é este arquivo que a transforma no instante que vai
+ * para uma coluna `timestamptz`. Sem o fuso explícito,
+ * `new Date('2026-11-05T19:00')` interpreta a string no fuso do PROCESSO —
+ * que na Netlify é UTC. O evento das 19h seria gravado como 19:00Z, e a
+ * agenda (que imprime em São Paulo, corretamente) o mostraria às 16:00.
+ *
+ * É o MESMO defeito medido no Bloco A, pelo outro lado: lá a LEITURA saía
+ * três horas errada; aqui seria a ESCRITA. E este lado é pior, porque o
+ * dado gravado fica errado para sempre — consertar a exibição depois não
+ * conserta a linha.
+ */
+export const FUSO_DA_ONG = 'America/Sao_Paulo';
+
+/**
+ * O formato que um `<input type="datetime-local">` manda: hora de parede,
+ * sem fuso.
+ *
+ * Os segundos são aceitos e ignorados: alguns navegadores os acrescentam
+ * quando o `step` permite (o nosso não permite), e a Action é endpoint HTTP
+ * público (spec §4.5) — o corpo pode vir de qualquer lugar.
+ */
+const FORMATO_MOMENTO_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
+
+export function ehMomentoLocal(valor: unknown): boolean {
+  return typeof valor === 'string' && FORMATO_MOMENTO_LOCAL.test(valor);
+}
+
+/**
+ * As partes de um instante, lidas NO FUSO DA ONG.
+ *
+ * `Intl.DateTimeFormat` com `timeZone` é a única forma, sem biblioteca
+ * (regra 7 do CLAUDE.md), de perguntar "que horas eram em São Paulo neste
+ * instante?" — `getHours()` responderia no fuso do processo, que é o defeito
+ * que este bloco inteiro existe para não repetir.
+ */
+function partesEmSaoPaulo(instante: number): Record<string, number> {
+  const formatador = new Intl.DateTimeFormat('en-CA', {
+    timeZone: FUSO_DA_ONG,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  });
+
+  const partes: Record<string, number> = {};
+  for (const parte of formatador.formatToParts(new Date(instante))) {
+    if (parte.type !== 'literal') partes[parte.type] = Number(parte.value);
+  }
+
+  // `hour12: false` produz hora 24 em vez de 0 para a meia-noite em alguns
+  // runtimes. Normalizar aqui é mais barato que descobrir isso em produção,
+  // num evento marcado para 00:00.
+  if (partes.hour === 24) partes.hour = 0;
+
+  return partes;
+}
+
+/**
+ * Quantos milissegundos o fuso da ONG está À FRENTE de UTC neste instante.
+ * Negativo para São Paulo (-3 h).
+ *
+ * Depende do instante DE PROPÓSITO: o Brasil não tem horário de verão desde
+ * 2019, mas ele já existiu e pode voltar por decreto. Uma constante `-3h`
+ * escrita à mão acertaria hoje e envelheceria em silêncio — que é
+ * exatamente a forma deste defeito.
+ */
+function deslocamentoDoFuso(instante: number): number {
+  const p = partesEmSaoPaulo(instante);
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - instante;
+}
+
+/**
+ * Hora de parede de São Paulo -> o instante ISO que vai para a coluna
+ * `timestamptz`. `null` quando a string não é um momento válido.
+ *
+ * O ALGORITMO, porque ele parece complicado e o simples está errado:
+ *
+ *   1. `Date.UTC(...)` trata a hora escrita como se fosse UTC — uma primeira
+ *      aproximação, errada por exatamente o deslocamento do fuso;
+ *   2. mede-se o deslocamento NAQUELE instante e subtrai-se;
+ *   3. repete-se uma vez. A segunda passada só muda alguma coisa perto de
+ *      uma virada de horário de verão, onde o deslocamento do palpite e o do
+ *      resultado são diferentes. Hoje, no Brasil, ela nunca muda nada — e é
+ *      barata o bastante para ficar de pé no dia em que o decreto voltar.
+ */
+export function instanteDeSaoPaulo(local: string): string | null {
+  const casou = FORMATO_MOMENTO_LOCAL.exec(local);
+  if (!casou) return null;
+
+  const [, ano, mes, dia, hora, minuto, segundo] = casou;
+
+  if (Number(mes) < 1 || Number(mes) > 12 || Number(dia) < 1 || Number(dia) > 31
+    || Number(hora) > 23 || Number(minuto) > 59) return null;
+
+  const comoSeFosseUtc = Date.UTC(
+    Number(ano), Number(mes) - 1, Number(dia), Number(hora), Number(minuto), Number(segundo ?? 0)
+  );
+
+  // `Date.UTC` aceita 31 de fevereiro e devolve 3 de março, calado. Uma data
+  // assim chega de um corpo montado à mão (o seletor do navegador não a
+  // produz), e gravá-la como OUTRO dia seria pior que recusar.
+  if (new Date(comoSeFosseUtc).getUTCDate() !== Number(dia)) return null;
+
+  let instante = comoSeFosseUtc;
+  for (let passada = 0; passada < 2; passada += 1) {
+    instante = comoSeFosseUtc - deslocamentoDoFuso(instante);
+  }
+
+  return new Date(instante).toISOString();
+}
+
+/**
+ * O caminho de volta: o instante gravado -> a hora de parede que o
+ * `<input type="datetime-local">` mostra ao reabrir o formulário.
+ *
+ * Sem isto, editar um evento das 19h num servidor em UTC devolveria "22:00"
+ * no campo, e quem apertasse "Guardar alterações" sem mexer em nada
+ * empurraria o evento três horas para a frente — a cada edição.
+ */
+export function momentoLocalDe(iso: string): string {
+  const instante = new Date(iso).getTime();
+  if (Number.isNaN(instante)) return '';
+
+  const p = partesEmSaoPaulo(instante);
+  const doisDigitos = (n: number) => String(n).padStart(2, '0');
+
+  return `${p.year}-${doisDigitos(p.month)}-${doisDigitos(p.day)}`
+    + `T${doisDigitos(p.hour)}:${doisDigitos(p.minute)}`;
+}
+
+/**
+ * O que o formulário de evento manda — a lista COMPLETA do que a Action
+ * aceita. Campo que não está aqui não existe para o resto do sistema.
+ *
+ * Os campos espelham exatamente o tipo `Evento` de servidor/dados/eventos.ts:
+ * tudo o que a equipe escreve aqui a agenda mostra, e nada do que ela
+ * escreve fica invisível. `imagem_caminho`/`imagem_alt` ficam de fora como
+ * em `lerPublicacao` (upload é assunto da galeria); `vagas` e `exige_cpf`,
+ * pelo motivo do bloco acima.
+ */
+export type CamposEvento = {
+  /** Vazio quando é evento novo; o uuid da linha quando é edição. */
+  id: string;
+  titulo: string;
+  descricao: string;
+  /** Hora de parede de São Paulo, como o `<input datetime-local>` manda. */
+  comeca_em: string;
+  termina_em: string;
+  local: string;
+  faixa_etaria: string;
+};
+
+/**
+ * Limites de tamanho. Como em `lerPublicacao`, eles NÃO vêm do banco (as
+ * colunas são `text`, sem limite nenhum): vêm do uso, e existem porque a
+ * Action é endpoint HTTP público — sem teto, qualquer pessoa manda megabytes
+ * num campo.
+ */
+export const LIMITE_LOCAL = 200;
+export const LIMITE_FAIXA_ETARIA = 80;
+
+/** Campos do formulário de evento (componentes/FormularioEvento.tsx). */
+export function lerEvento(dados: FormData): CamposEvento {
+  return {
+    id: textoDoCampo(dados, 'id'),
+    titulo: textoDoCampo(dados, 'titulo'),
+    descricao: textoDoCampo(dados, 'descricao'),
+    comeca_em: textoDoCampo(dados, 'comeca_em'),
+    termina_em: textoDoCampo(dados, 'termina_em'),
+    local: textoDoCampo(dados, 'local'),
+    faixa_etaria: textoDoCampo(dados, 'faixa_etaria')
+  };
+}
+
+/** TODOS os erros de uma vez — a regra do topo deste arquivo. */
+export function validarEvento(campos: CamposEvento): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!campos.titulo) {
+    erros.titulo = 'Escreva o nome do evento.';
+  } else if (campos.titulo.length > LIMITE_TITULO) {
+    erros.titulo = `O nome passou de ${LIMITE_TITULO} caracteres. Encurte um pouco.`;
+  }
+
+  const comeco = campos.comeca_em ? instanteDeSaoPaulo(campos.comeca_em) : null;
+
+  if (!campos.comeca_em) {
+    erros.comeca_em = 'Diga o dia e a hora em que o evento começa.';
+  } else if (comeco === null) {
+    erros.comeca_em = 'Não entendi o dia e a hora. Use o seletor do celular, ou escreva no '
+      + 'formato 05/11/2026 19:00.';
+  }
+
+  // `termina_em` é opcional: a coluna aceita nulo, e a maior parte do que a
+  // ONG marca não tem hora de terminar combinada.
+  if (campos.termina_em) {
+    const fim = instanteDeSaoPaulo(campos.termina_em);
+
+    if (fim === null) {
+      erros.termina_em = 'Não entendi o dia e a hora de terminar. Use o seletor do celular, '
+        + 'ou deixe em branco.';
+    } else if (comeco !== null && fim <= comeco) {
+      // A MESMA REGRA DO BANCO (`termino_depois_do_inicio`, em
+      // 003_eventos.sql), conferida aqui para virar uma frase. Sem isto o
+      // Postgres recusaria com violação de `check` (código 23514), que a
+      // tela mostraria como falha genérica — e a pessoa não teria como saber
+      // qual dos dois campos consertar.
+      erros.termina_em = 'O evento não pode terminar antes de começar (nem no mesmo minuto). '
+        + 'Confira a hora de terminar, ou deixe em branco.';
+    }
+  }
+
+  if (campos.descricao.length > LIMITE_DESCRICAO) {
+    erros.descricao = `A descrição passou de ${LIMITE_DESCRICAO} caracteres.`;
+  }
+
+  if (campos.local.length > LIMITE_LOCAL) {
+    erros.local = `O local passou de ${LIMITE_LOCAL} caracteres. Escreva só o endereço ou o `
+      + 'nome do lugar.';
+  }
+
+  if (campos.faixa_etaria.length > LIMITE_FAIXA_ETARIA) {
+    erros.faixa_etaria = `Passou de ${LIMITE_FAIXA_ETARIA} caracteres. É uma frase curta, como `
+      + '"Livre" ou "A partir de 10 anos".';
+  }
+
+  // Edição: o id vem do link que a própria lista do painel montou. Se chegou
+  // preenchido e não é um uuid, alguém montou a requisição à mão — a Action
+  // recusa em vez de perguntar ao Postgres.
+  if (campos.id && !ehIdentificador(campos.id)) {
+    erros.id = 'Não foi possível identificar qual evento é este. Volte à lista e abra de novo.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/**
+ * AS COLUNAS QUE VÃO PARA `public.eventos`, montadas chave por chave.
+ *
+ * ESTA FUNÇÃO EXISTE PARA PODER SER MEDIDA, mesmo motivo de
+ * `colunasDaCandidatura()` e `colunasDoPerfil()`: o objeto podia ser escrito
+ * dentro de acoes/eventos.ts, mas aquele arquivo importa `server-only` e o
+ * Supabase, ou seja, não entra num `node --test`. Aqui ele é função pura, e
+ * testes/eventos.test.mjs a alimenta com um FormData HOSTIL
+ * (`publicado=true`, `vagas=999`, `exige_cpf=true`, `id` de outro evento) e
+ * prova que nada disso aparece no objeto que vai ao banco.
+ *
+ * `publicado` NÃO É CHAVE DAQUI — nem para escrever `false`, que é o default
+ * da coluna. Escrever o default à mão abriria, no código, o único lugar por
+ * onde essa coluna poderia passar a vir de fora. É a disciplina da regra 6
+ * do CLAUDE.md aplicada a outro campo.
+ *
+ * Texto vazio vira NULL, e não string vazia: as colunas aceitam nulo e a
+ * agenda OMITE o que é nulo (componentes/ListaEventos.ts — regra 2 do
+ * CLAUDE.md no nível do campo). Guardar '' faria a página desenhar um
+ * parágrafo vazio e deixar um " · " solto no horário.
+ *
+ * Devolve `null` se a data de começo não converter. Não lança: esta função é
+ * chamada depois de `validarEvento`, e duplicar a recusa como exceção só
+ * criaria um segundo caminho de erro para manter.
+ */
+export function colunasDoEvento(campos: CamposEvento): {
+  titulo: string;
+  descricao: string | null;
+  comeca_em: string;
+  termina_em: string | null;
+  local: string | null;
+  faixa_etaria: string | null;
+} | null {
+  const comeca = instanteDeSaoPaulo(campos.comeca_em);
+  if (comeca === null) return null;
+
+  return {
+    titulo: campos.titulo,
+    descricao: campos.descricao || null,
+    comeca_em: comeca,
+    termina_em: campos.termina_em ? instanteDeSaoPaulo(campos.termina_em) : null,
+    local: campos.local || null,
+    faixa_etaria: campos.faixa_etaria || null
+  };
+}
+
+// O botão de publicar/tirar do ar de EVENTO reaproveita `lerAlternancia`
+// (lista fechada 'publicar' | 'despublicar'), que já lê o mesmo par de
+// campos escondidos em notícias, galeria e atividades. Não há leitura nova
+// aqui de propósito: uma segunda cópia da mesma lista fechada seria uma
+// segunda chance de alguém trocá-la por um `else`.

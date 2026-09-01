@@ -145,7 +145,14 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // /admin/contatos: a candidatura inteira já cabe no cartão (a mensagem dentro
   // de um <details>, ver componentes/ListaVoluntarios.ts), e uma segunda rota
   // seria mais uma guarda para esquecer.
-  '/admin/voluntarios'
+  '/admin/voluntarios',
+
+  // RF13/RF14: a agenda da equipe. Como em publicações, é UMA rota para
+  // cadastrar e corrigir (`/admin/eventos/editar`, com `?id=` quando é
+  // correção) — e, ao contrário de atividades, o caso SEM `?id=` existe e é
+  // o principal: eventos são marcados o tempo todo.
+  '/admin/eventos',
+  '/admin/eventos/editar'
 ];
 
 /**

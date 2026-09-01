@@ -1457,3 +1457,142 @@ a.numeros__alvo:hover { background: var(--tinta); color: var(--cal); }
      inteira só existe para o polegar. */
   .voluntario__botao--responder { flex: 0 0 auto; padding: 0 var(--espaco-5); }
 }
+
+/* =====================================================================
+   A AGENDA DA EQUIPE — /admin/eventos (RF13/RF14)
+   =====================================================================
+
+   Mesma estrutura das outras quatro listas do painel (cartão com estado
+   escrito, título, uma linha de contexto e os botões), com nomes próprios
+   em vez de classes compartilhadas — o mesmo motivo escrito em
+   .atividades-painel: telas que hoje são parecidas envelhecem separadamente,
+   e uma classe comum faria a primeira mudança de uma delas sair na outra,
+   em silêncio.
+
+   A COR DO APLIQUE É O AZUL, QUE JÁ É DE OUTRAS DUAS TELAS, e isso merece
+   ser dito em voz alta em vez de escondido: a ideia de "uma cor por tela"
+   nasceu com três telas e três cores da ONG (regra 3 — amarelo, azul,
+   marrom, e não se inventa uma quarta). Com cinco telas de trabalho ela
+   acabou. O que continua verdade é que a cor NUNCA foi o único sinal: o
+   <h1> diz onde a pessoa está, e o estado de cada item está escrito por
+   extenso no cartão.
+   ===================================================================== */
+
+.eventos-painel {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+  display: grid;
+  /* O gap precisa caber o deslocamento do aplique (8px), senão a sombra de
+     um cartão encosta no cartão de baixo — mesma conta de .publicacoes. */
+  gap: var(--espaco-4);
+}
+
+.evento-painel {
+  margin: 0;
+  padding: var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--borda);
+  box-shadow: var(--aplique) var(--azul);
+}
+
+/* NA AGENDA e RASCUNHO não se distinguem só pela cor: a palavra está escrita
+   no cartão (componentes/ListaEventosPainel.ts). O que muda aqui é o PESO
+   visual — rascunho é contorno, no ar é preenchido —, para que a diferença
+   sobreviva também em alto contraste, onde a paleta some. Mesma regra de
+   .publicacao__estado, .atividade-painel__estado e .contato__estado. */
+.evento-painel__estado {
+  display: inline-block;
+  margin: 0 0 var(--espaco-2);
+  padding: var(--espaco-1) var(--espaco-2);
+  border: 2px solid var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta);
+  background: transparent;
+}
+
+.evento-painel__estado--no-ar { background: var(--amarelo); }
+
+.evento-painel__titulo {
+  margin: 0 0 var(--espaco-1);
+  font-family: var(--display);
+  font-size: var(--texto-medio);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* A DATA É O QUE SE PROCURA NESTA LISTA — é por ela que os itens estão
+   ordenados —, então ela não é texto secundário como o resumo de uma
+   notícia: fica na cor cheia e em negrito. */
+.evento-painel__quando {
+  margin: 0 0 var(--espaco-3);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  color: var(--tinta);
+  line-height: 1.5;
+}
+
+/* Os dois botões lado a lado quando cabem, empilhados quando não — `wrap`
+   em vez de media query, porque quem decide é o tamanho do texto (que a
+   pessoa pode aumentar com o A+), não a largura da tela. */
+.evento-painel__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.evento-painel__form { margin: 0; }
+
+/* Um <a> e um <button> com a MESMA cara, de propósito: para quem usa, os
+   dois são "um botão". A diferença de tag é semântica (navegar x agir) e
+   importa para o leitor de tela, não para o dedo. */
+.evento-painel__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--cal);
+  border: 2px solid var(--tinta);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.evento-painel__botao:hover { background: var(--tinta); color: var(--cal); }
+
+/* "Publicar" é o gesto que põe o evento na agenda: carrega a cor da ONG.
+   "Tirar do ar" fica neutro — não vermelho de "perigo", porque não há perda
+   nenhuma (tudo continua guardado; ver ListaEventosPainel.ts). */
+.evento-painel__botao--publicar { background: var(--amarelo); }
+.evento-painel__botao--publicar:hover { background: var(--tinta); color: var(--amarelo); }
+
+/* ---------- O formulário de cadastrar ---------- */
+
+/* OS DOIS CAMPOS DE DATA E HORA PRECISAM DE ALVO DE TOQUE, e o padrão do
+   navegador não dá: um <input type="datetime-local"> sem altura declarada
+   fica com cerca de 30px no Firefox móvel, abaixo dos 44px que a RNF08
+   exige — e é o campo que a pessoa mais aperta nesta tela, de pé, no meio de
+   um evento (regra 4). Em `rem` e via `min-height`, então cresce com o A+
+   em vez de cortar o texto (regra 8). */
+.painel__conteudo .campo input[type="datetime-local"] {
+  min-height: var(--alvo-toque);
+  width: 100%;
+}
+
+/* A DESCRIÇÃO NÃO GANHA REGRA PRÓPRIA, e a ausência é deliberada. O campo
+   se chama `descricao`, o mesmo nome do campo da tela de atividades, e
+   aquela tela já declara `.painel__conteudo .campo textarea[name="descricao"]
+   { min-height: 18rem }` mais acima neste arquivo. Uma segunda regra aqui,
+   por vir depois, venceria a primeira e ENCOLHERIA a caixa da sinopse das
+   atividades — uma tela mexendo em outra sem nada acusar. 18rem é mais alto
+   do que a descrição de um evento pede; é o preço de as duas telas
+   compartilharem o nome do campo, e é menor que o de um defeito silencioso
+   na tela vizinha. */
