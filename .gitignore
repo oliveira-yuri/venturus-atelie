@@ -14,3 +14,9 @@ next-env.d.ts
 # A service role key nunca entra no repositorio: ela vive como secret da
 # Edge Function. Se algum arquivo com ela aparecer aqui, e engano.
 **/service-role*
+
+# Worktrees isolados dos subagentes (639 MB numa medicao de 01/09/2026).
+# Sao copias de trabalho temporarias, nao codigo do projeto — e sem esta
+# linha um `git add -A` distraido leva o repositorio inteiro para dentro
+# dele mesmo.
+.claude/worktrees/
