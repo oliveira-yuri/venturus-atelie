@@ -473,6 +473,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | Política de privacidade | **pronto** |
 | Repositório no GitHub | **pronto** |
 | Deploy Netlify | **nunca rodou** — config pronta e pinada (Node 24.15.0, plugin 5.15.13); falta publicar |
+| Deploy Vercel | **nunca rodou** — `vercel.json` pronto (cabeçalhos e cache de fontes, que a Vercel não lê do `netlify.toml`), `engines.node` relaxado para `>=22.0.0`, `VERCEL_PROJECT_PRODUCTION_URL` e `x-vercel-forwarded-for` na cadeia. Projeto importado em 01/09/2026; a Netlify SEGUE configurada como rede de segurança |
 | Página de erro 500 (`app/error.tsx`) | **pronto** — com o layout inteiro, como o 404 |
 | `/robots.txt` (`app/robots.ts`) | **pronto** — em modo prévia, ver "O que trava hoje" 0c |
 | Supabase Storage (bucket `galeria`) | **ligado pelo código** (P3) — `upload`, `remove` e, desde 01/09/2026, `createSignedUrls` no lugar de `getPublicUrl` (item 0j), com o host do projeto no `img-src` da CSP (e **não** no `connect-src`; a URL assinada tem a MESMA origem, medido). **Nenhum arquivo real subiu**: falta sessão de equipe |
@@ -580,8 +581,12 @@ revisitada e mantida naquela tarefa.
    desta branch, mas que continua no histórico do git e na branch `main`. Apagar não
    rotaciona: enquanto a chave não for trocada no Supabase, o ganho declarado na spec §4.3
    é nominal.
-0c. **O `noindex` sai em TRÊS lugares, e fazer só um não produz erro visível.** Para o
+0c. **O `noindex` sai em QUATRO lugares, e fazer só um não produz erro visível.** Para o
    lançamento é preciso remover, no mesmo commit:
+   0. `X-Robots-Tag` em **`vercel.json`** — vale para o que a Vercel serve, e a
+      advertência mora em `vercel.json.LEIA-ME.txt` porque JSON não aceita
+      comentário e a Vercel recusa o deploy inteiro se houver chave estranha;
+      o guardião BLOQUEIA se esse LEIA-ME sumir.
    1. `X-Robots-Tag` em **`middleware.ts`** (procure por `PREVIA`) — vale para as páginas
       renderizadas;
    2. `X-Robots-Tag` em **`netlify.toml`** — vale para o que a CDN serve direto, inclusive
