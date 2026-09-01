@@ -136,6 +136,21 @@ const SEM_SESSAO_PARA_TROCAR_SENHA: EstadoFormulario = {
  * causa que ela não consegue. Quando o Auth apontar para o SMTP do Brevo,
  * a segunda metade pode encolher.
  */
+/**
+ * Quando a confirmacao por e-mail esta DESLIGADA no painel do Supabase
+ * (`mailer_autoconfirm: true`), o signUp ja devolve sessao e a pessoa esta
+ * dentro. Mandar ela esperar um e-mail seria mentira.
+ *
+ * MEDIDO em 01/09/2026: a configuracao do projeto mudou de `false` para
+ * `true` no meio do dia, e a mensagem antiga virou falsa sem que nenhum
+ * teste ficasse vermelho — o codigo nao olhava a resposta, so presumia.
+ * Por isso a escolha da frase passou a sair do que o Supabase RESPONDE
+ * (`data.session`), e nao de uma suposicao sobre o painel: se alguem
+ * religar a confirmacao, a mensagem volta sozinha a ser a outra.
+ */
+const MENSAGEM_CONTA_PRONTA =
+  'Conta criada e pronta para usar. Voce ja esta dentro — seu nome aparece no topo da pagina.';
+
 const MENSAGEM_CONTA_CRIADA =
   'Conta criada. Enviamos um e-mail com um link de confirmação: abra o link e depois volte '
   + 'para entrar — antes disso a entrada não funciona. Se o e-mail não chegar, olhe o spam e, '
@@ -329,7 +344,7 @@ export async function criarConta(
 
   try {
     const supabase = await obterCliente();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: campos.email!,
       password: campos.senha!,
       options: {
@@ -366,7 +381,14 @@ export async function criarConta(
     // conta aqui. Distinguir esse caso na tela desfaria a proteção — então
     // não se distingue, e quem já tinha conta descobre pelo e-mail que
     // recebe, que é o canal que só a dona do endereço lê.
-    return { ok: true, mensagem: MENSAGEM_CONTA_CRIADA };
+    // A FRASE SAI DA RESPOSTA, NAO DE UMA SUPOSICAO. Com a confirmacao
+    // desligada o Supabase ja devolve sessao; com ela ligada, nao devolve.
+    // Ver o comentario de MENSAGEM_CONTA_PRONTA: esta linha existe porque a
+    // configuracao mudou uma vez sem que nada ficasse vermelho.
+    return {
+      ok: true,
+      mensagem: data?.session ? MENSAGEM_CONTA_PRONTA : MENSAGEM_CONTA_CRIADA
+    };
   } catch (erro) {
     return { ...estadoDeFalha(erro, 'criarConta (exceção)'), valores };
   }
