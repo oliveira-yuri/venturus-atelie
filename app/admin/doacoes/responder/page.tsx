@@ -131,7 +131,21 @@ export default async function PaginaDeResposta(
       <section aria-labelledby="titulo-oferta">
         <h2 id="titulo-oferta">O que foi oferecido</h2>
 
-        <dl className="ficha">
+        {/*
+          `doacao__ficha` AO LADO de `ficha`, e não `ficha` sozinha —
+          DEFEITO VISTO ABRINDO A TELA (regra 10 do CLAUDE.md), não pelos
+          testes, que estavam verdes. MEDIDO no Firefox, a 375px e a
+          1280px: com `ficha` sozinha o link do e-mail saía com **20px de
+          altura**, contra os 44px que a RNF08 pede — o mesmo defeito que a
+          RF11 mediu no "Trocar minha senha" de /minha-conta. Quem responde
+          uma doação toca nesse link para abrir o app de e-mail; um alvo de
+          20px, num celular, de pé, é o que faz a pessoa errar.
+
+          Quem dá a altura é `.doacao__ficha dd a` (estilos/admin.css), a
+          mesma regra que a fila usa nos cartões. `ficha` continua porque é
+          ela que dá o desenho base do <dl>, em estilos/base.css.
+        */}
+        <dl className="ficha doacao__ficha">
           <div>
             <dt>Quem</dt>
             <dd>
