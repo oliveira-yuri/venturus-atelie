@@ -1,6 +1,12 @@
 material-origem/
 acervo-web/
 *.zip
+
+# Material bruto que a equipe deixou como referência (PDFs de portfólio,
+# .pptx, fotos em tamanho original — ~240 MB). As imagens usadas no site
+# saem daqui tratadas para public/imagens/ (ver ferramentas de geração e o
+# item 0t do CLAUDE.md); o original não entra no repositório.
+docs/info-venturus/
 node_modules/
 .env
 .env.*

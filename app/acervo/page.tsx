@@ -103,6 +103,8 @@ export default async function Acervo({
         própria página ou baixe — é livre, e não pedimos cadastro para nada disso.
       </p>
 
+      <div className="af-stripe" aria-hidden="true" />
+
       <form id="filtros-acervo" className="formulario" role="search" aria-label="Buscar no acervo"
             action="/acervo" method="get">
         <div className="campo">

@@ -23,6 +23,8 @@ export default function Privacidade() {
         diz exatamente o quê, para quê e por quanto tempo — em português claro, sem letra miúda.
       </p>
 
+      <div className="af-stripe" aria-hidden="true" />
+
       <section aria-labelledby="titulo-responsavel">
         <h2 id="titulo-responsavel">Quem é responsável pelos seus dados</h2>
         <p>

@@ -1,5 +1,9 @@
 import { notFound } from 'next/navigation';
 import '@/estilos/admin.css';
+// A pele v1 (estilos/sistema-aplicado.css) já entra pelo layout raiz, que
+// envolve o painel. Ela alcança as classes do painel por seletor escopado
+// em `.painel` — especificidade maior que a das regras de admin.css —,
+// então não precisa (nem deve) ser reimportada aqui.
 import { ehEquipe } from '@/servidor/permissao';
 
 /**

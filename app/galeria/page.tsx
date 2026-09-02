@@ -56,6 +56,8 @@ export default async function Galeria() {
     <main id="conteudo" className="conteudo">
       <h1>Galeria</h1>
       <p className="destaque">Registros das nossas ações, oficinas e apresentações.</p>
+
+      <div className="af-stripe" aria-hidden="true" />
       <div id="lista-albuns">
         <ListaAlbuns albuns={albuns} mensagemVazio={ESTADO_VAZIO} />
       </div>

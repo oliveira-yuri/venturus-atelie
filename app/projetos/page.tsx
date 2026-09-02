@@ -57,6 +57,8 @@ export default async function Projetos() {
         espaço e têm classificação livre.
       </p>
 
+      <div className="af-stripe" aria-hidden="true" />
+
       <p>
         Quer levar uma destas atividades para a sua escola ou instituição?{' '}
         <Link href="/para-escolas">Veja como funciona</Link> ou{' '}

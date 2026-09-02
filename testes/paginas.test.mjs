@@ -204,7 +204,7 @@ test('projetos: atividade sem sinopse não exibe parágrafo vazio (regra 2 do CL
 // esperar, então basta ler o DOM assim que a página carrega.
 test('a prova social ("Na mídia") carrega na home, com pelo menos 3 registros reais', async () => {
   await navegador.get(`${BASE}/`);
-  const itens = await navegador.findElements(By.css('#na-midia .clipping__item'));
+  const itens = await navegador.findElements(By.css('#na-midia .af-media__item'));
   assert.ok(itens.length >= 3, `home: só ${itens.length} registros de mídia (esperado >= 3)`);
 });
 
@@ -221,7 +221,8 @@ test('nenhum texto escapa da caixa que o contém', async () => {
 
     const fugitivos = await navegador.executeScript(`
       const caixas = document.querySelectorAll(
-        '.caminho, .setor, .atividade, .clipping__item, .aviso, .abertura__peca, .estado');
+        '.caminho, .setor, .setor__corpo, .atividade, .clipping__item, .af-media__item, ' +
+        '.aviso, .af-card--hero, .estado');
       const falhas = [];
 
       for (const caixa of caixas) {

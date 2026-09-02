@@ -30,6 +30,8 @@ export default function QuemSomos() {
         e memória afro brasileira.
       </p>
 
+      <div className="af-stripe" aria-hidden="true" />
+
       <section aria-labelledby="titulo-sankofa">
         <h2 id="titulo-sankofa">Sankofa</h2>
         <p>

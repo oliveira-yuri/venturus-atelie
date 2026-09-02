@@ -49,6 +49,8 @@ export default async function ParaEscolas() {
         trabalhando cultura e memória afro-brasileira com as crianças.
       </p>
 
+      <div className="af-stripe" aria-hidden="true" />
+
       <section aria-labelledby="titulo-atividades-escola">
         <h2 id="titulo-atividades-escola">Que atividades existem</h2>
         <p>

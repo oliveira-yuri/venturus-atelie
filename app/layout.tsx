@@ -4,6 +4,9 @@ import '@/estilos/tokens.css';
 import '@/estilos/sistema.css';
 import '@/estilos/base.css';
 import '@/estilos/componentes.css';
+// A pele v1 sobre os nomes de classe antigos — carrega por último, de
+// propósito (ver o topo do arquivo).
+import '@/estilos/sistema-aplicado.css';
 import Cabecalho from '@/componentes/Cabecalho';
 import Rodape from '@/componentes/Rodape';
 import VLibras from '@/componentes/VLibras';

@@ -40,6 +40,8 @@ export default async function Agenda() {
         criar conta — basta preencher o formulário do evento.
       </p>
 
+      <div className="af-stripe" aria-hidden="true" />
+
       <section aria-labelledby="titulo-proximos">
         <h2 id="titulo-proximos">Em breve</h2>
         <div id="lista-proximos">

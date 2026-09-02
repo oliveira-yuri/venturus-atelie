@@ -368,6 +368,14 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   projeto**, escritas no topo de `estilos/tokens.css`: tamanho em `rem` e não em `px` (senão
   o A+ vira decoração), nada de `vw` em texto, e alto contraste por token e não por
   `filter: saturate(0)`.
+  **Como o sistema chega em cada camada:** `estilos/tokens.css` faz os nomes de token antigos
+  apontarem para os valores v1 (o site inteiro pega paleta e tipografia sem ser editado);
+  `estilos/sistema.css` traz os componentes `.af-*` de verdade, e só `app/page.tsx` os usa;
+  `estilos/sistema-aplicado.css` (02/09/2026) é a PELE do sistema sobre os nomes de classe
+  antigos — redeclara borda (1,5px), sombra (marrom dura, sem cor de categoria) e peso de
+  título (700) das superfícies legadas de `base.css`/`componentes.css`/`admin.css`, escopado
+  por `#conteudo` e `.painel` para vencer a especificidade. As telas públicas e as 17 do
+  painel ganham a aparência do sistema sem reescrita de markup.
 
 ---
 
@@ -422,7 +430,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 
 | Req | O quê | Status |
 |---|---|---|
-| RF01 | Página inicial | **pronto** |
+| RF01 | Página inicial | **pronto** — em `refine-design-system-v1` (02/09) bate com `index.html` do handoff: herói `.af-hero` com foto (`<picture>` 16:9 / 4:5), tiles numerados 01–04 (via CSS, sem texto novo — `paridade-texto` intacto), setores com foto 2:1, "Na mídia" em `.af-media`. Fotos só do cofundador, em `public/imagens/` (ver item 0t) |
 | RF02 | Quem somos | **pronto** |
 | RF03 | Projetos e atividades (11, do banco) | **pronto**, agora inclusive a edição pela equipe (Tarefa P4, 01/09): `/admin/atividades` lista as 11 e `/admin/atividades/editar?id=` corrige nome, resumo, sinopse e ficha técnica. **Só editar**: não cria e não apaga (o banco permite; a tela não oferece, e diz por quê). Tirar do ar/pôr de volta existe, num botão separado. Ninguém percorreu o caminho autenticado — não há sessão de equipe |
 | RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem DENTRO de uma publicação continua faltando: a P3 fez a galeria (`public.midia`), não `publicacoes.imagem_caminho` |
@@ -943,20 +951,26 @@ revisitada e mantida naquela tarefa.
    se perdeu junto com os relatórios. Se algo aqui parecer incompleto sobre eventos, doações,
    acervo, voluntários, indicadores ou o manual, a fonte é o relatório da tarefa, não o código.
 
-0t. **O design system v1 está numa branch, e três coisas dele ficaram por fazer.** A branch
-   `design-system-v1` (01/09/2026, saída de `migracao-nextjs`) troca a linguagem visual do
-   site inteiro — tokens, tipografia, cabeçalho, gaveta, barra de acessibilidade, rodapé — e
-   passa nos 1080 testes. O que NÃO entrou nela, e por quê:
+0t. **O design system v1 está numa branch.** A branch `design-system-v1` (01/09/2026, saída de
+   `migracao-nextjs`) troca a linguagem visual do site inteiro — tokens, tipografia, cabeçalho,
+   gaveta, barra de acessibilidade, rodapé. Em `refine-design-system-v1` (02/09/2026) a home
+   passou a bater com `index.html` do handoff e o sistema alcançou as demais telas. O que
+   MUDOU nesta rodada, e o que ainda falta:
 
-   1. **Os espaços de imagem do sistema** (`.af-ph`, quatro na home do mockup). A classe
-      existe em `estilos/sistema.css` e NÃO é usada em página nenhuma: a ONG não entregou
-      uma única foto com autorização de uso registrada (RN07, regra 9). Publicar caixa
-      tracejada escrita "IMAGEM · OFICINA" seria anunciar no ar o que falta. Quando a foto
-      chegar, ela entra no herói (16:9) e nos cartões de setor (2:1).
-   2. **A lista "Na mídia" não virou `.af-media`.** Ela continua sendo `.clipping`, e herda
-      a paleta e a sombra novas pelos tokens — só não ganhou a barra colorida de 6px à
-      esquerda. `componentes/SecaoNaMidia.ts` é compartilhado com `/para-escolas` e tem
-      teste de unidade próprio; converter é meia hora e não estava no caminho crítico.
+   1. **Os espaços de imagem do sistema (`.af-ph`) — PREENCHIDOS na home.** O herói (16:9 no
+      celular, retrato 4:5 no desktop, via `<picture>`) e os três cartões de setor (2:1)
+      agora têm foto real, em `public/imagens/`, geradas de `docs/info-venturus/` com Pillow.
+      Decisão do dono do projeto: **só imagens do cofundador Wil Oliveira** — adulto, figura
+      pública (imprensa nacional, Teatro Municipal). Nenhuma criança identificável vai ao ar
+      (RN07, regra 9). A foto `( Ateliê Afro Cultural ).jpg.jpeg`, que mostra o rosto de uma
+      criança, foi descartada. **Pendência: confirmar a autorização de uso de imagem do
+      fundador antes do deploy** — a regra 9 é bloqueante. `.af-ph` segue em `sistema.css`
+      como o espaço declarado para onde ainda não há foto.
+   2. **A lista "Na mídia" virou `.af-media`.** `componentes/SecaoNaMidia.ts` agora emite o
+      markup do sistema (barra colorida de 6px, `af-media__item/__barra/__corpo/__titulo/
+      __meta`). `testes/secao-na-midia.test.mjs` e `testes/paginas.test.mjs` foram
+      atualizados. `.clipping` continua vivo em `componentes/SecaoOndeEstivemos.ts`
+      (/para-escolas), que não faz parte do desenho da home.
    3. **O cabeçalho tem TRÊS faixas no desktop, o handoff desenha duas.** Ocre (marca +
       "Aa" + Entrar), creme (os controles de acessibilidade) e marrom (os 11 links). O
       handoff põe os controles dentro da faixa ocre. Para fazer isso, `.af-header` precisa
@@ -1055,3 +1069,13 @@ De `docs/Correções Web Ateliê.txt`:
   já é RF33 e está no plano
 - Botão flutuante de WhatsApp no canto inferior direito — **novo, fora do escopo original**.
   Atenção: o VLibras já ocupa esse canto; empilhar ou trocar de lado, nunca remover o VLibras
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

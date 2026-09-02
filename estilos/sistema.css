@@ -447,6 +447,60 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
 .af-ph--wide { aspect-ratio: 2 / 1; border: none; border-bottom: var(--af-border); }
 
 /* ---------------------------------------------------------------------
+   Herói da home — `index.html` §4 do handoff.
+
+   Uma faixa ocre com a imagem 16:9 atrás e o cartão creme de sombra dura
+   por cima, avançando -14px sobre ela (no desktop, -48px e imagem 4:5).
+
+   ORDEM NO DOM: o cartão vem PRIMEIRO, a imagem depois — é o que o
+   protótipo `Home 1a Desktop.dc.html` desenha (cartão à esquerda, imagem à
+   direita). No celular a imagem sobe para cima do cartão por `order: -1`, e
+   quem avança é o cartão (`margin-top: -14px`), não a imagem — o efeito
+   visual do handoff sem depender de a imagem estar antes no HTML.
+
+   A imagem TROCA por faixa (`<picture>`): 16:9 no celular, retrato 4:5 no
+   desktop. RN07 / regra 9: as fotos são do cofundador Wil Oliveira, adulto
+   e figura pública; nenhuma criança identificável entra no ar. Quando não
+   houver foto, `.af-ph` (acima) volta a ser o espaço declarado.
+   --------------------------------------------------------------------- */
+
+.af-hero {
+  display: flex;
+  flex-direction: column;
+  background: var(--af-ochre);
+  padding: var(--af-s8) var(--af-gutter) var(--af-s10);
+}
+
+.af-hero picture { display: block; }
+
+.af-hero__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border: var(--af-border);
+  order: -1;              /* no celular a imagem fica acima do cartão */
+  position: relative;
+  z-index: 1;
+}
+
+.af-hero .af-card--hero {
+  position: relative;
+  z-index: 2;
+  margin-top: -14px;     /* o cartão avança sobre a imagem, como no mockup */
+}
+
+.af-hero .af-text { margin-top: var(--af-s6); }
+
+.af-hero__acoes {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--af-s4);
+  margin-top: var(--af-s8);
+}
+
+/* ---------------------------------------------------------------------
    Rodapé
    --------------------------------------------------------------------- */
 
@@ -559,6 +613,24 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
 .af-tile h3 { margin: 0 0 var(--af-s2); font: 700 0.9375rem var(--af-font); }
 .af-tile p  { margin: 0; font: 400 var(--af-caption) / 1.45 var(--af-font); color: var(--af-brown-400); }
 
+/* Numeração 01–04 do handoff. Entra por CSS (`::before`), não por markup:
+   um `<span>01</span>` seria texto novo dentro de <main> e
+   testes/paridade-texto.test.mjs (que compara o texto visível da home
+   inteira) passaria a acusar divergência. Conteúdo gerado não conta como
+   texto do documento — nem para o teste, nem no HTML que o servidor envia.
+   A cor segue a categoria, igual às bordas de topo. */
+.caminhos .caminho > a::before {
+  content: "01";
+  display: block;
+  margin-bottom: var(--af-s1);
+  font: 600 0.625rem / 1 var(--af-font);
+  letter-spacing: var(--af-ls-overline);
+  color: var(--af-ochre-deep);
+}
+.caminhos .caminho:nth-child(2) > a::before { content: "02"; color: var(--af-blue-deep); }
+.caminhos .caminho:nth-child(3) > a::before { content: "03"; color: var(--af-brown-400); }
+.caminhos .caminho:nth-child(4) > a::before { content: "04"; color: var(--af-ochre); }
+
 /* ---------------------------------------------------------------------
    Carrossel com encaixe — os três setores.
 
@@ -588,6 +660,29 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   scroll-snap-align: start;
   margin: 0;
 }
+
+/* Cada setor da home ganha uma foto 2:1 no topo — o espaço `.af-ph--wide`
+   do handoff, preenchido. `.setor` (base.css) tem padding; a variante
+   `--com-imagem` zera esse padding e devolve o respiro ao corpo do texto,
+   para a imagem encostar nas bordas do cartão como no mockup.
+   Só a home usa isto: /quem-somos tem os mesmos três `.setor`, sem foto. */
+.setor--com-imagem { padding: 0; overflow: hidden; }
+
+.setor__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  border-bottom: var(--af-border);
+}
+
+.setor--com-imagem .setor__corpo { padding: var(--af-s6) var(--af-gutter-card); }
+.setor--com-imagem .setor__corpo h3 { margin: 0 0 var(--af-s2); }
+.setor--com-imagem .setor__corpo p { margin: 0; }
+
+/* Seta no link "Ler nossa história completa" (handoff). `::after`, mesmo
+   motivo da numeração dos tiles: nada de texto novo no <main>. */
+.link-historia::after { content: " \2192"; }
 
 /* ---------------------------------------------------------------------
    Lista "Na mídia" — barra colorida de 6px à esquerda de cada item.
@@ -715,6 +810,30 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   .af-footer__cols { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.5rem; }
   .af-footer h2 { font-size: 1.0625rem; }
   .af-stripe { height: 16px; }
+
+  /* Herói em duas colunas: cartão à esquerda (1.05fr) avançando -48px sobre
+     a imagem vertical (1fr) à direita. `desktop.css` §herói do handoff. */
+  .af-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: center;
+    max-width: var(--af-container);
+    margin-inline: auto;
+    padding: 3.5rem var(--af-gutter-desk) 4rem;
+  }
+  .af-hero .af-card--hero {
+    margin-top: 0;
+    margin-right: -48px;
+    padding: 2.5rem;
+    box-shadow: 8px 8px 0 var(--af-brown);
+  }
+  .af-hero__img { order: 0; }              /* volta para a 2ª coluna */
+  .af-hero__acoes { flex-direction: row; flex-wrap: wrap; }
+  .af-hero__acoes .af-btn { width: auto; padding-inline: var(--af-s9); }
+
+  /* No desktop a foto do setor fica um pouco menos alta (16:10), como o
+     protótipo. object-fit: cover cuida do recorte. */
+  .setor__img { aspect-ratio: 16 / 10; }
 }
 
 @media (hover: hover) {
