@@ -34,6 +34,25 @@ async function escalaAtual() {
   );
 }
 
+
+/**
+ * O design system v1 pos os controles de acessibilidade atras do botao "Aa".
+ * Com JavaScript ligado a barra chega recolhida, entao TODO teste que clica
+ * em A-/A/A+/contraste precisa abri-la antes — e' um toque a mais para quem
+ * usa, e uma linha a mais aqui.
+ *
+ * Sem JavaScript a barra chega ABERTA, e e' isso que o teste
+ * "a barra de acessibilidade chega aberta no HTML do servidor" garante:
+ * esconde-la atras de um botao que nao existe sem script seria tirar o
+ * controle de tamanho de texto de quem mais precisa dele (regra 8).
+ */
+async function abrirBarraDeAcessibilidade() {
+  const barra = await navegador.findElement(By.css('#barra-acessibilidade'));
+  if (await barra.isDisplayed()) return;
+  await navegador.findElement(By.css('[aria-controls="barra-acessibilidade"]')).click();
+  await navegador.wait(async () => await barra.isDisplayed(), 2000);
+}
+
 test('o primeiro Tab alcança o link de pular para o conteúdo', async () => {
   await navegador.get(endereco);
   await navegador.actions().sendKeys(Key.TAB).perform();
@@ -104,7 +123,7 @@ test('Esc fecha o menu e devolve o foco ao botão', async () => {
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(endereco);
 
-  const botao = await navegador.findElement(By.css('.cabecalho__alternar'));
+  const botao = await navegador.findElement(By.css('.af-burger'));
   await botao.click();
   assert.equal(await botao.getAttribute('aria-expanded'), 'true');
 
@@ -112,19 +131,21 @@ test('Esc fecha o menu e devolve o foco ao botão', async () => {
   assert.equal(await botao.getAttribute('aria-expanded'), 'false');
 
   const foco = await navegador.switchTo().activeElement();
-  assert.equal(await foco.getAttribute('class'), 'cabecalho__alternar',
+  assert.equal(await foco.getAttribute('class'), 'af-burger',
     'o foco deveria voltar ao botão Menu');
 });
 
 test('A+ aumenta o texto de toda a página', async () => {
   await navegador.get(endereco);
   const antes = await escalaAtual();
+  await abrirBarraDeAcessibilidade();
   await navegador.findElement(By.css('[data-acao="aumentar"]')).click();
   assert.ok(await escalaAtual() > antes, 'a escala não subiu');
 });
 
 test('a escala para no último degrau em vez de crescer sem limite', async () => {
   await navegador.get(endereco);
+  await abrirBarraDeAcessibilidade();
   const botao = await navegador.findElement(By.css('[data-acao="aumentar"]'));
   for (let i = 0; i < 6; i += 1) {
     if (!(await botao.isEnabled())) break;
@@ -135,6 +156,7 @@ test('a escala para no último degrau em vez de crescer sem limite', async () =>
 
 test('a preferência sobrevive ao recarregar', async () => {
   await navegador.get(endereco);
+  await abrirBarraDeAcessibilidade();
   await navegador.findElement(By.css('[data-acao="aumentar"]')).click();
   const escolhida = await escalaAtual();
 
@@ -144,6 +166,7 @@ test('a preferência sobrevive ao recarregar', async () => {
 
 test('alto contraste marca o documento e inverte fundo e texto', async () => {
   await navegador.get(endereco);
+  await abrirBarraDeAcessibilidade();
   await navegador.findElement(By.css('[data-acao="contraste"]')).click();
 
   const marcado = await navegador.executeScript(
@@ -172,11 +195,11 @@ test('não há rolagem horizontal em largura de celular', async () => {
 test('todo alvo de toque tem pelo menos 44px', async () => {
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(endereco);
-  await navegador.findElement(By.css('.cabecalho__alternar')).click();
+  await navegador.findElement(By.css('.af-burger')).click();
 
   const pequenos = await navegador.executeScript(`
     const alvos = document.querySelectorAll(
-      '.cabecalho__menu a, .cabecalho__alternar, .acessibilidade button, .rodape__lista a'
+      '.af-navlink, .af-burger, .af-a11y button, .af-footer__links a'
     );
     const falhas = [];
     for (const alvo of alvos) {
@@ -193,6 +216,8 @@ test('todo alvo de toque tem pelo menos 44px', async () => {
 test('a escala máxima não corta nem sobrepõe conteúdo', async () => {
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(endereco);
+
+  await abrirBarraDeAcessibilidade();
 
   const botao = await navegador.findElement(By.css('[data-acao="aumentar"]'));
   for (let i = 0; i < 6; i += 1) {

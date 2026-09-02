@@ -42,13 +42,16 @@ const BASE = process.env.URL_BASE || 'http://localhost:3123';
 async function hrefsDoMenu() {
   const html = await fetch(`${BASE}/`).then((resposta) => resposta.text());
 
-  const blocoMenu = html.match(/<nav[^>]*id="menu-principal"[\s\S]*?<\/nav>/)?.[0] || '';
+  // O id foi para o INVOLUCRO da gaveta no design system v1; o <nav>
+  // e' identificado pelo aria-label e traz so' os 11 itens (o CTA
+  // "Doar agora" fica fora dele, de proposito).
+  const blocoMenu = html.match(/<nav[^>]*aria-label="Principal"[\s\S]*?<\/nav>/)?.[0] || '';
   const doMenu = [...blocoMenu.matchAll(/<a[^>]+href="([^"]+)"/g)].map((m) => m[1]);
 
   // A ordem dos atributos no HTML renderizado não é garantida — tenta os
   // dois sentidos (class antes de href, e o inverso).
-  const entrar = html.match(/class="cabecalho__entrar"[^>]*href="([^"]+)"/)
-    || html.match(/href="([^"]+)"[^>]*class="cabecalho__entrar"/);
+  const entrar = html.match(/class="af-control cabecalho__entrar"[^>]*href="([^"]+)"/)
+    || html.match(/href="([^"]+)"[^>]*class="af-control cabecalho__entrar"/);
 
   return [...doMenu, ...(entrar ? [entrar[1]] : [])];
 }

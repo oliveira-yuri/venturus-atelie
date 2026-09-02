@@ -31,15 +31,51 @@ test('sem JavaScript, os 11 links do menu chegam no HTML cru e o nav nao vem ocu
   // fetch puro, sem navegador: exatamente o que alcança quem visita sem JS.
   const html = await fetch(`${BASE}/`).then((resposta) => resposta.text());
 
-  const abertura = html.match(/<nav[^>]*id="menu-principal"[^>]*>/);
-  assert.ok(abertura, 'nav#menu-principal nao encontrado no HTML entregue pelo servidor');
+  // O design system v1 separou o INVOLUCRO (o que abre, fecha e desenha o
+  // scrim, com o id) do LANDMARK (o <nav> com os 11 itens). "Doar agora"
+  // fica entre os dois, fora do <nav>: e' CTA, nao destino de navegacao.
+  // Este teste continua medindo as duas coisas que importam — o involucro
+  // nao chega `hidden`, e o <nav> traz exatamente 11 links.
+  const abertura = html.match(/<div[^>]*id="menu-principal"[^>]*>/);
+  assert.ok(abertura, 'div#menu-principal nao encontrado no HTML entregue pelo servidor');
   assert.doesNotMatch(abertura[0], /\shidden(\s|=|>)/,
-    'o servidor entregou o nav com o atributo hidden: sem JS ninguem ve o menu');
+    'o servidor entregou a navegacao com o atributo hidden: sem JS ninguem ve o menu');
+  assert.doesNotMatch(abertura[0], /af-nav--(gaveta|fechada)/,
+    'o servidor entregou a navegacao ja recolhida: sem JS ninguem ve o menu');
 
-  const bloco = html.match(/<nav[^>]*id="menu-principal"[\s\S]*?<\/nav>/);
+  const bloco = html.match(/<nav[^>]*aria-label="Principal"[\s\S]*?<\/nav>/);
   assert.ok(bloco, 'nao foi possivel isolar o bloco do nav no HTML');
   const links = [...bloco[0].matchAll(/<a[^>]+href="[^"]+"/g)];
   assert.equal(links.length, 11, `esperava 11 links no menu, o HTML cru trouxe ${links.length}`);
+});
+
+
+test('sem JavaScript, a barra de acessibilidade chega ABERTA no HTML do servidor', async () => {
+  // O design system v1 (variação 1a) esconde os controles A-/A/A+ e alto
+  // contraste atrás do botão "Aa". Isso é aceitável COM script: um toque a
+  // mais. Sem script seria a ONG perder o "textos grandes" que ela pediu —
+  // um botão que só o React faz funcionar esconderia o controle para sempre.
+  //
+  // Por isso `af-a11y--recolhida` só entra depois de hidratar, e é
+  // exatamente isso que este teste mede: no HTML CRU, a barra existe, tem os
+  // quatro controles, e não vem recolhida nem `hidden`.
+  //
+  // MEDIDO na tarefa que trouxe o sistema: com a classe aplicada no
+  // servidor, o Firefox com `javascript.enabled=false` não mostrava
+  // controle de acessibilidade nenhum em nenhuma rota.
+  const html = await fetch(`${BASE}/`).then((resposta) => resposta.text());
+
+  const abertura = html.match(/<div[^>]*id="barra-acessibilidade"[^>]*>/);
+  assert.ok(abertura, 'a barra de acessibilidade não foi entregue pelo servidor');
+  assert.doesNotMatch(abertura[0], /\shidden(\s|=|>)/,
+    'o servidor entregou a barra com `hidden`: sem JS ninguém aumenta o texto');
+  assert.doesNotMatch(abertura[0], /af-a11y--recolhida/,
+    'o servidor entregou a barra já recolhida: sem JS ninguém aumenta o texto');
+
+  const bloco = html.match(/<div[^>]*id="barra-acessibilidade"[\s\S]*?<\/div>\s*<\/header>|<div[^>]*id="barra-acessibilidade"[\s\S]{0,4000}/);
+  const acoes = [...bloco[0].matchAll(/data-acao="([a-z]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(acoes.slice(0, 4), ['diminuir', 'padrao', 'aumentar', 'contraste'],
+    `a barra crua não trouxe os quatro controles, trouxe: ${acoes.join(', ') || 'nenhum'}`);
 });
 
 test('o cabecalho monta com os 11 itens e marca a pagina atual', async () => {
@@ -53,11 +89,18 @@ test('o cabecalho monta com os 11 itens e marca a pagina atual', async () => {
   await navegador.get(`${BASE}/`);
   const montou = await navegador.executeScript(`return {
     menu: Boolean(document.querySelector('#menu-principal')),
-    itens: document.querySelectorAll('#menu-principal a').length,
+    // Os ITENS sao os do <nav>. O "Doar agora" mora no involucro, fora
+    // dele — e' CTA, nao destino de navegacao — e por isso e' contado
+    // separado: sem esta separacao, o dia em que alguem puser um segundo
+    // botao ali o numero 11 subiria sem ninguem notar.
+    itens: document.querySelectorAll('#menu-principal nav a').length,
+    cta: document.querySelector('#menu-principal > * > .af-nav__rodape a')?.getAttribute('href') || null,
     atual: document.querySelector('[aria-current="page"]')?.textContent.trim() || null
   }`);
   assert.ok(montou.menu, 'o menu nao montou');
   assert.equal(montou.itens, 11);
+  assert.equal(montou.cta, '/doar',
+    'o CTA "Doar agora" do pe da gaveta sumiu, ou deixou de apontar para /doar');
   assert.equal(montou.atual, 'Início');
 });
 
@@ -80,7 +123,7 @@ test('Esc fecha o menu mesmo sem sair do botao, e devolve o foco a ele', async (
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(`${BASE}/`);
 
-  const botao = await navegador.findElement(By.css('.cabecalho__alternar'));
+  const botao = await navegador.findElement(By.css('.af-burger'));
   await botao.click();
   assert.equal(await botao.getAttribute('aria-expanded'), 'true', 'o clique deveria abrir o menu');
 
@@ -92,11 +135,11 @@ test('Esc fecha o menu mesmo sem sair do botao, e devolve o foco a ele', async (
     'Esc no botao deveria fechar o menu, sem precisar focar o nav antes');
 
   const nav = await navegador.findElement(By.css('#menu-principal'));
-  assert.match(await nav.getAttribute('class'), /cabecalho__menu--fechado/,
+  assert.match(await nav.getAttribute('class'), /af-nav--fechada/,
     'a classe de recolhido deveria voltar');
 
   const classeAtiva = await navegador.executeScript('return document.activeElement.className');
-  assert.equal(classeAtiva, 'cabecalho__alternar',
+  assert.equal(classeAtiva, 'af-burger',
     'o foco deveria estar no botao Menu — sem isso ele fica preso num menu invisivel');
 });
 
@@ -110,7 +153,7 @@ test('abre pelo botao, da Tab ate um link do menu, e Esc fecha e devolve o foco 
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(`${BASE}/`);
 
-  const botao = await navegador.findElement(By.css('.cabecalho__alternar'));
+  const botao = await navegador.findElement(By.css('.af-burger'));
   await botao.click();
   assert.equal(await botao.getAttribute('aria-expanded'), 'true', 'o clique deveria abrir o menu');
 
@@ -125,11 +168,11 @@ test('abre pelo botao, da Tab ate um link do menu, e Esc fecha e devolve o foco 
     'Esc dado a partir de um link do menu tambem deveria fechar o menu');
 
   const nav = await navegador.findElement(By.css('#menu-principal'));
-  assert.match(await nav.getAttribute('class'), /cabecalho__menu--fechado/,
+  assert.match(await nav.getAttribute('class'), /af-nav--fechada/,
     'a classe de recolhido deveria voltar');
 
   const classeAtiva = await navegador.executeScript('return document.activeElement.className');
-  assert.equal(classeAtiva, 'cabecalho__alternar',
+  assert.equal(classeAtiva, 'af-burger',
     'o foco deveria voltar ao botao Menu mesmo vindo de um link do menu');
 });
 

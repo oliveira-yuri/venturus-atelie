@@ -26,7 +26,7 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (1077 testes)
+npm test                        # suíte completa, modo offline (1080 testes)
 npm run test:supabase           # a mesma suíte, contra o banco real (1078)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
@@ -133,8 +133,14 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
    pena, linguagem de caridade ou contador de "vidas salvas". Há teste que recusa isso.
 2. **Nunca inventar conteúdo.** Sem lorem ipsum, sem evento ou depoimento fictício. Faltou texto
    real, pergunta. Campos sem dado ficam `null` e a página omite a seção.
-3. **A paleta é da ONG**, com significado declarado por eles: amarelo `#E0A400`, azul `#7FA9CE`,
-   marrom `#8A6A4A`. Não alterar.
+3. **A paleta é da ONG**, com significado declarado por eles: luz/sabedoria, céu/esperança,
+   terra/raízes. **Os HEX mudaram em 01/09/2026**, ao adotar o design system "Ateliê Afro" v1
+   (variação 1a, aprovada pelo grupo): ocre `#D69A10`, azul `#6FA6C8`, marrom `#2B2019`. Os
+   antigos eram `#E0A400`, `#7FA9CE` e `#8A6A4A` — o que mais se mexeu foi o marrom, que
+   deixou de ser cor de destaque e virou TINTA (o texto do site inteiro). Os significados são
+   os mesmos; os tons foram afinados para contraste. **A regra continua valendo com os
+   valores novos:** alterar é decisão do grupo, não de quem implementa. Fonte de verdade:
+   `docs/Três variações mobile do sistema/`, executada em `estilos/tokens.css`.
 4. **Mobile-first no painel.** A ONG não possui computador — toda operação acontece no celular
    pessoal da equipe, muitas vezes de pé, no meio de um evento.
 5. **RLS antes de tudo.** Toda tabela nasce com política na mesma migration. O aceite da seção 12
@@ -350,8 +356,18 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   sem saída depois de um toque errado no celular (regra 4). O banco permite as duas (`for all`);
   quem recusa é `acoes/atividades.ts`, e há teste que falha no dia em que um `insert` ou um
   `delete` aparecer ali.
-- **Design "Aplique":** um gesto só — deslocamento sólido que simula peça costurada. Nenhuma
-  textura de fundo repetida. Fontes servidas localmente, sem Google Fonts.
+- **Design system "Ateliê Afro" v1** (01/09/2026, branch `design-system-v1`), que ABSORVEU a
+  direção "Aplique" em vez de descartá-la: o gesto continua sendo o deslocamento sólido sem
+  desfoque, canto vivo, nada de textura repetida — é literalmente o princípio 2 do sistema
+  novo. O que mudou: **uma serifa só em tudo** (Bitter, inclusive em botão e rótulo — não
+  existe mais sans no site), a paleta afinada (regra 3), a escala tipográfica menor e a
+  **faixa listrada** como divisor de seção, no máximo duas por página. Fontes continuam
+  servidas localmente, sem Google Fonts — o handoff carrega Bitter por `<link>` para
+  fonts.googleapis.com, e aqui os `.woff2` são versionados (`estilos/fontes.css` explica).
+  **Três divergências deliberadas em relação ao handoff, cada uma por uma regra deste
+  projeto**, escritas no topo de `estilos/tokens.css`: tamanho em `rem` e não em `px` (senão
+  o A+ vira decoração), nada de `vw` em texto, e alto contraste por token e não por
+  `filter: saturate(0)`.
 
 ---
 
@@ -926,6 +942,32 @@ revisitada e mantida naquela tarefa.
    que iria para cá. Isso funcionou, mas abre um buraco conhecido: o que não foi transcrito
    se perdeu junto com os relatórios. Se algo aqui parecer incompleto sobre eventos, doações,
    acervo, voluntários, indicadores ou o manual, a fonte é o relatório da tarefa, não o código.
+
+0t. **O design system v1 está numa branch, e três coisas dele ficaram por fazer.** A branch
+   `design-system-v1` (01/09/2026, saída de `migracao-nextjs`) troca a linguagem visual do
+   site inteiro — tokens, tipografia, cabeçalho, gaveta, barra de acessibilidade, rodapé — e
+   passa nos 1080 testes. O que NÃO entrou nela, e por quê:
+
+   1. **Os espaços de imagem do sistema** (`.af-ph`, quatro na home do mockup). A classe
+      existe em `estilos/sistema.css` e NÃO é usada em página nenhuma: a ONG não entregou
+      uma única foto com autorização de uso registrada (RN07, regra 9). Publicar caixa
+      tracejada escrita "IMAGEM · OFICINA" seria anunciar no ar o que falta. Quando a foto
+      chegar, ela entra no herói (16:9) e nos cartões de setor (2:1).
+   2. **A lista "Na mídia" não virou `.af-media`.** Ela continua sendo `.clipping`, e herda
+      a paleta e a sombra novas pelos tokens — só não ganhou a barra colorida de 6px à
+      esquerda. `componentes/SecaoNaMidia.ts` é compartilhado com `/para-escolas` e tem
+      teste de unidade próprio; converter é meia hora e não estava no caminho crítico.
+   3. **O cabeçalho tem TRÊS faixas no desktop, o handoff desenha duas.** Ocre (marca +
+      "Aa" + Entrar), creme (os controles de acessibilidade) e marrom (os 11 links). O
+      handoff põe os controles dentro da faixa ocre. Para fazer isso, `.af-header` precisa
+      virar grade no desktop, e a centralização em 1180px de cada faixa complica. Fica como
+      está: os controles ficam VISÍVEIS no desktop, que é o princípio 6 do sistema.
+
+   **Uma decisão do sistema que precisa ser conferida com gente de verdade:** o corpo do
+   texto caiu de 17px para 14,5px (0,90625rem), que é o que o handoff especifica. A ONG
+   pediu "textos grandes". O A+ recupera com folga (137,5% dá 19,9px, mais que os 17px de
+   antes), mas o padrão ficou menor — e quem nunca toca no A+ é a maioria. Se o grupo achar
+   pequeno, é UMA linha: `--af-body` em `estilos/tokens.css`.
 
 **Do projeto, válidos para as duas branches:**
 

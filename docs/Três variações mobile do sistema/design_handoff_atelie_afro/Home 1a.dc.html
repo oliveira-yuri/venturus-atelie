@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"><style>
+.frx{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;background:#F9F4EA;font-family:Bitter,Georgia,serif;-webkit-text-size-adjust:100%}
+.frx::-webkit-scrollbar{display:none}
+.hsx{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px 4.5% 10px}
+.hsx::-webkit-scrollbar{display:none}
+.hsx>*{scroll-snap-align:start;flex:none;width:70%;min-width:190px}
+.wrapx{filter:none}
+</style></helmet>
+<div style="width:100%;height:100%;filter:{{ f }}"><div style="width:100%;height:100%;zoom:{{ z }}"><div class="frx">
+
+<div style="position:sticky;top:0;z-index:30;background:#D69A10;border-bottom:1.5px solid #2B2019;display:flex;align-items:center;gap:8px;padding:10px 4%">
+<button onClick="{{ toggleDrawer }}" aria-label="Abrir menu" style="width:46px;height:46px;flex:none;display:grid;place-items:center;background:#2B2019;border:1.5px solid #2B2019;border-radius:3px;cursor:pointer">
+<span style="display:flex;flex-direction:column;gap:4px"><span style="width:20px;height:2px;background:#F9F4EA;display:block"></span><span style="width:20px;height:2px;background:#F9F4EA;display:block"></span><span style="width:20px;height:2px;background:#F9F4EA;display:block"></span></span>
+</button>
+<div style="flex:1;min-width:0">
+<div style="font:700 15px/1.15 Bitter,serif;color:#2B2019;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ateliê Afro Cultural</div>
+<div style="font:400 10.5px/1.2 Bitter,serif;color:#5C4423;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Casa Verde · São Paulo</div>
+</div>
+<button onClick="{{ toggleA11y }}" aria-label="Acessibilidade" style="width:46px;height:46px;flex:none;background:#FFFDF7;border:1.5px solid #2B2019;border-radius:3px;font:600 15px Bitter,serif;color:#2B2019;cursor:pointer">Aa</button>
+<button style="height:46px;padding:0 12px;flex:none;background:#FFFDF7;border:1.5px solid #2B2019;border-radius:3px;font:600 13px Bitter,serif;color:#2B2019;cursor:pointer;white-space:nowrap">Entrar</button>
+</div>
+
+<sc-if value="{{ a11y }}" hint-placeholder-val="{{ false }}">
+<div style="position:sticky;top:68px;z-index:29;background:#FFFDF7;border-bottom:1.5px solid #2B2019;padding:12px 4%;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+<span style="font:500 11px Bitter,serif;color:#6E5B45;letter-spacing:.06em;text-transform:uppercase;width:100%">Acessibilidade</span>
+<button onClick="{{ fsDown }}" style="min-width:46px;height:44px;flex:none;background:#F9F4EA;border:1.5px solid #2B2019;border-radius:3px;font:600 13px Bitter,serif;color:#2B2019;cursor:pointer">A-</button>
+<button onClick="{{ fsReset }}" style="min-width:46px;height:44px;flex:none;background:#F9F4EA;border:1.5px solid #2B2019;border-radius:3px;font:600 15px Bitter,serif;color:#2B2019;cursor:pointer">A</button>
+<button onClick="{{ fsUp }}" style="min-width:46px;height:44px;flex:none;background:#F9F4EA;border:1.5px solid #2B2019;border-radius:3px;font:600 17px Bitter,serif;color:#2B2019;cursor:pointer">A+</button>
+<button onClick="{{ toggleHc }}" style="height:44px;padding:0 14px;flex:1 1 auto;min-width:130px;background:#2B2019;border:1.5px solid #2B2019;border-radius:3px;font:600 13px Bitter,serif;color:#F9F4EA;cursor:pointer">Alto contraste</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ drawer }}" hint-placeholder-val="{{ false }}">
+<div style="position:sticky;top:0;height:0;z-index:40">
+<div style="position:absolute;top:0;left:0;right:0;height:{{ fh }}px">
+<div onClick="{{ toggleDrawer }}" style="position:absolute;inset:0;background:rgba(43,32,25,.55)"></div>
+<nav style="position:absolute;top:0;left:0;bottom:0;width:82%;max-width:300px;background:#2B2019;border-right:2px solid #D69A10;padding:18px 0 24px;overflow-y:auto">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px 16px">
+<span style="font:700 14px Bitter,serif;color:#D69A10">Menu</span>
+<button onClick="{{ toggleDrawer }}" aria-label="Fechar menu" style="width:44px;height:44px;background:transparent;border:1.5px solid #6E5B45;border-radius:3px;color:#F9F4EA;font:400 18px Bitter,serif;cursor:pointer">×</button>
+</div>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;background:#D69A10;color:#2B2019;font:600 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Início</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Quem somos</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Projetos</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Agenda</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Notícias</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Galeria</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Acervo</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Para escolas</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Voluntariado</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Apoiar</a>
+<a href="#" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12);border-bottom:1px solid rgba(249,244,234,.12)">Contato</a>
+<div style="padding:18px">
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:48px;background:#D69A10;border:1.5px solid #F9F4EA;color:#2B2019;font:600 14px Bitter,serif;text-decoration:none">Doar agora</a>
+</div>
+</nav>
+</div>
+</div>
+</sc-if>
+
+<div style="background:#D69A10;padding:18px 4% 26px">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}">
+<div style="aspect-ratio:16/9;background:#EFE6D6;border:1.5px dashed #8A7862;display:grid;place-items:center;margin-bottom:-14px;position:relative;z-index:1">
+<span style="font:500 11px Bitter,serif;color:#8A7862;letter-spacing:.1em;text-transform:uppercase;text-align:center;padding:0 8px">Imagem · oficina</span>
+</div>
+</sc-if>
+<div style="position:relative;z-index:2;background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:6px 6px 0 #2B2019;padding:20px 5%">
+<h1 style="margin:0;font:700 clamp(22px,7.2vw,28px)/1.15 Bitter,serif;color:#2B2019;text-wrap:pretty;overflow-wrap:break-word">Arte, memória e <span style="color:#9A6A12">pertencimento</span> — feitos à mão, todo dia</h1>
+<p style="margin:14px 0 0;font:400 14.5px/1.6 Bitter,serif;color:#6E5B45;text-wrap:pretty">Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira, na Casa Verde, zona norte de São Paulo.</p>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">
+<a href="#" style="display:flex;align-items:center;justify-content:center;text-align:center;min-height:50px;padding:6px 10px;background:#2B2019;color:#F9F4EA;font:600 14.5px Bitter,serif;text-decoration:none">Conhecer nossos projetos</a>
+<a href="#" style="display:flex;align-items:center;justify-content:center;text-align:center;min-height:50px;padding:6px 10px;background:transparent;border:1.5px solid #2B2019;color:#2B2019;font:600 14.5px Bitter,serif;text-decoration:none">Ver a agenda</a>
+</div>
+</div>
+</div>
+
+<div style="height:14px;background:repeating-linear-gradient(90deg,#2B2019 0 3px,#6FA6C8 3px 8px)"></div>
+
+<div style="padding:26px 4% 8px">
+<h2 style="margin:0 0 4px;font:700 19px Bitter,serif;color:#2B2019">Por onde começar</h2>
+<p style="margin:0 0 16px;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Quatro caminhos para entrar no ateliê.</p>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+<a href="#" style="display:block;text-decoration:none;background:#FFFDF7;border:1.5px solid #2B2019;border-top:5px solid #D69A10;box-shadow:4px 4px 0 #2B2019;padding:13px 12px 15px">
+<span style="font:600 10px Bitter,serif;color:#9A6A12;letter-spacing:.12em">01</span>
+<div style="font:700 15px Bitter,serif;color:#2B2019;margin-top:4px">Conhecer</div>
+<p style="margin:6px 0 0;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Nossa história e os três setores de atuação.</p>
+</a>
+<a href="#" style="display:block;text-decoration:none;background:#FFFDF7;border:1.5px solid #2B2019;border-top:5px solid #6FA6C8;box-shadow:4px 4px 0 #2B2019;padding:13px 12px 15px">
+<span style="font:600 10px Bitter,serif;color:#2F6D96;letter-spacing:.12em">02</span>
+<div style="font:700 15px Bitter,serif;color:#2B2019;margin-top:4px">Participar</div>
+<p style="margin:6px 0 0;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Oficinas e vivências abertas, sem cadastro.</p>
+</a>
+<a href="#" style="display:block;text-decoration:none;background:#FFFDF7;border:1.5px solid #2B2019;border-top:5px solid #2B2019;box-shadow:4px 4px 0 #2B2019;padding:13px 12px 15px">
+<span style="font:600 10px Bitter,serif;color:#6E5B45;letter-spacing:.12em">03</span>
+<div style="font:700 15px Bitter,serif;color:#2B2019;margin-top:4px">Ser voluntário</div>
+<p style="margin:6px 0 0;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Cinco áreas, do apoio pedagógico ao acervo.</p>
+</a>
+<a href="#" style="display:block;text-decoration:none;background:#2B2019;border:1.5px solid #2B2019;box-shadow:4px 4px 0 #D69A10;padding:13px 12px 15px">
+<span style="font:600 10px Bitter,serif;color:#D69A10;letter-spacing:.12em">04</span>
+<div style="font:700 15px Bitter,serif;color:#F9F4EA;margin-top:4px">Apoiar</div>
+<p style="margin:6px 0 0;font:400 12.5px/1.45 Bitter,serif;color:#D8CBB8">Livros, instrumentos, materiais de arte e recursos.</p>
+</a>
+</div>
+</div>
+
+<div style="padding:26px 0 6px">
+<div style="padding:0 4% 14px">
+<h2 style="margin:0;font:700 19px Bitter,serif;color:#2B2019">O que fazemos</h2>
+<p style="margin:6px 0 0;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Arraste para o lado.</p>
+</div>
+<div class="hsx">
+<div style="background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}"><div style="aspect-ratio:2/1;background:#EFE6D6;border-bottom:1.5px solid #2B2019;display:grid;place-items:center"><span style="font:500 10px Bitter,serif;color:#8A7862;letter-spacing:.1em;text-transform:uppercase">Imagem</span></div></sc-if>
+<div style="padding:14px">
+<div style="font:700 16px Bitter,serif;color:#2B2019">Literário</div>
+<p style="margin:6px 0 0;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</p>
+</div>
+</div>
+<div style="background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}"><div style="aspect-ratio:2/1;background:#EFE6D6;border-bottom:1.5px solid #2B2019;display:grid;place-items:center"><span style="font:500 10px Bitter,serif;color:#8A7862;letter-spacing:.1em;text-transform:uppercase">Imagem</span></div></sc-if>
+<div style="padding:14px">
+<div style="font:700 16px Bitter,serif;color:#2B2019">Musical</div>
+<p style="margin:6px 0 0;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Cantigas, instrumentos e corporeidade negra: jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</p>
+</div>
+</div>
+<div style="background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}"><div style="aspect-ratio:2/1;background:#EFE6D6;border-bottom:1.5px solid #2B2019;display:grid;place-items:center"><span style="font:500 10px Bitter,serif;color:#8A7862;letter-spacing:.1em;text-transform:uppercase">Imagem</span></div></sc-if>
+<div style="padding:14px">
+<div style="font:700 16px Bitter,serif;color:#2B2019">Artístico criativo</div>
+<p style="margin:6px 0 0;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</p>
+</div>
+</div>
+</div>
+<div style="padding:8px 4% 0"><a href="#" style="font:500 13.5px Bitter,serif;color:#2F6D96">Ler nossa história completa →</a></div>
+</div>
+
+<div style="margin:26px 4%;background:#2B2019;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #D69A10;padding:20px 5%">
+<h2 style="margin:0;font:700 18px/1.3 Bitter,serif;color:#F9F4EA;text-wrap:pretty">É de uma escola ou instituição?</h2>
+<p style="margin:10px 0 0;font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Levamos contações de história e vivências brincantes até o seu espaço. As atividades se adaptam a qualquer local e têm classificação livre.</p>
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:50px;margin-top:16px;background:#D69A10;color:#2B2019;font:600 14.5px Bitter,serif;text-decoration:none">Ver como funciona</a>
+</div>
+
+<div style="padding:4px 4% 28px">
+<h2 style="margin:0 0 14px;font:700 19px Bitter,serif;color:#2B2019">Na mídia</h2>
+<div style="display:flex;flex-direction:column;border-top:1.5px solid #2B2019">
+<a href="#" style="display:flex;gap:12px;align-items:stretch;padding:14px 0;border-bottom:1.5px solid rgba(43,32,25,.25);text-decoration:none">
+<span style="width:6px;flex:none;background:#D69A10"></span>
+<span style="flex:1;min-width:0"><span style="display:block;font:700 14.5px Bitter,serif;color:#2B2019">Folha de S.Paulo</span><span style="display:block;margin-top:4px;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Como o menino que era caixa de supermercado criou um ateliê para valorizar a cultura negra</span></span>
+</a>
+<a href="#" style="display:flex;gap:12px;align-items:stretch;padding:14px 0;border-bottom:1.5px solid rgba(43,32,25,.25);text-decoration:none">
+<span style="width:6px;flex:none;background:#6FA6C8"></span>
+<span style="flex:1;min-width:0"><span style="display:block;font:700 14.5px Bitter,serif;color:#2B2019">Rede Globo — Caldeirão do Huck</span><span style="display:block;margin-top:4px;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Participação em rede nacional · 2021</span></span>
+</a>
+<a href="#" style="display:flex;gap:12px;align-items:stretch;padding:14px 0;border-bottom:1.5px solid rgba(43,32,25,.25);text-decoration:none">
+<span style="width:6px;flex:none;background:#2B2019"></span>
+<span style="flex:1;min-width:0"><span style="display:block;font:700 14.5px Bitter,serif;color:#2B2019">Rede Globo — The Wall</span><span style="display:block;margin-top:4px;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Participação no programa · 2021</span></span>
+</a>
+</div>
+</div>
+
+<div style="height:14px;background:repeating-linear-gradient(90deg,#2B2019 0 3px,#6FA6C8 3px 8px)"></div>
+<footer style="background:#2B2019;padding:26px 4% 30px">
+<h3 style="margin:0 0 12px;font:700 15px Bitter,serif;color:#D69A10">Fale com a gente</h3>
+<div style="display:flex;flex-direction:column;gap:2px;font:400 13.5px Bitter,serif">
+<a href="#" style="color:#F9F4EA;display:flex;align-items:center;min-height:44px;overflow-wrap:anywhere">(11) 95396-8344</a>
+<a href="#" style="color:#F9F4EA;display:flex;align-items:center;min-height:44px">WhatsApp</a>
+<a href="#" style="color:#F9F4EA;display:flex;align-items:center;min-height:44px;overflow-wrap:anywhere">atelieafro@gmail.com</a>
+<a href="#" style="color:#F9F4EA;display:flex;align-items:center;min-height:44px">Instagram</a>
+<a href="#" style="color:#F9F4EA;display:flex;align-items:center;min-height:44px">TikTok</a>
+</div>
+<h3 style="margin:18px 0 8px;font:700 15px Bitter,serif;color:#D69A10">Onde estamos</h3>
+<p style="margin:0;font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Rua Dr. Paulo Gatti, 135 — Vila Romero<br>São Paulo/SP — CEP 02468-030</p>
+<div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(249,244,234,.2)"><a href="#" style="font:400 12.5px Bitter,serif;color:#D8CBB8;display:inline-flex;align-items:center;min-height:44px">Política de privacidade</a></div>
+</footer>
+
+</div></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:812},&quot;frameH&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:812,&quot;tsType&quot;:&quot;number&quot;},&quot;showImages&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { drawer: false, a11y: false, s: 1, hc: false };
+  step(d) { this.setState(s => ({ s: Math.min(1.18, Math.max(0.86, +(s.s + d).toFixed(2))) })); }
+  renderVals() {
+    return {
+      fh: this.props.frameH ?? 812,
+      showImages: this.props.showImages !== false,
+      drawer: this.state.drawer, a11y: this.state.a11y,
+      z: this.state.s, f: this.state.hc ? 'saturate(0) contrast(1.55)' : 'none',
+      toggleDrawer: () => this.setState(s => ({ drawer: !s.drawer })),
+      toggleA11y: () => this.setState(s => ({ a11y: !s.a11y })),
+      fsDown: () => this.step(-0.08), fsUp: () => this.step(0.08),
+      fsReset: () => this.setState({ s: 1 }),
+      toggleHc: () => this.setState(s => ({ hc: !s.hc }))
+    };
+  }
+}
+</script>
+</body>
+</html>

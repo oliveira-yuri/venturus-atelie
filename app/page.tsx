@@ -41,10 +41,20 @@ export default async function Home() {
     // do JSON versionado, sem mudar o texto lido por leitor de tela nem
     // revelar credencial nenhuma.
     <main id="conteudo" data-origem-clipping={origem}>
-      <section className="abertura">
+      {/*
+        HERÓI DO DESIGN SYSTEM v1: faixa ocre com um cartão creme de sombra
+        dura por cima. O mockup tem uma imagem 16:9 atrás do cartão, com
+        `margin-bottom:-14px`, e ela NÃO entra aqui: a ONG não entregou uma
+        única foto com autorização de uso registrada (RN07, regra 9 — o
+        público inclui crianças a partir de 10 anos). O `.af-ph` do handoff
+        é um espaço de desenho, não um elemento de produção: publicar uma
+        caixa tracejada escrita "IMAGEM · OFICINA" é anunciar no ar o que
+        falta. Quando a foto autorizada chegar, ela entra aqui.
+      */}
+      <section className="abertura af-hero">
         <div className="abertura__conteudo">
-          <div className="abertura__peca">
-            <h1>Arte, memória e <em>pertencimento</em> — feitos à mão, todo dia</h1>
+          <div className="abertura__peca af-card af-card--hero">
+            <h1 className="af-h1">Arte, memória e <em className="af-mark">pertencimento</em> — feitos à mão, todo dia</h1>
             <p className="abertura__slogan">
               Espaço educativo de criação, reflexão e valorização da cultura e memória
               afro brasileira, na Casa Verde, zona norte de São Paulo.
@@ -57,29 +67,37 @@ export default async function Home() {
         </div>
       </section>
 
+      {/*
+        Primeira das DUAS faixas listradas permitidas por página (a outra
+        vem acima do rodapé, em componentes/Rodape.tsx). Decoração pura,
+        então `aria-hidden` — e por isso ela também não entra na comparação
+        de testes/paridade-texto.test.mjs, que lê texto.
+      */}
+      <div className="af-stripe" aria-hidden="true"></div>
+
       <div className="conteudo">
         <section aria-labelledby="titulo-caminhos">
           <h2 id="titulo-caminhos">Por onde começar</h2>
-          <ul className="caminhos">
-            <li className="caminho">
+          <ul className="caminhos af-grid">
+            <li className="caminho af-tile">
               <Link href="/quem-somos">
                 <h3>Conhecer</h3>
                 <p>Nossa história, quem idealizou o ateliê e os três setores de atuação.</p>
               </Link>
             </li>
-            <li className="caminho">
+            <li className="caminho af-tile af-tile--azul">
               <Link href="/agenda">
                 <h3>Participar</h3>
                 <p>Oficinas, apresentações e vivências abertas ao público. A inscrição não exige cadastro.</p>
               </Link>
             </li>
-            <li className="caminho">
+            <li className="caminho af-tile af-tile--marrom">
               <Link href="/voluntariado">
                 <h3>Ser voluntário</h3>
                 <p>Cinco áreas de atuação, do apoio pedagógico à organização do acervo.</p>
               </Link>
             </li>
-            <li className="caminho">
+            <li className="caminho af-tile af-tile--invertido">
               <Link href="/doar">
                 <h3>Apoiar</h3>
                 <p>Recebemos livros, instrumentos musicais, materiais de arte, itens de acervo e recursos financeiros.</p>
@@ -91,6 +109,13 @@ export default async function Home() {
         <section aria-labelledby="titulo-setores-home">
           <h2 id="titulo-setores-home">O que fazemos</h2>
 
+          {/*
+            Carrossel com encaixe no celular, grade de 2 e depois de 3
+            colunas a partir do tablet — quem decide é CSS, não script
+            (estilos/sistema.css). O <div> é só o trilho; os três <article>
+            continuam sendo os mesmos elementos, com o mesmo texto.
+          */}
+          <div className="af-hscroll">
           <article className="setor">
             <h3>Literário</h3>
             <p>Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</p>
@@ -106,16 +131,18 @@ export default async function Home() {
             <p>Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</p>
           </article>
 
+          </div>
+
           <p><Link href="/quem-somos">Ler nossa história completa</Link></p>
         </section>
 
-        <section aria-labelledby="titulo-escolas-home">
+        <section aria-labelledby="titulo-escolas-home" className="af-card af-card--dark">
           <h2 id="titulo-escolas-home">É de uma escola ou instituição?</h2>
           <p>
             Levamos contações de história e vivências brincantes até o seu espaço. Todas as
             atividades se adaptam a qualquer local e têm classificação livre.
           </p>
-          <p><Link className="botao" href="/para-escolas">Ver como funciona</Link></p>
+          <p><Link className="botao botao--ocre" href="/para-escolas">Ver como funciona</Link></p>
         </section>
 
         <SecaoNaMidia registros={clipping} />

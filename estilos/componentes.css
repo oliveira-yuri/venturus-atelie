@@ -2,268 +2,32 @@
    Componentes — direcao "Aplique"
    ===================================================================== */
 
-/* ---------- Cabecalho ---------- */
+/* =====================================================================
+   Cabecalho, acessibilidade e rodape mudaram de dono.
 
-.cabecalho { background: var(--amarelo); }
+   O design system v1 os reescreveu por inteiro em estilos/sistema.css
+   (`.af-header`, `.af-a11y`, `.af-nav`, `.af-footer`). O que sobra aqui e'
+   so' o que aqueles componentes ainda precisam e que o sistema nao
+   especifica — mais os nomes antigos que outras telas ainda citam.
 
-.cabecalho__topo {
-  max-width: var(--largura-conteudo);
-  margin: 0 auto;
-  padding: var(--espaco-3);
-  display: flex;
-  align-items: center;
-  gap: var(--espaco-3);
-  flex-wrap: wrap;
-}
+   As classes antigas (`.cabecalho__topo`, `.cabecalho__menu`,
+   `.acessibilidade`, `.rodape__conteudo`, `.rodape::before` …) foram
+   APAGADAS, nao comentadas: cabecalho e rodape agora carregam as duas
+   classes (`af-header cabecalho`, `af-footer rodape`), e uma regra antiga
+   sobrevivente venceria a nova por ordem de arquivo ou por especificidade,
+   sem ninguem entender de onde vinha.
 
-.cabecalho__marca {
-  margin-right: auto;
-  color: var(--tinta);
-  text-decoration: none;
-}
+   A FRANJA AZUL DO RODAPE (`.rodape::before`, um `repeating-linear-gradient`
+   de 16px) saiu porque o sistema tem o gesto equivalente e melhor definido:
+   a faixa listrada (`.af-stripe`), que e' marrom e azul, mede 14px e tem
+   regra de uso — no maximo duas por pagina. Ela e' desenhada por
+   componentes/Rodape.tsx, logo acima do rodape.
+   ===================================================================== */
 
-.cabecalho__marca-nome {
-  font-family: var(--display);
-  font-weight: 900;
-  font-size: var(--texto-medio);
-  line-height: 1.05;
-  display: block;
-}
+.rodape__bloco h2 { color: var(--af-ochre); }
 
-.cabecalho__entrar {
-  min-height: var(--alvo-toque);
-  line-height: calc(var(--alvo-toque) - 4px);
-  padding: 0 var(--espaco-3);
-  color: var(--tinta);
-  text-decoration: none;
-  font-weight: 700;
-  background: var(--cal);
-  border: 2px solid var(--tinta);
-}
-
-.cabecalho__entrar:hover { background: var(--tinta); color: var(--cal); }
-.cabecalho__entrar[aria-current="page"] { background: var(--tinta); color: var(--cal); }
-
-/* ---------- Quem esta autenticado ----------
-   O nome de quem entrou e o botao de sair, no lugar onde o visitante ve
-   "Entrar" (ver componentes/Cabecalho.tsx). */
-
-.cabecalho__sessao {
-  display: flex;
-  align-items: center;
-  gap: var(--espaco-2);
-  /* min-width: 0 e o que permite ao nome encolher dentro do flex em vez de
-     empurrar o resto da barra para fora da tela: item flex nao encolhe
-     abaixo do proprio conteudo sem isto. */
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
-/* O <form> so existe para o "Sair" funcionar sem JavaScript; visualmente ele
-   nao deve criar caixa nenhuma. display:flex (e nao display:contents) porque
-   o botao e o unico filho e nao ha risco de sumir da arvore de
-   acessibilidade em navegador antigo. */
-.cabecalho__sessao form { display: flex; }
-
-.cabecalho__sessao-nome {
-  font-weight: 700;
-  color: var(--tinta);
-  min-width: 0;
-  /* NOME LONGO NAO PODE QUEBRAR O CABECALHO (regra 4: a ONG opera do
-     celular). MEDIDO com a regra removida, num nome de 42 letras corridas,
-     na janela mais estreita que o Firefox aceita (438px de area util): a
-     pagina passa a ter 451px de largura — a barra sai da tela e aparece
-     rolagem horizontal. Com pontos e arroba no meio (um e-mail) o navegador
-     ja quebra sozinho; o caso que estoura de verdade e o nome corrido.
-     Nada de `text-overflow: ellipsis` aqui: esconder metade do nome de quem
-     esta usando um celular compartilhado e justamente perder a informacao
-     que este bloco existe para dar. Ele quebra em duas linhas e pronto. */
-  overflow-wrap: anywhere;
-
-  /* VIROU LINK NA RF11 (para /minha-conta) — antes era um <span>. O que
-     muda aqui e so o que um <a> precisa para ser ALCANCAVEL COM O DEDO
-     (RNF08, alvo de 44px): altura minima e uma area de toque de verdade. O
-     sublinhado vem do estilo base de <a> e fica: sem ele, o unico sinal de
-     que o nome e clicavel seria a cor, e cor sozinha nao e sinal (regra 8). */
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--alvo-toque);
-}
-
-.cabecalho__sessao-nome[aria-current="page"] {
-  /* Mesma marca do link "Entrar" quando a rota e a dele: quem ja esta em
-     /minha-conta ve que aquele link aponta para onde ele esta. */
-  text-decoration-thickness: 3px;
-}
-
-/* Mesma caixa do link "Entrar" (as duas classes andam juntas no HTML) — o
-   que falta e so o que um <button> nao herda do documento. */
-.cabecalho__sair {
-  font-family: var(--corpo);
-  font-size: var(--texto-base);
-  cursor: pointer;
-}
-
-/* ---------- Menu ----------
-   Sao onze destinos. Em vez de apertar todos ate caber, o espacamento
-   acompanha a largura da tela; abaixo de 62rem vira sanduiche. */
-
-/* Botao e nav moram dentro de um <div> comum, so para o listener de Esc
-   (ver componentes/MenuMovel.tsx) conseguir capturar o evento partindo de
-   qualquer um dos dois. display:contents tira esse <div> da arvore de
-   renderizacao: para o layout flex de .cabecalho__topo, botao e nav
-   continuam se comportando exatamente como itens diretos dela — nenhuma
-   regra abaixo precisou mudar. */
-.cabecalho__menu-grupo { display: contents; }
-
-.cabecalho__alternar {
-  display: none;
-  width: 100%;
-  min-height: var(--alvo-toque);
-  padding: 0 var(--espaco-3);
-  text-align: left;
-  background: var(--tinta);
-  color: var(--cal);
-  border: none;
-  font-family: var(--corpo);
-  font-weight: 700;
-  font-size: var(--texto-base);
-  cursor: pointer;
-}
-
-.cabecalho__menu { background: var(--tinta); }
-
-.cabecalho__menu ul {
-  list-style: none;
-  margin: 0 auto;
-  padding: 0 var(--espaco-3);
-  max-width: var(--largura-conteudo);
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.cabecalho__menu a {
-  display: block;
-  padding: var(--espaco-2) clamp(0.5rem, 1.1vw, 0.95rem);
-  min-height: var(--alvo-toque);
-  line-height: 1.75;
-  color: var(--cal);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: clamp(0.84rem, 1.15vw, 0.95rem);
-  white-space: nowrap;
-}
-
-.cabecalho__menu a:hover { background: var(--amarelo); color: var(--tinta); }
-
-.cabecalho__menu a[aria-current="page"] {
-  background: var(--amarelo);
-  color: var(--tinta);
-  font-weight: 700;
-}
-
-@media (max-width: 62rem) {
-  .cabecalho__alternar { display: block; }
-  .cabecalho__menu ul { flex-direction: column; padding: 0; }
-  .cabecalho__menu a {
-    padding: var(--espaco-2) var(--espaco-3);
-    font-size: var(--texto-base);
-  }
-
-  /* Recolhimento e so desta classe, aplicada pelo componente de cliente
-     depois de hidratar (ver componentes/MenuMovel.tsx). O servidor nunca
-     manda essa classe: sem JavaScript o menu fica aberto, mesmo no celular —
-     pior esteticamente, infinitamente melhor que navegacao nenhuma. */
-  .cabecalho__menu--fechado { display: none; }
-}
-
-/* ---------- Controles de acessibilidade ---------- */
-
-.acessibilidade {
-  display: flex;
-  gap: var(--espaco-1);
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.acessibilidade button {
-  min-height: var(--alvo-toque);
-  min-width: var(--alvo-toque);
-  padding: 0 var(--espaco-2);
-  background: var(--cal);
-  color: var(--tinta);
-  border: 2px solid var(--tinta);
-  font-size: var(--texto-base);
-  font-family: var(--corpo);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.acessibilidade button:hover:not(:disabled) { background: var(--tinta); color: var(--amarelo); }
-.acessibilidade button:disabled { opacity: 0.4; cursor: default; }
-
-.acessibilidade button[aria-pressed="true"] {
-  background: var(--tinta);
-  color: var(--amarelo);
-}
-
-/* ---------- Rodape ---------- */
-
-.rodape {
-  margin-top: var(--espaco-6);
-  padding: var(--espaco-6) var(--espaco-3) var(--espaco-5);
-  background: var(--tinta);
-  color: var(--cal);
-}
-
-.rodape a { color: var(--cal); }
-
-.rodape h2 {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: var(--texto-medio);
-  color: var(--cal);
-}
-
-.rodape__conteudo {
-  max-width: var(--largura-conteudo);
-  margin: 0 auto;
-  display: grid;
-  gap: var(--espaco-5);
-}
-
-@media (min-width: 46rem) {
-  .rodape__conteudo { grid-template-columns: 1fr 1fr; }
-}
-
-.rodape__lista { list-style: none; margin: 0; padding: 0; }
-.rodape__lista li { margin-bottom: var(--espaco-2); }
-
-.rodape__lista a {
-  display: inline-block;
-  min-height: var(--alvo-toque);
-  line-height: var(--alvo-toque);
-}
-
-.rodape__endereco { font-style: normal; }
-
-.rodape__aviso {
-  max-width: var(--largura-conteudo);
-  margin: var(--espaco-5) auto 0;
-  padding-top: var(--espaco-3);
-  border-top: 2px solid rgba(255, 253, 247, 0.25);
-}
-
-/* Franja: aparece uma unica vez, no topo do rodape. Numa bandeira de verdade
-   a franja fica so na borda; repetida a cada secao viraria padrao decorativo. */
-.rodape::before {
-  content: "";
-  display: block;
-  height: 16px;
-  margin: calc(var(--espaco-6) * -1) calc(var(--espaco-3) * -1) var(--espaco-6);
-  background-image: repeating-linear-gradient(
-    90deg, var(--azul) 0 7px, transparent 7px 14px);
-}
+/* O <p> que embrulha o "Doar agora" nao pode espremer o botao. */
+.rodape__acao { margin: var(--af-s7) 0 0; }
 
 /* ---------- Estados de lista ---------- */
 
@@ -359,7 +123,10 @@
 
 /* ---------- Abertura da home ---------- */
 
-.abertura { background: var(--amarelo); padding: var(--espaco-6) var(--espaco-3); }
+.abertura {
+  background: var(--af-ochre);
+  padding: var(--af-s8) var(--af-gutter) var(--af-s10);
+}
 
 .abertura__conteudo {
   max-width: var(--largura-conteudo);
@@ -367,11 +134,11 @@
 }
 
 .abertura__peca {
-  background: var(--cal);
-  border: 2px solid var(--tinta);
-  box-shadow: var(--aplique) var(--tinta);
-  padding: var(--espaco-5) var(--espaco-4);
-  max-width: 48rem;
+  /* Fundo, borda e sombra vem de `.af-card af-card--hero` (sistema.css).
+     O que sobra aqui e' so' o que o heroi tem de diferente de um cartao
+     comum: o texto do slogan em corpo cheio e as acoes empilhadas. */
+  position: relative;
+  z-index: 2;
 }
 
 .abertura h1 {
@@ -379,7 +146,7 @@
   margin-bottom: var(--espaco-3);
 }
 
-.abertura h1 em { font-style: normal; color: var(--marrom); }
+.abertura h1 em { font-style: normal; color: var(--af-ochre-deep); }
 
 .abertura__slogan {
   font-family: var(--display);
@@ -391,47 +158,40 @@
 }
 
 .abertura__acoes {
+  /* Empilhados e em largura cheia, com 10px entre eles — e' o que o design
+     system v1 desenha para o heroi no celular. Lado a lado, dois botoes de
+     50px numa tela de 320px espremeriam "Conhecer nossos projetos" em tres
+     linhas. No desktop eles voltam a ficar lado a lado (regra abaixo). */
   display: flex;
-  gap: var(--espaco-3);
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--af-s4);
   margin: 0;
+}
+
+@media (min-width: 40rem) {
+  .abertura__acoes { flex-direction: row; flex-wrap: wrap; }
+  .abertura__acoes > * { flex: 0 0 auto; padding-inline: var(--af-s10); }
 }
 
 /* ---------- Caminhos ---------- */
 
 .caminhos {
-  list-style: none;
+  /* A grade vem de `.af-grid` (auto-fit, minimo de 140px). */
   margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--espaco-5);
 }
 
-@media (min-width: 46rem) {
-  .caminhos { grid-template-columns: repeat(2, 1fr); }
-}
 
 .caminho {
-  background: var(--cal);
-  border: 2px solid var(--borda);
+  /* Fundo, borda, sombra e a cor de categoria vem de `.af-tile`
+     (sistema.css). Este seletor sobrevive so' porque a lista tambem tem
+     `.caminhos`, e porque apagar a classe do HTML mexeria em teste. */
+  list-style: none;
 }
 
-.caminho:nth-child(1) { box-shadow: var(--aplique) var(--amarelo); }
-.caminho:nth-child(2) { box-shadow: var(--aplique) var(--azul); }
-.caminho:nth-child(3) { box-shadow: var(--aplique) var(--marrom); }
-.caminho:nth-child(4) { box-shadow: var(--aplique) var(--tinta); }
 
-.caminho a {
-  display: block;
-  padding: var(--espaco-4);
-  text-decoration: none;
-  color: inherit;
-  height: 100%;
-}
 
-.caminho a:hover { background: var(--amarelo); }
-.caminho h3 { margin-bottom: var(--espaco-2); }
-.caminho p { margin: 0; color: var(--tinta-suave); }
+
 
 /* ---------- Clipping ---------- */
 

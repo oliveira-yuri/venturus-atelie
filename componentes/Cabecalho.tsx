@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import MenuMovel from './MenuMovel';
@@ -19,120 +20,198 @@ import { sair } from '@/acoes/autenticacao';
 type SessaoNoCabecalho = { nome: string };
 
 /**
- * A marca aparece como tipografia, nao como imagem: a ONG so possui o
- * logotipo bordado nas camisetas, e inventar um simbolo contraria a regra de
- * conteudo. Quando o vetor chegar (decisao D9), entra aqui.
- *
- * 'use client' e usePathname() entram na Tarefa A6, só para marcar
- * aria-current no link "Entrar" — mesmo comportamento de
- * site/assets/js/componentes/aac-header.js (`atual === 'entrar'`), que
- * marcava esse link tanto em entrar.html quanto em recuperar-acesso.html
- * (as duas páginas setavam `pagina-atual="entrar"` no custom element
- * antigo — MEDIDO lendo os dois arquivos, não suposto). A marca e o menu
- * (MenuMovel) continuam com sua própria lógica de rota atual.
- *
- * CUSTO MEDIDO (revisão da Rodada de correção 1 da Tarefa A6): virar Client
- * Component custa +416 bytes de JS por página — 0,07% do JS que o site já
- * servia — contra os 132 B que uma alternativa cirúrgica (só o link
- * "Entrar" como Client Component, Cabecalho continuando Server Component)
- * economizaria. Decisão de quem revisou: não vale reescrever por essa
- * diferença — o número fica registrado aqui para não precisar remedir se a
- * pergunta voltar.
- *
  * =====================================================================
- * A SESSÃO APARECE AQUI (Tarefa 4 da autenticação)
+ * REESCRITO PARA O DESIGN SYSTEM "ATELIÊ AFRO" v1 (01/09/2026)
  * =====================================================================
  *
- * Até esta tarefa dava para entrar e o cabeçalho continuava dizendo
- * "Entrar", para sempre, sem nenhum jeito de sair. Quem entrava não tinha
- * como saber que tinha entrado — e num celular compartilhado pela equipe da
- * ONG (regra 4 do CLAUDE.md) "não dá para sair" significa a sessão de uma
- * pessoa ficar aberta na mão da seguinte.
+ * Desenho de origem: `docs/Três variações mobile do sistema/`, variação 1a
+ * aprovada. O cabeçalho do sistema tem quatro coisas numa faixa ocre fixa:
+ * hambúrguer 46×46 à esquerda, marca em duas linhas, botão "Aa" e o
+ * controle de conta.
+ *
+ * O QUE VEIO DO SISTEMA:
+ *   - faixa ocre `position: sticky`, borda inferior de 1,5px;
+ *   - o hambúrguer, que era um "Menu" textual à direita;
+ *   - a segunda linha da marca, "Casa Verde · São Paulo" — que não é texto
+ *     inventado: é o que a ONG diz de si em /quem-somos e no rodapé, e é o
+ *     que o handoff especifica ali;
+ *   - o botão "Aa", que passa a comandar a barra de acessibilidade.
+ *
+ * O QUE NÃO VEIO, E POR QUÊ: o handoff desenha só "Entrar". O estado de
+ * quem ESTÁ dentro (nome + "Sair") não aparece no mockup porque o mockup é
+ * da home pública; ele continua aqui, com o visual novo, porque tirá-lo
+ * deixaria a equipe sem como sair de uma sessão num celular compartilhado
+ * (regra 4 do CLAUDE.md).
+ *
+ * =====================================================================
+ * POR QUE O ESTADO MORA AQUI, E NÃO DENTRO DE CADA COMPONENTE
+ * =====================================================================
+ *
+ * O botão e o que ele abre ficam em lugares DIFERENTES do HTML: o
+ * hambúrguer dentro da faixa ocre, a gaveta fora dela; o "Aa" dentro da
+ * faixa, a barra abaixo. Duas instâncias separadas de um mesmo componente
+ * não compartilham `useState` — o botão abriria um estado que a gaveta não
+ * lê. Então quem guarda "aberto/fechado" é este componente, que enxerga os
+ * dois lados, e MenuMovel/Acessibilidade recebem o estado por prop.
+ *
+ * `hidratado` também nasce aqui e desce igual: é ele que garante que o
+ * HTML DO SERVIDOR nunca traz a gaveta nem a barra recolhidas. Ver o bloco
+ * no topo de estilos/sistema.css.
+ *
+ * =====================================================================
+ * O QUE CONTINUA VALENDO DA VERSÃO ANTERIOR — não reler é reintroduzir bug
+ * =====================================================================
  *
  * QUEM LÊ A SESSÃO NÃO É ESTE ARQUIVO. Client Component não fala com o
  * Supabase neste projeto (spec §4.1) — nem poderia, `servidor/` inteiro é
  * `import 'server-only'`. Quem pergunta é `app/layout.tsx`, que é Server
  * Component, e manda para cá o MÍNIMO: um nome. Nem id, nem e-mail, nem o
- * objeto de usuário do Supabase — tudo que entra por prop num Client
- * Component fica escrito, em texto legível, no HTML de toda página.
+ * objeto de usuário — tudo que entra por prop num Client Component fica
+ * escrito, em texto legível, no HTML de toda página.
  *
  * E NADA DISTO AUTORIZA COISA ALGUMA. O cabeçalho decide o que DESENHAR.
- * Quem decide o que pode ser lido ou gravado é a RLS do banco, sempre (regra
- * 6). Se um dia aparecer um sinal de equipe aqui, ele serve para mostrar um
- * link a mais, nunca para liberar uma operação.
+ * Quem decide o que pode ser lido ou gravado é a RLS do banco, sempre
+ * (regra 6).
  *
  * "SAIR" É UM <form> COM SERVER ACTION, e não um botão com onClick: assim
  * ele funciona sem JavaScript, pelo mesmo mecanismo já medido nos
- * formulários de /entrar (o Next serializa a referência da Action no HTML e
- * o navegador faz um POST comum). Um `onClick` deixaria justamente quem está
- * sem script preso na sessão.
- *
- * NADA AQUI FICA ESCONDIDO ATRÁS DE `hidden`. É a lição que MenuMovel.tsx e
- * AbasEntrar.tsx já carregam escrita: o servidor entrega o que se vê, e o
- * que muda depois da hidratação é só recolhimento visual. Aqui o servidor
- * decide entre "Entrar" e "Sair" ANTES de mandar o HTML — sem script, a
- * pessoa vê o mesmo cabeçalho que com script.
+ * formulários de /entrar. Um `onClick` deixaria justamente quem está sem
+ * script preso na sessão.
  */
 export default function Cabecalho({ sessao }: { sessao?: SessaoNoCabecalho | null }) {
   const rota = usePathname();
   const emEntrar = rota === '/entrar' || rota === '/recuperar-acesso';
 
+  const [hidratado, setHidratado] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [barraAberta, setBarraAberta] = useState(false);
+
+  const botaoMenu = useRef<HTMLButtonElement>(null);
+  const botaoBarra = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => { setHidratado(true); }, []);
+
+  // Esc fecha o que estiver aberto e devolve o foco a quem abriu. Prende no
+  // documento, e não no painel: no caminho mais comum — abrir pelo botão e
+  // desistir sem dar Tab — o foco continua no próprio botão, fora do painel,
+  // e um listener preso ao painel nunca receberia o evento. Era um defeito
+  // real da versão anterior deste componente, corrigido lá e mantido aqui.
+  useEffect(() => {
+    if (!hidratado) return;
+    function aoTeclar(evento: KeyboardEvent) {
+      if (evento.key !== 'Escape') return;
+      if (menuAberto) { setMenuAberto(false); botaoMenu.current?.focus(); }
+      if (barraAberta) { setBarraAberta(false); botaoBarra.current?.focus(); }
+    }
+    document.addEventListener('keydown', aoTeclar);
+    return () => document.removeEventListener('keydown', aoTeclar);
+  }, [hidratado, menuAberto, barraAberta]);
+
+  // A gaveta cobre a tela inteira; deixar o corpo rolando por baixo dela é o
+  // defeito clássico desse padrão no celular.
+  useEffect(() => {
+    if (!hidratado) return;
+    document.body.style.overflow = menuAberto ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [hidratado, menuAberto]);
+
+  // Trocar de página fecha a gaveta. Sem isto, navegar por um link de dentro
+  // dela deixaria o scrim por cima da página nova.
+  useEffect(() => { setMenuAberto(false); }, [rota]);
+
   return (
-    <header className="cabecalho">
-      <div className="cabecalho__topo">
-        <Link className="cabecalho__marca" href="/">
-          <span className="cabecalho__marca-nome">Ateliê Afro Cultural</span>
+    <header className="af-header cabecalho">
+      <div className="af-header__barra">
+        <button
+          type="button"
+          ref={botaoMenu}
+          className="af-burger"
+          aria-label={menuAberto ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={hidratado ? menuAberto : undefined}
+          aria-controls="menu-principal"
+          onClick={() => setMenuAberto((aberto) => !aberto)}
+        >
+          <span></span><span></span><span></span>
+        </button>
+
+        <Link className="af-header__marca" href="/">
+          <span className="af-header__nome">Ateliê Afro Cultural</span>
+          <span className="af-header__meta">Casa Verde · São Paulo</span>
         </Link>
+
+        {/*
+          "Aa" é o único controle do cabeçalho que não leva a lugar nenhum:
+          ele revela a barra. `aria-expanded` só aparece depois de hidratar,
+          porque antes disso a barra está ABERTA e o atributo mentiria.
+        */}
+        <button
+          type="button"
+          ref={botaoBarra}
+          className="af-control"
+          aria-label="Opções de acessibilidade"
+          aria-expanded={hidratado ? barraAberta : undefined}
+          aria-controls="barra-acessibilidade"
+          onClick={() => setBarraAberta((aberta) => !aberta)}
+        >
+          Aa
+        </button>
 
         {sessao ? (
           /*
-            SEM aria-current no "Sair", e isso é decisão, não esquecimento: o
-            atributo marca "este link leva à página em que você está", e
-            "Sair" não leva a página nenhuma — é uma ação. Quem está
-            autenticado e abre /entrar não vê marcação em lugar nenhum do
-            cabeçalho, o que está certo: nenhum controle visível ali aponta
-            para /entrar.
+            SEM aria-current no "Sair": o atributo marca "este link leva à
+            página em que você está", e "Sair" não leva a página nenhuma —
+            é uma ação.
           */
-          <div className="cabecalho__sessao">
+          <div className="af-header__sessao">
             {/*
-              O NOME VIROU LINK NA RF11 (01/09/2026), e é o único caminho até
-              /minha-conta.
+              O NOME É LINK PARA /minha-conta desde a RF11, e é o único
+              caminho até a área do usuário — ela não é item de menu, porque
+              para a maioria anônima aquele item só redirecionaria.
 
-              Até aqui ele era texto puro, com o comentário "o nome é
-              informação, não controle" — verdade enquanto não havia para
-              onde ir. Agora há, e a área do usuário NÃO é item de menu: o
-              menu é o mesmo para toda visita, e um item "Minha conta" ali
-              apontaria, para a esmagadora maioria anônima, a uma tela que
-              redireciona para /entrar. Pendurá-la no nome de quem entrou é o
-              que faz o link existir exatamente para quem ele serve.
-
-              O `aria-hidden` continua fora — quem usa leitor de tela precisa
-              saber com qual conta está, tanto quanto quem enxerga. E
-              `aria-current` também não entra aqui: `usePathname` já marca o
-              link quando a rota é a dele, abaixo.
+              O `aria-hidden` continua fora: quem usa leitor de tela precisa
+              saber com qual conta está, tanto quanto quem enxerga.
             */}
             <Link
-              className="cabecalho__sessao-nome"
+              className="af-control af-control--nome"
               href="/minha-conta"
               aria-current={rota === '/minha-conta' ? 'page' : undefined}
             >
               {sessao.nome}
             </Link>
             <form action={sair}>
-              <button type="submit" className="cabecalho__entrar cabecalho__sair">
-                Sair
-              </button>
+              <button type="submit" className="af-control af-control--sair">Sair</button>
             </form>
           </div>
         ) : (
-          <Link className="cabecalho__entrar" href="/entrar" aria-current={emEntrar ? 'page' : undefined}>
+          /*
+            `cabecalho__entrar` sobreviveu ao rename, e de proposito: NAO e'
+            estilo (nao existe mais regra CSS com esse nome), e' o gancho
+            estavel pelo qual tres testes acham este link — testes/links.test
+            .mjs o RETIRA do inventario de links antes de conferir o resto, e
+            testes/links-menu.test.mjs le o href dele. Um gancho de teste com
+            nome de classe e' mais barato que um `data-` novo que ninguem
+            saberia manter.
+          */
+          <Link
+            className="af-control cabecalho__entrar"
+            href="/entrar"
+            aria-current={emEntrar ? 'page' : undefined}
+          >
             Entrar
           </Link>
         )}
-
-        <MenuMovel />
-        <Acessibilidade />
       </div>
+
+      <Acessibilidade
+        hidratado={hidratado}
+        aberta={barraAberta}
+      />
+
+      <MenuMovel
+        hidratado={hidratado}
+        aberto={menuAberto}
+        aoFechar={() => { setMenuAberto(false); botaoMenu.current?.focus(); }}
+      />
     </header>
   );
 }

@@ -1,89 +1,267 @@
 /* =====================================================================
-   Sistema visual — direcao "Aplique"
+   Sistema visual — "Ateliê Afro" v1 (design system aprovado, variação 1a)
 
-   A partir de dois objetos reais da ONG: o estandarte de juta com letras
-   recortadas e aplicadas, e a parede amarela da sede com o nome em relevo.
+   Fonte de verdade do desenho:
+   docs/Três variações mobile do sistema/design_handoff_atelie_afro/
 
-   Uma regra acima das outras: NENHUMA textura de fundo repetida. Sem trama,
-   sem estampa, sem grade. Toda a personalidade vem de um gesto so — o
-   deslocamento solido que faz cada peca parecer costurada por cima. Fundos
-   sao chapados; tipografia e espaco fazem o resto.
+   A direção "Aplique" da fase 1 não foi jogada fora — ela FOI ABSORVIDA. O
+   gesto continua o mesmo (deslocamento sólido, sem desfoque, canto vivo,
+   nada de textura repetida), e é literalmente o item 2 dos princípios do
+   sistema novo: "sombra dura deslocada em vez de sombra difusa; sempre no
+   eixo +x/+y". O que mudou foi a paleta afinada, a tipografia (uma serifa
+   só, em tudo) e a escala.
+
+   =====================================================================
+   ESTE ARQUIVO É UMA PONTE, E ISSO É DELIBERADO
+   =====================================================================
+
+   O handoff traz `tokens.css` com nomes `--af-*`. Este projeto tem 97 KB de
+   CSS escrito contra os nomes antigos (`--amarelo`, `--tinta`, `--espaco-3`
+   …), espalhados por `base.css`, `componentes.css` e os 67 KB de
+   `admin.css`.
+
+   Reescrever os três seria trocar ~2.000 declarações à mão, com o risco de
+   errar uma e ninguém ver. Em vez disso: os nomes ANTIGOS continuam
+   existindo e passam a apontar para os VALORES NOVOS. O site inteiro —
+   incluindo as dezessete telas do painel — adota a paleta e a tipografia
+   novas sem que uma linha daqueles arquivos seja tocada.
+
+   Os `--af-*` existem ao lado, com os nomes do handoff, para o CSS NOVO
+   (estilos/sistema.css) e para quem for conferir contra o design.
+
+   Onde os dois falam da mesma coisa, o `--af-*` é a origem e o nome antigo
+   é o apelido. Nunca o contrário.
+
+   =====================================================================
+   AS TRÊS DIVERGÊNCIAS EM RELAÇÃO AO HANDOFF, E O PORQUÊ DE CADA UMA
+   =====================================================================
+
+   1. TAMANHO DE TEXTO EM rem, NÃO EM px. O handoff escreve tudo em px
+      (`--af-body:14.5px`) e compensa com `document.documentElement.style
+      .zoom` no botão A+. Aqui não dá: este site controla tamanho de texto
+      por `--escala-fonte` no `font-size` do <html> (ver o fim deste
+      arquivo), e px NÃO responde a isso — o A+ ficaria decorativo, o que a
+      regra 8 do CLAUDE.md proíbe. Todo px do handoff foi convertido para
+      rem sobre base 16 (14,5px = 0,90625rem), o que dá o MESMO pixel em
+      100% e volta a crescer no A+.
+
+   2. NADA DE `vw` EM TEXTO. O handoff pede
+      `--af-h1: clamp(22px, 7.2vw, 28px)`. Dentro de `clamp()` o `vw` fica
+      preso entre dois limites, mas na faixa do meio o título deixa de
+      responder ao A+ — é exatamente o defeito que o item 0g do CLAUDE.md
+      já registra no menu. Substituído pelo idioma que este arquivo já
+      usava: um valor por faixa de tela, em rem, com media query.
+
+   3. ALTO CONTRASTE POR TOKEN, NÃO POR `filter`. O handoff usa
+      `filter: saturate(0) contrast(1.55)` na raiz. Um filtro lava também as
+      fotos, não garante razão de contraste nenhuma, e cria contexto de
+      empilhamento novo (que quebra `position: sticky` do cabeçalho). O
+      bloco `html[data-contraste="alto"]` no fim deste arquivo redefine os
+      MESMOS tokens com valores medidos — é mais trabalho e é o que de fato
+      cumpre o requisito.
+
+   =====================================================================
+   A PALETA MUDOU DE HEX, E ISSO PRECISA SER DITO EM VOZ ALTA
+   =====================================================================
+
+   A regra 3 do CLAUDE.md diz "a paleta é da ONG, com significado declarado
+   por eles: amarelo #E0A400, azul #7FA9CE, marrom #8A6A4A. Não alterar."
+
+   O sistema aprovado traz #D69A10, #6FA6C8 e #2B2019. Os SIGNIFICADOS são
+   os mesmos (luz/sabedoria, céu/esperança, terra/raízes) e os tons são os
+   mesmos afinados para contraste — o marrom é o que mais se mexeu, porque
+   deixou de ser cor de destaque e virou TINTA (o texto do site inteiro).
+
+   Isso é uma decisão do grupo, tomada ao aprovar a variação 1a, não de quem
+   implementa. Fica registrado aqui, no arquivo que a executa, para que
+   ninguém precise arqueologia para descobrir quando a regra 3 mudou de
+   valor — e para que a regra continue valendo daqui em diante: estes hex
+   também não se alteram sem o grupo.
    ===================================================================== */
 
 :root {
-  /* Paleta declarada pela ONG (secao 3.4 do escopo). Nao alterar. */
-  --amarelo: #E0A400;      /* luz, sabedoria, criatividade, ancestralidade */
-  --azul: #7FA9CE;         /* ceu, esperanca, serenidade, conhecimento */
-  --azul-texto: #2E5C8A;   /* variante do azul com contraste para texto */
-  --marrom: #8A6A4A;       /* terra, mae Africa, raizes, memoria */
-  --tinta: #241C12;        /* texto */
-  --fundo: #FAF6EE;        /* fundo claro levemente quente */
+  /* ---- Cor: marca ---- */
+  --af-ochre: #D69A10;        /* fundo de marca, CTA secundario, destaques */
+  --af-ochre-deep: #9A6A12;   /* texto ocre sobre creme (contraste AA) */
+  --af-brown: #2B2019;        /* tinta principal, bordas, fundos escuros */
+  --af-brown-800: #3A2C21;    /* superficie escura elevada */
+  --af-brown-600: #4A3A2A;    /* divisores em fundo escuro */
+  --af-brown-400: #6E5B45;    /* texto corrido secundario sobre creme */
+  --af-blue: #6FA6C8;         /* acento (faixa listrada, categoria) */
+  --af-blue-deep: #2F6D96;    /* links, texto azul sobre creme */
 
-  --cal: #FFFDF7;          /* o branco de cal da fachada; superficie das pecas */
-  --superficie: #FFFDF7;
-  --borda: var(--tinta);   /* as pecas tem contorno, nao borda apagada */
-  --tinta-suave: #5A4A38;
-  --foco: #2E5C8A;
+  /* ---- Cor: superficies ---- */
+  --af-cream: #F9F4EA;
+  --af-cream-dim: #D8CBB8;
+  --af-card: #FFFDF7;
+  --af-ph: #EFE6D6;
+  --af-ph-dark: #3A2C21;
+  --af-ph-ink: #8A7862;
+  --af-scrim: rgba(43, 32, 25, .55);
+  --af-hairline: rgba(43, 32, 25, .25);
+  --af-hairline-inv: rgba(249, 244, 234, .20);
 
-  /* O gesto do sistema: deslocamento solido, sem desfoque. */
-  --aplique: 8px 8px 0;
+  /* =================================================================
+     OS NOMES ANTIGOS, APONTANDO PARA OS VALORES NOVOS.
+     É esta seção que faz base.css, componentes.css e admin.css
+     adotarem o sistema sem serem editados.
+     ================================================================= */
+  --amarelo: var(--af-ochre);
+  --azul: var(--af-blue);
+  --azul-texto: var(--af-blue-deep);
+  --marrom: var(--af-brown-400);  /* virou o secundario; a TINTA e' --tinta */
+  --tinta: var(--af-brown);
+  --tinta-suave: var(--af-brown-400);
+  --fundo: var(--af-cream);
+  --cal: var(--af-card);
+  --superficie: var(--af-card);
+  --borda: var(--af-brown);
+  --foco: var(--af-blue-deep);
+
+  /* O gesto do sistema: deslocamento solido, sem desfoque.
+     O handoff tem tres degraus (4/5/6px); os dois nomes antigos passam a
+     ser os extremos, para que o que ja usa `--aplique` fique mais proximo
+     do desenho novo sem virar sombra de 8px, que o sistema nao tem. */
+  --af-shadow-sm: 4px 4px 0 var(--af-brown);
+  --af-shadow-md: 5px 5px 0 var(--af-brown);
+  --af-shadow-lg: 6px 6px 0 var(--af-brown);
+  --af-shadow-ochre: 5px 5px 0 var(--af-ochre);
+  --aplique: 6px 6px 0;
   --aplique-curto: 4px 4px 0;
 
-  --display: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --corpo: 'Karla', system-ui, -apple-system, sans-serif;
+  /* ---- Tipografia: uma serifa so, em tudo (principio 1 do sistema) ----
+     `--display` e `--corpo` apontam para a MESMA familia de proposito.
+     Os dois nomes continuam existindo porque o CSS antigo os usa; um dia
+     que o sistema volte a ter duas familias, e' aqui que se separa. */
+  --af-font: 'Bitter', Georgia, 'Times New Roman', serif;
+  --display: var(--af-font);
+  --corpo: var(--af-font);
 
-  /* Escala tipografica, toda em rem para responder a --escala-fonte */
-  --texto-pequeno: 0.875rem;
-  --texto-base: 1.0625rem;
-  --texto-medio: 1.15rem;
-  --texto-grande: 1.5rem;
-  --texto-titulo: 2.1rem;
-  --texto-destaque: 3rem;
+  /* Escala do handoff, convertida de px para rem sobre base 16.
+     28px=1.75 · 19px=1.1875 · 16px=1 · 14.5px=0.90625 · 13px=0.8125
+     12.5px=0.78125 · 10.5px=0.65625 */
+  --af-h1: 1.75rem;
+  --af-h2: 1.1875rem;
+  --af-h3: 1rem;
+  --af-body: 0.90625rem;
+  --af-body-sm: 0.8125rem;
+  --af-caption: 0.78125rem;
+  --af-overline: 0.65625rem;
+  --af-lh-tight: 1.15;
+  --af-lh-body: 1.6;
+  --af-ls-overline: .12em;
 
-  /* Nao usar vw aqui: com vw o texto para de responder ao botao A+, e a
-     acessibilidade e requisito, nao preferencia. Em rem, o titulo encolhe na
-     tela estreita E continua crescendo quando a pessoa aumenta a fonte. */
+  --texto-pequeno: var(--af-body-sm);
+  --texto-base: var(--af-body);
+  --texto-medio: var(--af-h3);
+  --texto-grande: var(--af-h2);
+  --texto-titulo: var(--af-h1);
+  --texto-destaque: var(--af-h1);
 
-  --espaco-1: 0.25rem;
-  --espaco-2: 0.5rem;
-  --espaco-3: 1rem;
-  --espaco-4: 1.5rem;
-  --espaco-5: 2.5rem;
-  --espaco-6: 4.5rem;
+  /* ---- Espaco ----
+     O handoff usa uma regua de 4 a 26px; os `--espaco-*` antigos sao
+     mantidos, em rem, e reencaixados nessa regua. */
+  --af-gutter: 4%;      /* margem lateral fluida da pagina */
+  --af-gutter-card: 5%;
+  --af-s1: 0.25rem;   /* 4px  */
+  --af-s2: 0.375rem;  /* 6px  */
+  --af-s3: 0.5rem;    /* 8px  */
+  --af-s4: 0.625rem;  /* 10px */
+  --af-s5: 0.75rem;   /* 12px */
+  --af-s6: 0.875rem;  /* 14px */
+  --af-s7: 1rem;      /* 16px */
+  --af-s8: 1.125rem;  /* 18px */
+  --af-s9: 1.25rem;   /* 20px */
+  --af-s10: 1.625rem; /* 26px */
 
-  /* Sem cantos arredondados: aplique tem canto vivo, como recorte de tecido. */
+  --espaco-1: var(--af-s1);
+  --espaco-2: var(--af-s3);
+  --espaco-3: var(--af-s7);
+  --espaco-4: var(--af-s9);
+  --espaco-5: var(--af-s10);
+  --espaco-6: 3rem;
+
+  /* ---- Forma ----
+     Zero raio nos blocos (papel recortado); 3px so em controle. */
+  --af-border: 1.5px solid var(--af-brown);
+  --af-radius-control: 3px;
   --raio: 0;
-  --largura-conteudo: 68rem;
-  --alvo-toque: 2.75rem;   /* 44px - minimo para uso com o polegar */
+  --raio-controle: var(--af-radius-control);
+
+  --af-container: 1180px;
+  --af-gutter-desk: 32px;
+  --largura-conteudo: 1180px;
+
+  /* ---- Toque e movimento ---- */
+  --af-touch-min: 2.75rem;   /* 44px, e em rem para crescer com o A+ */
+  --af-touch-cta: 3.125rem;  /* 50px */
+  --alvo-toque: var(--af-touch-min);
+  --af-ease: cubic-bezier(.4, 0, .2, 1);
+  --af-dur: .25s;
 }
 
-/* Em tela de celular o titulo de abertura precisa caber sem hifenizar:
-   48px de altura numa largura util de ~290px nao cabe de jeito nenhum. */
-@media (max-width: 34rem) {
+/* =====================================================================
+   Faixas de tela.
+
+   O handoff e' mobile-first e da' a grade em tres degraus:
+   <640 celular · 640–1023 tablet · >=1024 desktop · >=1240 travado em 1180.
+   Aqui so' a TIPOGRAFIA muda por faixa; a grade mora em sistema.css, junto
+   dos componentes que ela reorganiza.
+   ===================================================================== */
+
+/* Tela muito estreita (320px): o titulo do heroi precisa caber sem partir.
+   E' o piso do clamp() do handoff (22px), em rem. */
+@media (max-width: 22.5rem) {
+  :root { --af-h1: 1.375rem; }
+}
+
+/* Desktop: a escala inteira sobe (H1 46 · H2 30 · H3 22 · corpo 15). */
+@media (min-width: 64rem) {
   :root {
-    --texto-destaque: 1.85rem;
-    --texto-titulo: 1.6rem;
-    --texto-grande: 1.3rem;
+    --af-h1: 2.875rem;
+    --af-h2: 1.875rem;
+    --af-h3: 1.375rem;
+    --af-body: 0.9375rem;
+    --espaco-6: 4rem;
   }
 }
 
-/* O controle A- / A / A+ altera apenas esta linha. */
+/* O controle A- / A / A+ altera apenas esta linha.
+   Todo tamanho do sistema esta' em rem justamente para depender dela. */
 html {
   font-size: var(--escala-fonte, 100%);
 }
 
-/* Alto contraste: os mesmos tokens, redefinidos.
-   O aplique perde a cor e vira preto solido, para nao competir com o texto. */
+/* =====================================================================
+   Alto contraste: os MESMOS tokens, redefinidos.
+
+   Nao e' `filter: saturate(0) contrast(1.55)` como no handoff — ver a
+   divergencia 3 no topo deste arquivo. Aqui o ocre vira branco (deixa de
+   ser fundo de marca e vira superficie), a tinta vira preto puro, e o
+   aplique perde a cor para nao competir com o texto.
+   ===================================================================== */
 html[data-contraste="alto"] {
-  --fundo: #FFFFFF;
-  --cal: #FFFFFF;
-  --superficie: #FFFFFF;
-  --tinta: #000000;
-  --tinta-suave: #000000;
-  --borda: #000000;
-  --azul-texto: #00327A;
-  --azul: #00327A;
-  --marrom: #3A2A18;
-  --amarelo: #FFFFFF;
+  --af-cream: #FFFFFF;
+  --af-card: #FFFFFF;
+  --af-brown: #000000;
+  --af-brown-800: #000000;
+  --af-brown-600: #000000;
+  --af-brown-400: #000000;
+  --af-ochre: #FFFFFF;
+  --af-ochre-deep: #000000;
+  --af-blue: #00327A;
+  --af-blue-deep: #00327A;
+  --af-cream-dim: #000000;
+  --af-ph: #FFFFFF;
+  --af-ph-ink: #000000;
+  --af-hairline: #000000;
+  --af-hairline-inv: #FFFFFF;
+  --af-scrim: rgba(0, 0, 0, .7);
+
+  /* Os apelidos que nao sao derivados diretos precisam ser refeitos aqui:
+     `--marrom` aponta para --af-brown-400 la' em cima, e sem esta linha o
+     valor herdado continuaria valendo (ele so' seria recalculado, o que
+     esta' certo) — a excecao e' `--foco`, que precisa de PRETO e nao do
+     azul de contraste. */
   --foco: #000000;
 }

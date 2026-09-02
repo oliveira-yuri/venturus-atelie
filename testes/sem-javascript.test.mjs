@@ -85,10 +85,16 @@ for (const pagina of PAGINAS) {
     await navegador.get(`${BASE}${pagina}`);
     const html = await navegador.getPageSource();
 
-    const abertura = html.match(/<nav[^>]*id="menu-principal"[^>]*>/);
-    assert.ok(abertura, 'nav#menu-principal não chegou no HTML sem JavaScript');
+    // O design system v1 separou o INVOLUCRO da gaveta (id, scrim, a classe
+    // que recolhe) do LANDMARK (<nav aria-label="Principal">, só os 11
+    // itens). Sem JavaScript nenhuma das duas classes de recolhimento entra:
+    // a navegação chega no fluxo da página, aberta.
+    const abertura = html.match(/<div[^>]*id="menu-principal"[^>]*>/);
+    assert.ok(abertura, 'div#menu-principal não chegou no HTML sem JavaScript');
     assert.doesNotMatch(abertura[0], /\shidden(\s|=|>)/,
-      'o nav chegou com o atributo hidden — sem JavaScript ninguém vê o menu');
+      'a navegação chegou com o atributo hidden — sem JavaScript ninguém vê o menu');
+    assert.doesNotMatch(abertura[0], /af-nav--(gaveta|fechada)/,
+      'a navegação chegou já recolhida — sem JavaScript ninguém abre a gaveta');
 
     const faltando = HREFS_DO_MENU.filter((href) => !html.includes(`href="${href}"`));
     assert.deepEqual(faltando, [],

@@ -6,26 +6,48 @@
    teria de constar na politica de privacidade — e nao ha uma segunda conexao
    a estabelecer em rede movel (RNF11).
 
-   Sao fontes variaveis: um arquivo cobre toda a faixa de peso, entao basta
-   uma declaracao por familia. Somente o subset latino, que cobre o portugues.
+   =====================================================================
+   O QUE MUDOU NO DESIGN SYSTEM v1 (01/09/2026)
+   =====================================================================
 
-   Fraunces  65 KB  — display. Desenho levemente irregular, com serifas que
-                      lembram letreiro pintado a mao.
-   Karla     23 KB  — corpo. Grotesca humanista, boa em tamanho pequeno.
+   O sistema "Ateliê Afro" (docs/Três variações mobile do sistema/) tem UMA
+   familia so, serifada, em tudo — inclusive botao e rotulo. Nada de sans.
+   Fraunces + Karla sairam; entrou Bitter.
+
+   O handoff carrega Bitter pelo Google Fonts (<link> para
+   fonts.googleapis.com). Aqui NAO: a regra do projeto e servir localmente, e
+   a politica de conteudo deste site nao tem fonts.googleapis.com em
+   `style-src` nem fonts.gstatic.com em `font-src` — colar o <link> do
+   handoff daria uma fonte que simplesmente nao carrega, em silencio, com o
+   fallback Georgia no lugar. Os dois arquivos abaixo foram baixados do
+   Google Fonts e versionados.
+
+   MEDIDO: Bitter (34,1 KB) + o italico (18,7 KB) = 52,8 KB, contra os
+   91,6 KB de Fraunces (67,3) + Karla (24,3). O sistema novo pesa MENOS que
+   o antigo, mesmo com duas requisicoes.
+
+   Sao fontes variaveis: um arquivo cobre toda a faixa de peso, entao basta
+   uma declaracao por estilo. Somente o subset latino, que cobre o portugues
+   (U+00C0-00FF inclui a, e, i, o, u acentuados, a cedilha e os tis).
+
+   O ITALICO E' UM ARQUIVO SEPARADO, e nao enfeite: o <h1> da home tem
+   <em>pertencimento</em> — a palavra que o sistema manda destacar. Sem esta
+   declaracao o navegador inclinaria o Bitter romano por conta propria
+   (italico sintetico), que e o desenho errado das letras.
    ===================================================================== */
 
 @font-face {
-  font-family: 'Fraunces';
+  font-family: 'Bitter';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 300 700;
   font-display: swap;
-  src: url('/fontes/fraunces-latin.woff2') format('woff2');
+  src: url('/fontes/bitter-latin.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Karla';
-  font-style: normal;
-  font-weight: 200 800;
+  font-family: 'Bitter';
+  font-style: italic;
+  font-weight: 400;
   font-display: swap;
-  src: url('/fontes/karla-latin.woff2') format('woff2');
+  src: url('/fontes/bitter-italico-latin.woff2') format('woff2');
 }

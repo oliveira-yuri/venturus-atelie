@@ -114,8 +114,8 @@ for (const pagina of PAGINAS) {
       return {
         menu: Boolean(document.querySelector('#menu-principal')),
         atual: document.querySelector('[aria-current="page"]')?.textContent.trim() || null,
-        contatos: document.querySelectorAll('.rodape__lista a').length,
-        acessibilidade: document.querySelectorAll('.acessibilidade button').length
+        contatos: document.querySelectorAll('.af-footer__links a').length,
+        acessibilidade: document.querySelectorAll('.af-a11y button').length
       };
     `);
 

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"><style>
+body{margin:0;background:#F9F4EA;font-family:Bitter,Georgia,serif;color:#2B2019}
+a{color:#2F6D96}a:hover{color:#1E4E6E}
+code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(43,32,25,.07);padding:1px 5px}
+</style></helmet>
+
+<div style="max-width:920px;margin:0 auto;padding:48px 32px 80px">
+
+<header style="border-bottom:1.5px solid #2B2019;padding-bottom:22px">
+<div style="font:600 10.5px Bitter,serif;letter-spacing:.14em;text-transform:uppercase;color:#9A6A12">Design system · v1 · mobile-first</div>
+<h1 style="margin:10px 0 0;font:700 40px/1.1 Bitter,serif">Ateliê Afro Cultural</h1>
+<p style="margin:12px 0 0;max-width:560px;font:400 15px/1.6 Bitter,serif;color:#6E5B45">Papel recortado: serifa única, ocre como fundo, marrom como tinta, sombra dura deslocada e zero cantos arredondados. Derivado da variação 1a. Tokens e componentes prontos em <code>design_handoff_atelie_afro/</code>.</p>
+</header>
+
+<h2 style="margin:44px 0 16px;font:700 22px Bitter,serif">Cor</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px">
+<div style="border:1.5px solid #2B2019"><div style="height:78px;background:#D69A10"></div><div style="padding:10px 12px 12px"><div style="font:700 13px Bitter,serif">Ocre</div><code>--af-ochre</code><div style="font:400 11.5px Bitter,serif;color:#6E5B45;margin-top:6px">#D69A10 · fundo de marca</div></div></div>
+<div style="border:1.5px solid #2B2019"><div style="height:78px;background:#9A6A12"></div><div style="padding:10px 12px 12px"><div style="font:700 13px Bitter,serif">Ocre profundo</div><code>--af-ochre-deep</code><div style="font:400 11.5px Bitter,serif;color:#6E5B45;margin-top:6px">#9A6A12 · texto ocre</div></div></div>
+<div style="border:1.5px solid #2B2019"><div style="height:78px;background:#2B2019"></div><div style="padding:10px 12px 12px"><div style="font:700 13px Bitter,serif">Marrom</div><code>--af-brown</code><div style="font:400 11.5px Bitter,serif;color:#6E5B45;margin-top:6px">#2B2019 · tinta e bordas</div></div></div>
+<div style="border:1.5px solid #2B2019"><div style="height:78px;background:#6E5B45"></div><div style="padding:10px 12px 12px"><div style="font:700 13px Bitter,serif">Marrom 400</div><code>--af-brown-400</code><div style="font:400 11.5px Bitter,serif;color:#6E5B45;margin-top:6px">#6E5B45 · texto secundário</div></div></div>
+<div style="border:1.5px solid #2B2019"><div style="height:78px;background:#6FA6C8"></div><div style="padding:10px 12px 12px"><div style="font:700 13px Bitter,serif">Azul</div><code>--af-blue</code><div style="font:400 11.5px Bitter,serif;color:#6E5B45;margin-top:6px">#6FA6C8 · acento</div></div></div>
+<div style="border:1.5px solid #2B2019"><div style="height:78px;background:#2F6D96"></div><div style="padding:10px 12px 12px"><div style="font:700 13px Bitter,serif">Azul profundo</div><code>--af-blue-deep</code><div style="font:400 11.5px Bitter,serif;color:#6E5B45;margin-top:6px">#2F6D96 · links</div></div></div>
+<div style="border:1.5px solid #2B2019"><div style="height:78px;background:#F9F4EA"></div><div style="padding:10px 12px 12px"><div style="font:700 13px Bitter,serif">Creme</div><code>--af-cream</code><div style="font:400 11.5px Bitter,serif;color:#6E5B45;margin-top:6px">#F9F4EA · fundo</div></div></div>
+<div style="border:1.5px solid #2B2019"><div style="height:78px;background:#FFFDF7"></div><div style="padding:10px 12px 12px"><div style="font:700 13px Bitter,serif">Card</div><code>--af-card</code><div style="font:400 11.5px Bitter,serif;color:#6E5B45;margin-top:6px">#FFFDF7 · superfície</div></div></div>
+</div>
+<p style="margin:14px 0 0;font:400 13px/1.6 Bitter,serif;color:#6E5B45">Regras de contraste: ocre nunca é texto sobre creme (use ocre profundo); texto sobre ocre é sempre marrom; <span style="color:#6E5B45">marrom 400</span> só sobre creme.</p>
+
+<h2 style="margin:44px 0 16px;font:700 22px Bitter,serif">Tipografia — Bitter, família única</h2>
+<div style="background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019;padding:22px 24px;display:grid;gap:16px">
+<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:baseline"><span style="font:700 28px/1.15 Bitter,serif">Arte, memória e pertencimento</span><code>H1 · clamp(22px,7.2vw,28px)/1.15 · 700</code></div>
+<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;border-top:1px solid rgba(43,32,25,.15);padding-top:16px"><span style="font:700 19px Bitter,serif">Por onde começar</span><code>H2 · 19px · 700</code></div>
+<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;border-top:1px solid rgba(43,32,25,.15);padding-top:16px"><span style="font:700 16px Bitter,serif">Literário</span><code>H3 · 16px · 700</code></div>
+<div style="border-top:1px solid rgba(43,32,25,.15);padding-top:16px"><p style="margin:0;font:400 14.5px/1.6 Bitter,serif;color:#6E5B45">Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira.</p><code>Corpo · 14.5px/1.6 · 400 · marrom 400</code></div>
+<div style="border-top:1px solid rgba(43,32,25,.15);padding-top:16px"><span style="font:600 10.5px Bitter,serif;letter-spacing:.12em;text-transform:uppercase;color:#9A6A12">Para escolas</span><div style="margin-top:6px"><code>Overline · 10.5px · 600 · ls .12em · caixa alta</code></div></div>
+</div>
+
+<h2 style="margin:44px 0 16px;font:700 22px Bitter,serif">Botões — alvo mínimo 44px, CTA 50px</h2>
+<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:50px;padding:0 18px;background:#2B2019;color:#F9F4EA;font:600 14.5px Bitter,serif;text-decoration:none">Primário</a>
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:50px;padding:0 18px;border:1.5px solid #2B2019;color:#2B2019;font:600 14.5px Bitter,serif;text-decoration:none">Outline</a>
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:50px;padding:0 18px;background:#D69A10;color:#2B2019;font:600 14.5px Bitter,serif;text-decoration:none">Ocre (sobre escuro)</a>
+<span style="display:flex;gap:8px"><button style="min-width:46px;height:44px;background:#FFFDF7;border:1.5px solid #2B2019;border-radius:3px;font:600 13px Bitter,serif;color:#2B2019">A-</button><button style="min-width:46px;height:44px;background:#FFFDF7;border:1.5px solid #2B2019;border-radius:3px;font:600 15px Bitter,serif;color:#2B2019">A</button><button style="min-width:46px;height:44px;background:#FFFDF7;border:1.5px solid #2B2019;border-radius:3px;font:600 17px Bitter,serif;color:#2B2019">A+</button><button style="height:44px;padding:0 14px;background:#2B2019;border:1.5px solid #2B2019;border-radius:3px;font:600 13px Bitter,serif;color:#F9F4EA">Alto contraste</button></span>
+</div>
+
+<h2 style="margin:44px 0 16px;font:700 22px Bitter,serif">Superfícies e elevação</h2>
+<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+<div style="width:230px;background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019;padding:16px"><div style="font:700 16px Bitter,serif">Card</div><p style="margin:8px 0 0;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Sombra dura 5px, sem blur.</p></div>
+<div style="width:230px;background:#2B2019;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #D69A10;padding:16px"><div style="font:700 16px Bitter,serif;color:#F9F4EA">Card escuro</div><p style="margin:8px 0 0;font:400 13px/1.5 Bitter,serif;color:#D8CBB8">Sombra ocre. Usado em chamadas.</p></div>
+<a href="#" style="display:block;width:200px;text-decoration:none;background:#FFFDF7;border:1.5px solid #2B2019;border-top:5px solid #6FA6C8;box-shadow:4px 4px 0 #2B2019;padding:13px 12px 15px"><span style="font:600 10px Bitter,serif;color:#2F6D96;letter-spacing:.12em">02</span><div style="font:700 15px Bitter,serif;color:#2B2019;margin-top:4px">Tile numerado</div><p style="margin:6px 0 0;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Borda superior = categoria.</p></a>
+<div style="width:200px"><div style="aspect-ratio:16/9;background:#EFE6D6;border:1.5px dashed #8A7862;display:grid;place-items:center;font:500 11px Bitter,serif;color:#8A7862;letter-spacing:.1em;text-transform:uppercase">Imagem</div><p style="margin:8px 0 0;font:400 12px/1.5 Bitter,serif;color:#6E5B45">Placeholder — trocar por foto real no mesmo aspect-ratio.</p></div>
+</div>
+
+<h2 style="margin:44px 0 16px;font:700 22px Bitter,serif">Divisor de seção</h2>
+<div style="height:14px;background:repeating-linear-gradient(90deg,#2B2019 0 3px,#6FA6C8 3px 8px)"></div>
+<p style="margin:12px 0 0;font:400 13px/1.6 Bitter,serif;color:#6E5B45">Máximo duas vezes por página: antes do primeiro bloco de conteúdo e antes do rodapé.</p>
+
+<h2 style="margin:44px 0 16px;font:700 22px Bitter,serif">Página inicial — o layout de referência</h2>
+<p style="margin:0 0 18px;max-width:600px;font:400 14px/1.6 Bitter,serif;color:#6E5B45">Componente vivo <code>Home 1a</code>: mesma implementação que o pacote de handoff descreve, seção por seção. Arraste dentro do frame para percorrer a página.</p>
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+<div>
+<div style="font:600 11px Bitter,serif;color:#6E5B45;margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase">390 px · referência</div>
+<div style="border:1px solid rgba(0,0,0,.14);box-shadow:0 6px 20px rgba(0,0,0,.12)"><dc-import name="Home 1a" frame-h="{{ fh }}" style="width:390px;height:760px;display:block" hint-size="390px,760px"></dc-import></div>
+</div>
+<div>
+<div style="font:600 11px Bitter,serif;color:#6E5B45;margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase">320 px · limite inferior</div>
+<div style="border:1px solid rgba(0,0,0,.14);box-shadow:0 6px 20px rgba(0,0,0,.12)"><dc-import name="Home 1a" frame-h="{{ fh }}" style="width:320px;height:760px;display:block" hint-size="320px,760px"></dc-import></div>
+</div>
+<div style="width:280px;background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019;padding:18px">
+<div style="font:700 15px Bitter,serif">Ordem fixa das seções</div>
+<ol style="margin:10px 0 0;padding-left:20px;font:400 13px/1.7 Bitter,serif;color:#6E5B45">
+<li>Cabeçalho fixo (ocre)</li>
+<li>Barra de acessibilidade (oculta)</li>
+<li>Herói: imagem + card sobreposto</li>
+<li>Faixa listrada</li>
+<li>Por onde começar (4 tiles)</li>
+<li>O que fazemos (carrossel)</li>
+<li>Para escolas (card escuro)</li>
+<li>Na mídia (lista)</li>
+<li>Faixa listrada + rodapé</li>
+</ol>
+</div>
+</div>
+
+<h2 style="margin:44px 0 16px;font:700 22px Bitter,serif">Página inicial — desktop (≥1024 px)</h2>
+<p style="margin:0 0 18px;max-width:640px;font:400 14px/1.6 Bitter,serif;color:#6E5B45">Mesmo conteúdo, mesma ordem, mesmos tokens — o que muda é a grade. Container de <code>1180px</code>, calha de 32px, navegação horizontal na barra marrom (a gaveta só existe abaixo de 1024px), herói em duas colunas com o card avançando 48px sobre a imagem, tiles em 4 colunas, setores em 3 colunas (o carrossel deixa de existir), mídia em 3 cards e rodapé em 3 colunas. Escala tipográfica sobe: H1 46px, H2 30px, H3 22px, corpo 15–17px.</p>
+<div style="width:100%;overflow:hidden;border:1px solid rgba(0,0,0,.14);box-shadow:0 6px 20px rgba(0,0,0,.12);height:558px">
+<div style="width:1440px;height:900px;transform:scale(.62);transform-origin:top left"><dc-import name="Home 1a Desktop" style="width:1440px;height:900px;display:block" hint-size="1440px,900px"></dc-import></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:20px;margin-top:22px">
+<div style="flex:1;min-width:260px;background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019;padding:18px">
+<div style="font:700 15px Bitter,serif">Breakpoints</div>
+<ul style="margin:10px 0 0;padding-left:20px;font:400 13px/1.7 Bitter,serif;color:#6E5B45">
+<li><code>&lt;640px</code> — mobile: coluna única, gaveta, carrossel</li>
+<li><code>640–1023px</code> — tablet: tiles 2×2, setores 2 colunas, gaveta mantida</li>
+<li><code>≥1024px</code> — desktop: grade completa, navegação horizontal</li>
+<li><code>≥1240px</code> — container travado em 1180px, centralizado</li>
+</ul>
+</div>
+<div style="flex:1;min-width:260px;background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019;padding:18px">
+<div style="font:700 15px Bitter,serif">O que não muda no desktop</div>
+<ul style="margin:10px 0 0;padding-left:20px;font:400 13px/1.7 Bitter,serif;color:#6E5B45">
+<li>Sombra dura, sem blur (5–8px conforme o bloco)</li>
+<li>Zero cantos arredondados fora de controles</li>
+<li>Barra de acessibilidade visível no cabeçalho</li>
+<li>Faixa listrada só 2× por página</li>
+<li>Alvo mínimo de 44px também no mouse</li>
+</ul>
+</div>
+</div>
+
+<h2 style="margin:44px 0 16px;font:700 22px Bitter,serif">Como adaptar o projeto existente</h2>
+<ol style="margin:0;padding-left:22px;max-width:620px;font:400 14px/1.75 Bitter,serif;color:#6E5B45">
+<li>Importar Bitter (300–700 + itálico) e remover qualquer sans do CSS legado.</li>
+<li>Copiar <code>tokens.css</code> e carregá-lo antes de tudo.</li>
+<li>Mapear as cores antigas pela tabela do <code>README.md</code> — sem criar cor nova.</li>
+<li>Implementar componentes na ordem: botão → card → tile → cabeçalho → gaveta → barra de acessibilidade → lista de mídia → rodapé.</li>
+<li>Recriar a home a partir de <code>index.html</code> (estrutura e cópia exatas).</li>
+<li>Rodar o checklist de QA do README em 320, 390 e 430 px.</li>
+</ol>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:920,&quot;height&quot;:1200}}">
+class Component extends DCLogic {
+  renderVals() { return { fh: 760 }; }
+}
+</script>
+</body>
+</html>

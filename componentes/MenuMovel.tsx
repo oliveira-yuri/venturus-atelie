@@ -1,5 +1,4 @@
 'use client';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -18,75 +17,128 @@ export const ITENS = [
 ];
 
 /**
- * O menu de celular.
+ * A navegação principal.
  *
- * O servidor SEMPRE entrega o <nav> visivel, com os 11 links soltos no HTML —
- * quem nao roda JavaScript enxerga a navegacao inteira, so que expandida em
- * vez de recolhida (pior esteticamente, infinitamente melhor que sumir). Uma
- * versao anterior deste componente escondia o nav atras de `hidden`, com a
- * visibilidade calculada dentro de um useEffect: o servidor entregava sempre
- * oculto, e sem JavaScript ninguem via o menu. Ja aconteceu neste projeto
- * (a navegacao alternativa morava num custom element que so existia se o
- * script rodasse) — nao repetir.
+ * =====================================================================
+ * REESCRITO PARA O DESIGN SYSTEM v1: VIROU GAVETA
+ * =====================================================================
  *
- * Por isso o recolhimento no celular e feito por CSS, com a classe
- * `cabecalho__menu--fechado` (ver estilos/componentes.css), e essa classe so
- * entra depois de hidratar. Antes disso — sem JS, ou no instante entre o HTML
- * chegar e o React assumir — o menu fica do jeito que o servidor mandou:
- * aberto.
+ * O sistema (variação 1a aprovada) troca o menu que empurrava a página por
+ * uma gaveta: scrim escuro sobre tudo, painel marrom de 82% da largura
+ * entrando pela esquerda, borda direita ocre de 2px, itens de 48px. No
+ * desktop a gaveta some e a navegação vira uma faixa horizontal — quem
+ * faz isso é CSS puro (estilos/sistema.css), não JavaScript medindo a
+ * largura da tela.
  *
- * Botao e nav ficam dentro de um <div class="cabecalho__menu-grupo"> comum.
- * Rodada de correcao: o onKeyDown do Esc morava so no <nav>, entao so
- * funcionava depois que o foco ja tinha entrado nele (Tab a partir do botao).
- * No caminho mais comum — abrir pelo botao e desistir sem dar Tab — o foco
- * fica no proprio botao, fora do <nav>, e o evento nunca chegava la. Prender
- * o listener no grupo cobre os dois. `display: contents` no grupo (ver CSS)
- * garante que ele nao interfere no layout flex de .cabecalho__topo — botao e
- * nav continuam se comportando como se fossem itens diretos dela.
+ * =====================================================================
+ * O QUE NÃO MUDOU, E É O MAIS IMPORTANTE DESTE ARQUIVO
+ * =====================================================================
+ *
+ * O SERVIDOR SEMPRE ENTREGA O <nav> VISÍVEL, com os 11 links soltos no
+ * HTML. Quem não roda JavaScript enxerga a navegação inteira, só que
+ * empilhada no fluxo da página em vez de recolhida numa gaveta — pior
+ * esteticamente, infinitamente melhor que sumir.
+ *
+ * O handoff faz o contrário: `<div class="af-drawer" hidden>`, revelada
+ * por script. Copiar aquilo reintroduziria um defeito que este projeto já
+ * teve — a navegação alternativa morava num custom element que só existia
+ * se o script rodasse — e derrubaria testes/sem-javascript.test.mjs.
+ *
+ * Por isso a classe `af-nav--gaveta` só entra depois de `hidratado`, e
+ * `af-nav--fechada` só depois disso. Antes: `af-nav` puro, no fluxo.
+ *
+ * O ESTADO NÃO MORA AQUI. O hambúrguer vive dentro da faixa ocre do
+ * cabeçalho e a gaveta vive fora dela; duas instâncias separadas não
+ * compartilhariam `useState`. Quem guarda "aberto/fechado" é
+ * componentes/Cabecalho.tsx, que enxerga os dois lados, e manda por prop.
+ * O Esc e a devolução do foco também moram lá, pelo mesmo motivo.
  */
-export default function MenuMovel() {
-  const [aberto, setAberto] = useState(false);
-  const [hidratado, setHidratado] = useState(false);
+export default function MenuMovel({
+  hidratado,
+  aberto,
+  aoFechar
+}: {
+  hidratado: boolean;
+  aberto: boolean;
+  aoFechar: () => void;
+}) {
   const rota = usePathname();
 
-  useEffect(() => { setHidratado(true); }, []);
-
-  // So recolhe depois de hidratar: e a marca que garante que o HTML do
-  // servidor nunca carrega essa classe.
-  const recolhido = hidratado && !aberto;
+  // Só vira gaveta depois de hidratar: é a marca que garante que o HTML do
+  // servidor nunca carrega essas classes.
+  const classes = ['af-nav'];
+  if (hidratado) {
+    classes.push('af-nav--gaveta');
+    if (!aberto) classes.push('af-nav--fechada');
+  }
 
   return (
-    <div className="cabecalho__menu-grupo"
-      // Esc fecha e devolve o foco ao botao, venha o evento de onde vier
-      // dentro do grupo (botao ou qualquer link do nav) — sem isso o foco
-      // fica preso num menu invisivel para quem navega por teclado.
-      onKeyDown={(evento) => {
-        if (evento.key === 'Escape' && aberto) {
-          setAberto(false);
-          document.querySelector<HTMLButtonElement>('.cabecalho__alternar')?.focus();
-        }
-      }}>
-      {/*
-        Visibilidade do botao e so CSS (display:none no desktop, ver
-        estilos/componentes.css) — nao depende de JavaScript detectar a
-        largura da tela.
-      */}
-      <button className="cabecalho__alternar" type="button"
-        aria-expanded={aberto} aria-controls="menu-principal"
-        onClick={() => setAberto((atual) => !atual)}>Menu</button>
+    /*
+      TRES ELEMENTOS, E CADA UM TEM UM MOTIVO:
 
-      <nav id="menu-principal" aria-label="Principal"
-        className={recolhido ? 'cabecalho__menu cabecalho__menu--fechado' : 'cabecalho__menu'}>
-        <ul>
+        <div id="menu-principal">   o que abre e fecha, e o scrim
+          <div class="__painel">    a folha marrom que desliza
+            <nav aria-label>        SO' os 11 itens de navegacao
+            <div class="__rodape">  o CTA "Doar agora"
+
+      "Doar agora" fica FORA do <nav> de proposito. Ele nao e' item de
+      menu: e' uma chamada para acao que o sistema poe ao pe da gaveta. Se
+      morasse dentro do <nav>, o landmark de navegacao passaria a anunciar
+      doze destinos onde ha' onze, e — foi assim que se descobriu —
+      testes/cabecalho.test.mjs comecaria a contar 12 links onde o
+      requisito diz 11.
+    */
+    <div
+      id="menu-principal"
+      className={classes.join(' ')}
+      /*
+        Clicar no scrim fecha. O teste é `currentTarget === target`: só
+        conta o clique que caiu no fundo, não o que caiu num link. Sem
+        JavaScript nada disto existe, e não precisa existir — sem gaveta
+        não há scrim.
+      */
+      onClick={hidratado ? (evento) => {
+        if (evento.target === evento.currentTarget) aoFechar();
+      } : undefined}
+    >
+      <div className="af-nav__painel">
+        <div className="af-nav__cabeca">
+          <span className="af-nav__titulo">Menu</span>
+          <button
+            type="button"
+            className="af-nav__fechar"
+            aria-label="Fechar menu"
+            onClick={aoFechar}
+          >
+            &times;
+          </button>
+        </div>
+
+        <nav aria-label="Principal">
+        <ul className="af-nav__lista">
           {ITENS.map((item) => (
             <li key={item.href}>
-              <Link href={item.href} aria-current={rota === item.href ? 'page' : undefined}>
+              <Link
+                className="af-navlink"
+                href={item.href}
+                aria-current={rota === item.href ? 'page' : undefined}
+              >
                 {item.texto}
               </Link>
             </li>
           ))}
         </ul>
-      </nav>
+        </nav>
+
+        {/*
+          "Doar agora" ao pé da gaveta, como o sistema pede. Aponta para
+          /doar, que é a rota real — o handoff escreve /apoiar, que é o
+          nome da tela no menu, não o endereço dela neste site.
+        */}
+        <div className="af-nav__rodape">
+          <Link className="af-btn af-btn--ochre" href="/doar">Doar agora</Link>
+        </div>
+      </div>
     </div>
   );
 }

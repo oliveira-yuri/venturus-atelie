@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import '@/estilos/fontes.css';
 import '@/estilos/tokens.css';
+import '@/estilos/sistema.css';
 import '@/estilos/base.css';
 import '@/estilos/componentes.css';
 import Cabecalho from '@/componentes/Cabecalho';

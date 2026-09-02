@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ateliê Afro Cultural</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="desktop.css">
+</head>
+<body>
+
+<header class="af-header">
+  <div class="af-wrap" style="display:contents"></div>
+  <button class="af-burger" id="burger" aria-label="Abrir menu" aria-expanded="false" aria-controls="drawer">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="af-header__brand">
+    <div class="af-header__name">Ateliê Afro Cultural</div>
+    <div class="af-header__meta">Casa Verde · São Paulo</div>
+  </div>
+  <button class="af-btn--control" id="a11yToggle" aria-label="Opções de acessibilidade" aria-expanded="false" aria-controls="a11y" style="width:46px;font-size:15px">Aa</button>
+  <a class="af-btn--control" href="/entrar" style="display:flex;align-items:center;white-space:nowrap;text-decoration:none">Entrar</a>
+</header>
+
+<div class="af-a11y" id="a11y" hidden>
+  <span class="af-a11y__label">Acessibilidade</span>
+  <button class="af-btn--control" data-font="-1" aria-label="Diminuir texto">A-</button>
+  <button class="af-btn--control" data-font="0" aria-label="Texto padrão" style="font-size:15px">A</button>
+  <button class="af-btn--control" data-font="1" aria-label="Aumentar texto" style="font-size:17px">A+</button>
+  <button class="af-a11y__contrast" id="contrast" aria-pressed="false">Alto contraste</button>
+</div>
+
+<div class="af-navbar" hidden data-desktop-only>
+  <nav aria-label="Menu principal (desktop)">
+    <a class="af-navlink" href="/" aria-current="page">Início</a>
+    <a class="af-navlink" href="/quem-somos">Quem somos</a>
+    <a class="af-navlink" href="/projetos">Projetos</a>
+    <a class="af-navlink" href="/agenda">Agenda</a>
+    <a class="af-navlink" href="/noticias">Notícias</a>
+    <a class="af-navlink" href="/galeria">Galeria</a>
+    <a class="af-navlink" href="/acervo">Acervo</a>
+    <a class="af-navlink" href="/para-escolas">Para escolas</a>
+    <a class="af-navlink" href="/voluntariado">Voluntariado</a>
+    <a class="af-navlink" href="/contato">Contato</a>
+    <a class="af-navlink" href="/apoiar">Apoiar</a>
+  </nav>
+</div>
+
+<div class="af-drawer" id="drawer" hidden>
+  <div class="af-drawer__scrim" data-close></div>
+  <nav class="af-drawer__panel" aria-label="Menu principal">
+    <div class="af-drawer__head">
+      <span class="af-drawer__title">Menu</span>
+      <button class="af-drawer__close" data-close aria-label="Fechar menu">&times;</button>
+    </div>
+    <a class="af-navlink" href="/" aria-current="page">Início</a>
+    <a class="af-navlink" href="/quem-somos">Quem somos</a>
+    <a class="af-navlink" href="/projetos">Projetos</a>
+    <a class="af-navlink" href="/agenda">Agenda</a>
+    <a class="af-navlink" href="/noticias">Notícias</a>
+    <a class="af-navlink" href="/galeria">Galeria</a>
+    <a class="af-navlink" href="/acervo">Acervo</a>
+    <a class="af-navlink" href="/para-escolas">Para escolas</a>
+    <a class="af-navlink" href="/voluntariado">Voluntariado</a>
+    <a class="af-navlink" href="/apoiar">Apoiar</a>
+    <a class="af-navlink" href="/contato" style="border-bottom:1px solid var(--af-hairline-inv)">Contato</a>
+    <div style="padding:var(--af-s8)">
+      <a class="af-btn af-btn--ochre" href="/apoiar" style="min-height:48px;border:1.5px solid var(--af-cream)">Doar agora</a>
+    </div>
+  </nav>
+</div>
+
+<!-- Herói: placeholder de imagem sobreposto pelo card (offset -14px) -->
+<section class="af-hero" style="background:var(--af-ochre);padding:var(--af-s8) var(--af-gutter) var(--af-s10)">
+  <div class="af-ph" style="margin-bottom:-14px;position:relative;z-index:1">Imagem · oficina</div>
+  <div class="af-card af-card--hero" style="position:relative;z-index:2">
+    <h1 class="af-h1">Arte, memória e <span class="af-mark">pertencimento</span> — feitos à mão, todo dia</h1>
+    <p class="af-text" style="margin-top:var(--af-s6)">Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira, na Casa Verde, zona norte de São Paulo.</p>
+    <div style="display:flex;flex-direction:column;gap:var(--af-s4);margin-top:var(--af-s8)">
+      <a class="af-btn af-btn--primary" href="/projetos">Conhecer nossos projetos</a>
+      <a class="af-btn af-btn--outline" href="/agenda">Ver a agenda</a>
+    </div>
+  </div>
+</section>
+
+<div class="af-stripe"></div>
+
+<section class="af-section">
+  <h2 class="af-h2" style="margin-bottom:var(--af-s1)">Por onde começar</h2>
+  <p class="af-text af-text--sm" style="margin-bottom:var(--af-s7)">Quatro caminhos para entrar no ateliê.</p>
+  <div class="af-grid">
+    <a class="af-tile" href="/quem-somos">
+      <span class="af-tile__num">01</span>
+      <div class="af-tile__title">Conhecer</div>
+      <p class="af-tile__desc">Nossa história e os três setores de atuação.</p>
+    </a>
+    <a class="af-tile af-tile--blue" href="/agenda">
+      <span class="af-tile__num" style="color:var(--af-blue-deep)">02</span>
+      <div class="af-tile__title">Participar</div>
+      <p class="af-tile__desc">Oficinas e vivências abertas, sem cadastro.</p>
+    </a>
+    <a class="af-tile af-tile--brown" href="/voluntariado">
+      <span class="af-tile__num" style="color:var(--af-brown-400)">03</span>
+      <div class="af-tile__title">Ser voluntário</div>
+      <p class="af-tile__desc">Cinco áreas, do apoio pedagógico ao acervo.</p>
+    </a>
+    <a class="af-tile af-tile--invert" href="/apoiar">
+      <span class="af-tile__num">04</span>
+      <div class="af-tile__title">Apoiar</div>
+      <p class="af-tile__desc">Livros, instrumentos, materiais de arte e recursos.</p>
+    </a>
+  </div>
+</section>
+
+<section style="padding:var(--af-s10) 0 var(--af-s2)">
+  <div style="padding:0 var(--af-gutter) var(--af-s6)">
+    <h2 class="af-h2">O que fazemos</h2>
+    <p class="af-text af-text--sm" style="margin-top:var(--af-s2)">Arraste para o lado.</p>
+  </div>
+  <div class="af-hscroll">
+    <article class="af-card" style="padding:0">
+      <div class="af-ph af-ph--wide">Imagem</div>
+      <div style="padding:var(--af-s6)">
+        <h3 class="af-h3">Literário</h3>
+        <p class="af-text af-text--sm" style="margin-top:var(--af-s2)">Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</p>
+      </div>
+    </article>
+    <article class="af-card" style="padding:0">
+      <div class="af-ph af-ph--wide">Imagem</div>
+      <div style="padding:var(--af-s6)">
+        <h3 class="af-h3">Musical</h3>
+        <p class="af-text af-text--sm" style="margin-top:var(--af-s2)">Cantigas, instrumentos e corporeidade negra: jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</p>
+      </div>
+    </article>
+    <article class="af-card" style="padding:0">
+      <div class="af-ph af-ph--wide">Imagem</div>
+      <div style="padding:var(--af-s6)">
+        <h3 class="af-h3">Artístico criativo</h3>
+        <p class="af-text af-text--sm" style="margin-top:var(--af-s2)">Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</p>
+      </div>
+    </article>
+  </div>
+  <div style="padding:var(--af-s3) var(--af-gutter) 0"><a href="/quem-somos" style="font:500 13.5px var(--af-font)">Ler nossa história completa &rarr;</a></div>
+</section>
+
+<section style="margin:var(--af-s10) var(--af-gutter)">
+  <div class="af-card af-card--dark">
+    <h2 class="af-h3" style="font-size:18px;line-height:1.3">É de uma escola ou instituição?</h2>
+    <p class="af-text" style="font-size:13.5px;margin-top:var(--af-s4)">Levamos contações de história e vivências brincantes até o seu espaço. As atividades se adaptam a qualquer local e têm classificação livre.</p>
+    <a class="af-btn af-btn--ochre" href="/para-escolas" style="margin-top:var(--af-s7)">Ver como funciona</a>
+  </div>
+</section>
+
+<section style="padding:var(--af-s1) var(--af-gutter) 28px">
+  <h2 class="af-h2" style="margin-bottom:var(--af-s6)">Na mídia</h2>
+  <div class="af-media">
+    <a class="af-media__item" href="#">
+      <span class="af-media__bar"></span>
+      <span style="flex:1;min-width:0">
+        <span class="af-media__title">Folha de S.Paulo</span>
+        <span class="af-media__meta">Como o menino que era caixa de supermercado criou um ateliê para valorizar a cultura negra</span>
+      </span>
+    </a>
+    <a class="af-media__item" href="#">
+      <span class="af-media__bar af-media__bar--blue"></span>
+      <span style="flex:1;min-width:0">
+        <span class="af-media__title">Rede Globo — Caldeirão do Huck</span>
+        <span class="af-media__meta">Participação em rede nacional · 2021</span>
+      </span>
+    </a>
+    <a class="af-media__item" href="#">
+      <span class="af-media__bar af-media__bar--brown"></span>
+      <span style="flex:1;min-width:0">
+        <span class="af-media__title">Rede Globo — The Wall</span>
+        <span class="af-media__meta">Participação no programa · 2021</span>
+      </span>
+    </a>
+  </div>
+</section>
+
+<div class="af-stripe"></div>
+<footer class="af-footer">
+  <div class="af-footer__cols">
+  <div>
+  <h3>Fale com a gente</h3>
+  <div class="af-footer__links">
+    <a href="tel:+5511953968344">(11) 95396-8344</a>
+    <a href="https://wa.me/5511953968344">WhatsApp</a>
+    <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>
+    <a href="#">Instagram</a>
+    <a href="#">TikTok</a>
+  </div>
+  </div>
+  <div>
+  <h3 style="margin-top:var(--af-s8)">Onde estamos</h3>
+  <p class="af-footer__addr">Rua Dr. Paulo Gatti, 135 — Vila Romero<br>São Paulo/SP — CEP 02468-030</p>
+  </div>
+  <div>
+    <h3 style="margin-top:var(--af-s8)">Apoie o ateliê</h3>
+    <p class="af-footer__addr" style="margin-bottom:var(--af-s7)">Doações de livros, instrumentos, materiais de arte e recursos mantêm as oficinas gratuitas.</p>
+    <a class="af-btn af-btn--ochre" href="/apoiar">Doar agora</a>
+  </div>
+  </div>
+  <div class="af-footer__legal"><a href="/privacidade">Política de privacidade</a></div>
+</footer>
+
+<script>
+/* Comportamento mínimo — reimplementar no framework do projeto. */
+var drawer=document.getElementById('drawer'),burger=document.getElementById('burger');
+function setDrawer(o){drawer.hidden=!o;burger.setAttribute('aria-expanded',String(o));document.body.style.overflow=o?'hidden':''}
+burger.onclick=function(){setDrawer(drawer.hidden)};
+drawer.addEventListener('click',function(e){if(e.target.hasAttribute('data-close'))setDrawer(false)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')setDrawer(false)});
+
+var bar=document.getElementById('a11y'),a11yBtn=document.getElementById('a11yToggle');
+a11yBtn.onclick=function(){bar.hidden=!bar.hidden;a11yBtn.setAttribute('aria-expanded',String(!bar.hidden))};
+
+/* Escala de texto: 3 passos persistidos. root font-size afeta apenas rem; aqui usamos zoom do documento. */
+var steps=[0.92,1,1.1],idx=+(localStorage.getItem('af-font')||1);
+function applyFont(){document.documentElement.style.zoom=steps[idx];localStorage.setItem('af-font',idx)}
+applyFont();
+bar.querySelectorAll('[data-font]').forEach(function(b){b.onclick=function(){
+  var d=+b.dataset.font;idx=d===0?1:Math.max(0,Math.min(2,idx+d));applyFont()}});
+
+/* Navegação horizontal só no desktop; gaveta só abaixo de 1024px. */
+var mq=window.matchMedia('(min-width:1024px)'),navbar=document.querySelector('.af-navbar');
+function syncNav(){navbar.hidden=!mq.matches;if(mq.matches)setDrawer(false)}
+syncNav();mq.addEventListener('change',syncNav);
+
+var c=document.getElementById('contrast'),on=localStorage.getItem('af-contrast')==='1';
+function applyContrast(){document.documentElement.dataset.afContrast=on?'on':'off';
+  c.setAttribute('aria-pressed',String(on));localStorage.setItem('af-contrast',on?'1':'0')}
+applyContrast();
+c.onclick=function(){on=!on;applyContrast()};
+</script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"><style>
+body{margin:0;background:#EDE7DC;font-family:Bitter,Georgia,serif}
+a{color:#2F6D96}a:hover{color:#1E4E6E}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#2B2019;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 Bitter,serif;color:#2B2019}
+.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#2B2019;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 Bitter,serif;color:rgba(0,0,0,.55);max-width:390px}
+.dv-card{background:#fff;border:1px solid rgba(0,0,0,.14);border-radius:26px;box-shadow:0 6px 20px rgba(0,0,0,.12);overflow:hidden}
+.dv-opt:target .dv-oid{background:#2F6D96;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 Bitter,serif;color:rgba(0,0,0,.5)}
+.fr{width:390px;height:812px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.fr::-webkit-scrollbar{display:none}
+.hs{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px 20px 10px}
+.hs::-webkit-scrollbar{display:none}
+.hs>*{scroll-snap-align:start;flex:none}
+</style></helmet>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname"><a class="dv-oid" href="#1a">1a</a> em layout fluido — testada em três larguras reais</span></div>
+<div class="dv-opts">
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>320 px — iPhone SE / Android pequeno. Grade cai para 1 coluna, títulos com clamp, alvos ≥44 px.</div>
+<div class="dv-card" style="width:320px"><dc-import name="Home 1a" frame-h="{{ fhSm }}" style="width:320px;height:780px;display:block" hint-size="320px,780px"></dc-import></div>
+</div>
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>390 px — referência (iPhone 14/15). Grade 2×2, carrossel com snap de 70%.</div>
+<div class="dv-card" style="width:390px"><dc-import name="Home 1a" frame-h="{{ fhSm }}" style="width:390px;height:780px;display:block" hint-size="390px,780px"></dc-import></div>
+</div>
+<div class="dv-opt" id="2c">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>430 px — Pro Max. Paddings em % mantêm a margem óptica; nada estica.</div>
+<div class="dv-card" style="width:430px"><dc-import name="Home 1a" frame-h="{{ fhSm }}" style="width:430px;height:780px;display:block" hint-size="430px,780px"></dc-import></div>
+</div>
+</div>
+<p class="dv-next">Ajustes aplicados: paddings em %, grade <em>auto-fit</em>, tipografia com clamp, gaveta 82% da largura, imagens em aspect-ratio, links de rodapé com 44 px de altura, marca com ellipsis. Diga se quer “rodapé em 2 colunas no 430” ou “carrossel virar grade no 430”.</p>
+</section>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Três variações mobile — mesma paleta, mesma serifa</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Refino do atual — cabeçalho fixo, menu em gaveta, "Por onde começar" em grade 2×2, o que fazemos em carrossel.</div>
+<div class="dv-card"><div style="filter:{{ f1 }}"><div style="zoom:{{ z1 }}"><div class="fr" style="background:#F9F4EA">
+
+<div style="position:sticky;top:0;z-index:30;background:#D69A10;border-bottom:1.5px solid #2B2019;display:flex;align-items:center;gap:10px;padding:10px 14px">
+<button onClick="{{ toggleDrawer }}" aria-label="Abrir menu" style="width:46px;height:46px;flex:none;display:grid;place-items:center;gap:0;background:#2B2019;border:1.5px solid #2B2019;border-radius:3px;cursor:pointer">
+<span style="display:flex;flex-direction:column;gap:4px"><span style="width:20px;height:2px;background:#F9F4EA;display:block"></span><span style="width:20px;height:2px;background:#F9F4EA;display:block"></span><span style="width:20px;height:2px;background:#F9F4EA;display:block"></span></span>
+</button>
+<div style="flex:1;min-width:0">
+<div style="font:700 15px/1.15 Bitter,serif;color:#2B2019">Ateliê Afro Cultural</div>
+<div style="font:400 10.5px/1.2 Bitter,serif;color:#5C4423;margin-top:2px">Casa Verde · São Paulo</div>
+</div>
+<button onClick="{{ toggleA11y1 }}" aria-label="Acessibilidade" style="width:46px;height:46px;flex:none;background:#FFFDF7;border:1.5px solid #2B2019;border-radius:3px;font:600 15px Bitter,serif;color:#2B2019;cursor:pointer">Aa</button>
+<button style="height:46px;padding:0 14px;flex:none;background:#FFFDF7;border:1.5px solid #2B2019;border-radius:3px;font:600 13px Bitter,serif;color:#2B2019;cursor:pointer">Entrar</button>
+</div>
+
+<sc-if value="{{ a11y1 }}" hint-placeholder-val="{{ false }}">
+<div style="position:sticky;top:68px;z-index:29;background:#FFFDF7;border-bottom:1.5px solid #2B2019;padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+<span style="font:500 11px Bitter,serif;color:#6E5B45;letter-spacing:.06em;text-transform:uppercase;width:100%">Acessibilidade</span>
+<button onClick="{{ fsDown1 }}" style="min-width:46px;height:44px;background:#F9F4EA;border:1.5px solid #2B2019;border-radius:3px;font:600 13px Bitter,serif;color:#2B2019;cursor:pointer">A-</button>
+<button onClick="{{ fsReset1 }}" style="min-width:46px;height:44px;background:#F9F4EA;border:1.5px solid #2B2019;border-radius:3px;font:600 15px Bitter,serif;color:#2B2019;cursor:pointer">A</button>
+<button onClick="{{ fsUp1 }}" style="min-width:46px;height:44px;background:#F9F4EA;border:1.5px solid #2B2019;border-radius:3px;font:600 17px Bitter,serif;color:#2B2019;cursor:pointer">A+</button>
+<button onClick="{{ toggleHc1 }}" style="height:44px;padding:0 14px;background:#2B2019;border:1.5px solid #2B2019;border-radius:3px;font:600 13px Bitter,serif;color:#F9F4EA;cursor:pointer">Alto contraste</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ drawer }}" hint-placeholder-val="{{ false }}">
+<div style="position:sticky;top:0;height:0;z-index:40"><div style="position:absolute;top:0;left:0;right:0;height:812px">
+<div onClick="{{ toggleDrawer }}" style="position:absolute;inset:0;background:rgba(43,32,25,.55)"></div>
+<nav style="position:absolute;top:0;left:0;bottom:0;width:300px;background:#2B2019;border-right:2px solid #D69A10;padding:18px 0 24px;overflow-y:auto">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px 16px">
+<span style="font:700 14px Bitter,serif;color:#D69A10">Menu</span>
+<button onClick="{{ toggleDrawer }}" aria-label="Fechar" style="width:44px;height:44px;background:transparent;border:1.5px solid #6E5B45;border-radius:3px;color:#F9F4EA;font:400 18px Bitter,serif;cursor:pointer">×</button>
+</div>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;background:#D69A10;color:#2B2019;font:600 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Início</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Quem somos</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Projetos</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Agenda</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Notícias</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Galeria</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Acervo</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Para escolas</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Voluntariado</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12)">Apoiar</a>
+<a href="#1a" style="display:flex;align-items:center;min-height:48px;padding:0 18px;color:#F9F4EA;font:400 15px Bitter,serif;text-decoration:none;border-top:1px solid rgba(249,244,234,.12);border-bottom:1px solid rgba(249,244,234,.12)">Contato</a>
+<div style="padding:18px">
+<a href="#1a" style="display:flex;align-items:center;justify-content:center;min-height:48px;background:#D69A10;border:1.5px solid #F9F4EA;color:#2B2019;font:600 14px Bitter,serif;text-decoration:none">Doar agora</a>
+</div>
+</nav>
+</div></div>
+</sc-if>
+
+<div style="background:#D69A10;padding:18px 16px 26px">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}">
+<div style="height:170px;background:#EFE6D6;border:1.5px dashed #8A7862;display:grid;place-items:center;margin-bottom:-14px;position:relative;z-index:1">
+<span style="font:500 11px Bitter,serif;color:#8A7862;letter-spacing:.1em;text-transform:uppercase">Imagem · oficina</span>
+</div>
+</sc-if>
+<div style="position:relative;z-index:2;background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:6px 6px 0 #2B2019;padding:20px 18px">
+<h1 style="margin:0;font:700 27px/1.15 Bitter,serif;color:#2B2019;text-wrap:pretty">Arte, memória e <span style="color:#9A6A12">pertencimento</span> — feitos à mão, todo dia</h1>
+<p style="margin:14px 0 0;font:400 14.5px/1.6 Bitter,serif;color:#6E5B45;text-wrap:pretty">Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira, na Casa Verde, zona norte de São Paulo.</p>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">
+<a href="#1a" style="display:flex;align-items:center;justify-content:center;min-height:50px;background:#2B2019;color:#F9F4EA;font:600 14.5px Bitter,serif;text-decoration:none">Conhecer nossos projetos</a>
+<a href="#1a" style="display:flex;align-items:center;justify-content:center;min-height:50px;background:transparent;border:1.5px solid #2B2019;color:#2B2019;font:600 14.5px Bitter,serif;text-decoration:none">Ver a agenda</a>
+</div>
+</div>
+</div>
+
+<div style="height:14px;background:repeating-linear-gradient(90deg,#2B2019 0 3px,#6FA6C8 3px 8px)"></div>
+
+<div style="padding:26px 16px 8px">
+<h2 style="margin:0 0 4px;font:700 19px Bitter,serif;color:#2B2019">Por onde começar</h2>
+<p style="margin:0 0 16px;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Quatro caminhos para entrar no ateliê.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<a href="#1a" style="display:block;text-decoration:none;background:#FFFDF7;border:1.5px solid #2B2019;border-top:5px solid #D69A10;box-shadow:4px 4px 0 #2B2019;padding:13px 12px 15px">
+<span style="font:600 10px Bitter,serif;color:#9A6A12;letter-spacing:.12em">01</span>
+<div style="font:700 15px Bitter,serif;color:#2B2019;margin-top:4px">Conhecer</div>
+<p style="margin:6px 0 0;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Nossa história e os três setores de atuação.</p>
+</a>
+<a href="#1a" style="display:block;text-decoration:none;background:#FFFDF7;border:1.5px solid #2B2019;border-top:5px solid #6FA6C8;box-shadow:4px 4px 0 #2B2019;padding:13px 12px 15px">
+<span style="font:600 10px Bitter,serif;color:#2F6D96;letter-spacing:.12em">02</span>
+<div style="font:700 15px Bitter,serif;color:#2B2019;margin-top:4px">Participar</div>
+<p style="margin:6px 0 0;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Oficinas e vivências abertas, sem cadastro.</p>
+</a>
+<a href="#1a" style="display:block;text-decoration:none;background:#FFFDF7;border:1.5px solid #2B2019;border-top:5px solid #2B2019;box-shadow:4px 4px 0 #2B2019;padding:13px 12px 15px">
+<span style="font:600 10px Bitter,serif;color:#6E5B45;letter-spacing:.12em">03</span>
+<div style="font:700 15px Bitter,serif;color:#2B2019;margin-top:4px">Ser voluntário</div>
+<p style="margin:6px 0 0;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Cinco áreas, do apoio pedagógico ao acervo.</p>
+</a>
+<a href="#1a" style="display:block;text-decoration:none;background:#2B2019;border:1.5px solid #2B2019;box-shadow:4px 4px 0 #D69A10;padding:13px 12px 15px">
+<span style="font:600 10px Bitter,serif;color:#D69A10;letter-spacing:.12em">04</span>
+<div style="font:700 15px Bitter,serif;color:#F9F4EA;margin-top:4px">Apoiar</div>
+<p style="margin:6px 0 0;font:400 12.5px/1.45 Bitter,serif;color:#D8CBB8">Livros, instrumentos, materiais de arte e recursos.</p>
+</a>
+</div>
+</div>
+
+<div style="padding:26px 0 6px">
+<div style="padding:0 16px 14px">
+<h2 style="margin:0;font:700 19px Bitter,serif;color:#2B2019">O que fazemos</h2>
+<p style="margin:6px 0 0;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Arraste para o lado.</p>
+</div>
+<div class="hs" style="padding-left:16px;padding-right:16px">
+<div style="width:250px;background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}"><div style="height:120px;background:#EFE6D6;border-bottom:1.5px solid #2B2019;display:grid;place-items:center"><span style="font:500 10px Bitter,serif;color:#8A7862;letter-spacing:.1em;text-transform:uppercase">Imagem</span></div></sc-if>
+<div style="padding:14px">
+<div style="font:700 16px Bitter,serif;color:#2B2019">Literário</div>
+<p style="margin:6px 0 0;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</p>
+</div>
+</div>
+<div style="width:250px;background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}"><div style="height:120px;background:#EFE6D6;border-bottom:1.5px solid #2B2019;display:grid;place-items:center"><span style="font:500 10px Bitter,serif;color:#8A7862;letter-spacing:.1em;text-transform:uppercase">Imagem</span></div></sc-if>
+<div style="padding:14px">
+<div style="font:700 16px Bitter,serif;color:#2B2019">Musical</div>
+<p style="margin:6px 0 0;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Cantigas, instrumentos e corporeidade negra: jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</p>
+</div>
+</div>
+<div style="width:250px;background:#FFFDF7;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #2B2019">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}"><div style="height:120px;background:#EFE6D6;border-bottom:1.5px solid #2B2019;display:grid;place-items:center"><span style="font:500 10px Bitter,serif;color:#8A7862;letter-spacing:.1em;text-transform:uppercase">Imagem</span></div></sc-if>
+<div style="padding:14px">
+<div style="font:700 16px Bitter,serif;color:#2B2019">Artístico criativo</div>
+<p style="margin:6px 0 0;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</p>
+</div>
+</div>
+</div>
+<div style="padding:8px 16px 0"><a href="#1a" style="font:500 13.5px Bitter,serif">Ler nossa história completa →</a></div>
+</div>
+
+<div style="margin:26px 16px;background:#2B2019;border:1.5px solid #2B2019;box-shadow:5px 5px 0 #D69A10;padding:20px 18px">
+<h2 style="margin:0;font:700 18px/1.3 Bitter,serif;color:#F9F4EA">É de uma escola ou instituição?</h2>
+<p style="margin:10px 0 0;font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Levamos contações de história e vivências brincantes até o seu espaço. As atividades se adaptam a qualquer local e têm classificação livre.</p>
+<a href="#1a" style="display:flex;align-items:center;justify-content:center;min-height:50px;margin-top:16px;background:#D69A10;color:#2B2019;font:600 14.5px Bitter,serif;text-decoration:none">Ver como funciona</a>
+</div>
+
+<div style="padding:4px 16px 28px">
+<h2 style="margin:0 0 14px;font:700 19px Bitter,serif;color:#2B2019">Na mídia</h2>
+<div style="display:flex;flex-direction:column;gap:0;border-top:1.5px solid #2B2019">
+<a href="#1a" style="display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1.5px solid rgba(43,32,25,.25);text-decoration:none">
+<span style="width:6px;align-self:stretch;background:#D69A10;flex:none"></span>
+<span style="flex:1"><span style="display:block;font:700 14.5px Bitter,serif;color:#2B2019">Folha de S.Paulo</span><span style="display:block;margin-top:4px;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Como o menino que era caixa de supermercado criou um ateliê para valorizar a cultura negra</span></span>
+</a>
+<a href="#1a" style="display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1.5px solid rgba(43,32,25,.25);text-decoration:none">
+<span style="width:6px;align-self:stretch;background:#6FA6C8;flex:none"></span>
+<span style="flex:1"><span style="display:block;font:700 14.5px Bitter,serif;color:#2B2019">Rede Globo — Caldeirão do Huck</span><span style="display:block;margin-top:4px;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Participação em rede nacional · 2021</span></span>
+</a>
+<a href="#1a" style="display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1.5px solid rgba(43,32,25,.25);text-decoration:none">
+<span style="width:6px;align-self:stretch;background:#2B2019;flex:none"></span>
+<span style="flex:1"><span style="display:block;font:700 14.5px Bitter,serif;color:#2B2019">Rede Globo — The Wall</span><span style="display:block;margin-top:4px;font:400 13px/1.5 Bitter,serif;color:#6E5B45">Participação no programa · 2021</span></span>
+</a>
+</div>
+</div>
+
+<div style="height:14px;background:repeating-linear-gradient(90deg,#2B2019 0 3px,#6FA6C8 3px 8px)"></div>
+<footer style="background:#2B2019;padding:26px 16px 30px">
+<h3 style="margin:0 0 12px;font:700 15px Bitter,serif;color:#D69A10">Fale com a gente</h3>
+<div style="display:flex;flex-direction:column;gap:12px;font:400 13.5px Bitter,serif">
+<a href="#1a" style="color:#F9F4EA">(11) 95396-8344</a><a href="#1a" style="color:#F9F4EA">WhatsApp</a><a href="#1a" style="color:#F9F4EA">atelieafro@gmail.com</a><a href="#1a" style="color:#F9F4EA">Instagram</a><a href="#1a" style="color:#F9F4EA">TikTok</a>
+</div>
+<h3 style="margin:22px 0 8px;font:700 15px Bitter,serif;color:#D69A10">Onde estamos</h3>
+<p style="margin:0;font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Rua Dr. Paulo Gatti, 135 — Vila Romero<br>São Paulo/SP — CEP 02468-030</p>
+<div style="margin-top:20px;padding-top:14px;border-top:1px solid rgba(249,244,234,.2)"><a href="#1a" style="font:400 12.5px Bitter,serif;color:#D8CBB8">Política de privacidade</a></div>
+</footer>
+
+</div></div></div></div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Editorial em faixas — herói full-bleed, abas deslizantes para "Por onde começar", setores em bandas numeradas.</div>
+<div class="dv-card"><div style="filter:{{ f2 }}"><div style="zoom:{{ z2 }}"><div class="fr" style="background:#F9F4EA">
+
+<div style="position:sticky;top:0;z-index:30;background:#2B2019;display:flex;align-items:center;gap:10px;padding:9px 14px">
+<div style="flex:1;min-width:0;font:700 14px Bitter,serif;color:#F9F4EA;letter-spacing:.01em;white-space:nowrap">Ateliê Afro</div>
+<button onClick="{{ fsDown2 }}" aria-label="Diminuir texto" style="width:44px;height:44px;background:transparent;border:1.5px solid #6E5B45;color:#F9F4EA;font:600 13px Bitter,serif;cursor:pointer">A-</button>
+<button onClick="{{ fsUp2 }}" aria-label="Aumentar texto" style="width:44px;height:44px;background:transparent;border:1.5px solid #6E5B45;color:#F9F4EA;font:600 16px Bitter,serif;cursor:pointer">A+</button>
+<button onClick="{{ toggleHc2 }}" aria-label="Alto contraste" style="width:44px;height:44px;flex:none;display:grid;place-items:center;background:#D69A10;border:1.5px solid #D69A10;cursor:pointer"><span style="width:18px;height:18px;border-radius:50%;border:1.5px solid #2B2019;background:linear-gradient(90deg,#2B2019 0 50%,#F9F4EA 50% 100%);display:block"></span></button>
+<button style="height:44px;padding:0 13px;background:#F9F4EA;border:none;font:600 13px Bitter,serif;color:#2B2019;cursor:pointer">Entrar</button>
+</div>
+
+<div style="background:#D69A10;padding:30px 20px 0;position:relative;overflow:hidden">
+<div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border:14px solid rgba(43,32,25,.12);border-radius:50%"></div>
+<span style="display:inline-block;font:600 10.5px Bitter,serif;color:#F9F4EA;background:#2B2019;padding:6px 10px;letter-spacing:.14em;text-transform:uppercase">Casa Verde · zona norte</span>
+<h1 style="margin:16px 0 0;font:700 34px/1.06 Bitter,serif;color:#2B2019;text-wrap:pretty">Arte,<br>memória e<br><em style="font-style:italic;color:#FFFDF7">pertencimento</em></h1>
+<p style="margin:16px 0 0;font:400 15px/1.6 Bitter,serif;color:#4A3A1C;max-width:300px">Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira — feitos à mão, todo dia.</p>
+<div style="display:flex;gap:10px;margin:20px 0 0;flex-wrap:wrap">
+<a href="#1b" style="display:flex;align-items:center;justify-content:center;min-height:50px;padding:0 18px;background:#2B2019;color:#F9F4EA;font:600 14px Bitter,serif;text-decoration:none">Nossos projetos</a>
+<a href="#1b" style="display:flex;align-items:center;justify-content:center;min-height:50px;padding:0 18px;background:transparent;border:2px solid #2B2019;color:#2B2019;font:600 14px Bitter,serif;text-decoration:none">Agenda</a>
+</div>
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}">
+<div style="margin:26px -20px 0;height:210px;background:#EFE6D6;border-top:2px solid #2B2019;display:grid;place-items:center">
+<span style="font:500 11px Bitter,serif;color:#8A7862;letter-spacing:.12em;text-transform:uppercase">Imagem larga · roda de jongo</span>
+</div>
+</sc-if>
+</div>
+
+<div style="padding:28px 20px 0">
+<h2 style="margin:0 0 14px;font:700 20px Bitter,serif;color:#2B2019">Por onde começar</h2>
+<div style="position:relative;border-bottom:1.5px solid rgba(43,32,25,.3)">
+<div style="display:flex">
+<button onClick="{{ tabA }}" style="flex:1;min-height:48px;background:transparent;border:none;font:600 13px Bitter,serif;color:#2B2019;cursor:pointer">Conhecer</button>
+<button onClick="{{ tabB }}" style="flex:1;min-height:48px;background:transparent;border:none;font:600 13px Bitter,serif;color:#2B2019;cursor:pointer">Participar</button>
+<button onClick="{{ tabC }}" style="flex:1;min-height:48px;background:transparent;border:none;font:600 13px Bitter,serif;color:#2B2019;cursor:pointer">Voluntariar</button>
+<button onClick="{{ tabD }}" style="flex:1;min-height:48px;background:transparent;border:none;font:600 13px Bitter,serif;color:#2B2019;cursor:pointer">Apoiar</button>
+</div>
+<div style="position:absolute;left:0;bottom:-2.5px;width:25%;height:4px;background:#2B2019;transition:transform .25s cubic-bezier(.4,0,.2,1);transform:translateX({{ tabX }}%)"></div>
+</div>
+<div style="background:#FFFDF7;border:1.5px solid #2B2019;border-top:none;box-shadow:6px 6px 0 #D69A10;padding:18px 16px 20px">
+<sc-if value="{{ tA }}" hint-placeholder-val="{{ true }}">
+<div><div style="font:700 18px Bitter,serif;color:#2B2019">Conhecer o ateliê</div><p style="margin:8px 0 0;font:400 14px/1.6 Bitter,serif;color:#6E5B45">Nossa história, quem idealizou o ateliê e os três setores de atuação que sustentam o trabalho.</p><a href="#1b" style="display:inline-block;margin-top:14px;font:600 13.5px Bitter,serif">Ler a história →</a></div>
+</sc-if>
+<sc-if value="{{ tB }}" hint-placeholder-val="{{ false }}">
+<div><div style="font:700 18px Bitter,serif;color:#2B2019">Participar</div><p style="margin:8px 0 0;font:400 14px/1.6 Bitter,serif;color:#6E5B45">Oficinas, apresentações e vivências abertas ao público. A inscrição não exige cadastro.</p><a href="#1b" style="display:inline-block;margin-top:14px;font:600 13.5px Bitter,serif">Ver a agenda →</a></div>
+</sc-if>
+<sc-if value="{{ tC }}" hint-placeholder-val="{{ false }}">
+<div><div style="font:700 18px Bitter,serif;color:#2B2019">Ser voluntário</div><p style="margin:8px 0 0;font:400 14px/1.6 Bitter,serif;color:#6E5B45">Cinco áreas de atuação, do apoio pedagógico à organização do acervo.</p><a href="#1b" style="display:inline-block;margin-top:14px;font:600 13.5px Bitter,serif">Quero ajudar →</a></div>
+</sc-if>
+<sc-if value="{{ tD }}" hint-placeholder-val="{{ false }}">
+<div><div style="font:700 18px Bitter,serif;color:#2B2019">Apoiar</div><p style="margin:8px 0 0;font:400 14px/1.6 Bitter,serif;color:#6E5B45">Recebemos livros, instrumentos musicais, materiais de arte, itens de acervo e recursos financeiros.</p><a href="#1b" style="display:inline-block;margin-top:14px;font:600 13.5px Bitter,serif">Como doar →</a></div>
+</sc-if>
+</div>
+</div>
+
+<div style="margin-top:30px">
+<h2 style="margin:0 20px 0;font:700 20px Bitter,serif;color:#2B2019">O que fazemos</h2>
+<div style="margin-top:14px;background:#FFFDF7;border-top:1.5px solid #2B2019;border-bottom:1.5px solid #2B2019;padding:18px 20px;display:flex;gap:14px">
+<span style="font:700 30px/0.9 Bitter,serif;color:#D69A10">01</span>
+<span style="flex:1"><span style="display:block;font:700 17px Bitter,serif;color:#2B2019">Literário</span><span style="display:block;margin-top:6px;font:400 13.5px/1.55 Bitter,serif;color:#6E5B45">Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</span></span>
+</div>
+<div style="background:#D69A10;border-bottom:1.5px solid #2B2019;padding:18px 20px;display:flex;gap:14px">
+<span style="font:700 30px/0.9 Bitter,serif;color:#FFFDF7">02</span>
+<span style="flex:1"><span style="display:block;font:700 17px Bitter,serif;color:#2B2019">Musical</span><span style="display:block;margin-top:6px;font:400 13.5px/1.55 Bitter,serif;color:#4A3A1C">Cantigas, instrumentos e corporeidade negra: jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</span></span>
+</div>
+<div style="background:#FFFDF7;border-bottom:1.5px solid #2B2019;padding:18px 20px;display:flex;gap:14px">
+<span style="font:700 30px/0.9 Bitter,serif;color:#6FA6C8">03</span>
+<span style="flex:1"><span style="display:block;font:700 17px Bitter,serif;color:#2B2019">Artístico criativo</span><span style="display:block;margin-top:6px;font:400 13.5px/1.55 Bitter,serif;color:#6E5B45">Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</span></span>
+</div>
+</div>
+
+<div style="padding:26px 20px;background:#F9F4EA">
+<div style="border:2px solid #2B2019;padding:18px 16px 20px;background:#FFFDF7">
+<span style="font:600 10.5px Bitter,serif;color:#2F6D96;letter-spacing:.14em;text-transform:uppercase">Para escolas</span>
+<h2 style="margin:8px 0 0;font:700 20px/1.3 Bitter,serif;color:#2B2019">Levamos o ateliê até o seu espaço</h2>
+<p style="margin:10px 0 0;font:400 13.5px/1.6 Bitter,serif;color:#6E5B45">Contações de história e vivências brincantes que se adaptam a qualquer local, com classificação livre.</p>
+<a href="#1b" style="display:flex;align-items:center;justify-content:center;min-height:50px;margin-top:16px;background:#2B2019;color:#F9F4EA;font:600 14px Bitter,serif;text-decoration:none">Ver como funciona</a>
+</div>
+</div>
+
+<div style="padding:0 0 30px">
+<div style="padding:0 20px 12px;display:flex;align-items:baseline;justify-content:space-between">
+<h2 style="margin:0;font:700 20px Bitter,serif;color:#2B2019">Na mídia</h2>
+<span style="font:400 11.5px Bitter,serif;color:#6E5B45">arraste →</span>
+</div>
+<div class="hs">
+<div style="width:265px;background:#2B2019;padding:18px 16px 20px">
+<div style="font:700 15px Bitter,serif;color:#D69A10">Folha de S.Paulo</div>
+<p style="margin:10px 0 0;font:400 14.5px/1.5 Bitter,serif;color:#F9F4EA;font-style:italic">“Como o menino que era caixa de supermercado criou um ateliê para valorizar a cultura negra”</p>
+</div>
+<div style="width:265px;background:#FFFDF7;border:1.5px solid #2B2019;padding:18px 16px 20px">
+<div style="font:700 15px Bitter,serif;color:#2B2019">Rede Globo — Caldeirão do Huck</div>
+<p style="margin:10px 0 0;font:400 13.5px/1.5 Bitter,serif;color:#6E5B45">Participação em rede nacional</p>
+<span style="display:inline-block;margin-top:10px;font:600 12px Bitter,serif;color:#9A6A12">2021</span>
+</div>
+<div style="width:265px;background:#FFFDF7;border:1.5px solid #2B2019;padding:18px 16px 20px">
+<div style="font:700 15px Bitter,serif;color:#2B2019">Rede Globo — The Wall</div>
+<p style="margin:10px 0 0;font:400 13.5px/1.5 Bitter,serif;color:#6E5B45">Participação no programa</p>
+<span style="display:inline-block;margin-top:10px;font:600 12px Bitter,serif;color:#9A6A12">2021</span>
+</div>
+</div>
+</div>
+
+<div style="height:14px;background:repeating-linear-gradient(90deg,#2B2019 0 3px,#6FA6C8 3px 8px)"></div>
+<footer style="background:#2B2019;padding:26px 20px 30px;display:grid;gap:22px">
+<div>
+<h3 style="margin:0 0 12px;font:700 15px Bitter,serif;color:#D69A10">Fale com a gente</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font:400 13.5px Bitter,serif">
+<a href="#1b" style="color:#F9F4EA">(11) 95396-8344</a><a href="#1b" style="color:#F9F4EA">WhatsApp</a><a href="#1b" style="color:#F9F4EA">atelieafro@gmail.com</a><a href="#1b" style="color:#F9F4EA">Instagram</a><a href="#1b" style="color:#F9F4EA">TikTok</a>
+</div>
+</div>
+<div>
+<h3 style="margin:0 0 8px;font:700 15px Bitter,serif;color:#D69A10">Onde estamos</h3>
+<p style="margin:0;font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Rua Dr. Paulo Gatti, 135 — Vila Romero<br>São Paulo/SP — CEP 02468-030</p>
+</div>
+<a href="#1b" style="font:400 12.5px Bitter,serif;color:#D8CBB8">Política de privacidade</a>
+</footer>
+
+</div></div></div></div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>App de bolso — marrom dominante, barra de navegação inferior com 4 destinos reais, setores em acordeão.</div>
+<div class="dv-card"><div style="filter:{{ f3 }}"><div style="zoom:{{ z3 }}"><div class="fr" style="background:#2B2019;position:relative;display:flex;flex-direction:column">
+
+<div style="position:sticky;top:0;z-index:20;flex:0 0 auto;background:#2B2019;border-bottom:1px solid rgba(249,244,234,.18);display:flex;align-items:center;gap:10px;padding:10px 16px">
+<span style="width:34px;height:34px;flex:none;background:#D69A10;display:grid;place-items:center;font:700 15px Bitter,serif;color:#2B2019">A</span>
+<span style="flex:1;font:700 14px Bitter,serif;color:#F9F4EA">Ateliê Afro Cultural</span>
+<button style="height:42px;padding:0 13px;background:transparent;border:1.5px solid #D69A10;color:#D69A10;font:600 12.5px Bitter,serif;cursor:pointer">Entrar</button>
+</div>
+
+<sc-if value="{{ nInicio }}" hint-placeholder-val="{{ true }}">
+<div style="flex:0 0 auto;padding-bottom:26px">
+<div style="padding:24px 18px 26px">
+<h1 style="margin:0;font:700 32px/1.1 Bitter,serif;color:#F9F4EA;text-wrap:pretty">Arte, memória e <span style="background:#D69A10;color:#2B2019;padding:0 6px">pertencimento</span> feitos à mão, todo dia</h1>
+<p style="margin:14px 0 0;font:400 14.5px/1.65 Bitter,serif;color:#D8CBB8">Espaço educativo de criação e valorização da cultura afro brasileira, na Casa Verde.</p>
+</div>
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}">
+<div style="height:190px;background:#3A2C21;border-top:1.5px solid #6E5B45;border-bottom:1.5px solid #6E5B45;display:grid;place-items:center">
+<span style="font:500 11px Bitter,serif;color:#A8927A;letter-spacing:.12em;text-transform:uppercase">Imagem · ateliê</span>
+</div>
+</sc-if>
+<div style="padding:22px 18px 0">
+<h2 style="margin:0 0 12px;font:700 13px Bitter,serif;color:#D69A10;letter-spacing:.12em;text-transform:uppercase">Por onde começar</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<a href="#1c" style="min-height:104px;display:flex;flex-direction:column;justify-content:flex-end;text-decoration:none;background:#F9F4EA;padding:14px 13px"><span style="font:700 16px Bitter,serif;color:#2B2019">Conhecer</span><span style="margin-top:4px;font:400 12px/1.4 Bitter,serif;color:#6E5B45">História e setores</span></a>
+<a href="#1c" style="min-height:104px;display:flex;flex-direction:column;justify-content:flex-end;text-decoration:none;background:#D69A10;padding:14px 13px"><span style="font:700 16px Bitter,serif;color:#2B2019">Participar</span><span style="margin-top:4px;font:400 12px/1.4 Bitter,serif;color:#4A3A1C">Sem cadastro</span></a>
+<a href="#1c" style="min-height:104px;display:flex;flex-direction:column;justify-content:flex-end;text-decoration:none;background:#6FA6C8;padding:14px 13px"><span style="font:700 16px Bitter,serif;color:#2B2019">Ser voluntário</span><span style="margin-top:4px;font:400 12px/1.4 Bitter,serif;color:#1E3D52">Cinco áreas</span></a>
+<a href="#1c" style="min-height:104px;display:flex;flex-direction:column;justify-content:flex-end;text-decoration:none;background:transparent;border:1.5px solid #F9F4EA;padding:14px 13px"><span style="font:700 16px Bitter,serif;color:#F9F4EA">Apoiar</span><span style="margin-top:4px;font:400 12px/1.4 Bitter,serif;color:#D8CBB8">Doações e itens</span></a>
+</div>
+</div>
+<div style="padding:26px 18px 0">
+<h2 style="margin:0 0 12px;font:700 13px Bitter,serif;color:#D69A10;letter-spacing:.12em;text-transform:uppercase">O que fazemos</h2>
+<div style="border-top:1px solid rgba(249,244,234,.2)">
+<button onClick="{{ accLit }}" style="width:100%;min-height:56px;display:flex;align-items:center;gap:10px;background:transparent;border:none;border-bottom:1px solid rgba(249,244,234,.2);padding:0;cursor:pointer;text-align:left">
+<span style="flex:1;font:700 16px Bitter,serif;color:#F9F4EA">Literário</span>
+<span style="font:400 16px Bitter,serif;color:#D69A10;transition:transform .2s;transform:rotate({{ rLit }}deg)">+</span>
+</button>
+<sc-if value="{{ oLit }}" hint-placeholder-val="{{ true }}"><p style="margin:0;padding:12px 0 16px;border-bottom:1px solid rgba(249,244,234,.2);font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</p></sc-if>
+<button onClick="{{ accMus }}" style="width:100%;min-height:56px;display:flex;align-items:center;gap:10px;background:transparent;border:none;border-bottom:1px solid rgba(249,244,234,.2);padding:0;cursor:pointer;text-align:left">
+<span style="flex:1;font:700 16px Bitter,serif;color:#F9F4EA">Musical</span>
+<span style="font:400 16px Bitter,serif;color:#D69A10;transition:transform .2s;transform:rotate({{ rMus }}deg)">+</span>
+</button>
+<sc-if value="{{ oMus }}" hint-placeholder-val="{{ false }}"><p style="margin:0;padding:12px 0 16px;border-bottom:1px solid rgba(249,244,234,.2);font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Cantigas, instrumentos e corporeidade negra: jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</p></sc-if>
+<button onClick="{{ accArt }}" style="width:100%;min-height:56px;display:flex;align-items:center;gap:10px;background:transparent;border:none;border-bottom:1px solid rgba(249,244,234,.2);padding:0;cursor:pointer;text-align:left">
+<span style="flex:1;font:700 16px Bitter,serif;color:#F9F4EA">Artístico criativo</span>
+<span style="font:400 16px Bitter,serif;color:#D69A10;transition:transform .2s;transform:rotate({{ rArt }}deg)">+</span>
+</button>
+<sc-if value="{{ oArt }}" hint-placeholder-val="{{ false }}"><p style="margin:0;padding:12px 0 16px;border-bottom:1px solid rgba(249,244,234,.2);font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</p></sc-if>
+</div>
+</div>
+<div style="margin:26px 18px 0;background:#D69A10;padding:18px 16px 20px">
+<h2 style="margin:0;font:700 18px/1.3 Bitter,serif;color:#2B2019">É de uma escola ou instituição?</h2>
+<p style="margin:10px 0 0;font:400 13.5px/1.6 Bitter,serif;color:#4A3A1C">Levamos contações e vivências brincantes até o seu espaço, com classificação livre.</p>
+<a href="#1c" style="display:flex;align-items:center;justify-content:center;min-height:50px;margin-top:16px;background:#2B2019;color:#F9F4EA;font:600 14px Bitter,serif;text-decoration:none">Ver como funciona</a>
+</div>
+<div style="padding:26px 18px 0">
+<h2 style="margin:0 0 12px;font:700 13px Bitter,serif;color:#D69A10;letter-spacing:.12em;text-transform:uppercase">Na mídia</h2>
+<div style="display:flex;flex-direction:column;gap:12px">
+<a href="#1c" style="display:flex;gap:12px;align-items:center;text-decoration:none;background:#3A2C21;padding:12px">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}"><span style="width:56px;height:56px;flex:none;background:#4A3A2A;border:1px dashed #A8927A;display:grid;place-items:center;font:500 8px Bitter,serif;color:#A8927A;text-transform:uppercase">img</span></sc-if>
+<span style="flex:1"><span style="display:block;font:700 13.5px Bitter,serif;color:#F9F4EA">Folha de S.Paulo</span><span style="display:block;margin-top:3px;font:400 12.5px/1.45 Bitter,serif;color:#D8CBB8">Do caixa de supermercado ao ateliê de cultura negra</span></span>
+</a>
+<a href="#1c" style="display:flex;gap:12px;align-items:center;text-decoration:none;background:#3A2C21;padding:12px">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}"><span style="width:56px;height:56px;flex:none;background:#4A3A2A;border:1px dashed #A8927A;display:grid;place-items:center;font:500 8px Bitter,serif;color:#A8927A;text-transform:uppercase">img</span></sc-if>
+<span style="flex:1"><span style="display:block;font:700 13.5px Bitter,serif;color:#F9F4EA">Rede Globo — Caldeirão do Huck</span><span style="display:block;margin-top:3px;font:400 12.5px/1.45 Bitter,serif;color:#D8CBB8">Participação em rede nacional · 2021</span></span>
+</a>
+<a href="#1c" style="display:flex;gap:12px;align-items:center;text-decoration:none;background:#3A2C21;padding:12px">
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}"><span style="width:56px;height:56px;flex:none;background:#4A3A2A;border:1px dashed #A8927A;display:grid;place-items:center;font:500 8px Bitter,serif;color:#A8927A;text-transform:uppercase">img</span></sc-if>
+<span style="flex:1"><span style="display:block;font:700 13.5px Bitter,serif;color:#F9F4EA">Rede Globo — The Wall</span><span style="display:block;margin-top:3px;font:400 12.5px/1.45 Bitter,serif;color:#D8CBB8">Participação no programa · 2021</span></span>
+</a>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ nAgenda }}" hint-placeholder-val="{{ false }}">
+<div style="flex:0 0 auto;padding:22px 18px 26px">
+<h1 style="margin:0 0 4px;font:700 26px Bitter,serif;color:#F9F4EA">Agenda</h1>
+<p style="margin:0 0 18px;font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Atividades abertas ao público. A inscrição não exige cadastro.</p>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:#F9F4EA;padding:14px;display:flex;gap:14px">
+<span style="width:52px;flex:none;text-align:center"><span style="display:block;font:700 22px/1 Bitter,serif;color:#9A6A12">12</span><span style="display:block;font:600 10px Bitter,serif;color:#6E5B45;letter-spacing:.1em;text-transform:uppercase">set</span></span>
+<span style="flex:1"><span style="display:block;font:700 15px Bitter,serif;color:#2B2019">Oficina de jongo</span><span style="display:block;margin-top:4px;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Sáb · 14h às 16h · Ateliê, Vila Romero</span></span>
+</div>
+<div style="background:#F9F4EA;padding:14px;display:flex;gap:14px">
+<span style="width:52px;flex:none;text-align:center"><span style="display:block;font:700 22px/1 Bitter,serif;color:#9A6A12">19</span><span style="display:block;font:600 10px Bitter,serif;color:#6E5B45;letter-spacing:.1em;text-transform:uppercase">set</span></span>
+<span style="flex:1"><span style="display:block;font:700 15px Bitter,serif;color:#2B2019">Contação de histórias</span><span style="display:block;margin-top:4px;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Sáb · 10h · Classificação livre</span></span>
+</div>
+<div style="background:#F9F4EA;padding:14px;display:flex;gap:14px">
+<span style="width:52px;flex:none;text-align:center"><span style="display:block;font:700 22px/1 Bitter,serif;color:#9A6A12">27</span><span style="display:block;font:600 10px Bitter,serif;color:#6E5B45;letter-spacing:.1em;text-transform:uppercase">set</span></span>
+<span style="flex:1"><span style="display:block;font:700 15px Bitter,serif;color:#2B2019">Pintura em tela</span><span style="display:block;margin-top:4px;font:400 12.5px/1.45 Bitter,serif;color:#6E5B45">Dom · 15h · Vagas limitadas</span></span>
+</div>
+</div>
+<p style="margin:16px 0 0;font:400 12px/1.5 Bitter,serif;color:#A8927A">Datas de exemplo — substituir pelo conteúdo real.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{ nProjetos }}" hint-placeholder-val="{{ false }}">
+<div style="flex:0 0 auto;padding:22px 18px 26px">
+<h1 style="margin:0 0 18px;font:700 26px Bitter,serif;color:#F9F4EA">Projetos</h1>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="background:#F9F4EA;border-left:6px solid #D69A10;padding:16px">
+<div style="font:700 17px Bitter,serif;color:#2B2019">Literário</div>
+<p style="margin:8px 0 0;font:400 13px/1.55 Bitter,serif;color:#6E5B45">Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</p>
+</div>
+<div style="background:#F9F4EA;border-left:6px solid #6FA6C8;padding:16px">
+<div style="font:700 17px Bitter,serif;color:#2B2019">Musical</div>
+<p style="margin:8px 0 0;font:400 13px/1.55 Bitter,serif;color:#6E5B45">Cantigas, instrumentos e corporeidade negra: jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</p>
+</div>
+<div style="background:#F9F4EA;border-left:6px solid #2B2019;padding:16px">
+<div style="font:700 17px Bitter,serif;color:#2B2019">Artístico criativo</div>
+<p style="margin:8px 0 0;font:400 13px/1.55 Bitter,serif;color:#6E5B45">Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</p>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ nContato }}" hint-placeholder-val="{{ false }}">
+<div style="flex:0 0 auto;padding:22px 18px 26px">
+<h1 style="margin:0 0 18px;font:700 26px Bitter,serif;color:#F9F4EA">Contato</h1>
+<div style="display:flex;flex-direction:column;gap:12px">
+<a href="#1c" style="min-height:52px;display:flex;align-items:center;justify-content:center;background:#D69A10;color:#2B2019;font:600 14.5px Bitter,serif;text-decoration:none">Chamar no WhatsApp</a>
+<a href="#1c" style="min-height:52px;display:flex;align-items:center;justify-content:center;border:1.5px solid #F9F4EA;color:#F9F4EA;font:600 14.5px Bitter,serif;text-decoration:none">(11) 95396-8344</a>
+<a href="#1c" style="min-height:52px;display:flex;align-items:center;justify-content:center;border:1.5px solid #6E5B45;color:#F9F4EA;font:400 13.5px Bitter,serif;text-decoration:none">atelieafro@gmail.com</a>
+<div style="display:flex;gap:12px"><a href="#1c" style="flex:1;min-height:52px;display:flex;align-items:center;justify-content:center;border:1.5px solid #6E5B45;color:#F9F4EA;font:400 13.5px Bitter,serif;text-decoration:none">Instagram</a><a href="#1c" style="flex:1;min-height:52px;display:flex;align-items:center;justify-content:center;border:1.5px solid #6E5B45;color:#F9F4EA;font:400 13.5px Bitter,serif;text-decoration:none">TikTok</a></div>
+</div>
+<h2 style="margin:24px 0 8px;font:700 15px Bitter,serif;color:#D69A10">Onde estamos</h2>
+<p style="margin:0;font:400 13.5px/1.6 Bitter,serif;color:#D8CBB8">Rua Dr. Paulo Gatti, 135 — Vila Romero<br>São Paulo/SP — CEP 02468-030</p>
+<sc-if value="{{ showImages }}" hint-placeholder-val="{{ true }}">
+<div style="margin-top:14px;height:150px;background:#3A2C21;border:1px dashed #A8927A;display:grid;place-items:center"><span style="font:500 10.5px Bitter,serif;color:#A8927A;letter-spacing:.1em;text-transform:uppercase">Imagem · mapa</span></div>
+</sc-if>
+</div>
+</sc-if>
+
+<div style="position:sticky;bottom:96px;height:0;z-index:26;flex:0 0 auto;margin-top:auto">
+<button onClick="{{ cycleA11y3 }}" aria-label="Acessibilidade" style="position:absolute;right:14px;bottom:0;width:52px;height:52px;background:#6FA6C8;border:1.5px solid #2B2019;border-radius:50%;font:600 15px Bitter,serif;color:#2B2019;cursor:pointer;box-shadow:3px 3px 0 #2B2019">Aa</button>
+</div>
+<div style="position:sticky;bottom:0;z-index:25;flex:0 0 auto;background:#F9F4EA;border-top:2px solid #2B2019;padding:8px 8px 12px">
+<div style="position:relative;display:flex">
+<div style="position:absolute;top:0;left:0;width:25%;height:100%;padding:0 6px;box-sizing:border-box;transition:transform .25s cubic-bezier(.4,0,.2,1);transform:translateX({{ navX }}%)"><div style="width:100%;height:100%;background:#D69A10"></div></div>
+<button onClick="{{ goInicio }}" style="position:relative;flex:1;min-height:56px;background:transparent;border:none;font:600 12px Bitter,serif;color:#2B2019;cursor:pointer">Início</button>
+<button onClick="{{ goAgenda }}" style="position:relative;flex:1;min-height:56px;background:transparent;border:none;font:600 12px Bitter,serif;color:#2B2019;cursor:pointer">Agenda</button>
+<button onClick="{{ goProjetos }}" style="position:relative;flex:1;min-height:56px;background:transparent;border:none;font:600 12px Bitter,serif;color:#2B2019;cursor:pointer">Projetos</button>
+<button onClick="{{ goContato }}" style="position:relative;flex:1;min-height:56px;background:transparent;border:none;font:600 12px Bitter,serif;color:#2B2019;cursor:pointer">Contato</button>
+</div>
+</div>
+
+
+</div></div></div></div>
+</div>
+
+</div>
+<p class="dv-next">Experimente: “gostei do herói de <a class="dv-oid" href="#1b">1b</a> com os cards de <a class="dv-oid" href="#1a">1a</a>” · “traga a barra inferior de <a class="dv-oid" href="#1c">1c</a> para <a class="dv-oid" href="#1a">1a</a>” · “mais opções, agora para a tela de Agenda”</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showImages&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Conteúdo&quot;},&quot;fontScale&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Pequeno&quot;,&quot;Médio&quot;,&quot;Grande&quot;],&quot;default&quot;:&quot;Médio&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Acessibilidade&quot;},&quot;highContrast&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Acessibilidade&quot;}}">
+class Component extends DCLogic {
+  state = {
+    drawer: false, a11y1: false, s1: 1, hc1: !!this.props.highContrast,
+    s2: 1, hc2: !!this.props.highContrast, tab: 0,
+    s3: 1, hc3: !!this.props.highContrast, nav: 0,
+    acc: { lit: true, mus: false, art: false }
+  };
+  step(k, d) {
+    this.setState(s => ({ [k]: Math.min(1.18, Math.max(0.86, +(s[k] + d).toFixed(2))) }));
+  }
+  hc(k) { this.setState(s => ({ [k]: !s[k] })); }
+  filt(on) { return on ? 'saturate(0) contrast(1.55)' : 'none'; }
+  toggleAcc(k) { this.setState(s => ({ acc: Object.assign({}, s.acc, { [k]: !s.acc[k] }) })); }
+  renderVals() {
+    const st = this.state, base = this.props.fontScale === 'Grande' ? 1.1 : this.props.fontScale === 'Pequeno' ? 0.92 : 1;
+    return {
+      showImages: this.props.showImages !== false,
+      fhSm: 780,
+      z1: +(st.s1 * base).toFixed(2), z2: +(st.s2 * base).toFixed(2), z3: +(st.s3 * base).toFixed(2),
+      f1: this.filt(st.hc1), f2: this.filt(st.hc2), f3: this.filt(st.hc3),
+      drawer: st.drawer, a11y1: st.a11y1,
+      toggleDrawer: () => this.setState(s => ({ drawer: !s.drawer })),
+      toggleA11y1: () => this.setState(s => ({ a11y1: !s.a11y1 })),
+      fsDown1: () => this.step('s1', -0.08), fsUp1: () => this.step('s1', 0.08),
+      fsReset1: () => this.setState({ s1: 1 }), toggleHc1: () => this.hc('hc1'),
+      fsDown2: () => this.step('s2', -0.08), fsUp2: () => this.step('s2', 0.08), toggleHc2: () => this.hc('hc2'),
+      cycleA11y3: () => { if (st.s3 >= 1.14) { this.setState({ s3: 1 }); this.hc('hc3'); } else this.step('s3', 0.07); },
+      tabX: st.tab * 100, tA: st.tab === 0, tB: st.tab === 1, tC: st.tab === 2, tD: st.tab === 3,
+      tabA: () => this.setState({ tab: 0 }), tabB: () => this.setState({ tab: 1 }),
+      tabC: () => this.setState({ tab: 2 }), tabD: () => this.setState({ tab: 3 }),
+      navX: st.nav * 100,
+      nInicio: st.nav === 0, nAgenda: st.nav === 1, nProjetos: st.nav === 2, nContato: st.nav === 3,
+      goInicio: () => this.setState({ nav: 0 }), goAgenda: () => this.setState({ nav: 1 }),
+      goProjetos: () => this.setState({ nav: 2 }), goContato: () => this.setState({ nav: 3 }),
+      oLit: st.acc.lit, oMus: st.acc.mus, oArt: st.acc.art,
+      rLit: st.acc.lit ? 45 : 0, rMus: st.acc.mus ? 45 : 0, rArt: st.acc.art ? 45 : 0,
+      accLit: () => this.toggleAcc('lit'), accMus: () => this.toggleAcc('mus'), accArt: () => this.toggleAcc('art')
+    };
+  }
+}
+</script>
+</body>
+</html>

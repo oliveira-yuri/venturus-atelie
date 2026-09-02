@@ -1,0 +1,726 @@
+/* =====================================================================
+   Componentes do design system "Ateliê Afro" v1.
+
+   Porte de docs/Três variações mobile do sistema/design_handoff_atelie_afro/
+   components.css + desktop.css, com as adaptações que estilos/tokens.css
+   explica no topo (rem no lugar de px, nada de `vw` em texto, alto
+   contraste por token e não por `filter`).
+
+   Carregado DEPOIS de tokens.css e fontes.css, e ANTES de base.css /
+   componentes.css / admin.css — ver app/layout.tsx. A ordem importa: o que
+   está aqui é a linguagem do sistema; o que está lá é a aplicação dela nas
+   telas que já existiam.
+
+   =====================================================================
+   O QUE MUDOU DE ESTRUTURA EM RELAÇÃO AO HANDOFF, E POR QUÊ
+   =====================================================================
+
+   O handoff monta a gaveta (`.af-drawer`) e a barra de acessibilidade
+   (`.af-a11y`) com `hidden` no HTML e as revela por JavaScript. Aqui isso
+   não pode: navegação e acessibilidade precisam existir sem script — é
+   requisito medido rota a rota por testes/sem-javascript.test.mjs, e este
+   projeto já cometeu esse erro uma vez (a navegação alternativa morava num
+   custom element que só existia se o script rodasse).
+
+   Então a regra do projeto vale por cima da do handoff, e é a mesma que
+   componentes/MenuMovel.tsx já carrega escrita:
+
+     O SERVIDOR ENTREGA ABERTO. O recolhimento é uma classe que só entra
+     DEPOIS de hidratar.
+
+   Na prática:
+     - `.af-nav` é a navegação como o servidor a manda: uma lista de links
+       empilhada, visível, no fluxo da página;
+     - `.af-nav--gaveta` (acrescentada pelo React depois de hidratar) é que
+       a transforma na gaveta com scrim que o desenho pede;
+     - `.af-a11y` idem: chega aberta e vira recolhível.
+
+   Quem está sem JavaScript vê o menu inteiro e os controles de
+   acessibilidade abertos, um abaixo do outro. Pior esteticamente,
+   infinitamente melhor que sumir.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   Tipografia do sistema
+   --------------------------------------------------------------------- */
+
+.af-h1 {
+  margin: 0;
+  font: 700 var(--af-h1) / var(--af-lh-tight) var(--af-font);
+  text-wrap: pretty;
+}
+
+.af-h2 { margin: 0; font: 700 var(--af-h2) var(--af-font); }
+.af-h3 { margin: 0; font: 700 var(--af-h3) var(--af-font); }
+
+.af-text {
+  margin: 0;
+  font: 400 var(--af-body) / var(--af-lh-body) var(--af-font);
+  color: var(--af-brown-400);
+  text-wrap: pretty;
+}
+
+.af-text--sm { font-size: var(--af-body-sm); line-height: 1.5; }
+
+.af-overline {
+  font: 600 var(--af-overline) var(--af-font);
+  letter-spacing: var(--af-ls-overline);
+  text-transform: uppercase;
+}
+
+/* A palavra destacada no título claro. `--af-ochre-deep`, nunca
+   `--af-ochre`: ocre sobre creme não passa em contraste (princípio 4 do
+   sistema, e a advertência está no README do handoff). */
+.af-mark { color: var(--af-ochre-deep); font-style: normal; }
+
+/* ---------------------------------------------------------------------
+   Faixa listrada — o divisor de seção do sistema.
+
+   No máximo DUAS por página (regra do handoff): antes do primeiro bloco de
+   conteúdo e antes do rodapé. Ela é decoração pura, então `aria-hidden` no
+   elemento que a usa.
+   --------------------------------------------------------------------- */
+
+.af-stripe {
+  height: 14px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--af-brown) 0 3px,
+    var(--af-blue) 3px 8px
+  );
+}
+
+/* ---------------------------------------------------------------------
+   Cabeçalho fixo
+   --------------------------------------------------------------------- */
+
+.af-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--af-ochre);
+  border-bottom: var(--af-border);
+}
+
+.af-header__barra {
+  display: flex;
+  align-items: center;
+  gap: var(--af-s3);
+  padding: var(--af-s4) var(--af-gutter);
+}
+
+.af-header__marca {
+  flex: 1;
+  min-width: 0;
+  color: var(--af-brown);
+  text-decoration: none;
+}
+
+.af-header__nome {
+  display: block;
+  font: 700 0.9375rem / var(--af-lh-tight) var(--af-font);
+  /* Uma linha só, com reticências: a marca não pode empurrar "Entrar"
+     para fora da tela num aparelho de 320px. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.af-header__meta {
+  display: block;
+  margin-top: 2px;
+  font: 400 var(--af-overline) / 1.2 var(--af-font);
+  color: #5C4423;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* O hambúrguer. Alvo de 46px, quadrado, marrom sobre ocre. */
+.af-burger {
+  width: 2.875rem;
+  height: 2.875rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  background: var(--af-brown);
+  border: var(--af-border);
+  border-radius: var(--af-radius-control);
+  cursor: pointer;
+  padding: 0;
+}
+
+.af-burger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--af-cream);
+  margin: 2px 0;
+}
+
+/* ---------------------------------------------------------------------
+   Controles do cabeçalho (Aa, Entrar, Sair, nome de quem entrou)
+   --------------------------------------------------------------------- */
+
+.af-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--af-touch-min);
+  min-width: 2.875rem;
+  padding: 0 var(--af-s5);
+  background: var(--af-card);
+  border: var(--af-border);
+  border-radius: var(--af-radius-control);
+  color: var(--af-brown);
+  font: 600 var(--af-body-sm) var(--af-font);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.af-control:hover { background: var(--af-brown); color: var(--af-cream); }
+
+.af-control[aria-current="page"],
+.af-control[aria-pressed="true"] {
+  background: var(--af-brown);
+  color: var(--af-cream);
+}
+
+.af-header__sessao {
+  display: flex;
+  align-items: center;
+  gap: var(--af-s3);
+  min-width: 0;
+}
+
+/* O nome de quem entrou é um link para /minha-conta (RF11) e continua
+   sendo o único caminho até a área do usuário. Encolhe antes de tudo:
+   num aparelho estreito, "Sair" precisa continuar alcançável. */
+.af-header__sessao .af-control--nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  min-width: 0;
+  max-width: 8rem;
+  line-height: var(--af-touch-min);
+  padding-inline: var(--af-s3);
+}
+
+.af-header__sessao form { display: flex; }
+
+/* ---------------------------------------------------------------------
+   Barra de acessibilidade
+
+   O handoff a esconde atrás do botão "Aa". Aqui ela CHEGA ABERTA do
+   servidor e o "Aa" só passa a recolher depois que o React assume — ver o
+   bloco no topo deste arquivo. `--recolhida` é a classe que o componente
+   acrescenta; sem JavaScript ela nunca entra.
+   --------------------------------------------------------------------- */
+
+.af-a11y {
+  position: sticky;
+  top: var(--af-a11y-top, 4.25rem);
+  z-index: 29;
+  background: var(--af-card);
+  border-bottom: var(--af-border);
+  padding: var(--af-s5) var(--af-gutter);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--af-s3);
+  align-items: center;
+}
+
+.af-a11y--recolhida { display: none; }
+
+.af-a11y__rotulo {
+  width: 100%;
+  font: 500 var(--af-overline) var(--af-font);
+  color: var(--af-brown-400);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.af-a11y .af-control { background: var(--af-cream); flex: none; }
+.af-a11y .af-control:disabled { opacity: .4; cursor: default; }
+.af-a11y .af-control:disabled:hover { background: var(--af-cream); color: var(--af-brown); }
+
+.af-a11y__contraste {
+  flex: 1 1 auto;
+  min-width: 8.125rem;
+  min-height: var(--af-touch-min);
+  padding: 0 var(--af-s6);
+  background: var(--af-brown);
+  border: var(--af-border);
+  border-radius: var(--af-radius-control);
+  color: var(--af-cream);
+  font: 600 var(--af-body-sm) var(--af-font);
+  cursor: pointer;
+}
+
+.af-a11y__contraste[aria-pressed="true"] {
+  background: var(--af-ochre);
+  color: var(--af-brown);
+}
+
+/* ATENCAO: esta regra existe por causa de um defeito MEDIDO, e apaga-la o
+   traz de volta. Em alto contraste `--af-ochre` vira BRANCO (tokens.css), e
+   o botao ligado ficava identico ao desligado — ou seja, justo quem depende
+   do alto contraste perdia o unico sinal de que ele esta' ligado. Aqui o
+   estado ligado inverte: preto solido com texto branco. */
+html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
+  background: #000000;
+  color: #FFFFFF;
+}
+
+/* ---------------------------------------------------------------------
+   Navegação
+
+   Estado base = o que o servidor entrega: lista visível, no fluxo.
+   `.af-nav--gaveta` = o que o React acrescenta depois de hidratar.
+   --------------------------------------------------------------------- */
+
+.af-nav {
+  background: var(--af-brown);
+  border-bottom: var(--af-border);
+}
+
+.af-nav__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.af-navlink {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0 var(--af-gutter);
+  color: var(--af-cream);
+  font: 400 0.9375rem var(--af-font);
+  text-decoration: none;
+  border-top: 1px solid var(--af-hairline-inv);
+}
+
+.af-navlink:hover { background: var(--af-brown-800); color: var(--af-cream); }
+
+.af-navlink[aria-current="page"] {
+  background: var(--af-ochre);
+  color: var(--af-brown);
+  font-weight: 600;
+}
+
+/* O cabeçalho da gaveta e o botão de fechar só fazem sentido quando ela É
+   gaveta: sem JavaScript não há como fechar nada, e um "×" que não fecha é
+   pior que nenhum. */
+.af-nav__cabeca { display: none; }
+
+.af-nav__rodape { padding: var(--af-s8); }
+
+.af-nav__rodape .af-btn {
+  min-height: 3rem;
+  border: 1.5px solid var(--af-cream);
+}
+
+/* ---- A gaveta propriamente dita (só depois de hidratar) ---- */
+
+.af-nav--gaveta {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--af-scrim);
+  border-bottom: none;
+  display: block;
+}
+
+.af-nav--gaveta.af-nav--fechada { display: none; }
+
+.af-nav--gaveta .af-nav__painel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 82%;
+  max-width: 300px;
+  background: var(--af-brown);
+  border-right: 2px solid var(--af-ochre);
+  padding: var(--af-s8) 0 1.5rem;
+  overflow-y: auto;
+}
+
+.af-nav--gaveta .af-nav__cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--af-s8) var(--af-s7);
+}
+
+.af-nav__titulo { font: 700 0.875rem var(--af-font); color: var(--af-ochre); }
+
+.af-nav__fechar {
+  width: var(--af-touch-min);
+  height: var(--af-touch-min);
+  background: transparent;
+  border: 1.5px solid var(--af-brown-400);
+  border-radius: var(--af-radius-control);
+  color: var(--af-cream);
+  font: 400 1.125rem var(--af-font);
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------
+   Botões do sistema
+   --------------------------------------------------------------------- */
+
+.af-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--af-s3);
+  min-height: var(--af-touch-cta);
+  padding: 6px var(--af-s6);
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  text-decoration: none;
+  font: 600 var(--af-body) var(--af-font);
+}
+
+.af-btn--primary { background: var(--af-brown); color: var(--af-cream); }
+.af-btn--primary:hover { background: var(--af-brown-800); color: var(--af-cream); }
+.af-btn--outline { background: transparent; border: var(--af-border); color: var(--af-brown); }
+.af-btn--outline:hover { background: rgba(43, 32, 25, .06); color: var(--af-brown); }
+.af-btn--ochre { background: var(--af-ochre); color: var(--af-brown); }
+.af-btn--ochre:hover { background: #C28D0C; color: var(--af-brown); }
+
+/* ---------------------------------------------------------------------
+   Cartão com sombra dura — a assinatura do sistema
+   --------------------------------------------------------------------- */
+
+.af-card {
+  background: var(--af-card);
+  border: var(--af-border);
+  box-shadow: var(--af-shadow-md);
+  padding: var(--af-s7) var(--af-gutter-card);
+}
+
+.af-card--hero { box-shadow: var(--af-shadow-lg); padding: var(--af-s9) var(--af-gutter-card); }
+
+.af-card--dark {
+  background: var(--af-brown);
+  color: var(--af-cream);
+  box-shadow: var(--af-shadow-ochre);
+}
+
+.af-card--dark .af-text,
+.af-card--dark p { color: var(--af-cream-dim); }
+.af-card--dark h2, .af-card--dark h3 { color: var(--af-cream); }
+
+/* ---------------------------------------------------------------------
+   Placeholder de imagem.
+
+   Existe porque o sistema tem espaço de imagem em quatro lugares e a ONG
+   ainda não entregou UMA foto com autorização de uso registrada (RN07,
+   regra 9 do CLAUDE.md — o público inclui crianças a partir de 10 anos).
+
+   Ele NÃO é enfeite nem "lorem ipsum de imagem": é um espaço declarado,
+   com rótulo legível, que diz o que vai ali. Quando a foto autorizada
+   chegar, troca-se por <img> mantendo o mesmo `aspect-ratio`.
+   --------------------------------------------------------------------- */
+
+.af-ph {
+  background: var(--af-ph);
+  border: 1.5px dashed var(--af-ph-ink);
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  font: 500 var(--af-overline) var(--af-font);
+  color: var(--af-ph-ink);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 0 var(--af-s3);
+}
+
+.af-ph--wide { aspect-ratio: 2 / 1; border: none; border-bottom: var(--af-border); }
+
+/* ---------------------------------------------------------------------
+   Rodapé
+   --------------------------------------------------------------------- */
+
+.af-footer {
+  background: var(--af-brown);
+  padding: var(--af-s10) var(--af-gutter) 1.875rem;
+  color: var(--af-cream);
+}
+
+.af-footer h2 {
+  margin: 0 0 var(--af-s5);
+  font: 700 0.9375rem var(--af-font);
+  color: var(--af-ochre);
+}
+
+.af-footer__cols { display: grid; gap: var(--af-s9); }
+
+.af-footer__links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.af-footer__links a {
+  display: flex;
+  align-items: center;
+  min-height: var(--af-touch-min);
+  color: var(--af-cream);
+  font: 400 0.84375rem var(--af-font);
+  overflow-wrap: anywhere;
+}
+
+.af-footer__endereco {
+  margin: 0;
+  font: 400 0.84375rem / var(--af-lh-body) var(--af-font);
+  font-style: normal;
+  color: var(--af-cream-dim);
+}
+
+.af-footer__legal {
+  margin-top: var(--af-s7);
+  padding-top: var(--af-s6);
+  border-top: 1px solid var(--af-hairline-inv);
+}
+
+.af-footer__legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--af-touch-min);
+  font: 400 var(--af-caption) var(--af-font);
+  color: var(--af-cream-dim);
+}
+
+
+/* ---------------------------------------------------------------------
+   Grade e tile numerado — "Por onde começar"
+
+   O princípio 3 do sistema: COR É CATEGORIA, NÃO DECORAÇÃO. A borda
+   superior de 5px identifica o caminho — ocre = conhecer, azul =
+   participar, marrom = ser voluntário, e o quarto é invertido (fundo
+   marrom, sombra ocre) porque apoiar é o destino que o sistema quer
+   destacar.
+
+   Isto SUBSTITUI o `.caminho:nth-child(n)` que pintava a sombra de cada
+   cartão. A ideia era a mesma; o sistema só a moveu da sombra para a borda
+   de topo, onde ela é visível sem depender da ordem dos elementos.
+   --------------------------------------------------------------------- */
+
+.af-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr));
+  gap: var(--af-s5);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.af-tile {
+  background: var(--af-card);
+  border: var(--af-border);
+  border-top: 5px solid var(--af-ochre);
+  box-shadow: var(--af-shadow-sm);
+}
+
+.af-tile > a {
+  display: block;
+  text-decoration: none;
+  color: var(--af-brown);
+  padding: 13px var(--af-s5) 15px;
+}
+
+.af-tile > a:hover { color: var(--af-brown); }
+
+.af-tile:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--af-shadow-md);
+  transition: transform .12s var(--af-ease), box-shadow .12s var(--af-ease);
+}
+
+.af-tile--azul   { border-top-color: var(--af-blue); }
+.af-tile--marrom { border-top-color: var(--af-brown); }
+
+.af-tile--invertido {
+  background: var(--af-brown);
+  border-top: 1.5px solid var(--af-brown);
+  box-shadow: var(--af-shadow-ochre);
+}
+
+.af-tile--invertido > a,
+.af-tile--invertido > a:hover { color: var(--af-cream); }
+.af-tile--invertido p { color: var(--af-cream-dim); }
+.af-tile--invertido:hover { box-shadow: 5px 5px 0 var(--af-ochre); }
+
+.af-tile h3 { margin: 0 0 var(--af-s2); font: 700 0.9375rem var(--af-font); }
+.af-tile p  { margin: 0; font: 400 var(--af-caption) / 1.45 var(--af-font); color: var(--af-brown-400); }
+
+/* ---------------------------------------------------------------------
+   Carrossel com encaixe — os três setores.
+
+   `scroll-snap` em vez de setas: no celular arrasta-se com o dedo, e uma
+   seta de 44px em cada lado comeria a largura do cartão. No tablet e no
+   desktop ele deixa de ser carrossel e vira grade (ver as media queries no
+   fim deste arquivo) — nesse tamanho não há o que arrastar.
+   --------------------------------------------------------------------- */
+
+.af-hscroll {
+  display: flex;
+  gap: var(--af-s5);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 2px 0 var(--af-s4);
+  margin: 0;
+  list-style: none;
+}
+
+.af-hscroll::-webkit-scrollbar { display: none; }
+
+.af-hscroll > * {
+  flex: none;
+  width: 70%;
+  min-width: 11.875rem;
+  scroll-snap-align: start;
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------
+   Lista "Na mídia" — barra colorida de 6px à esquerda de cada item.
+   --------------------------------------------------------------------- */
+
+.af-media { display: flex; flex-direction: column; border-top: var(--af-border); list-style: none; margin: 0; padding: 0; }
+
+.af-media__item {
+  display: flex;
+  gap: var(--af-s5);
+  align-items: stretch;
+  padding: var(--af-s6) 0;
+  border-bottom: 1.5px solid var(--af-hairline);
+}
+
+.af-media__barra { width: 6px; flex: none; background: var(--af-ochre); }
+.af-media__item:nth-child(3n+2) .af-media__barra { background: var(--af-blue); }
+.af-media__item:nth-child(3n+3) .af-media__barra { background: var(--af-brown); }
+
+.af-media__corpo { flex: 1; min-width: 0; }
+.af-media__titulo { display: block; font: 700 var(--af-body) var(--af-font); }
+.af-media__meta { display: block; margin-top: var(--af-s1); font: 400 var(--af-body-sm) / 1.5 var(--af-font); color: var(--af-brown-400); }
+
+/* =====================================================================
+   Tablet — 640px
+   ===================================================================== */
+
+@media (min-width: 40rem) {
+  .af-footer__cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--af-s9) 2.5rem; }
+
+  /* Deixa de ser carrossel: no tablet cabem dois cartoes lado a lado, e
+     arrastar deixa de ser o gesto natural. */
+  .af-hscroll {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--af-s7);
+    overflow: visible;
+  }
+  .af-hscroll > * { width: auto; min-width: 0; }
+
+  .af-media { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--af-s7); border-top: none; }
+  .af-media__item { border: var(--af-border); box-shadow: var(--af-shadow-sm); padding: var(--af-s8); background: var(--af-card); }
+}
+
+/* =====================================================================
+   Desktop — 1024px: a navegação inteira fica exposta, a gaveta some.
+   ===================================================================== */
+
+@media (min-width: 64rem) {
+  .af-header__barra {
+    max-width: var(--af-container);
+    margin-inline: auto;
+    padding: var(--af-s7) var(--af-gutter-desk);
+  }
+
+  .af-header__nome { font-size: 1.375rem; }
+  .af-header__meta { font-size: 0.75rem; }
+
+  /* Sem gaveta no desktop: some o hambúrguer, e a navegação volta a ser
+     uma faixa horizontal. A classe --gaveta continua no HTML (o React não
+     sabe a largura da tela); quem a desliga é esta regra. */
+  .af-burger { display: none; }
+
+  .af-nav,
+  .af-nav--gaveta,
+  .af-nav--gaveta.af-nav--fechada {
+    display: block;
+    position: static;
+    inset: auto;
+    background: var(--af-brown);
+    z-index: auto;
+  }
+
+  .af-nav--gaveta .af-nav__painel {
+    position: static;
+    width: auto;
+    max-width: var(--af-container);
+    margin-inline: auto;
+    padding: 0 var(--af-gutter-desk);
+    background: transparent;
+    border-right: none;
+    overflow: visible;
+  }
+
+  .af-nav--gaveta .af-nav__cabeca,
+  .af-nav__rodape { display: none; }
+
+  .af-nav__lista { display: flex; flex-wrap: wrap; }
+
+  .af-navlink {
+    min-height: 3.25rem;
+    padding: 0 var(--af-s7);
+    border-top: none;
+    font-size: 0.875rem;
+  }
+
+  /* A barra de acessibilidade nunca fica escondida no desktop: há espaço,
+     e o princípio 6 do sistema é que ela faz parte da interface. */
+  .af-a11y,
+  .af-a11y--recolhida {
+    display: flex;
+    position: static;
+    background: var(--af-card);
+    padding: var(--af-s5) var(--af-gutter-desk);
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  .af-a11y__rotulo { width: auto; margin-right: auto; }
+  .af-a11y__contraste { flex: none; min-width: 0; }
+
+  .af-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--af-s9); }
+  .af-tile { box-shadow: var(--af-shadow-md); border-top-width: 6px; }
+  .af-tile > a { padding: 22px var(--af-s9) 24px; }
+  .af-tile h3 { font-size: 1.25rem; }
+  .af-tile p { font-size: 0.875rem; line-height: 1.55; }
+
+  .af-hscroll { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+  .af-media { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--af-s9); }
+  .af-media__item { padding: 22px; gap: var(--af-s8); box-shadow: var(--af-shadow-md); }
+  .af-media__titulo { font-size: 1.0625rem; }
+
+  .af-footer { padding: 3rem 0 2.25rem; }
+  .af-footer > * { max-width: var(--af-container); margin-inline: auto; padding-inline: var(--af-gutter-desk); }
+  .af-footer__cols { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.5rem; }
+  .af-footer h2 { font-size: 1.0625rem; }
+  .af-stripe { height: 16px; }
+}
+
+@media (hover: hover) {
+  .af-navlink:hover { background: var(--af-brown-800); color: var(--af-ochre); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af-tile { transition: none !important; }
+}

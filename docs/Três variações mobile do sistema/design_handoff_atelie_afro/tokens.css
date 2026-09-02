@@ -1,0 +1,59 @@
+/* Ateliê Afro Cultural — Design tokens (v1, mobile-first)
+   Extraído da variação 1a aprovada. Fonte única de verdade para cor, tipo, espaço e elevação. */
+:root{
+  /* ---- Cor: marca ---- */
+  --af-ochre:#D69A10;        /* fundo de marca, CTA secundário, destaques */
+  --af-ochre-deep:#9A6A12;   /* texto ocre sobre creme (contraste AA) */
+  --af-brown:#2B2019;        /* tinta principal, bordas, fundos escuros */
+  --af-brown-800:#3A2C21;    /* superfície escura elevada */
+  --af-brown-600:#4A3A2A;    /* divisores em fundo escuro */
+  --af-brown-400:#6E5B45;    /* texto corrido secundário sobre creme */
+  --af-blue:#6FA6C8;         /* acento (faixa listrada, categoria) */
+  --af-blue-deep:#2F6D96;    /* links, texto azul sobre creme */
+
+  /* ---- Cor: superfícies ---- */
+  --af-cream:#F9F4EA;        /* fundo da página */
+  --af-cream-dim:#D8CBB8;    /* texto secundário sobre marrom */
+  --af-card:#FFFDF7;         /* fundo de card */
+  --af-ph:#EFE6D6;           /* placeholder de imagem (claro) */
+  --af-ph-dark:#3A2C21;      /* placeholder de imagem (escuro) */
+  --af-ph-ink:#8A7862;       /* rótulo do placeholder */
+  --af-sand-300:#A8927A;     /* rótulo do placeholder em fundo escuro */
+  --af-scrim:rgba(43,32,25,.55);
+  --af-hairline:rgba(43,32,25,.25);
+  --af-hairline-inv:rgba(249,244,234,.20);
+
+  /* ---- Tipografia ---- */
+  --af-font:"Bitter",Georgia,"Times New Roman",serif; /* serifa única: display + texto */
+  --af-h1:clamp(22px,7.2vw,28px);
+  --af-h2:19px;
+  --af-h3:16px;
+  --af-body:14.5px;
+  --af-body-sm:13px;
+  --af-caption:12.5px;
+  --af-overline:10.5px;
+  --af-lh-tight:1.15;
+  --af-lh-body:1.6;
+  --af-ls-overline:.12em;
+
+  /* ---- Espaço ---- */
+  --af-gutter:4%;   /* margem lateral fluida da página */
+  --af-gutter-card:5%;
+  --af-s1:4px; --af-s2:6px; --af-s3:8px; --af-s4:10px; --af-s5:12px;
+  --af-s6:14px; --af-s7:16px; --af-s8:18px; --af-s9:20px; --af-s10:26px;
+
+  /* ---- Forma e elevação ---- */
+  --af-border:1.5px solid var(--af-brown);
+  --af-radius-control:3px;   /* único raio do sistema (botões/controles) */
+  --af-radius-pill:50%;      /* apenas botão flutuante circular */
+  --af-shadow-sm:4px 4px 0 var(--af-brown);
+  --af-shadow-md:5px 5px 0 var(--af-brown);
+  --af-shadow-lg:6px 6px 0 var(--af-brown);
+  --af-shadow-ochre:5px 5px 0 var(--af-ochre);
+
+  /* ---- Alvos de toque e movimento ---- */
+  --af-touch-min:44px;
+  --af-touch-cta:50px;
+  --af-ease:cubic-bezier(.4,0,.2,1);
+  --af-dur:.25s;
+}

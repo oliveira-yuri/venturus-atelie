@@ -43,7 +43,7 @@ const BASE_DA_SUITE = process.env.URL_BASE || 'http://localhost:3123';
  * 375 — aí sim o cabeçalho sai da tela.
  *
  * Nome corrido não é hipótese de laboratório: é como chega um nome digitado
- * sem espaço no cadastro, e é para isso que `.cabecalho__sessao-nome` tem
+ * sem espaço no cadastro, e é para isso que `.af-control--nome` tem
  * `overflow-wrap: anywhere`.
  */
 const NOME_LONGO = 'NomeDeTesteMuitoCompridoSemEspacoNenhumAqui';
@@ -75,7 +75,7 @@ test('sem sessão o cabeçalho continua exatamente o de antes: "Entrar", e nada 
   const html = await fetch(`${BASE_DA_SUITE}/`).then((r) => r.text());
   const cabecalho = cabecalhoDe(html);
 
-  assert.match(cabecalho, /<a[^>]+class="cabecalho__entrar"[^>]+href="\/entrar"/,
+  assert.match(cabecalho, /<a[^>]+class="af-control cabecalho__entrar"[^>]+href="\/entrar"/,
     'o link "Entrar" sumiu do cabeçalho de visitante');
   assert.doesNotMatch(cabecalho, />\s*Sair\s*</,
     'apareceu um "Sair" para quem não está autenticado');
@@ -180,7 +180,7 @@ test('sem JavaScript, clicar em "Sair" executa a Action de verdade', async () =>
   navegador = await new Builder().forBrowser('firefox').setFirefoxOptions(opcoes).build();
 
   await navegador.get(`${servidor.base}/quem-somos`);
-  const botao = await navegador.findElement(By.css('.cabecalho__sair'));
+  const botao = await navegador.findElement(By.css('.af-control--sair'));
   await botao.click();
 
   await navegador.wait(async () => {
@@ -193,7 +193,7 @@ test('na largura de celular o cabeçalho com nome longo não empurra a página p
   // Regra 4 do CLAUDE.md: a operação da ONG acontece no celular, muitas
   // vezes de pé. Um nome corrido, sem nenhuma oportunidade de quebra, é o
   // que estoura a largura se ninguém disser à caixa que ela pode quebrar no
-  // meio da palavra — ver `.cabecalho__sessao-nome` em
+  // meio da palavra — ver `.af-control--nome` em
   // estilos/componentes.css, e o comentário de NOME_LONGO aqui em cima.
   // 375px NÃO É ALCANÇÁVEL NESTE NAVEGADOR, e é melhor dizer isso do que
   // escrever 375 no nome do teste e medir outra coisa. MEDIDO de três
@@ -215,7 +215,7 @@ test('na largura de celular o cabeçalho com nome longo não empurra a página p
   await navegador.get(`${servidor.base}/`);
 
   const medida = await navegador.executeScript(`
-    var sair = document.querySelector('.cabecalho__sair');
+    var sair = document.querySelector('.af-control--sair');
     var caixa = sair.getBoundingClientRect();
     return {
       larguraDaPagina: document.documentElement.scrollWidth,

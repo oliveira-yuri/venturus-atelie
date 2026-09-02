@@ -12,27 +12,64 @@ import {
  * neutro e o useEffect sincroniza depois. A aparencia correta ja foi aplicada
  * pelo script anti-piscada no <html>, entao ninguem ve o tamanho errado — so
  * o botao leva um instante para se marcar como ativo.
+ *
+ * =====================================================================
+ * O DESIGN SYSTEM v1 MUDOU O LUGAR, NAO O MECANISMO
+ * =====================================================================
+ *
+ * Antes: os quatro botoes ficavam soltos na faixa do cabecalho, visiveis
+ * sempre. Agora sao uma BARRA propria, abaixo da faixa ocre, comandada pelo
+ * botao "Aa" — que e' o que o sistema desenha (e o que o pedido V1 chama de
+ * "acessibilidade acoplada ao menu").
+ *
+ * DUAS COISAS FORAM PRESERVADAS CONTRA O HANDOFF, e as duas sao a regra 8:
+ *
+ *   1. A BARRA CHEGA ABERTA DO SERVIDOR. O handoff escreve
+ *      `<div class="af-a11y" hidden>` e revela por script — o que deixaria
+ *      quem esta sem JavaScript sem NENHUM controle de tamanho de texto,
+ *      num site cuja ONG pediu "textos grandes". Aqui `af-a11y--recolhida`
+ *      so' entra depois de `hidratado`, e no desktop o CSS a mantem visivel
+ *      sempre (ha' espaco, e o principio 6 do proprio sistema diz que a
+ *      acessibilidade faz parte da interface, nao de um menu escondido).
+ *
+ *   2. A ESCALA CONTINUA EM `--escala-fonte`, NAO EM `zoom`. O handoff usa
+ *      `document.documentElement.style.zoom = 0.92 | 1 | 1.1`. Aqui a
+ *      escala e' o `font-size` do <html> e todo tamanho do sistema esta' em
+ *      rem (ver estilos/tokens.css). Motivos: `zoom` cria contexto de
+ *      empilhamento e briga com o `position: sticky` do cabecalho novo; ele
+ *      escala tambem o que NAO e' texto; e a faixa do handoff vai so' ate'
+ *      110%, contra os 137,5% daqui.
+ *
+ * O ESTADO DE ABERTO/FECHADO NAO MORA AQUI. O botao "Aa" fica dentro da
+ * faixa ocre e a barra fica fora dela; duas instancias separadas nao
+ * compartilhariam `useState`. Quem guarda e' componentes/Cabecalho.tsx.
  */
-export default function Acessibilidade() {
+export default function Acessibilidade({
+  hidratado,
+  aberta
+}: {
+  hidratado: boolean;
+  aberta: boolean;
+}) {
   const [preferencias, setPreferencias] = useState<Preferencias>({ ...PADRAO });
-  const [hidratado, setHidratado] = useState(false);
+  const [lido, setLido] = useState(false);
   const [anuncio, setAnuncio] = useState('');
 
   useEffect(() => {
     setPreferencias(lerPreferencias(window.localStorage));
-    setHidratado(true);
+    setLido(true);
   }, []);
 
   // So aplica ao documento; gravar e responsabilidade de executar(), e so por
   // clique — visitante que nunca tocou nos botoes nao grava preferencia
   // nenhuma (senao fica preso ao PADRAO de hoje se ele mudar no futuro).
   useEffect(() => {
-    if (!hidratado) return;
+    if (!lido) return;
     const raiz = document.documentElement;
     raiz.style.setProperty('--escala-fonte', `${preferencias.escala}%`);
     if (preferencias.contraste === 'alto') raiz.setAttribute('data-contraste', 'alto');
     else raiz.removeAttribute('data-contraste');
-  }, [preferencias, hidratado]);
+  }, [preferencias, lido]);
 
   function executar(acao: string) {
     setPreferencias((atual) => {
@@ -54,20 +91,40 @@ export default function Acessibilidade() {
     });
   }
 
-  const alto = hidratado && preferencias.contraste === 'alto';
+  const alto = lido && preferencias.contraste === 'alto';
+
+  // Recolhida so' depois de hidratar. Sem JavaScript esta classe nunca entra
+  // e a barra fica aberta — ver o bloco no topo deste arquivo.
+  const classes = ['af-a11y'];
+  if (hidratado && !aberta) classes.push('af-a11y--recolhida');
 
   return (
-    <div className="acessibilidade" role="group" aria-label="Acessibilidade">
-      <button type="button" data-acao="diminuir" aria-label="Diminuir tamanho do texto"
+    <div
+      id="barra-acessibilidade"
+      className={classes.join(' ')}
+      role="group"
+      aria-label="Acessibilidade"
+    >
+      <span className="af-a11y__rotulo">Acessibilidade</span>
+
+      <button type="button" className="af-control" data-acao="diminuir"
+        aria-label="Diminuir tamanho do texto"
         onClick={() => executar('diminuir')}
-        disabled={hidratado && preferencias.escala === ESCALAS[0]}>A-</button>
-      <button type="button" data-acao="padrao" aria-label="Tamanho normal do texto"
+        disabled={lido && preferencias.escala === ESCALAS[0]}>A-</button>
+
+      <button type="button" className="af-control" data-acao="padrao"
+        aria-label="Tamanho normal do texto"
         onClick={() => executar('padrao')}>A</button>
-      <button type="button" data-acao="aumentar" aria-label="Aumentar tamanho do texto"
+
+      <button type="button" className="af-control" data-acao="aumentar"
+        aria-label="Aumentar tamanho do texto"
         onClick={() => executar('aumentar')}
-        disabled={hidratado && preferencias.escala === ESCALAS[ESCALAS.length - 1]}>A+</button>
-      <button type="button" data-acao="contraste" aria-pressed={alto}
+        disabled={lido && preferencias.escala === ESCALAS[ESCALAS.length - 1]}>A+</button>
+
+      <button type="button" className="af-a11y__contraste" data-acao="contraste"
+        aria-pressed={alto}
         onClick={() => executar('contraste')}>Alto contraste</button>
+
       <p className="apenas-leitor-de-tela" role="status">{anuncio}</p>
     </div>
   );

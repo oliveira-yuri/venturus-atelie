@@ -2,11 +2,15 @@
 
 body {
   margin: 0;
-  background: var(--fundo);
-  color: var(--tinta);
-  font-family: var(--corpo);
-  font-size: var(--texto-base);
-  line-height: 1.7;
+  background: var(--af-cream);
+  color: var(--af-brown);
+  font-family: var(--af-font);
+  font-size: var(--af-body);
+  /* 1.6 e' o corpo do design system v1 (era 1.7). */
+  line-height: var(--af-lh-body);
+  /* O handoff pede isto no reset: impede o iOS de reescalar o texto sozinho
+     ao girar a tela, o que atropelaria a escala escolhida no A+. */
+  -webkit-text-size-adjust: 100%;
 }
 
 /* ---------- Tipografia ----------
@@ -72,9 +76,9 @@ main section { margin-bottom: var(--espaco-6); }
    Contorno e deslocamento solido. E o unico elemento decorativo do sistema:
    tudo o mais e chapado. */
 .aplique {
-  background: var(--cal);
-  border: 2px solid var(--borda);
-  box-shadow: var(--aplique) var(--tinta);
+  background: var(--af-card);
+  border: var(--af-border);
+  box-shadow: var(--af-shadow-md);
 }
 
 .aplique--amarelo { box-shadow: var(--aplique) var(--amarelo); }
@@ -97,12 +101,12 @@ main section { margin-bottom: var(--espaco-6); }
 /* ---------- Conteudo editorial ---------- */
 
 .destaque {
-  font-family: var(--display);
   font-weight: 500;
-  font-size: var(--texto-medio);
-  color: var(--tinta);
-  border-left: 5px solid var(--amarelo);
-  padding-left: var(--espaco-3);
+  font-size: var(--af-h3);
+  line-height: 1.45;
+  color: var(--af-brown);
+  border-left: 5px solid var(--af-ochre);
+  padding-left: var(--af-s7);
   max-width: 50ch;
 }
 
@@ -115,35 +119,55 @@ main section { margin-bottom: var(--espaco-6); }
 }
 
 .setor {
-  background: var(--cal);
-  border: 2px solid var(--borda);
-  box-shadow: var(--aplique) var(--amarelo);
-  padding: var(--espaco-4);
-  margin-bottom: var(--espaco-5);
+  background: var(--af-card);
+  border: var(--af-border);
+  box-shadow: var(--af-shadow-md);
+  padding: var(--af-s7) var(--af-gutter-card);
+  margin-bottom: var(--af-s7);
 }
 
 .setor h3 { margin-bottom: var(--espaco-2); }
 .setor p  { margin-bottom: 0; color: var(--tinta-suave); }
 
 .botao {
-  display: inline-block;
-  min-height: var(--alvo-toque);
-  line-height: calc(var(--alvo-toque) - 4px);
-  padding: 0 var(--espaco-4);
-  background: var(--tinta);
-  color: var(--cal);
-  font-weight: 700;
+  /* E' o `.af-btn--primary` do design system v1, com o nome que as
+     dezesseis telas ja usam. As diferencas em relacao a versao anterior sao
+     todas do sistema: altura de CTA (50px, nao 44), borda de 1.5px, peso
+     600 em vez de 700, e o hover que ESCURECE em vez de inverter — inverter
+     fazia o botao piscar de preto para branco embaixo do dedo. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: var(--af-touch-cta);
+  padding: 6px var(--af-s9);
+  background: var(--af-brown);
+  color: var(--af-cream);
+  font: 600 var(--af-body) var(--af-font);
   text-decoration: none;
-  border: 2px solid var(--tinta);
+  border: 1.5px solid var(--af-brown);
 }
 
-.botao:hover { background: var(--cal); color: var(--tinta); }
+.botao:hover { background: var(--af-brown-800); color: var(--af-cream); }
 
 .botao--secundario {
   background: transparent;
-  color: var(--tinta);
+  color: var(--af-brown);
 }
-.botao--secundario:hover { background: var(--tinta); color: var(--cal); }
+.botao--secundario:hover { background: rgba(43, 32, 25, .06); color: var(--af-brown); }
+
+/* Ocre sobre fundo escuro. Existe como MODIFICADOR DE `.botao`, e nao como
+   `.af-btn--ochre` do sistema, por causa da ordem dos arquivos: sistema.css
+   carrega ANTES de base.css, entao `.botao { background: var(--af-brown) }`
+   venceria `.af-btn--ochre` por ordem, com a mesma especificidade — e o
+   botao dentro do cartao escuro ficaria marrom sobre marrom, invisivel.
+   MEDIDO: aconteceu, no cartao "E' de uma escola ou instituicao?" da home. */
+.botao--ocre {
+  background: var(--af-ochre);
+  color: var(--af-brown);
+  border-color: var(--af-ochre);
+}
+.botao--ocre:hover { background: #C28D0C; color: var(--af-brown); }
 
 .chamada-final { margin-top: var(--espaco-5); }
 

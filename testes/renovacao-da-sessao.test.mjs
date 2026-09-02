@@ -110,7 +110,9 @@ function chamadasDeAutenticacao() {
 
 /** O layout inteiro chegou no HTML? É o que separa "degradou" de "caiu". */
 function temOLayoutInteiro(html) {
-  return /<header class="cabecalho"/.test(html)
+  // O design system v1 poe DUAS classes no <header> ("af-header cabecalho"),
+  // entao a igualdade exata de antes nao serve mais.
+  return /<header[^>]*class="[^"]*\bcabecalho\b/.test(html)
     && /id="conteudo"/.test(html)
     && /<footer/.test(html);
 }
