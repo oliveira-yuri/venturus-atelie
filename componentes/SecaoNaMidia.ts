@@ -51,7 +51,12 @@ export function SecaoNaMidia({ registros }: { registros: RegistroClipping[] }) {
           createElement(
             'span',
             { className: 'af-media__corpo' },
-            createElement('span', { className: 'af-media__titulo' }, registro.titulo),
+            // <strong>, nao <span>: o design system so' pede o peso visual,
+            // e o peso vem do CSS de qualquer jeito. O elemento carrega a
+            // ENFASE que o leitor de tela anuncia — trocar por <span> na
+            // conversao para .af-media perdeu isso em silencio, e neste
+            // projeto acessibilidade e' requisito (regra 8).
+            createElement('strong', { className: 'af-media__titulo' }, registro.titulo),
             registro.detalhe
               ? createElement('span', { className: 'af-media__meta' }, registro.detalhe)
               : null,

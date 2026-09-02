@@ -103,5 +103,7 @@ test('título e meta do item ficam colados, sem espaço solto entre eles', () =>
   ];
   const html = renderToStaticMarkup(createElement(SecaoNaMidia, { registros }));
 
-  assert.match(html, /<\/span><span class="af-media__meta"/);
+  // </strong> e nao </span>: o titulo do item e' <strong> de proposito
+  // (enfase que o leitor de tela anuncia; o peso visual vem do CSS).
+  assert.match(html, /<\/strong><span class="af-media__meta"/);
 });
