@@ -7,6 +7,7 @@ import { avisoDaGaleria } from '@/compartilhado/avisos-do-painel';
 import { AVISO_BUCKET_ABERTO, AVISO_SONDA_SEM_RESPOSTA } from '@/compartilhado/galeria-privada';
 import { ListaMidia } from '@/componentes/ListaMidia';
 import FormularioMidia from '@/componentes/FormularioMidia';
+import { Instrucoes } from '@/componentes/Instrucoes';
 
 /**
  * `/admin/galeria` — subir foto e cuidar do que está no ar (RF05/RF33/RN07).
@@ -122,11 +123,20 @@ export default async function PaginaDaGaleria(
         foto é tarde. A frase é do escopo (RN07) e do CLAUDE.md (regra 9),
         não texto inventado sobre a ONG.
       */}
-      <p className="destaque">
-        Nenhuma foto vai ao ar sem autorização de uso de imagem registrada de quem aparece nela —
-        e, no caso de crianças e adolescentes, de quem é responsável por elas. Subir não publica:
-        a foto fica guardada até você apertar "Publicar".
-      </p>
+      <Instrucoes
+        resumo="Aqui ficam as fotos que aparecem na galeria do site."
+        itens={[
+          <><strong>Nenhuma foto vai ao ar sem autorização de uso de imagem registrada</strong> de
+            quem aparece nela — e, no caso de crianças e adolescentes, de quem é responsável por
+            elas.</>,
+          <><strong>Subir não publica.</strong> A foto fica guardada até você apertar
+            "Publicar".</>,
+          <><strong>"Tirar do ar" leva até uma hora</strong> para o arquivo deixar de abrir para
+            quem já tem o endereço. Se a autorização foi retirada, use <strong>"Apagar"</strong>,
+            que age na hora.</>,
+          <>Só <strong>imagem</strong>, até <strong>4 MB</strong>. Vídeo não cabe.</>
+        ]}
+      />
 
       {/*
         O FORMULÁRIO FICA RECOLHIDO ATRÁS DE UM BOTÃO (pedido V1: "ocultar

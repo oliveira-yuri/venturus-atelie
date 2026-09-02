@@ -8,6 +8,7 @@ import { mudarSituacao } from '@/acoes/contatos';
 import { avisoDeContatos } from '@/compartilhado/avisos-do-painel';
 import { montarTriagem } from '@/compartilhado/triagem-de-contatos';
 import { ListaContatos } from '@/componentes/ListaContatos';
+import { Instrucoes } from '@/componentes/Instrucoes';
 
 /**
  * `/admin/contatos` — as mensagens que chegam pelo formulário do site
@@ -124,11 +125,19 @@ export default async function PaginaDeContatos(
           não um lugar de escrever. É o que responde a primeira pergunta de
           quem chega — "isto é o formulário do site?" — e o que explica por
           que as mensagens ainda sem resposta vêm primeiro. */}
-      <p className="destaque">
-        Tudo que chega pelo formulário da página de contato do site aparece aqui, com as
-        mensagens que ainda esperam resposta em cima. Responda pelo e-mail ou pelo telefone da
-        pessoa e marque em que pé está o atendimento.
-      </p>
+      <Instrucoes
+        resumo="Tudo que chega pelo formulário da página de contato do site aparece aqui."
+        itens={[
+          <><strong>Quem ainda espera resposta fica em cima.</strong> O que foi concluído desce,
+            mas nunca some.</>,
+          <><strong>Responda pelo e-mail ou pelo telefone da pessoa</strong> — o site não manda
+            e-mail por você.</>,
+          <>Depois de responder, <strong>marque em que pé está</strong>: nova, em contato ou
+            concluída. Dá para voltar atrás.</>,
+          <>Esta tela <strong>não apaga e não edita</strong> a mensagem: o que a pessoa escreveu
+            é registro.</>
+        ]}
+      />
 
       {/*
         `montarTriagem` é quem ORDENA (não respondidas primeiro) e quem

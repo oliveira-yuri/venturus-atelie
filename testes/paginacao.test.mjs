@@ -202,3 +202,56 @@ test('trocar de página NÃO apaga o filtro que estiver na URL', async () => {
   assert.match(html, /href="\?situacao=novo&amp;pagina=2"/,
     'o link da próxima página perdeu o filtro de situação');
 });
+
+/* =====================================================================
+   O FILTRO DA FILA (pedido V1) — componentes/FiltroDaFila.ts
+   ===================================================================== */
+
+async function desenharFiltro(atual) {
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { createElement } = await import('react');
+  const { FiltroDaFila } = await import('../componentes/FiltroDaFila.ts');
+  return renderToStaticMarkup(createElement(FiltroDaFila, {
+    rotulo: 'Mostrar',
+    nomePlural: 'candidaturas',
+    atual,
+    opcoes: [
+      { valor: 'novo', rotulo: 'Nova' },
+      { valor: 'em_contato', rotulo: 'Em contato' }
+    ]
+  }));
+}
+
+test('o filtro é um <form method="get"> — funciona sem JavaScript', async () => {
+  const html = await desenharFiltro('');
+  assert.match(html, /<form[^>]+method="get"/,
+    'o filtro deixou de ser GET: sem script não haveria como aplicá-lo');
+  assert.match(html, /<button type="submit"/,
+    'sem botão de enviar, quem está sem JavaScript escolhe no select e não consegue filtrar');
+});
+
+test('"todas" vem primeiro e tem valor vazio — some da URL sozinho', async () => {
+  const html = await desenharFiltro('');
+  const opcoes = [...html.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
+  assert.deepEqual(opcoes, ['', 'novo', 'em_contato']);
+});
+
+test('a SAÍDA do filtro só aparece quando há filtro em vigor', async () => {
+  // Sem ela, quem filtrou por "nova" e esqueceu concluiria que só existem
+  // duas candidaturas no mundo.
+  const semFiltro = await desenharFiltro('');
+  assert.doesNotMatch(semFiltro, /Ver todas as candidaturas/,
+    'ofereceu "ver todas" sem haver filtro — um botão que não faz nada');
+
+  const comFiltro = await desenharFiltro('novo');
+  assert.match(comFiltro, /<a[^>]+href="\?"[^>]*>Ver todas as candidaturas/,
+    'filtrando, precisa haver o caminho de volta — e ele é um LINK, não um reset');
+});
+
+test('o filtro NÃO carrega a página atual — filtrar volta para a primeira', async () => {
+  // Filtrar por "nova" estando na página 3 e continuar na 3 mostraria uma
+  // tela vazia: o recorte novo tem menos páginas.
+  const html = await desenharFiltro('novo');
+  assert.doesNotMatch(html, /name="pagina"/,
+    'o filtro leva a página junto — filtrar da página 3 cairia numa tela vazia');
+});

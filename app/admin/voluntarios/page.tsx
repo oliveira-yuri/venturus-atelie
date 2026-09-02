@@ -6,8 +6,12 @@ import { paginar, CANDIDATURAS } from '@/compartilhado/paginacao';
 import { Paginacao } from '@/componentes/Paginacao';
 import { mudarSituacaoDaCandidatura } from '@/acoes/voluntarios';
 import { avisoDeVoluntarios } from '@/compartilhado/avisos-do-painel';
-import { montarTriagemDeVoluntarios } from '@/compartilhado/triagem-de-voluntarios';
+import {
+  montarTriagemDeVoluntarios, ehSituacaoDeVoluntario, SITUACOES_DE_VOLUNTARIO
+} from '@/compartilhado/triagem-de-voluntarios';
+import { FiltroDaFila } from '@/componentes/FiltroDaFila';
 import { ListaVoluntarios } from '@/componentes/ListaVoluntarios';
+import { Instrucoes } from '@/componentes/Instrucoes';
 
 /**
  * `/admin/voluntarios` — a gestão de voluntários (RF26/RF33). A outra metade
@@ -74,12 +78,21 @@ export default async function PaginaDeVoluntarios(
   // PAGINAÇÃO (pedido V1) — ver o mesmo bloco em app/admin/contatos/page.tsx
   // para o porquê da contagem vir antes do recorte.
   const parametros = await searchParams;
+
+  // O FILTRO PASSA POR LISTA FECHADA (pedido V1). `?situacao=` é escrito
+  // por quem quiser; um valor inventado vira "todas", e não um `.eq()` com
+  // lixo dentro. Mesma disciplina de `?aviso=`.
+  const pedida = typeof parametros.situacao === 'string' ? parametros.situacao : '';
+  const filtro = ehSituacaoDeVoluntario(pedida) ? pedida : '';
+
   const provisoria = paginar(Number.MAX_SAFE_INTEGER, parametros.pagina);
-  const primeira = await listarCandidaturas({ de: provisoria.de, ate: provisoria.ate });
+  const primeira = await listarCandidaturas(
+    { de: provisoria.de, ate: provisoria.ate }, filtro || undefined);
   const paginacao = paginar(primeira.total ?? 0, parametros.pagina);
   const { valor: candidaturas, degradou } = paginacao.de === provisoria.de
     ? primeira
-    : await listarCandidaturas({ de: paginacao.de, ate: paginacao.ate });
+    : await listarCandidaturas(
+      { de: paginacao.de, ate: paginacao.ate }, filtro || undefined);
 
   // O resultado da última Action chega pela URL (a Action termina em
   // redirect, que é o que a faz funcionar sem JavaScript, e um redirect não
@@ -113,11 +126,18 @@ export default async function PaginaDeVoluntarios(
           ofereceram, e não um lugar de cadastrar voluntário. É o que responde
           a primeira pergunta de quem chega — "isto é o formulário do site?" —
           e o que explica por que quem ainda não teve resposta vem primeiro. */}
-      <p className="destaque">
-        Quem se candidata pela página de voluntariado do site aparece aqui, com quem ainda não
-        teve resposta em cima. Fale com a pessoa pelo e-mail ou pelo telefone dela e marque em
-        que pé está.
-      </p>
+      <Instrucoes
+        resumo="Quem se candidata pela página de voluntariado do site aparece aqui."
+        itens={[
+          <><strong>Quem ainda não teve resposta fica em cima.</strong></>,
+          <><strong>Fale com a pessoa pelo e-mail ou pelo telefone dela</strong> — o site não
+            manda e-mail por você.</>,
+          <>Depois, <strong>marque em que pé está</strong>: nova, em contato, voluntariando ou
+            encerrada.</>,
+          <><strong>Encerrar devolve à pessoa o direito de se candidatar de novo.</strong> É a
+            única ação daqui que muda o que outra pessoa pode fazer no site.</>
+        ]}
+      />
 
       {/*
         `montarTriagemDeVoluntarios` é quem ORDENA (sem resposta primeiro) e
@@ -127,6 +147,22 @@ export default async function PaginaDeVoluntarios(
         valor. O porquê inteiro, com as duas medições, está no cabeçalho
         daquela função.
       */}
+      {/*
+        O FILTRO FICA ANTES DA LISTA — é o que se usa para chegar nela. A
+        paginação, que é o que se usa depois de rolar até o fim, fica
+        depois. Ele não aparece quando a leitura degradou: oferecer filtro
+        sobre uma lista que não pôde ser carregada é oferecer um gesto que
+        não pode dar certo.
+      */}
+      {degradou ? null : (
+        <FiltroDaFila
+          rotulo="Mostrar"
+          nomePlural="candidaturas"
+          atual={filtro}
+          opcoes={SITUACOES_DE_VOLUNTARIO.map((s) => ({ valor: s.valor, rotulo: s.rotulo }))}
+        />
+      )}
+
       <ListaVoluntarios
         itens={montarTriagemDeVoluntarios(candidaturas)}
         degradou={degradou}
@@ -139,7 +175,16 @@ export default async function PaginaDeVoluntarios(
         degradou: dizer "página 1 de 1" sobre uma lista que não pôde ser
         carregada seria afirmar uma contagem que não se tem.
       */}
-      {degradou ? null : <Paginacao paginacao={paginacao} nome={CANDIDATURAS} />}
+      {degradou ? null : (
+        <Paginacao
+          paginacao={paginacao}
+          nome={CANDIDATURAS}
+          /* O filtro viaja com a página: sem isto, ir para a página 2
+             devolveria a lista inteira, e a equipe veria uma lista
+             diferente da que estava lendo. */
+          parametros={filtro ? { situacao: filtro } : undefined}
+        />
+      )}
     </main>
   );
 }

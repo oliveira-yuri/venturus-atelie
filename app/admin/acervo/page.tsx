@@ -8,6 +8,7 @@ import {
   ListaMateriaisDoPainel, type MaterialDoPainelComUrl
 } from '@/componentes/ListaMateriaisDoPainel';
 import FormularioMaterial from '@/componentes/FormularioMaterial';
+import { Instrucoes } from '@/componentes/Instrucoes';
 
 /**
  * `/admin/acervo` — subir material e cuidar do que está no ar (RF36/RF37).
@@ -109,12 +110,18 @@ export default async function PaginaDoAcervo(
         ser baixado por qualquer pessoa) e subir não publica. Ler isso depois
         de já ter subido o arquivo errado é tarde.
       */}
-      <p className="destaque">
-        O que entra aqui é material para as pessoas baixarem — cartilha, ficha técnica,
-        portfólio. O arquivo fica num endereço público desde que sobe, então confira que
-        escolheu o certo. Subir não publica: o material fica guardado até você apertar
-        "Publicar".
-      </p>
+      <Instrucoes
+        resumo="Aqui ficam os materiais que qualquer pessoa pode baixar do site — cartilha, ficha técnica, portfólio."
+        itens={[
+          <><strong>Subir não publica.</strong> O material fica guardado até você apertar
+            "Publicar".</>,
+          <><strong>O arquivo fica num endereço público assim que sobe</strong>, mesmo antes de
+            publicar. Confira que escolheu o certo antes de enviar.</>,
+          <><strong>"Tirar do ar" esconde só desta página</strong> — quem já tem o endereço do
+            arquivo continua abrindo. Para remover de verdade, use "Apagar".</>,
+          <>Só <strong>PDF</strong>, até <strong>4 MB</strong>.</>
+        ]}
+      />
 
       {/* Mesmo desenho de /admin/galeria — ver o comentário de lá para o
           porquê de `<details>` e não JavaScript. */}

@@ -7,6 +7,7 @@ import { Paginacao } from '@/componentes/Paginacao';
 import { avisoDeDoacoes } from '@/compartilhado/avisos-do-painel';
 import { montarAnalise } from '@/compartilhado/doacoes';
 import { ListaDoacoes } from '@/componentes/ListaDoacoes';
+import { Instrucoes } from '@/componentes/Instrucoes';
 
 /**
  * `/admin/doacoes` — a fila de doações (RF19–RF22/RF33). O outro lado de
@@ -106,10 +107,18 @@ export default async function PaginaDeDoacoes(
           doação, e não um caixa. É o que responde a primeira pergunta de
           quem chega e o que explica por que as ofertas sem resposta vêm
           primeiro. */}
-      <p className="destaque">
-        Tudo que alguém oferece pelo site aparece aqui, com o que ainda espera resposta em cima.
-        Responda dizendo se dá para receber, e marque como recebida quando a doação chegar.
-      </p>
+      <Instrucoes
+        resumo="Tudo que alguém oferece pelo site aparece aqui."
+        itens={[
+          <><strong>O que ainda espera resposta fica em cima.</strong></>,
+          <><strong>Dá para responder sem mudar a situação</strong>: escolha "não mudar por
+            enquanto" e escreva o recado.</>,
+          <><strong>Marque como recebida quando a doação chegar</strong> — é isso que a faz
+            entrar na contagem.</>,
+          <>O site <strong>não cobra, não recebe pagamento e não emite recibo</strong>. O que
+            fica guardado aqui é o que vocês dizem ter recebido.</>
+        ]}
+      />
 
       {/*
         O BOTÃO DE REGISTRAR VEM ANTES DA LISTA, e é a única ação que não

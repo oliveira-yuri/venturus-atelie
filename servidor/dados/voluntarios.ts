@@ -155,12 +155,13 @@ type CandidaturaCrua = {
  * áreas valeria três, e a paginação mentiria.
  */
 export async function listarCandidaturas(
-  paginacao?: { de: number; ate: number }
+  paginacao?: { de: number; ate: number },
+  situacao?: string
 ): Promise<Degradavel<CandidaturaDaEquipe[]> & { total: number | null }> {
   const resposta = await consultarComContagem<CandidaturaCrua[]>(
     'voluntarios (painel)',
     async () => {
-      const consulta = (await obterCliente())
+      let consulta = (await obterCliente())
         .from('voluntarios')
         .select(
           'id, mensagem, situacao, criado_em,'
@@ -169,6 +170,16 @@ export async function listarCandidaturas(
           { count: 'exact' }
         )
         .order('criado_em', { ascending: false });
+
+      // O FILTRO ENTRA ANTES DO RECORTE, e a ordem é o que faz a paginação
+      // ficar honesta: `count: 'exact'` passa a contar o que RESTOU do
+      // filtro, então a tela escreve "3 candidaturas" quando há três novas,
+      // e não "3 de 47". Filtrar depois de paginar daria vinte linhas das
+      // quais três apareceriam — e a contagem mentiria.
+      //
+      // `situacao` já veio da lista fechada de quem chama; aqui ela é só
+      // repassada. Um valor inventado não chega até este ponto.
+      if (situacao) consulta = consulta.eq('situacao', situacao);
 
       return paginacao ? consulta.range(paginacao.de, paginacao.ate) : consulta;
     },

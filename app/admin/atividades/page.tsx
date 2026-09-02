@@ -5,6 +5,7 @@ import { listarAtividadesDoPainel } from '@/servidor/dados/conteudo';
 import { alternarAtividade } from '@/acoes/atividades';
 import { avisoDeAtividades } from '@/compartilhado/avisos-do-painel';
 import { ListaAtividades } from '@/componentes/ListaAtividades';
+import { Instrucoes } from '@/componentes/Instrucoes';
 
 /**
  * `/admin/atividades` — as 11 atividades reais, para a equipe corrigir
@@ -87,10 +88,19 @@ export default async function PaginaDeAtividades(
           É o que responde a primeira pergunta de quem chega procurando um
           botão de "nova atividade" — que não existe, e o porquê está escrito
           no fim da lista. */}
-      <p className="destaque">
-        Estas são as atividades que aparecem na página de projetos do site. Aqui você corrige o
-        texto de cada uma: o nome, o resumo, a sinopse e a ficha técnica.
-      </p>
+      <Instrucoes
+        resumo="Estas são as atividades que aparecem na página de projetos do site."
+        itens={[
+          <>Você <strong>corrige o texto</strong> de cada uma: nome, resumo, sinopse e ficha
+            técnica.</>,
+          <>Esta tela <strong>não cria e não apaga</strong> atividade. As onze vieram da ONG, e
+            apagar no celular não tem desfazer.</>,
+          <><strong>"Tirar do ar" some com a atividade da página de projetos</strong> — o texto
+            continua guardado e dá para pôr de volta.</>,
+          <>A correção fica <strong>só no banco</strong>. Se o site subir sem conexão com ele,
+            volta a aparecer o texto antigo.</>
+        ]}
+      />
 
       <ListaAtividades
         atividades={atividades}

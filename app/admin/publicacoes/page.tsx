@@ -5,6 +5,7 @@ import { listarTodas } from '@/servidor/dados/publicacoes';
 import { alternarPublicacao } from '@/acoes/publicacoes';
 import { avisoDaLista } from '@/compartilhado/avisos-do-painel';
 import { ListaPublicacoes } from '@/componentes/ListaPublicacoes';
+import { Instrucoes } from '@/componentes/Instrucoes';
 
 /**
  * `/admin/publicacoes` — a lista de notícias da equipe (RF04/RF33).
@@ -58,6 +59,17 @@ export default async function PaginaDePublicacoes(
       <p className="painel__voltar"><Link href="/admin">← Painel</Link></p>
 
       <h1>Notícias</h1>
+
+      <Instrucoes
+        resumo="Aqui você escreve o que aparece na página de notícias do site."
+        itens={[
+          <><strong>Escrever não publica.</strong> A notícia fica guardada até você apertar
+            "Publicar" — nada vai ao ar por acidente.</>,
+          <><strong>"Tirar do ar" some com a notícia do site</strong>, e a data de publicação
+            fica guardada. Corrigir e publicar de novo não muda essa data.</>,
+          <>Quem visita o site <strong>só vê o que está publicado</strong>. Você vê tudo.</>
+        ]}
+      />
 
       {/*
         `role="status"` e não `role="alert"`: esta caixa chega junto com uma

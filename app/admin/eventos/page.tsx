@@ -5,6 +5,7 @@ import { listarEventosDoPainel } from '@/servidor/dados/eventos';
 import { alternarEvento } from '@/acoes/eventos';
 import { avisoDeEventos } from '@/compartilhado/avisos-do-painel';
 import { ListaEventosPainel } from '@/componentes/ListaEventosPainel';
+import { Instrucoes } from '@/componentes/Instrucoes';
 
 /**
  * `/admin/eventos` — a agenda da equipe (RF13/RF14/RF33).
@@ -58,6 +59,18 @@ export default async function PaginaDeEventos(
       <p className="painel__voltar"><Link href="/admin">← Painel</Link></p>
 
       <h1>Agenda</h1>
+
+      <Instrucoes
+        resumo="Aqui você marca oficina, apresentação e vivência, e publica na agenda do site."
+        itens={[
+          <><strong>Criar não publica.</strong> O evento fica guardado até você apertar
+            "Publicar na agenda".</>,
+          <>Esta tela <strong>não apaga evento</strong>: apagar levaria junto a lista de quem se
+            inscreveu.</>,
+          <><strong>"Tirar da agenda" some com o evento do site</strong> — quem já se inscreveu
+            continua inscrito.</>
+        ]}
+      />
 
       {/*
         `role="status"` e não `role="alert"`: esta caixa chega junto com uma

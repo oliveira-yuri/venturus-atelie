@@ -2063,3 +2063,87 @@ a.numeros__alvo:hover { background: var(--tinta); color: var(--cal); }
   color: var(--tinta-suave);
   margin-inline: auto;
 }
+
+/* ---------------------------------------------------------------------
+   Instruções em bullets (pedido V1)
+
+   Cada tela abria com um parágrafo corrido de três ou quatro linhas. Num
+   celular, de pé, isso é uma parede: lê-se a primeira linha e pula o resto
+   — inclusive a frase que dizia que subir NÃO publica.
+   --------------------------------------------------------------------- */
+
+.painel__resumo { margin-bottom: var(--espaco-3); }
+
+.painel__instrucoes {
+  margin: 0 0 var(--espaco-5);
+  padding-left: var(--espaco-4);
+  max-width: 62ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  font-size: var(--texto-base);
+  color: var(--tinta);
+}
+
+/* O marcador é ocre e sólido: ele separa as regras sem competir com o
+   `<strong>`, que é o destaque de verdade. */
+.painel__instrucoes li::marker { color: var(--amarelo); }
+
+.painel__instrucoes strong { font-weight: 700; }
+
+/* ---------------------------------------------------------------------
+   Filtro da fila (pedido V1)
+
+   `<form method="get">` — ver o cabeçalho de componentes/FiltroDaFila.ts.
+   O botão "Filtrar" está SEMPRE na tela: sem ele, quem está sem
+   JavaScript escolhe no <select> e não tem como enviar.
+   --------------------------------------------------------------------- */
+
+.filtro {
+  margin: 0 0 var(--espaco-4);
+  padding: var(--espaco-3);
+  border: 1.5px solid var(--borda);
+  background: var(--cal);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-3);
+  align-items: flex-end;
+}
+
+.filtro__campo { margin: 0; display: flex; flex-direction: column; gap: var(--espaco-1); flex: 1 1 12rem; }
+
+.filtro__rotulo { font-weight: 700; font-size: var(--texto-pequeno); }
+
+.filtro__campo select {
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-2);
+  border: 1.5px solid var(--borda);
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+}
+
+.filtro__acoes { margin: 0; display: flex; gap: var(--espaco-2); align-items: center; flex-wrap: wrap; }
+
+.filtro__botao {
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--tinta);
+  color: var(--cal);
+  border: 1.5px solid var(--tinta);
+  font-family: var(--corpo);
+  font-weight: 600;
+  font-size: var(--texto-base);
+  cursor: pointer;
+}
+
+.filtro__botao:hover { background: var(--marrom); }
+
+/* A SAÍDA. Só aparece quando há filtro em vigor — ver o componente. */
+.filtro__limpar {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo-toque);
+  font-size: var(--texto-pequeno);
+}
