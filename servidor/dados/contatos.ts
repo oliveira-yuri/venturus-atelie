@@ -1,6 +1,6 @@
 import 'server-only';
 import { obterCliente } from '../supabase';
-import { consultarComEstado, type Degradavel } from './degradacao';
+import { consultarComContagem, type Degradavel } from './degradacao';
 
 /**
  * As mensagens recebidas (RF29) — o "registro central de contatos".
@@ -80,18 +80,35 @@ export type Contato = {
  *     está atrás de uma guarda que responde 404 para todo mundo que não é
  *     equipe, então o que não for medido assim não é medido.
  *
- * SEM LIMITE, e isso é decisão, não esquecimento. Um `.limit(n)` numa fila
- * de atendimento esconde mensagem sem dizer que escondeu: a de número n+1
- * simplesmente não existe na tela, e ninguém descobre. Enquanto a lista
- * couber numa rolagem longa (a tabela tem UMA linha hoje — CLAUDE.md, item
- * 0m), o custo é zero. No dia em que não couber, o caminho é filtro por
- * situação com o total escrito na tela, nunca um corte silencioso.
+ * PAGINADA DESDE O PEDIDO V1 — e o comentário que estava aqui antes já
+ * dizia como teria de ser feito:
+ *
+ *     "SEM LIMITE, e isso é decisão, não esquecimento. Um `.limit(n)` numa
+ *      fila de atendimento esconde mensagem sem dizer que escondeu (…). No
+ *      dia em que não couber, o caminho é filtro por situação com o TOTAL
+ *      ESCRITO NA TELA, nunca um corte silencioso."
+ *
+ * É o que existe agora. `{ count: 'exact' }` traz quantas mensagens há NO
+ * TOTAL junto com o recorte, e `componentes/Paginacao.ts` é obrigado a
+ * escrever esse número — uma paginação que só sabe "há mais" é o corte
+ * silencioso com outra roupa.
+ *
+ * A ORDEM DA FILA NÃO MUDA: `ordenarParaAtendimento` continua pondo quem
+ * espera resposta em cima. Ela ordena o que CHEGOU, e o recorte é feito
+ * pelo banco — então a página 1 traz as vinte mais recentes, e a ordenação
+ * de atendimento reorganiza essas vinte. É uma limitação conhecida e
+ * aceita: ordenar por situação no banco exigiria um `order` por expressão,
+ * e a fila cabe em poucas páginas.
  */
-export async function listarContatos(): Promise<Degradavel<Contato[]>> {
-  return consultarComEstado<Contato[]>('contatos (painel)', async () =>
-    (await obterCliente())
+export async function listarContatos(
+  paginacao?: { de: number; ate: number }
+): Promise<Degradavel<Contato[]> & { total: number | null }> {
+  return consultarComContagem<Contato[]>('contatos (painel)', async () => {
+    const consulta = (await obterCliente())
       .from('contatos')
-      .select('*')
-      .order('criado_em', { ascending: false }),
-  []);
+      .select('*', { count: 'exact' })
+      .order('criado_em', { ascending: false });
+
+    return paginacao ? consulta.range(paginacao.de, paginacao.ate) : consulta;
+  }, []);
 }

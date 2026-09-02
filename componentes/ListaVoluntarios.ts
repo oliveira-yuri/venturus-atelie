@@ -1,3 +1,4 @@
+import { VerMais } from './VerMais.ts';
 import { createElement, Fragment, type ReactNode } from 'react';
 import type { CandidaturaDaEquipe } from '@/servidor/dados/voluntarios';
 // SÓ O TIPO, e isso é o que torna este arquivo importável por um teste do
@@ -254,9 +255,15 @@ export function ListaVoluntarios({ itens, acaoSituacao, degradou }: PropsListaVo
 
           createElement('h2', { className: 'voluntario__nome' }, quem),
 
+          // TUDO O QUE SE LÊ DEPOIS DE ESCOLHER A LINHA ENTRA NA DOBRA
+          // (pedido V1). Ficam de fora a marca de situação, o nome e os
+          // BOTÕES: é por eles que se acha o item, e é neles que se age.
+          // Uma candidatura NOVA chega aberta — numa fila de atendimento, o
+          // que ainda espera resposta merece estar à vista.
+          VerMais({ rotulo: 'Dados e mensagem', aberta: nova, children: [
           createElement(
             'dl',
-            { className: 'voluntario__ficha' },
+            { className: 'voluntario__ficha', key: 'ficha' },
 
             // O e-mail é link de CONTATO, não texto: falar com quem se
             // ofereceu é o que a equipe veio fazer aqui, e no celular um
@@ -325,7 +332,7 @@ export function ListaVoluntarios({ itens, acaoSituacao, degradou }: PropsListaVo
           candidatura.mensagem
             ? createElement(
               'details',
-              { className: 'painel__dobra voluntario__dobra', open: nova },
+              { className: 'painel__dobra voluntario__dobra', open: nova, key: 'mensagem' },
               createElement(
                 'summary',
                 { className: 'painel__dobra-titulo' },
@@ -342,9 +349,10 @@ export function ListaVoluntarios({ itens, acaoSituacao, degradou }: PropsListaVo
             )
             : createElement(
               'p',
-              { className: 'voluntario__sem-mensagem' },
+              { className: 'voluntario__sem-mensagem', key: 'sem-mensagem' },
               'Esta pessoa não escreveu nada além das áreas — o campo é opcional no formulário.'
-            ),
+            )
+          ] }),
 
           createElement(
             'div',

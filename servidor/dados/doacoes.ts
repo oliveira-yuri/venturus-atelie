@@ -1,6 +1,6 @@
 import 'server-only';
 import { obterCliente } from '../supabase';
-import { consultarComEstado, type Degradavel } from './degradacao';
+import { consultarComContagem, consultarComEstado, type Degradavel } from './degradacao';
 
 /**
  * As doações (RF19–RF22) COMO A EQUIPE as vê — a fila de análise do painel.
@@ -187,21 +187,32 @@ async function comOsNomesDeQuemTemConta(
  *     responde 404 para quem não é equipe, então o que não for medido
  *     assim não é medido.
  *
- * SEM LIMITE, e isso é decisão. Um `.limit(n)` numa fila esconde oferta sem
- * dizer que escondeu: a de número n+1 simplesmente não existe na tela.
- * Enquanto a lista couber numa rolagem longa (a tabela está VAZIA hoje), o
- * custo é zero. No dia em que não couber, o caminho é filtro por situação
- * com o total escrito na tela, nunca um corte silencioso.
+ * PAGINADA DESDE O PEDIDO V1 — do jeito que o comentário anterior já
+ * exigia: "o caminho é filtro por situação com o TOTAL ESCRITO NA TELA,
+ * nunca um corte silencioso". `count: 'exact'` traz o total junto com o
+ * recorte.
+ *
+ * `comOsNomesDeQuemTemConta` roda DEPOIS do recorte, e é o ganho escondido
+ * desta mudança: ela faz uma segunda consulta para buscar os nomes dos
+ * perfis, e agora busca os nomes de vinte doações em vez de todas.
  */
-export async function listarDoacoesDoPainel(): Promise<Degradavel<DoacaoDoPainel[]>> {
-  const resposta = await consultarComEstado<LinhaCrua[]>('doacoes (painel)', async () =>
-    (await obterCliente())
+export async function listarDoacoesDoPainel(
+  paginacao?: { de: number; ate: number }
+): Promise<Degradavel<DoacaoDoPainel[]> & { total: number | null }> {
+  const resposta = await consultarComContagem<LinhaCrua[]>('doacoes (painel)', async () => {
+    const consulta = (await obterCliente())
       .from('doacoes')
-      .select('*')
-      .order('criado_em', { ascending: false }),
-  []);
+      .select('*', { count: 'exact' })
+      .order('criado_em', { ascending: false });
 
-  return { degradou: resposta.degradou, valor: await comOsNomesDeQuemTemConta(resposta.valor) };
+    return paginacao ? consulta.range(paginacao.de, paginacao.ate) : consulta;
+  }, []);
+
+  return {
+    degradou: resposta.degradou,
+    total: resposta.total,
+    valor: await comOsNomesDeQuemTemConta(resposta.valor)
+  };
 }
 
 /**

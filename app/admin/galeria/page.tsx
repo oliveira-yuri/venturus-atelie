@@ -128,9 +128,26 @@ export default async function PaginaDaGaleria(
         a foto fica guardada até você apertar "Publicar".
       </p>
 
-      <h2 className="painel__secao">Subir uma foto</h2>
+      {/*
+        O FORMULÁRIO FICA RECOLHIDO ATRÁS DE UM BOTÃO (pedido V1: "ocultar
+        formulário de postagem e trocar por um botão"). Ele ocupava a tela
+        inteira do celular acima da lista, e quem entrava para publicar uma
+        foto já enviada tinha de rolar por ele todo.
 
-      <FormularioMidia />
+        `<details>` E NÃO JAVASCRIPT. O elemento é nativo: o `<summary>` já
+        É o botão, abre e fecha sozinho, é alcançável por teclado e anuncia
+        o estado a quem usa leitor de tela — tudo isso SEM SCRIPT. Uma
+        solução com `useState` esconderia o formulário de quem está sem
+        JavaScript, que é justamente quem não pode perder nada (o mesmo
+        raciocínio da gaveta e da barra de acessibilidade).
+
+        Sem `open`: chega fechado, que é o ponto. Quem está sem script abre
+        do mesmo jeito, porque quem abre é o navegador.
+      */}
+      <details className="painel__envio">
+        <summary className="painel__envio-botao">Subir uma foto</summary>
+        <FormularioMidia />
+      </details>
 
       <h2 className="painel__secao">Fotos já enviadas</h2>
 

@@ -116,9 +116,12 @@ export default async function PaginaDoAcervo(
         "Publicar".
       </p>
 
-      <h2 className="painel__secao">Subir um material</h2>
-
-      <FormularioMaterial />
+      {/* Mesmo desenho de /admin/galeria — ver o comentário de lá para o
+          porquê de `<details>` e não JavaScript. */}
+      <details className="painel__envio">
+        <summary className="painel__envio-botao">Subir um material</summary>
+        <FormularioMaterial />
+      </details>
 
       <h2 className="painel__secao">Materiais já enviados</h2>
 

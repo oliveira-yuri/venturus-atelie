@@ -1,3 +1,4 @@
+import { VerMais } from './VerMais.ts';
 import { createElement, Fragment, type ReactNode } from 'react';
 import type { DoacaoDoPainel } from '@/servidor/dados/doacoes';
 // SÓ O TIPO, e isso é o que torna este arquivo importável por um teste do
@@ -230,9 +231,14 @@ export function ListaDoacoes({ itens, degradou }: PropsListaDoacoes) {
         // registro feito pela equipe) e quatro desfechos — ver `quemDoou`.
         createElement('h2', { className: 'doacao__quem' }, quemDoou(doacao)),
 
+        // TUDO O QUE SE LÊ DEPOIS DE ESCOLHER A LINHA ENTRA NA DOBRA
+        // (pedido V1). Ficam de fora a marca de situação, quem doou e os
+        // BOTÕES. Uma doação EM ABERTO chega aberta: é a que ainda espera
+        // resposta da equipe.
+        VerMais({ rotulo: 'Dados e oferta', aberta: emAberto, children: [
         createElement(
           'dl',
-          { className: 'doacao__ficha' },
+          { className: 'doacao__ficha', key: 'ficha' },
 
           // O e-mail é link de RESPOSTA, não texto: responder é o que a
           // equipe veio fazer, e no celular um toque abre o app de e-mail
@@ -289,7 +295,7 @@ export function ListaDoacoes({ itens, degradou }: PropsListaDoacoes) {
         // some — medido na Tarefa P4).
         createElement(
           'details',
-          { className: 'painel__dobra doacao__dobra', open: emAberto },
+          { className: 'painel__dobra doacao__dobra', open: emAberto, key: 'oferta' },
           createElement(
             'summary',
             { className: 'painel__dobra-titulo' },
@@ -316,7 +322,8 @@ export function ListaDoacoes({ itens, degradou }: PropsListaDoacoes) {
               doacao.resposta
             )
             : null
-        ),
+        )
+        ] }),
 
         createElement(
           'div',

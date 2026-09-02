@@ -1,6 +1,6 @@
 import 'server-only';
 import { obterCliente } from '../supabase';
-import { consultarComEstado, type Degradavel } from './degradacao';
+import { consultarComContagem, consultarComEstado, type Degradavel } from './degradacao';
 
 /**
  * As candidaturas ao voluntariado vistas PELA EQUIPE (RF26) — a outra metade
@@ -144,30 +144,42 @@ type CandidaturaCrua = {
  *     está atrás de uma guarda que responde 404 para todo mundo que não é
  *     equipe, então o que não for medido assim não é medido.
  *
- * SEM LIMITE, e isso é decisão, não esquecimento. Um `.limit(n)` numa fila
- * de pessoas esconde gente sem dizer que escondeu: a de número n+1
- * simplesmente não existe na tela, e ninguém descobre. Enquanto a lista
- * couber numa rolagem longa (a tabela tem UMA linha hoje, de teste —
- * CLAUDE.md, item 0q), o custo é zero. No dia em que não couber, o caminho é
- * filtro por situação com o total escrito na tela, nunca um corte
- * silencioso.
+ * PAGINADA DESDE O PEDIDO V1 — do jeito que o comentário anterior já
+ * exigia: "no dia em que não couber, o caminho é filtro por situação com o
+ * TOTAL ESCRITO NA TELA, nunca um corte silencioso". `count: 'exact'` traz
+ * quantas candidaturas há no total junto com o recorte.
+ *
+ * O `count` CONTA AS CANDIDATURAS, não as linhas do embed. `voluntarios`
+ * é a tabela raiz da consulta, e `perfis`/`voluntario_areas` vêm embutidos
+ * — o PostgREST conta a raiz. Se contasse o embed, uma candidatura com três
+ * áreas valeria três, e a paginação mentiria.
  */
-export async function listarCandidaturas(): Promise<Degradavel<CandidaturaDaEquipe[]>> {
-  const resposta = await consultarComEstado<CandidaturaCrua[]>(
+export async function listarCandidaturas(
+  paginacao?: { de: number; ate: number }
+): Promise<Degradavel<CandidaturaDaEquipe[]> & { total: number | null }> {
+  const resposta = await consultarComContagem<CandidaturaCrua[]>(
     'voluntarios (painel)',
-    async () =>
-      (await obterCliente())
+    async () => {
+      const consulta = (await obterCliente())
         .from('voluntarios')
         .select(
           'id, mensagem, situacao, criado_em,'
           + ' perfis(nome, email, telefone),'
-          + ' voluntario_areas(areas_voluntariado(id, nome))'
+          + ' voluntario_areas(areas_voluntariado(id, nome))',
+          { count: 'exact' }
         )
-        .order('criado_em', { ascending: false }),
+        .order('criado_em', { ascending: false });
+
+      return paginacao ? consulta.range(paginacao.de, paginacao.ate) : consulta;
+    },
     []
   );
 
-  return { degradou: resposta.degradou, valor: resposta.valor.map(achatar) };
+  return {
+    degradou: resposta.degradou,
+    total: resposta.total,
+    valor: resposta.valor.map(achatar)
+  };
 }
 
 /**

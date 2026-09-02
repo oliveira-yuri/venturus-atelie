@@ -1,3 +1,4 @@
+import { VerMais } from './VerMais.ts';
 import { createElement, Fragment, type ReactNode } from 'react';
 import type { Contato } from '@/servidor/dados/contatos';
 // SÓ O TIPO, e isso é o que torna este arquivo importável por um teste do
@@ -246,9 +247,15 @@ export function ListaContatos({ itens, acaoSituacao, degradou }: PropsListaConta
 
           createElement('h2', { className: 'contato__nome' }, contato.nome),
 
+          // TUDO O QUE SE LÊ DEPOIS DE ESCOLHER A LINHA ENTRA NA DOBRA
+          // (pedido V1). Ficam de fora a marca de situação, o nome e os
+          // BOTÕES de triagem — é por eles que se acha a mensagem, e é
+          // neles que se age. Uma mensagem NOVA chega aberta: numa fila de
+          // atendimento, o que ainda espera resposta merece estar à vista.
+          VerMais({ rotulo: 'Dados e mensagem', aberta: nova, children: [
           createElement(
             'dl',
-            { className: 'contato__ficha' },
+            { className: 'contato__ficha', key: 'ficha' },
 
             // O e-mail é link de RESPOSTA, não texto: responder é o que a
             // equipe veio fazer aqui, e no celular um toque abre o app de
@@ -297,7 +304,7 @@ export function ListaContatos({ itens, acaoSituacao, degradou }: PropsListaConta
           // `display: flex` o triângulo nativo do <summary> some).
           createElement(
             'details',
-            { className: 'painel__dobra contato__dobra', open: nova },
+            { className: 'painel__dobra contato__dobra', open: nova, key: 'mensagem' },
             createElement(
               'summary',
               { className: 'painel__dobra-titulo' },
@@ -329,6 +336,7 @@ export function ListaContatos({ itens, acaoSituacao, degradou }: PropsListaConta
           createElement(
             'p',
             {
+              key: 'consentimento',
               className: contato.consentimento_dados
                 ? 'contato__consentimento'
                 : 'contato__consentimento contato__consentimento--sem'
@@ -338,7 +346,8 @@ export function ListaContatos({ itens, acaoSituacao, degradou }: PropsListaConta
                 + 'O formulário do site não grava sem essa autorização.'
               : 'ATENÇÃO: esta mensagem está guardada SEM autorização de uso dos dados. '
                 + 'Não responda por ela antes de falar com quem cuida do site.'
-          ),
+          )
+          ] }),
 
           createElement(
             'div',

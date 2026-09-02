@@ -1946,3 +1946,120 @@ a.numeros__alvo:hover { background: var(--tinta); color: var(--cal); }
    motivo que o `corpo` de uma notícia precisa. O de descrição, na tela de
    registro, idem. */
 .painel__conteudo .campo textarea[name="resposta"] { min-height: 9rem; }
+
+/* ---------------------------------------------------------------------
+   Formulário de envio recolhido (pedido V1)
+
+   `<details>` nativo: o <summary> É o botão, e funciona sem JavaScript.
+   Ver o comentário em app/admin/galeria/page.tsx.
+   --------------------------------------------------------------------- */
+
+.painel__envio { margin: 0 0 var(--espaco-5); }
+
+.painel__envio-botao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  background: var(--tinta);
+  color: var(--cal);
+  border: 1.5px solid var(--tinta);
+  font-family: var(--corpo);
+  font-weight: 600;
+  font-size: var(--texto-base);
+  cursor: pointer;
+  /* `list-style: none` + `::-webkit-details-marker` cobrem os dois
+     navegadores: sem os dois, o triângulo padrão aparece fora do botão. */
+  list-style: none;
+}
+
+.painel__envio-botao::-webkit-details-marker { display: none; }
+
+/* O SINAL DE "ISTO ABRE" É DESENHADO À MÃO porque o triângulo nativo foi
+   removido acima. Sem ele, o <summary> vira um botão que não conta que tem
+   conteúdo embaixo — foi o defeito que a Tarefa P4 encontrou na ficha
+   técnica, quando um `display: flex` comeu o marcador. */
+.painel__envio-botao::before {
+  content: "+";
+  font-weight: 700;
+  font-size: var(--texto-medio);
+  line-height: 1;
+}
+
+.painel__envio[open] > .painel__envio-botao::before { content: "\2212"; }
+
+.painel__envio-botao:hover { background: var(--marrom); }
+
+.painel__envio[open] > .painel__envio-botao { margin-bottom: var(--espaco-3); }
+
+/* A dobra "Ver mais" que comprime o cartão inteiro (pedido V1).
+
+   Ela usa as MESMAS classes da dobra da mensagem (`painel__dobra`), para
+   que a tela tenha um jeito só de dizer "isto abre" — o que muda é só o
+   peso: esta é a dobra do bloco, então o rótulo dela pesa mais que o da
+   dobra de dentro. Ver componentes/VerMais.ts. */
+
+.painel__dobra--detalhes { margin-bottom: var(--espaco-3); }
+
+.painel__dobra--detalhes > .painel__dobra-titulo { font-weight: 700; }
+
+/* A dobra de dentro (a da mensagem) recua, para que se leia como filha
+   desta e não como irmã — sem o recuo, as duas setas empilhadas parecem
+   dois blocos do mesmo nível. */
+.painel__dobra--detalhes .painel__dobra { margin-left: var(--espaco-3); }
+
+/* ---------------------------------------------------------------------
+   Paginação das filas (pedido V1)
+
+   A FRASE COM O TOTAL vem primeiro e é obrigatória — ver o cabeçalho de
+   componentes/Paginacao.ts. Os controles só aparecem quando há mais de uma
+   página, e o link inerte existe para os dois não pularem de lugar.
+   --------------------------------------------------------------------- */
+
+.paginacao { margin: var(--espaco-4) 0 0; }
+
+.paginacao__frase {
+  margin: 0 0 var(--espaco-3);
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+}
+
+.paginacao__controles {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  flex-wrap: wrap;
+}
+
+.paginacao__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--espaco-3);
+  border: 1.5px solid var(--tinta);
+  background: var(--cal);
+  color: var(--tinta);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.paginacao__link:hover { background: var(--tinta); color: var(--cal); }
+
+/* O link que não leva a lugar nenhum (primeira ou última página). Fica
+   VISÍVEL e apagado, e não escondido: sem ele os dois controles pulam de
+   lugar entre uma página e outra, e o dedo que ia em "Próximas" acerta
+   "Anteriores". */
+.paginacao__link--inerte {
+  opacity: 0.35;
+  border-style: dashed;
+  cursor: default;
+}
+
+.paginacao__link--inerte:hover { background: var(--cal); color: var(--tinta); }
+
+.paginacao__onde {
+  font-size: var(--texto-pequeno);
+  color: var(--tinta-suave);
+  margin-inline: auto;
+}

@@ -184,6 +184,62 @@ export type Degradavel<T> = { valor: T; degradou: boolean };
  * `data` nulo SEM `error` não é falha e não vira aviso: é a resposta
  * legítima de `.maybeSingle()` quando não há linha com aquele id.
  */
+/**
+ * O mesmo que `consultarComEstado`, mas guardando a CONTAGEM TOTAL que o
+ * PostgREST devolve junto com um recorte.
+ *
+ * ===================================================================
+ * POR QUE UMA SEGUNDA FUNÇÃO, E NÃO UM PARÂMETRO NA PRIMEIRA
+ * ===================================================================
+ *
+ * Porque o desfecho degradado é DIFERENTE, e é aí que estaria o defeito.
+ * Quando a consulta falha, `consultarComEstado` devolve lista vazia — o
+ * estado vazio da tela já é texto escrito, e "não deu para perguntar"
+ * aparece no aviso `[dados]`. Aqui, além da lista, é preciso devolver um
+ * TOTAL — e o total degradado tem de ser `null`, nunca `0`.
+ *
+ * A distinção não é preciosismo: `0` seria a tela afirmando "não há
+ * mensagem nenhuma" quando a verdade é "não deu para contar". É a mesma
+ * regra que os indicadores da home do painel já seguem — "zero é número;
+ * contagem que falhou é traço".
+ *
+ * ===================================================================
+ * `count` PODE VIR NULO SEM QUE NADA TENHA FALHADO
+ * ===================================================================
+ *
+ * O PostgREST só conta quando a consulta pede (`{ count: 'exact' }`), e
+ * mesmo assim pode devolver `null`. Tratar `null` como zero faria a
+ * paginação sumir com o registro 21 em silêncio — que é exatamente o que
+ * esta paginação existe para impedir.
+ */
+export async function consultarComContagem<T>(
+  tabela: string,
+  executar: () => Promise<{ data: unknown; error: unknown; count?: number | null }>,
+  degradado: T
+): Promise<Degradavel<T> & { total: number | null }> {
+  if (!temSupabase()) {
+    avisarQueNaoHaSupabase(tabela);
+    return { valor: degradado, total: null, degradou: false };
+  }
+
+  try {
+    const { data, error, count } = await executar();
+    if (error) {
+      avisarQueDegradou(tabela, error);
+      return { valor: degradado, total: null, degradou: true };
+    }
+    const total = typeof count === 'number' && Number.isFinite(count) ? count : null;
+    if (data === null || data === undefined) {
+      return { valor: degradado, total, degradou: false };
+    }
+    return { valor: data as T, total, degradou: false };
+  } catch (erro) {
+    repassarSeForControleDoNext(erro);
+    avisarQueDegradou(tabela, erro);
+    return { valor: degradado, total: null, degradou: true };
+  }
+}
+
 export async function consultarComEstado<T>(
   tabela: string,
   executar: () => Promise<{ data: unknown; error: unknown }>,

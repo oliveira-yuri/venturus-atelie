@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ehEquipe } from '@/servidor/permissao';
 import { listarContatos } from '@/servidor/dados/contatos';
+import { paginar, MENSAGENS } from '@/compartilhado/paginacao';
+import { Paginacao } from '@/componentes/Paginacao';
 import { mudarSituacao } from '@/acoes/contatos';
 import { avisoDeContatos } from '@/compartilhado/avisos-do-painel';
 import { montarTriagem } from '@/compartilhado/triagem-de-contatos';
@@ -66,13 +68,35 @@ export default async function PaginaDeContatos(
 ) {
   if (!await ehEquipe()) notFound();
 
-  const { valor: contatos, degradou } = await listarContatos();
+  // PAGINAÇÃO (pedido V1). Duas leituras da URL, e a ordem importa: o
+  // `searchParams` é lido UMA vez e reaproveitado — `await` duas vezes na
+  // mesma Promise funciona, mas ler o mesmo objeto duas vezes num arquivo
+  // convida alguém a mudar um lado só.
+  const parametros = await searchParams;
+
+  // A CONTAGEM VEM ANTES DO RECORTE, e não há como escapar disso: para
+  // saber qual é a página 2 é preciso saber quantas existem. O PostgREST
+  // devolve as duas coisas na mesma consulta (`count: 'exact'`), então é
+  // uma ida ao banco, não duas — mas a primeira chamada usa um recorte
+  // provisório da página pedida, e o `paginar` abaixo corrige o número se
+  // ele passar do fim.
+  const provisoria = paginar(Number.MAX_SAFE_INTEGER, parametros.pagina);
+  const primeira = await listarContatos({ de: provisoria.de, ate: provisoria.ate });
+  const paginacao = paginar(primeira.total ?? 0, parametros.pagina);
+
+  // Se a página pedida passou do fim, `paginar` a trouxe para a última — e
+  // o recorte que já buscamos é o errado. Buscar de novo é o preço de não
+  // mostrar uma tela vazia a quem digitou `?pagina=999`; acontece só nesse
+  // caso, que é raro e é erro de digitação.
+  const { valor: contatos, degradou } = paginacao.de === provisoria.de
+    ? primeira
+    : await listarContatos({ de: paginacao.de, ate: paginacao.ate });
 
   // O resultado da última Action chega pela URL (a Action termina em
   // redirect, que é o que a faz funcionar sem JavaScript, e um redirect não
   // carrega estado). `?aviso=` é escrito por quem quiser, então passa por
   // LISTA FECHADA — o parâmetro escolhe uma frase nossa, nunca traz uma.
-  const aviso = avisoDeContatos((await searchParams).aviso);
+  const aviso = avisoDeContatos(parametros.aviso);
 
   return (
     <main id="conteudo" className="conteudo painel__conteudo">
@@ -119,6 +143,15 @@ export default async function PaginaDeContatos(
         degradou={degradou}
         acaoSituacao={mudarSituacao}
       />
+
+      {/*
+        A PAGINAÇÃO FICA DEPOIS DA LISTA, e não antes: ela é o que se
+        procura DEPOIS de rolar até o fim e não achar o que se queria. E ela
+        não aparece quando a leitura degradou — dizer "página 1 de 1" sobre
+        uma lista que não pôde ser carregada seria afirmar uma contagem que
+        não se tem.
+      */}
+      {degradou ? null : <Paginacao paginacao={paginacao} nome={MENSAGENS} />}
     </main>
   );
 }

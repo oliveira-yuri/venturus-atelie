@@ -423,7 +423,14 @@ test('candidatura sem mensagem não desenha uma dobra que abre para o vazio', ()
   // O campo é opcional no formulário (`mensagem text`, sem `not null`).
   const html = renderizarLista({ candidaturas: [exemplo({ mensagem: null })] });
 
-  assert.doesNotMatch(html, /<details/);
+  // A asserção ficou ESPECÍFICA desde o pedido V1: agora existe SEMPRE uma
+  // dobra, a de "Ver mais", que comprime o cartão inteiro. O que não pode
+  // existir é a dobra DA MENSAGEM quando não há mensagem — uma dobra que
+  // abre para o vazio. `voluntario__dobra` é a classe só dela.
+  assert.doesNotMatch(html, /voluntario__dobra/,
+    'desenhou a dobra da mensagem para uma candidatura que não tem mensagem');
+  assert.match(html, /painel__dobra--detalhes/,
+    'sumiu a dobra "Ver mais" que comprime o cartão');
   assert.match(html, /não escreveu nada além das áreas/);
 });
 
@@ -658,11 +665,20 @@ test('a leitura do painel DECLARA a falha em vez de servir lista vazia calada', 
   assert.notEqual(inicio, -1, 'não achei listarCandidaturas');
   const corpo = codigo.slice(inicio);
 
-  assert.match(corpo, /await\s+consultarComEstado</,
+  // `consultarComContagem` desde a paginação do pedido V1: é o mesmo
+  // `Degradavel`, com o total junto. A exigência não mudou.
+  assert.match(corpo, /await\s+consultarCom(Estado|Contagem)</,
     'listarCandidaturas precisa devolver Degradavel, para a tela distinguir "ninguém se '
     + 'candidatou" de "o banco não respondeu" — a indistinção mais cara desta tela');
-  assert.match(codigo, /Promise<Degradavel<CandidaturaDaEquipe\[\]>>/,
+  assert.match(codigo, /Promise<Degradavel<CandidaturaDaEquipe\[\]>/,
     'a assinatura deixou de devolver Degradavel: a bandeira de falha some do caminho todo');
+
+  // O `count` conta as CANDIDATURAS, não as linhas do embed. Se contasse o
+  // embed, uma candidatura com três áreas valeria três e a paginação
+  // mentiria sobre quantas pessoas se candidataram.
+  assert.match(corpo, /count: 'exact'/,
+    'sem count: exact a tela não sabe quantas candidaturas existem, e a paginação vira '
+    + 'corte silencioso');
   assert.doesNotMatch(codigo, /dados-iniciais/,
     'apareceu uma cópia versionada de candidatura: seria dado pessoal de terceiro dentro do '
     + 'repositório');

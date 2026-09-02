@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ehEquipe } from '@/servidor/permissao';
 import { listarCandidaturas } from '@/servidor/dados/voluntarios';
+import { paginar, CANDIDATURAS } from '@/compartilhado/paginacao';
+import { Paginacao } from '@/componentes/Paginacao';
 import { mudarSituacaoDaCandidatura } from '@/acoes/voluntarios';
 import { avisoDeVoluntarios } from '@/compartilhado/avisos-do-painel';
 import { montarTriagemDeVoluntarios } from '@/compartilhado/triagem-de-voluntarios';
@@ -69,13 +71,21 @@ export default async function PaginaDeVoluntarios(
 ) {
   if (!await ehEquipe()) notFound();
 
-  const { valor: candidaturas, degradou } = await listarCandidaturas();
+  // PAGINAÇÃO (pedido V1) — ver o mesmo bloco em app/admin/contatos/page.tsx
+  // para o porquê da contagem vir antes do recorte.
+  const parametros = await searchParams;
+  const provisoria = paginar(Number.MAX_SAFE_INTEGER, parametros.pagina);
+  const primeira = await listarCandidaturas({ de: provisoria.de, ate: provisoria.ate });
+  const paginacao = paginar(primeira.total ?? 0, parametros.pagina);
+  const { valor: candidaturas, degradou } = paginacao.de === provisoria.de
+    ? primeira
+    : await listarCandidaturas({ de: paginacao.de, ate: paginacao.ate });
 
   // O resultado da última Action chega pela URL (a Action termina em
   // redirect, que é o que a faz funcionar sem JavaScript, e um redirect não
   // carrega estado). `?aviso=` é escrito por quem quiser, então passa por
   // LISTA FECHADA — o parâmetro escolhe uma frase nossa, nunca traz uma.
-  const aviso = avisoDeVoluntarios((await searchParams).aviso);
+  const aviso = avisoDeVoluntarios(parametros.aviso);
 
   return (
     <main id="conteudo" className="conteudo painel__conteudo">
@@ -122,6 +132,14 @@ export default async function PaginaDeVoluntarios(
         degradou={degradou}
         acaoSituacao={mudarSituacaoDaCandidatura}
       />
+
+      {/*
+        A PAGINAÇÃO FICA DEPOIS DA LISTA — ver o mesmo bloco em
+        app/admin/contatos/page.tsx. Ela não aparece quando a leitura
+        degradou: dizer "página 1 de 1" sobre uma lista que não pôde ser
+        carregada seria afirmar uma contagem que não se tem.
+      */}
+      {degradou ? null : <Paginacao paginacao={paginacao} nome={CANDIDATURAS} />}
     </main>
   );
 }

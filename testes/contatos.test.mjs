@@ -578,9 +578,22 @@ test('nenhuma Action espalha o que veio da requisição num objeto', async () =>
 test('a leitura do painel DECLARA a falha em vez de servir lista vazia calada', async () => {
   const codigo = await fonte('../servidor/dados/contatos.ts');
 
-  assert.match(codigo, /consultarComEstado/,
+  // `consultarComContagem` desde a paginação do pedido V1: é o mesmo
+  // `Degradavel`, com o TOTAL junto. A exigência não mudou — a tela precisa
+  // distinguir "ninguém escreveu" de "o banco não respondeu", que é a
+  // indistinção mais cara desta tela.
+  assert.match(codigo, /consultarCom(Estado|Contagem)/,
     'listarContatos precisa devolver Degradavel, para a tela distinguir "ninguém escreveu" de '
     + '"o banco não respondeu" — a indistinção mais cara desta tela');
+
+  // E O TOTAL DEGRADADO PRECISA SER NULO, nunca zero: `0` seria a tela
+  // afirmando "não há mensagem nenhuma" quando a verdade é "não deu para
+  // contar". É a mesma regra dos indicadores da home do painel — zero é
+  // número, contagem que falhou é traço.
+  const helper = await fonte('../servidor/dados/degradacao.ts');
+  assert.match(helper, /total: null, degradou: true/,
+    'consultarComContagem devolve um total numérico quando a consulta falha — a paginação '
+    + 'passaria a afirmar uma contagem que não existe');
   assert.doesNotMatch(codigo, /dados-iniciais/,
     'apareceu uma cópia versionada de mensagem: seria dado pessoal de terceiro dentro do '
     + 'repositório');

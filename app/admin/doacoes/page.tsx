@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ehEquipe } from '@/servidor/permissao';
 import { listarDoacoesDoPainel } from '@/servidor/dados/doacoes';
+import { paginar, DOACOES } from '@/compartilhado/paginacao';
+import { Paginacao } from '@/componentes/Paginacao';
 import { avisoDeDoacoes } from '@/compartilhado/avisos-do-painel';
 import { montarAnalise } from '@/compartilhado/doacoes';
 import { ListaDoacoes } from '@/componentes/ListaDoacoes';
@@ -62,13 +64,21 @@ export default async function PaginaDeDoacoes(
 ) {
   if (!await ehEquipe()) notFound();
 
-  const { valor: doacoes, degradou } = await listarDoacoesDoPainel();
+  // PAGINAÇÃO (pedido V1) — ver o mesmo bloco em app/admin/contatos/page.tsx
+  // para o porquê da contagem vir antes do recorte.
+  const parametros = await searchParams;
+  const provisoria = paginar(Number.MAX_SAFE_INTEGER, parametros.pagina);
+  const primeira = await listarDoacoesDoPainel({ de: provisoria.de, ate: provisoria.ate });
+  const paginacao = paginar(primeira.total ?? 0, parametros.pagina);
+  const { valor: doacoes, degradou } = paginacao.de === provisoria.de
+    ? primeira
+    : await listarDoacoesDoPainel({ de: paginacao.de, ate: paginacao.ate });
 
   // O resultado da última Action chega pela URL (a Action termina em
   // redirect, que é o que a faz funcionar sem JavaScript, e um redirect não
   // carrega estado). `?aviso=` é escrito por quem quiser, então passa por
   // LISTA FECHADA — o parâmetro escolhe uma frase nossa, nunca traz uma.
-  const aviso = avisoDeDoacoes((await searchParams).aviso);
+  const aviso = avisoDeDoacoes(parametros.aviso);
 
   return (
     <main id="conteudo" className="conteudo painel__conteudo">
@@ -126,6 +136,14 @@ export default async function PaginaDeDoacoes(
         função.
       */}
       <ListaDoacoes itens={montarAnalise(doacoes)} degradou={degradou} />
+
+      {/*
+        A PAGINAÇÃO FICA DEPOIS DA LISTA — ver o mesmo bloco em
+        app/admin/contatos/page.tsx. Ela não aparece quando a leitura
+        degradou: dizer "página 1 de 1" sobre uma lista que não pôde ser
+        carregada seria afirmar uma contagem que não se tem.
+      */}
+      {degradou ? null : <Paginacao paginacao={paginacao} nome={DOACOES} />}
     </main>
   );
 }
