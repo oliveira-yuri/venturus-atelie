@@ -293,7 +293,10 @@ export async function ofertar(
   // doação APARECE, com a situação escrita. Uma confirmação que mostra o
   // registro vale mais que uma que promete que ele existe — e é a mesma
   // tela onde a pessoa vai acompanhar a resposta da ONG (RF22).
-  redirect(`${MINHA_CONTA}?aviso=doacao`);
+  // PARA A HOME, pelo mesmo motivo da candidatura (pedido V1: "mostrar
+  // popup/na página agradecimento pela doação"). O link para acompanhar a
+  // oferta vai dentro do aviso — ver compartilhado/avisos-da-home.ts.
+  redirect('/?aviso=doacao');
 }
 
 /**

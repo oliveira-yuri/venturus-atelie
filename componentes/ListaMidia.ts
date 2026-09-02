@@ -232,7 +232,15 @@ export function ListaMidia(
             autorizada
               ? createElement(
                 'form',
-                { action: acaoPorNoAr, className: 'midia__form' },
+                {
+                  action: acaoPorNoAr,
+                  className: 'midia__form',
+                  'data-confirmar-titulo': noAr ? 'Tirar a foto do ar?' : 'Pôr a foto no ar?',
+                  'data-confirmar': noAr
+                    ? 'A foto sai da galeria do site. O ARQUIVO leva até uma hora para deixar de abrir para quem já tem o endereço — os links assinados que já saíram continuam valendo até vencer. Para o caso urgente da autorização de imagem, use "Apagar".'
+                    : 'A foto passa a aparecer na galeria, para qualquer pessoa que visite o site.',
+                  'data-confirmar-rotulo': noAr ? 'Tirar do ar' : 'Pôr no ar'
+                },
                 createElement('input', { type: 'hidden', name: 'id', value: midia.id }),
                 createElement('input', {
                   type: 'hidden', name: 'acao', value: noAr ? 'despublicar' : 'publicar'

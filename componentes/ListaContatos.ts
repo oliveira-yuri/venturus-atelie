@@ -365,7 +365,17 @@ export function ListaContatos({ itens, acaoSituacao, degradou }: PropsListaConta
             // continua sendo um POST comum, que a Action atende igual.
             ...destinos.map((destino) => createElement(
               'form',
-              { action: acaoSituacao, className: 'contato__form', key: destino.valor },
+              {
+                action: acaoSituacao,
+                className: 'contato__form',
+                key: destino.valor,
+                // Confirmação do pedido V1. Mudar a situação não apaga nada
+                // e se desfaz voltando — por isso a frase diz o que muda,
+                // sem drama, e não pede palavra digitada.
+                'data-confirmar-titulo': 'Mudar o andamento?',
+                'data-confirmar': `A mensagem de ${contato.nome} passa a aparecer como "${destino.rotulo ?? destino.botao}". Dá para voltar atrás depois, no mesmo lugar.`,
+                'data-confirmar-rotulo': destino.botao
+              },
               createElement('input', { type: 'hidden', name: 'id', value: contato.id }),
               createElement('input', { type: 'hidden', name: 'situacao', value: destino.valor }),
               createElement(

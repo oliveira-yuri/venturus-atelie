@@ -126,7 +126,27 @@ export default async function PaginaDeApagar(
         não pode é `ehEquipe()` na Action e a RLS no banco (regras 5 e 6 do
         CLAUDE.md).
       */}
-      <form action={apagarMidia} className="apagar__form">
+      {/*
+        CONFIRMAÇÃO DUPLA (pedido V1). Esta página já É a primeira
+        confirmação — ela existe desde a Tarefa P3 porque um `confirm()` não
+        existe sem JavaScript. O diálogo se SOMA a ela, e exige digitar
+        APAGAR: dois cliques seguidos, num celular, são um gesto só (o dedo
+        já está descendo), e só a digitação obriga a pessoa a parar e ler.
+
+        A palavra é curta de propósito. Fazer digitar a descrição da foto
+        seria proteção que vira obstáculo num teclado de celular (regra 4).
+
+        Sem JavaScript o diálogo não aparece, e a proteção que resta é esta
+        página inteira — que é exatamente o que ela foi feita para ser.
+      */}
+      <form
+        action={apagarMidia}
+        className="apagar__form"
+        data-confirmar-titulo="Apagar esta foto para sempre?"
+        data-confirmar="O arquivo sai do bucket e não volta. Todo link já emitido para ela deixa de abrir no mesmo instante — é por isso que apagar é o caminho para o caso urgente da autorização de imagem."
+        data-confirmar-rotulo="Apagar para sempre"
+        data-confirmar-palavra="APAGAR"
+      >
         <input type="hidden" name="id" value={midia.id} />
         <button type="submit" className="apagar__botao">Apagar esta foto para sempre</button>
       </form>

@@ -228,7 +228,15 @@ export function ListaEventosPainel(
 
             createElement(
               'form',
-              { action: acaoAlternar, className: 'evento-painel__form' },
+              {
+                action: acaoAlternar,
+                className: 'evento-painel__form',
+                'data-confirmar-titulo': publicado ? 'Tirar da agenda?' : 'Publicar na agenda?',
+                'data-confirmar': publicado
+                  ? `"${evento.titulo}" sai da agenda pública. Quem já se inscreveu continua inscrito.`
+                  : `"${evento.titulo}" vai para a agenda e passa a aceitar inscrições.`,
+                'data-confirmar-rotulo': publicado ? 'Tirar da agenda' : 'Publicar'
+              },
               createElement('input', { type: 'hidden', name: 'id', value: evento.id }),
               createElement('input', {
                 type: 'hidden', name: 'acao', value: publicado ? 'despublicar' : 'publicar'

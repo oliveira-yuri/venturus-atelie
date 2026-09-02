@@ -185,7 +185,15 @@ export function ListaAtividades(
 
             createElement(
               'form',
-              { action: acaoAlternar, className: 'atividade-painel__form' },
+              {
+                action: acaoAlternar,
+                className: 'atividade-painel__form',
+                'data-confirmar-titulo': noAr ? 'Tirar da página de projetos?' : 'Pôr de volta no ar?',
+                'data-confirmar': noAr
+                  ? `"${atividade.titulo}" some da página de projetos do site. O texto continua guardado e dá para pôr de volta.`
+                  : `"${atividade.titulo}" volta a aparecer na página de projetos.`,
+                'data-confirmar-rotulo': noAr ? 'Tirar do ar' : 'Pôr de volta'
+              },
               createElement('input', { type: 'hidden', name: 'id', value: atividade.id }),
               createElement('input', {
                 type: 'hidden', name: 'acao', value: noAr ? 'despublicar' : 'publicar'

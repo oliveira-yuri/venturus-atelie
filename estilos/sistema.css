@@ -856,3 +856,101 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
 @media (prefers-reduced-motion: reduce) {
   .af-tile { transition: none !important; }
 }
+
+/* ---------------------------------------------------------------------
+   Diálogo de confirmação (pedido V1)
+
+   `<dialog>` nativo, aberto com `showModal()` — o fundo fica inerte, Esc
+   fecha e o foco fica preso dentro sem uma linha de JavaScript nossa.
+   Reimplementar prisão de foco à mão é onde este tipo de componente
+   costuma errar.
+
+   O desenho é o do sistema: canto vivo, borda de 1,5px, sombra dura
+   deslocada. Não há variante "flutuante suave" — o sistema é de papel
+   recortado, e um diálogo é uma peça a mais por cima.
+   --------------------------------------------------------------------- */
+
+.af-dialogo {
+  /* `max-width` em rem, não em vw: o diálogo cresce junto com o A+, como o
+     resto do site. */
+  width: calc(100% - 2 * var(--af-gutter));
+  max-width: 28rem;
+  padding: 0;
+  border: var(--af-border);
+  border-radius: 0;
+  background: var(--af-card);
+  color: var(--af-brown);
+  box-shadow: var(--af-shadow-lg);
+}
+
+/* O fundo escurecido é do navegador; aqui só a cor, que é a mesma do scrim
+   da gaveta — o site tem UM jeito de dizer "o que está atrás está inerte". */
+.af-dialogo::backdrop { background: var(--af-scrim); }
+
+.af-dialogo__caixa { padding: var(--af-s9) var(--af-gutter-card); }
+
+.af-dialogo__titulo {
+  margin: 0 0 var(--af-s5);
+  font: 700 var(--af-h2) / var(--af-lh-tight) var(--af-font);
+}
+
+.af-dialogo__corpo {
+  margin: 0 0 var(--af-s8);
+  font: 400 var(--af-body) / var(--af-lh-body) var(--af-font);
+  color: var(--af-brown-400);
+}
+
+.af-dialogo__campo { margin: 0 0 var(--af-s8); }
+
+.af-dialogo__campo label {
+  display: block;
+  margin-bottom: var(--af-s3);
+  font: 400 var(--af-body-sm) var(--af-font);
+}
+
+.af-dialogo__campo input {
+  width: 100%;
+  min-height: var(--af-touch-min);
+  padding: 0 var(--af-s5);
+  border: var(--af-border);
+  border-radius: var(--af-radius-control);
+  background: var(--af-cream);
+  color: var(--af-brown);
+  font: 600 var(--af-body) var(--af-font);
+}
+
+/* Em coluna no celular, e o CANCELAR EM CIMA: numa tela pequena o botão
+   sob o polegar precisa ser o que não faz nada. Lado a lado a partir do
+   tablet, onde o dedo não está a caminho de um alvo só. */
+.af-dialogo__acoes { display: flex; flex-direction: column; gap: var(--af-s4); }
+
+.af-dialogo__cancelar,
+.af-dialogo__confirmar {
+  min-height: var(--af-touch-cta);
+  padding: 6px var(--af-s9);
+  border: 1.5px solid var(--af-brown);
+  border-radius: 0;
+  font: 600 var(--af-body) var(--af-font);
+  cursor: pointer;
+}
+
+.af-dialogo__cancelar { background: transparent; color: var(--af-brown); }
+.af-dialogo__cancelar:hover { background: rgba(43, 32, 25, .06); }
+
+.af-dialogo__confirmar { background: var(--af-brown); color: var(--af-cream); }
+.af-dialogo__confirmar:hover:not(:disabled) { background: var(--af-brown-800); }
+
+/* Desabilitado enquanto a palavra não confere. `opacity` sozinha não
+   bastaria — o `cursor` é o segundo sinal, para quem não distingue o tom. */
+.af-dialogo__confirmar:disabled { opacity: .45; cursor: not-allowed; }
+
+/* O confirmar de ação DESTRUTIVA não muda de cor para vermelho: o sistema
+   não tem vermelho, e inventar um tom aqui quebraria a paleta da ONG
+   (regra 3). O que marca o perigo é a exigência de digitar a palavra —
+   que é sinal de comportamento, não de cor, e alcança quem não vê cor. */
+.af-dialogo__confirmar--perigo { border-width: 3px; }
+
+@media (min-width: 30rem) {
+  .af-dialogo__acoes { flex-direction: row-reverse; justify-content: flex-start; }
+  .af-dialogo__acoes > * { flex: 0 0 auto; }
+}

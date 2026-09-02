@@ -125,7 +125,20 @@ export default async function PaginaDeApagarMaterial(
         não pode é `ehEquipe()` na Action e a RLS no banco (regras 5 e 6 do
         CLAUDE.md).
       */}
-      <form action={apagarMaterial} className="apagar__form">
+      {/*
+        CONFIRMAÇÃO DUPLA (pedido V1) — ver o mesmo bloco em
+        app/admin/galeria/apagar/page.tsx. Esta página é a primeira
+        confirmação e funciona sem JavaScript; o diálogo se soma a ela e
+        exige digitar APAGAR.
+      */}
+      <form
+        action={apagarMaterial}
+        className="apagar__form"
+        data-confirmar-titulo="Apagar este material para sempre?"
+        data-confirmar="O arquivo sai do acervo e não volta. Quem tiver o endereço dele deixa de conseguir abrir. É o único gesto que remove o arquivo de verdade — 'tirar do ar' esconde só da página."
+        data-confirmar-rotulo="Apagar para sempre"
+        data-confirmar-palavra="APAGAR"
+      >
         <input type="hidden" name="id" value={material.id} />
         <button type="submit" className="apagar__botao">Apagar este material para sempre</button>
       </form>

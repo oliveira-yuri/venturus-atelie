@@ -5,6 +5,12 @@ import '@/estilos/admin.css';
 // em `.painel` — especificidade maior que a das regras de admin.css —,
 // então não precisa (nem deve) ser reimportada aqui.
 import { ehEquipe } from '@/servidor/permissao';
+// A confirmação das ações (pedido V1). Montada UMA vez, aqui, e não em cada
+// lista: ela escuta o `submit` no documento e intercepta todo <form> com
+// `data-confirmar` — inclusive os que ainda não existem. Fica no layout do
+// PAINEL, não no raiz, para não mandar este JavaScript às páginas públicas,
+// que não têm ação a confirmar. Ver o cabeçalho do componente.
+import ConfirmacaoDeAcoes from '@/componentes/ConfirmacaoDeAcoes';
 
 /**
  * A GUARDA DO PAINEL (RF33/RF34/RN05). Tudo que estiver sob `app/admin/`
@@ -129,5 +135,10 @@ export default async function LayoutDoPainel({ children }: { children: React.Rea
   // escrito em compartilhado/permissao-de-equipe.ts.
   if (!await ehEquipe()) notFound();
 
-  return <div className="painel">{children}</div>;
+  return (
+    <div className="painel">
+      {children}
+      <ConfirmacaoDeAcoes />
+    </div>
+  );
 }

@@ -32,6 +32,7 @@
 import Link from 'next/link';
 import { listarClippingComOrigem } from '@/servidor/dados/conteudo';
 import { avisoDaHome } from '@/compartilhado/avisos-da-home';
+import AvisoDaHome from '@/componentes/AvisoDaHome';
 import { SecaoNaMidia } from '@/componentes/SecaoNaMidia';
 
 export default async function Home(
@@ -63,13 +64,7 @@ export default async function Home(
         mantém testes/paridade-texto.test.mjs comparando o texto desta
         página com o do HTML original sem precisar excluir esta parte.
       */}
-      {aviso ? (
-        <div className="conteudo">
-          <div className={aviso.ok ? 'aviso aviso--sucesso' : 'aviso aviso--erro'} role="status">
-            <p>{aviso.texto}</p>
-          </div>
-        </div>
-      ) : null}
+      {aviso ? <AvisoDaHome aviso={aviso} /> : null}
       {/*
         HERÓI — `index.html` §4. Ordem no DOM: cartão primeiro, imagem
         depois (é o que `Home 1a Desktop.dc.html` desenha: cartão à

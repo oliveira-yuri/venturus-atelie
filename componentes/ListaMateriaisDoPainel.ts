@@ -221,7 +221,15 @@ export function ListaMateriaisDoPainel(
 
             createElement(
               'form',
-              { action: acaoAlternar, className: 'material__form' },
+              {
+                action: acaoAlternar,
+                className: 'material__form',
+                'data-confirmar-titulo': noAr ? 'Tirar o material do ar?' : 'Pôr o material no ar?',
+                'data-confirmar': noAr
+                  ? `"${material.titulo}" sai da página do acervo. ATENÇÃO: o arquivo fica num endereço público — quem já tiver o link continua conseguindo abrir. Para remover o arquivo de verdade, use "Apagar".`
+                  : `"${material.titulo}" passa a aparecer no acervo, para qualquer pessoa baixar.`,
+                'data-confirmar-rotulo': noAr ? 'Tirar do ar' : 'Pôr no ar'
+              },
               createElement('input', { type: 'hidden', name: 'id', value: material.id }),
               createElement('input', {
                 type: 'hidden', name: 'acao', value: noAr ? 'despublicar' : 'publicar'

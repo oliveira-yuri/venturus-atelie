@@ -356,11 +356,23 @@ test('o insert da candidatura PEDE a linha de volta — o contrário de acoes/co
     'sem `.select("id")` não há como saber o id da candidatura, e as áreas se perdem');
 });
 
-test('a Action termina em redirect para a área do usuário, e ele fica FORA do try', async () => {
+test('a Action termina em redirect para a HOME com aviso, e ele fica FORA do try', async () => {
   const codigo = semComentarios(await lerFonte('acoes/voluntariado.ts'));
 
-  assert.match(codigo, /redirect\(`\$\{MINHA_CONTA\}\?aviso=/,
-    'a confirmação precisa levar para onde a candidatura APARECE');
+  // MUDOU NO PEDIDO V1: "popup assim que uma candidatura for feita, e ser
+  // redirecionado para a home". Antes ia para /minha-conta, com o argumento
+  // de que uma confirmação que MOSTRA o registro vale mais que uma que o
+  // promete. O argumento não foi descartado — virou o link "Ver minha
+  // candidatura" dentro do próprio aviso (compartilhado/avisos-da-home.ts),
+  // e é o teste de confirmacao.test.mjs que observa o aviso.
+  assert.match(codigo, /redirect\(`\/\?aviso=/,
+    'a candidatura precisa terminar na home, com o aviso que vira popup');
+
+  // `revalidatePath('/minha-conta')` CONTINUA obrigatório: a lista de
+  // candidaturas de lá acabou de mudar, e sem a revalidação a pessoa que
+  // clicar em "Ver minha candidatura" veria a página em cache, sem ela.
+  assert.match(codigo, /revalidatePath\(MINHA_CONTA\)/,
+    'sem revalidar /minha-conta, o link do aviso leva a uma página sem a candidatura nova');
 
   // `redirect()` sinaliza por exceção: um catch em volta o transformaria em
   // "não deu para enviar" logo depois de uma gravação bem-sucedida.

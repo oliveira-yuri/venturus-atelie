@@ -373,7 +373,19 @@ export function ListaVoluntarios({ itens, acaoSituacao, degradou }: PropsListaVo
             // continua sendo um POST comum, que a Action atende igual.
             ...destinos.map((destino) => createElement(
               'form',
-              { action: acaoSituacao, className: 'voluntario__form', key: destino.valor },
+              {
+                action: acaoSituacao,
+                className: 'voluntario__form',
+                key: destino.valor,
+                // "Encerrar" é a única ação do painel que muda o que OUTRA
+                // pessoa pode fazer no site: quem é encerrado volta a poder
+                // se candidatar. A frase precisa dizer isso.
+                'data-confirmar-titulo': 'Mudar a situação da candidatura?',
+                'data-confirmar': destino.valor === 'inativo'
+                  ? `A candidatura de ${quem} é encerrada. Ela deixa de aparecer como em andamento — e volta a poder se candidatar pelo site.`
+                  : `A candidatura de ${quem} passa a aparecer como "${destino.rotulo ?? destino.botao}". Dá para mudar de novo depois.`,
+                'data-confirmar-rotulo': destino.botao
+              },
               createElement('input', { type: 'hidden', name: 'id', value: candidatura.id }),
               createElement('input', { type: 'hidden', name: 'situacao', value: destino.valor }),
               createElement(

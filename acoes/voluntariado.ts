@@ -356,5 +356,13 @@ export async function candidatar(
   // candidatura APARECE, com a situação e as áreas escritas. Uma
   // confirmação que mostra o registro vale mais que uma que promete que ele
   // existe — e é a mesma tela onde a pessoa vai acompanhar o resto (RF11).
-  redirect(`${MINHA_CONTA}?aviso=${areasGravadas ? 'candidatura' : 'candidatura-sem-areas'}`);
+  // PARA A HOME, e não para /minha-conta (pedido V1: "popup assim que uma
+  // candidatura for feita, e ser redirecionado para a home").
+  //
+  // A decisão anterior mandava para /minha-conta com um argumento bom: uma
+  // confirmação que MOSTRA o registro vale mais que uma que o promete. Ele
+  // não foi descartado — virou o link "Ver minha candidatura" dentro do
+  // próprio aviso (compartilhado/avisos-da-home.ts). O registro continua a
+  // um toque; o que mudou é onde a pessoa aterrissa.
+  redirect(`/?aviso=${areasGravadas ? 'candidatura' : 'candidatura-sem-areas'}`);
 }

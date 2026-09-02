@@ -178,7 +178,18 @@ export function ListaPublicacoes(
 
             createElement(
               'form',
-              { action: acaoAlternar, className: 'publicacao__form' },
+              {
+                action: acaoAlternar,
+                className: 'publicacao__form',
+                // Confirmação do pedido V1. O atributo é lido por
+                // componentes/ConfirmacaoDeAcoes.tsx, montado uma vez no
+                // layout do painel — a lista não conhece o diálogo.
+                'data-confirmar-titulo': publicada ? 'Tirar do ar?' : 'Publicar?',
+                'data-confirmar': publicada
+                  ? `"${publicacao.titulo}" sai da página de notícias e deixa de ser vista por quem visita o site. A data de publicação fica guardada.`
+                  : `"${publicacao.titulo}" vai para a página de notícias e passa a ser vista por qualquer pessoa.`,
+                'data-confirmar-rotulo': publicada ? 'Tirar do ar' : 'Publicar'
+              },
               createElement('input', { type: 'hidden', name: 'id', value: publicacao.id }),
               createElement('input', {
                 type: 'hidden', name: 'acao', value: publicada ? 'despublicar' : 'publicar'
