@@ -89,6 +89,20 @@ const SEM_REDIRECT_DE_PROPOSITO = ['admin/index.html'];
  */
 const PAGINAS_SEM_URL_ANTIGA = [
   '/nova-senha',
+  /*
+   * AS DUAS ROTAS DE DETALHE (pedido V1, 02/09/2026).
+   *
+   * O site antigo tinha `projetos.html` e `noticias.html` — as LISTAS —, e
+   * elas continuam com o redirect delas. O que nunca existiu foi uma
+   * página por atividade ou por notícia: no site antigo o conteúdo inteiro
+   * ficava dentro da lista, num acordeão.
+   *
+   * Cobrar redirect de `/projetos/<id>` seria inventar uma URL que nunca
+   * respondeu nada. E não haveria como escrevê-la: os ids são `text` do
+   * seed, e o arquivo antigo não os conhecia.
+   */
+  '/projetos/[id]',
+  '/noticias/[id]',
   // Tarefa P2 do painel. As duas telas de publicações NUNCA existiram como
   // arquivo: a home do painel antigo (hoje congelada em
   // testes/apoio/html-original/admin/index.html) LINKAVA para "publicacoes",

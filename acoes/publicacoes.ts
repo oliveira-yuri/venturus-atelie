@@ -72,6 +72,7 @@ import { temSupabase, descrever } from '@/servidor/dados/degradacao';
 import { ehEquipe } from '@/servidor/permissao';
 import { buscarPublicacao } from '@/servidor/dados/publicacoes';
 import { lerPublicacao, validarPublicacao, lerAlternancia } from '@/compartilhado/validacao';
+import { subirImagemInstitucional, apagarImagemInstitucional } from '@/servidor/upload-de-imagem';
 import type { EstadoFormulario } from './autenticacao';
 
 /** A tela para onde tudo volta. */
@@ -142,7 +143,14 @@ export async function salvarPublicacao(
     id: campos.id,
     titulo: campos.titulo,
     resumo: campos.resumo,
-    corpo: campos.corpo
+    corpo: campos.corpo,
+    // O ARQUIVO NÃO VOLTA, e não pode: um <input type="file"> não aceita
+    // valor por HTML (é regra do navegador, não escolha nossa). O que
+    // volta é o alt escrito e o caminho já gravado — assim uma recusa de
+    // título não faz a pessoa perder a descrição que ela acabou de
+    // escrever, nem apaga a imagem que já estava lá.
+    imagem_alt: campos.imagem_alt ?? '',
+    imagem_atual: campos.imagem_atual ?? ''
   };
 
   if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros, valores };
@@ -155,10 +163,47 @@ export async function salvarPublicacao(
   // `resumo` vazio vira NULL, e não string vazia — a coluna aceita nulo, e a
   // tela de notícias omite o que é nulo (regra 2 do CLAUDE.md aplicada a
   // campo). Guardar '' faria a página desenhar um parágrafo vazio.
+  // A IMAGEM SOBE ANTES DA LINHA, e a ordem tem consequência: se a
+  // gravação falhar depois, o arquivo já está no bucket. Por isso
+  // `subiuAgora` é guardado e o `catch`/falha apaga o órfão — mesma
+  // disciplina de `acoes/galeria.ts`.
+  let caminhoDaImagem: string | null = campos.imagem_atual || null;
+  let subiuAgora: string | null = null;
+
+  const arquivo = campos.arquivo;
+  if (arquivo instanceof File && arquivo.size > 0) {
+    const envio = await subirImagemInstitucional(arquivo, 'noticias');
+
+    if (!envio.ok) {
+      return {
+        ok: false,
+        valores,
+        mensagem: CONFIRA_OS_CAMPOS,
+        erros: {
+          arquivo: envio.motivo === 'nao-e-imagem'
+            ? 'Este arquivo não é uma imagem que o site saiba mostrar. Aceitamos JPG, PNG, GIF '
+              + 'e WebP — que é o que sai da câmera do celular.'
+            : 'Não deu para subir a imagem agora. O texto continua nesta tela: tente de novo.'
+        }
+      };
+    }
+
+    caminhoDaImagem = envio.caminho;
+    subiuAgora = envio.caminho;
+  }
+
+  // Chave por chave, nunca `...campos`: ver o cabeçalho deste arquivo.
+  // `resumo` vazio vira NULL, e não string vazia — a coluna aceita nulo, e a
+  // tela de notícias omite o que é nulo (regra 2 do CLAUDE.md aplicada a
+  // campo). Guardar '' faria a página desenhar um parágrafo vazio.
   const linha = {
     titulo: campos.titulo,
     resumo: campos.resumo || null,
-    corpo: campos.corpo
+    corpo: campos.corpo,
+    imagem_caminho: caminhoDaImagem,
+    // Alt vazio com imagem não chega aqui (validarPublicacao recusou), e
+    // sem imagem ele vira NULL — o `check` da tabela exige exatamente isso.
+    imagem_alt: caminhoDaImagem ? (campos.imagem_alt || null) : null
   };
 
   const editando = Boolean(campos.id);
@@ -207,7 +252,13 @@ export async function salvarPublicacao(
     falha = { ok: false, mensagem: naoDeuParaGravar(), valores };
   }
 
-  if (falha) return falha;
+  if (falha) {
+    // O ARQUIVO JÁ ESTÁ NO BUCKET e a linha não foi gravada: sem esta
+    // limpeza, cada tentativa malsucedida deixaria um órfão. Só apaga o
+    // que ESTA chamada subiu — nunca a imagem que já estava na notícia.
+    if (subiuAgora) await apagarImagemInstitucional(subiuAgora);
+    return falha;
+  }
 
   // Só a página pública precisa ser revalidada aqui: a lista do painel é
   // re-renderizada pelo próprio redirect abaixo. Editar uma notícia JÁ

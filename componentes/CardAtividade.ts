@@ -41,52 +41,54 @@ import type { Atividade } from '@/servidor/dados/conteudo';
  * o "padrão de teste" que as protege — a lição que a Tarefa A2 deixou
  * (revisão apontou um componente replicado sem o teste que o acompanha).
  */
-export function CardAtividade({ atividade }: { atividade: Atividade }) {
-  const camposFicha: Array<[string, string | null]> = [
-    ['Gênero', atividade.genero],
-    ['Duração', atividade.duracao],
-    ['Elenco', atividade.elenco],
-    ['Classificação', atividade.classificacao],
-    ['Local', atividade.local],
-    ['Precisa de', atividade.rider]
-  ];
-  const ficha = camposFicha.filter(
-    (campo): campo is [string, string] => Boolean(campo[1])
-  );
-
+export function CardAtividade({ atividade, capa }: { atividade: Atividade; capa?: string | null }) {
   return createElement(
     'div',
     { className: 'card-atividade' },
     createElement(
       'article',
       { className: 'atividade', id: atividade.id },
-      createElement('h2', { className: 'atividade__titulo' }, atividade.titulo),
+
+      // A CAPA, quando há (pedido V1, migration 009). `alt` vem do banco e
+      // é obrigatório quando há imagem — o `check` da 009 recusa a linha
+      // sem ele.
+      capa
+        ? createElement('img', {
+          className: 'atividade__capa',
+          src: capa,
+          alt: atividade.imagem_alt ?? '',
+          loading: 'lazy',
+          decoding: 'async'
+        })
+        : null,
+
+      createElement('h2', { className: 'atividade__titulo' },
+        // O TÍTULO É O LINK, e não um "Saber mais" solto ao lado: numa
+        // lista de onze cartões, onze links com o mesmo texto obrigam quem
+        // navega saltando de link em link a adivinhar qual é qual. O botão
+        // "Saber mais" existe embaixo, para o dedo, e leva o nome dentro.
+        createElement('a', { className: 'atividade__link', href: `/projetos/${atividade.id}` },
+          atividade.titulo)),
+
       atividade.resumo
         ? createElement('p', { className: 'atividade__resumo' }, atividade.resumo)
         : null,
-      atividade.descricao
-        ? createElement(
-            Fragment,
-            null,
-            ...atividade.descricao.split('\n\n').map((paragrafo, indice) =>
-              createElement('p', { key: indice }, paragrafo)
-            )
-          )
-        : null,
-      ficha.length > 0
-        ? createElement(
-            'dl',
-            { className: 'atividade__ficha' },
-            ficha.map(([rotulo, valor]) =>
-              createElement(
-                'div',
-                { key: rotulo },
-                createElement('dt', null, rotulo),
-                createElement('dd', null, valor)
-              )
-            )
-          )
-        : null
+
+      // O BOTÃO. A sinopse e a ficha técnica saíram daqui e foram para a
+      // página da atividade (pedido V1: "pequenos blocos, se a pessoa
+      // quiser ver o projeto ela clica em saber mais").
+      createElement(
+        'p',
+        { className: 'atividade__acoes' },
+        createElement(
+          'a',
+          { className: 'botao botao--secundario', href: `/projetos/${atividade.id}` },
+          'Saber mais',
+          // O nome dentro do link, para leitor de tela: "Saber mais"
+          // repetido onze vezes não diz qual é qual.
+          createElement('span', { className: 'apenas-leitor-de-tela' }, ` sobre ${atividade.titulo}`)
+        )
+      )
     )
   );
 }

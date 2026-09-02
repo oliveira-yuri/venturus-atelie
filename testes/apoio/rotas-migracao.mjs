@@ -90,9 +90,86 @@ export const ROTAS_PENDENTES = [];
 // afirmarem, e só não é item de menu porque se chega nela por um botão de
 // /doar e de /minha-conta. O que muda COM sessão (o formulário) é medido em
 // testes/doacoes.test.mjs.
+/**
+ * As rotas DINÂMICAS, e o endereço de EXEMPLO que as representa.
+ *
+ * =====================================================================
+ * POR QUE UM MAPA, E NÃO ONZE ENTRADAS NA LISTA
+ * =====================================================================
+ *
+ * Desde o pedido V1 existem rotas `[id]`: `/projetos/<id>` e
+ * `/noticias/<id>`. Elas quebram as duas verificações deste arquivo de
+ * formas diferentes, e as duas precisam de resposta:
+ *
+ *   · a reconciliação com `app/` encontra o diretório `[id]` e produz a
+ *     rota literal `/projetos/[id]`, que não é endereço nenhum;
+ *   · a varredura de links encontra onze `href="/projetos/<id>"` — um por
+ *     atividade — e nenhum deles está catalogado.
+ *
+ * Listar os onze ids seria catalogar CONTEÚDO numa lista de ROTAS: no dia
+ * em que a ONG renomear uma atividade, o teste ficaria vermelho por um
+ * motivo que não é o dele.
+ *
+ * O mapa declara o que é verdade: sob `/projetos/` qualquer id é rota. O
+ * `exemplo` existe porque os testes precisam de UM endereço que responda
+ * de fato — e ele é um id real do seed, não inventado.
+ */
+export const ROTAS_DINAMICAS = {
+  '/projetos/[id]': '/projetos/banzo',
+  /**
+   * SEM EXEMPLO: `public.publicacoes` está VAZIA (a ONG ainda não publicou
+   * nada), então não existe id real para pôr aqui. Um id inventado
+   * responderia 404, e os testes passariam a afirmar coisas sobre a página
+   * de erro. Quando a primeira notícia existir, o exemplo entra.
+   */
+  '/noticias/[id]': null
+};
+
+/** O prefixo de cada rota dinâmica: `/projetos`, `/noticias`. */
+export const PREFIXOS_DINAMICOS = Object.keys(ROTAS_DINAMICAS)
+  .map((rota) => rota.replace(/\/\[[^\]]+\]$/, ''));
+
+/**
+ * O href aponta para dentro de uma rota dinâmica?
+ *
+ * `/projetos/banzo` → sim. `/projetos` → NÃO: é a própria lista, e ela tem
+ * entrada própria no catálogo.
+ */
+export function ehRotaDinamica(href) {
+  return PREFIXOS_DINAMICOS.some((prefixo) =>
+    href.startsWith(`${prefixo}/`) && href.slice(prefixo.length + 1).length > 0);
+}
+
 export const PAGINAS_PRONTAS_FORA_DO_MENU = [
   '/privacidade', '/recuperar-acesso', '/nova-senha', '/voluntariado/candidatura',
-  '/doar/ofertar'
+  '/doar/ofertar',
+
+  /**
+   * AS DUAS ROTAS DE DETALHE (pedido V1, 02/09/2026): /projetos e /noticias
+   * viraram listas de blocos, e o conteúdo de cada item passou a viver numa
+   * página própria.
+   *
+   * São rotas DINÂMICAS (`app/projetos/[id]`, `app/noticias/[id]`), e por
+   * isso entram aqui com um id de EXEMPLO REAL, não com o `[id]` literal:
+   * os testes desta lista buscam a página e afirmam coisas sobre o conteúdo
+   * dela, e `/projetos/[id]` não é um endereço que responda.
+   *
+   * `banzo` é uma das onze atividades do seed da ONG — está em
+   * `dados-iniciais/atividades.json`, e some junto com ela se alguém a
+   * apagar (aí este teste fica vermelho, que é o desfecho certo).
+   *
+   * /noticias/<id> NÃO entra: `public.publicacoes` está VAZIA (a ONG ainda
+   * não publicou nada), então não existe um id real para pôr aqui. Uma rota
+   * de notícia com id inventado responderia 404, e a lista passaria a
+   * afirmar coisas sobre a página de erro. Ela entra no dia em que houver
+   * a primeira notícia — e a reconciliação abaixo, que compara esta lista
+   * com o que existe em `app/`, é quem vai cobrar.
+   */
+  /*
+   * A rota dinâmica entra pelo EXEMPLO declarado em `ROTAS_DINAMICAS`, e
+   * não por uma entrada escrita à mão: assim o id real vive num lugar só.
+   */
+  ...Object.values(ROTAS_DINAMICAS).filter(Boolean)
 ];
 
 // Toda página PÚBLICA que já existe de verdade no Next, item de menu ou não.

@@ -68,15 +68,45 @@ test('o id da atividade vai no <article>, para a âncora #id continuar funcionan
   assert.match(html, /<article class="atividade" id="banzo">/);
 });
 
-test('com todo campo presente, título, resumo, sinopse e ficha completa aparecem', () => {
+/* =====================================================================
+   O CARTÃO ENCOLHEU (pedido V1, 02/09/2026)
+   =====================================================================
+
+   "Na página de projetos do usuário deve ser assim: pequenos blocos, se a
+   pessoa quiser ver o projeto ela clica em 'saber mais' e abre uma página
+   dedicada ao respectivo projeto."
+
+   A sinopse e a ficha técnica SAÍRAM do cartão e foram para
+   `app/projetos/[id]/page.tsx`. O que fica aqui é o que se lê para
+   DECIDIR abrir: título, capa e resumo.
+
+   Os testes abaixo mudaram de alvo junto — e os que cobram a OMISSÃO de
+   campo vazio (regra 2 aplicada a campo) continuam valendo para o que
+   sobrou, porque é ali que a regra ainda se aplica.
+   ===================================================================== */
+
+test('o cartão traz título, resumo e o caminho para a página da atividade', () => {
   const html = renderizar(COMPLETA);
 
-  assert.match(html, /<h2 class="atividade__titulo">Banzo<\/h2>/);
+  // O TÍTULO É O LINK. Numa lista de onze cartões, onze links com o texto
+  // "Saber mais" obrigam quem navega saltando de link em link a adivinhar
+  // qual é qual.
+  assert.match(html, /<h2 class="atividade__titulo"><a class="atividade__link" href="\/projetos\/banzo">Banzo<\/a><\/h2>/);
   assert.match(html, /<p class="atividade__resumo">Uma contação de história[^<]*<\/p>/);
-  assert.match(html, /<p>Primeiro parágrafo da sinopse\.<\/p>/);
-  assert.match(html, /<p>Segundo parágrafo da sinopse\.<\/p>/);
-  assert.match(html, /<dt>Gênero<\/dt><dd>Contação de história<\/dd>/);
-  assert.match(html, /<dt>Precisa de<\/dt><dd>1 caixa de som<\/dd>/);
+
+  // O botão, para o dedo — e com o nome dentro, para quem usa leitor de tela.
+  assert.match(html, /href="\/projetos\/banzo"[^>]*>Saber mais/);
+  assert.match(html, /apenas-leitor-de-tela">\s*sobre Banzo/);
+});
+
+test('a sinopse e a ficha técnica NÃO estão mais no cartão — elas foram para a página', () => {
+  const html = renderizar(COMPLETA);
+
+  assert.doesNotMatch(html, /Primeiro parágrafo da sinopse/,
+    'a sinopse voltou para o cartão: o bloco deixa de ser pequeno e o "Saber mais" perde o sentido');
+  assert.doesNotMatch(html, /atividade__ficha/,
+    'a ficha técnica voltou para o cartão');
+  assert.doesNotMatch(html, /<dt>Gênero<\/dt>/);
 });
 
 test('atividade sem resumo não deixa <p class="atividade__resumo"> vazio — o parágrafo inteiro some', () => {
@@ -90,7 +120,14 @@ test('atividade sem descrição não deixa parágrafo de sinopse vazio', () => {
   assert.doesNotMatch(html, /<p><\/p>/, 'sobrou um <p></p> vazio no lugar da sinopse ausente');
 });
 
-test('campo de ficha ausente (duração, rider) não aparece como <dt> com <dd> vazio', () => {
+test.skip('campo de ficha ausente (duração, rider) não aparece como <dt> com <dd> vazio', () => {
+  // PULADO desde o pedido V1: a ficha técnica saiu do cartão e foi para
+  // `app/projetos/[id]/page.tsx`. A REGRA continua valendo — campo sem
+  // valor é omitido, nunca desenhado vazio —, e ela é medida onde a ficha
+  // agora vive: `testes/paginas.test.mjs`, contra a página renderizada.
+  //
+  // Pular com o motivo escrito, em vez de apagar, porque a asserção volta
+  // a valer no dia em que a ficha voltar ao cartão.
   const html = renderizar(SEM_SINOPSE);
   assert.doesNotMatch(html, /<dt>Duração<\/dt>/, 'duração ausente não deveria virar item de ficha');
   assert.doesNotMatch(html, /<dt>Precisa de<\/dt>/, 'rider ausente não deveria virar item de ficha');

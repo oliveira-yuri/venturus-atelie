@@ -404,6 +404,11 @@ export type CamposPublicacao = {
   titulo: string;
   resumo: string;
   corpo: string;
+  /** O arquivo enviado, quando houver. `FormDataEntryValue` porque é o que o FormData devolve. */
+  arquivo?: FormDataEntryValue | null;
+  imagem_alt?: string;
+  /** O caminho já gravado, para não se perder ao editar só o texto. */
+  imagem_atual?: string;
 };
 
 /**
@@ -455,13 +460,42 @@ export function lerPublicacao(dados: FormData): CamposPublicacao {
     id: textoDoCampo(dados, 'id'),
     titulo: textoDoCampo(dados, 'titulo'),
     resumo: textoDoCampo(dados, 'resumo'),
-    corpo: textoDoCampo(dados, 'corpo')
+    corpo: textoDoCampo(dados, 'corpo'),
+    // A IMAGEM (pedido V1). `arquivo` é o File; `imagem_alt` é a descrição
+    // que a coluna exige quando há imagem (`check` de 002_conteudo.sql).
+    // `imagem_atual` é o caminho que já está gravado, e vem num campo
+    // escondido: sem ele, editar o texto de uma notícia com imagem
+    // apagaria a imagem.
+    arquivo: dados.get('arquivo'),
+    imagem_alt: textoDoCampo(dados, 'imagem_alt'),
+    imagem_atual: textoDoCampo(dados, 'imagem_atual')
   };
 }
 
 /** TODOS os erros de uma vez — a regra do topo deste arquivo. */
 export function validarPublicacao(campos: CamposPublicacao): ResultadoValidacao {
   const erros: Record<string, string> = {};
+
+  // A DESCRIÇÃO DA IMAGEM É OBRIGATÓRIA QUANDO HÁ IMAGEM (pedido V1).
+  //
+  // O `check` de 002_conteudo.sql já recusa a linha sem alt — mas recusar
+  // no banco significa a equipe perder o texto que acabou de escrever e
+  // ler um erro de Postgres. A validação aqui devolve o formulário
+  // preenchido, com a mensagem no campo certo.
+  //
+  // Acessibilidade é requisito (regra 8): imagem sem alt é imagem que não
+  // existe para quem usa leitor de tela.
+  const temArquivoNovo = campos.arquivo instanceof File && campos.arquivo.size > 0;
+  const temImagem = temArquivoNovo || Boolean(campos.imagem_atual);
+
+  if (temImagem && !campos.imagem_alt?.trim()) {
+    erros.imagem_alt = 'Descreva a imagem em uma frase, para quem não pode vê-la. '
+      + 'Exemplo: "crianças sentadas em roda ouvindo uma história".';
+  }
+
+  if (temArquivoNovo && (campos.arquivo as File).size > LIMITE_ARQUIVO_BYTES) {
+    erros.arquivo = mensagemDeArquivoGrande((campos.arquivo as File).size);
+  }
 
   if (!campos.titulo) {
     erros.titulo = 'Escreva um título para a notícia.';
@@ -555,6 +589,22 @@ export function lerAlternancia(dados: FormData): { id: string; acao: AcaoDePubli
  * recusar com mensagem clara — é esta.
  */
 export const LIMITE_ARQUIVO_BYTES = 4 * 1024 * 1024;
+
+/**
+ * A frase de "esta foto é grande demais", num lugar só.
+ *
+ * Ela nasceu em `validarMidia` e passou a ser usada também pela imagem da
+ * notícia e pela capa do projeto (pedido V1). Três cópias divergiriam — e
+ * a instrução do meio ("procure a opção de enviar em tamanho médio") é o
+ * que de fato desatasca a pessoa, então perder essa parte numa das cópias
+ * seria perder a única frase útil.
+ */
+export function mensagemDeArquivoGrande(tamanho: number): string {
+  return `Esta foto tem ${emMegabytes(tamanho)} e o limite é `
+    + `${emMegabytes(LIMITE_ARQUIVO_BYTES)}. No celular, ao escolher a foto, procure a opção `
+    + 'de enviar em tamanho médio (ou "otimizado") em vez do tamanho real — a foto continua '
+    + 'boa para o site e cabe no limite.';
+}
 
 /** Nome do álbum e descrição: limites de uso, como os de publicação. */
 export const LIMITE_ALBUM = 80;
@@ -752,10 +802,7 @@ export function validarMidia(campos: CamposMidia): ResultadoValidacao {
   if (!campos.arquivo) {
     erros.arquivo = 'Escolha a foto que você quer subir.';
   } else if (campos.arquivo.size > LIMITE_ARQUIVO_BYTES) {
-    erros.arquivo = `Esta foto tem ${emMegabytes(campos.arquivo.size)} e o limite é `
-      + `${emMegabytes(LIMITE_ARQUIVO_BYTES)}. No celular, ao escolher a foto, procure a opção `
-      + 'de enviar em tamanho médio (ou "otimizado") em vez do tamanho real — a foto continua '
-      + 'boa para o site e cabe no limite.';
+    erros.arquivo = mensagemDeArquivoGrande(campos.arquivo.size);
   }
 
   if (campos.id && !ehIdentificador(campos.id)) {

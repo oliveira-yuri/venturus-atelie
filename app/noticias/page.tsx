@@ -1,4 +1,4 @@
-import { listarPublicadas } from '@/servidor/dados/publicacoes';
+import { listarPublicadas, enderecoDaImagem } from '@/servidor/dados/publicacoes';
 import { ListaNoticias } from '@/componentes/ListaNoticias';
 
 // Conteúdo copiado literalmente do HTML original de noticias.html — hoje a
@@ -47,6 +47,17 @@ export default async function Noticias() {
   // "não há notícia".
   const publicacoes = await listarPublicadas();
 
+  // AS IMAGENS SÃO RESOLVIDAS AQUI, e não dentro da lista: `enderecoDaImagem`
+  // precisa do cliente do Supabase, e `componentes/ListaNoticias.ts` é
+  // função pura que os testes montam com react-dom/server. `getPublicUrl`
+  // não vai à rede — só monta a string.
+  const imagens = new Map<string, string>();
+  for (const publicacao of publicacoes) {
+    if (publicacao.imagem_caminho) {
+      imagens.set(publicacao.id, await enderecoDaImagem(publicacao.imagem_caminho));
+    }
+  }
+
   return (
     <main id="conteudo" className="conteudo">
       <h1>Notícias</h1>
@@ -54,7 +65,7 @@ export default async function Noticias() {
 
       <div className="af-stripe" aria-hidden="true" />
       <div id="lista-noticias">
-        <ListaNoticias publicacoes={publicacoes} mensagemVazio={ESTADO_VAZIO} />
+        <ListaNoticias publicacoes={publicacoes} mensagemVazio={ESTADO_VAZIO} imagens={imagens} />
       </div>
     </main>
   );

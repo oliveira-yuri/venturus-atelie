@@ -78,6 +78,22 @@ export default function FormularioPublicacao({ publicacao }: { publicacao?: Publ
   const valor = (nome: 'titulo' | 'resumo' | 'corpo') =>
     estado.valores?.[nome] ?? publicacao?.[nome] ?? '';
 
+  /**
+   * O mesmo, para os dois campos da imagem — que existem no ESTADO e na
+   * LINHA com nomes diferentes: no formulário são `imagem_atual` e
+   * `imagem_alt`, e na linha são `imagem_caminho` e `imagem_alt`.
+   *
+   * A tradução mora aqui, e não no `valor` acima, porque unificar os dois
+   * exigiria um tipo que aceitasse chaves inexistentes em `publicacao` — e
+   * aí um erro de digitação no nome de um campo passaria calado.
+   */
+  const valorDaImagem = (nome: 'imagem_atual' | 'imagem_alt') => {
+    const noEstado = estado.valores?.[nome];
+    if (noEstado !== undefined) return noEstado;
+    if (nome === 'imagem_atual') return publicacao?.imagem_caminho ?? '';
+    return publicacao?.imagem_alt ?? '';
+  };
+
   const editando = Boolean(publicacao?.id);
 
   return (
@@ -92,8 +108,19 @@ export default function FormularioPublicacao({ publicacao }: { publicacao?: Publ
         <p>{estado.mensagem}</p>
       </div>
 
+      {/*
+        `encType="multipart/form-data"` é OBRIGATÓRIO desde que este
+        formulário passou a aceitar imagem (pedido V1). Sem ele, o
+        navegador manda o campo de arquivo como `application/x-www-form-
+        urlencoded` — o que chega ao servidor é o NOME do arquivo, não o
+        conteúdo, e o upload falha de um jeito confuso: a Action recebe
+        uma string onde espera um File.
+        Com JavaScript o React monta o corpo por conta própria e não
+        precisaria disto; SEM JavaScript, é o navegador que monta, e aí
+        precisa. Mesma linha de componentes/FormularioMidia.tsx.
+      */}
       <form ref={formulario} id="form-publicacao" className="formulario" action={enviar}
-            noValidate aria-describedby="aviso">
+            noValidate aria-describedby="aviso" encType="multipart/form-data">
         {/*
           O id da notícia sendo editada. Campo escondido e NÃO um parâmetro
           fechado no servidor porque o `<form>` precisa mandá-lo no POST para
@@ -121,6 +148,35 @@ export default function FormularioPublicacao({ publicacao }: { publicacao?: Publ
                           ajuda="Deixe uma linha em branco entre um parágrafo e outro."
                           erro={estado.erros?.corpo}
                           valorInicial={valor('corpo')} />
+
+        {/*
+          A IMAGEM (pedido V1). O caminho já gravado viaja num campo
+          escondido: sem ele, editar só o texto de uma notícia com imagem
+          APAGARIA a imagem — a Action montaria a linha com
+          `imagem_caminho: null`.
+
+          Ele não autoriza nada, como o `id` acima: quem manda o corpo da
+          requisição escolhe este valor, e o que impede alguém de apontar
+          para o arquivo de outra notícia é... nada — mas o pior que isso
+          faz é mostrar a imagem errada na PRÓPRIA notícia de quem é
+          equipe. Não há dado de terceiro em jogo.
+        */}
+        <input type="hidden" name="imagem_atual" value={valorDaImagem('imagem_atual')} />
+
+        <CampoFormulario nome="arquivo" rotulo="Imagem" tipo="file"
+                          accept="image/*"
+                          ajuda={publicacao?.imagem_caminho
+                            ? 'Esta notícia já tem imagem. Escolher outra substitui a atual; '
+                              + 'deixar em branco mantém a que está lá.'
+                            : 'Opcional. JPG, PNG, GIF ou WebP, até 4 MB.'}
+                          erro={estado.erros?.arquivo} />
+
+        <CampoFormulario nome="imagem_alt" rotulo="Descrição da imagem" tipo="text"
+                          ajuda={'Obrigatória quando há imagem. Uma frase dizendo o que se vê, '
+                            + 'para quem não pode ver — como "crianças em roda ouvindo uma '
+                            + 'história".'}
+                          erro={estado.erros?.imagem_alt}
+                          valorInicial={valorDaImagem('imagem_alt')} />
 
         {/* O erro de `id` não tem campo visível para se pendurar — o input é
             escondido —, então ele é mostrado aqui. Sem isto, um id inválido

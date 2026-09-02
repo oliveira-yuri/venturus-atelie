@@ -35,7 +35,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  PAGINAS_PRONTAS, PAGINAS_CATALOGADAS, ROTAS_PENDENTES, rotasReaisDoApp
+  PAGINAS_PRONTAS, PAGINAS_CATALOGADAS, ROTAS_PENDENTES, rotasReaisDoApp, ehRotaDinamica, ROTAS_DINAMICAS
 } from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
@@ -82,6 +82,11 @@ test('todo link interno fora do menu (conteúdo, rodapé, marca) aponta para uma
     const html = await htmlDe(pagina);
     for (const href of new Set(hrefsForaDoMenu(html))) {
       if (PAGINAS_PRONTAS.includes(href) || ROTAS_PENDENTES.includes(href)) continue;
+      // `/projetos/<id>` e `/noticias/<id>`: sob esses prefixos qualquer id
+      // é rota real. Catalogar os onze ids seria pôr CONTEÚDO numa lista de
+      // ROTAS — e o teste ficaria vermelho no dia em que a ONG renomeasse
+      // uma atividade. Ver ROTAS_DINAMICAS em testes/apoio/rotas-migracao.mjs.
+      if (ehRotaDinamica(href)) continue;
       desconhecidos.push(`${pagina} -> ${href}`);
     }
   }
@@ -153,9 +158,19 @@ test('rota pendente referenciada fora do menu continua sem página — se migrou
 test('PAGINAS_CATALOGADAS bate com as páginas reais em app/ (page.tsx) — esquecer de acrescentar uma quebra aqui', async () => {
   const reais = await rotasReaisDoApp();
 
+  // As rotas dinâmicas aparecem em `app/` como `/projetos/[id]` — o nome
+  // do diretório. No catálogo elas entram pelo endereço de EXEMPLO, que é
+  // o que responde de fato. A tradução acontece aqui, e o mapa é a fonte:
+  // uma rota `[id]` nova sem entrada em ROTAS_DINAMICAS derruba este teste.
+  const reaisTraduzidas = reais.map((rota) => {
+    if (!(rota in ROTAS_DINAMICAS)) return rota;
+    return ROTAS_DINAMICAS[rota] ?? rota;
+  });
+
   assert.deepEqual(
-    [...PAGINAS_CATALOGADAS].sort(),
-    [...reais].sort(),
+    [...PAGINAS_CATALOGADAS, ...Object.entries(ROTAS_DINAMICAS)
+      .filter(([, exemplo]) => exemplo === null).map(([rota]) => rota)].sort(),
+    [...reaisTraduzidas].sort(),
     'as listas de testes/apoio/rotas-migracao.mjs e as páginas reais em app/ divergem — '
     + 'uma página nova sem entrada em nenhuma delas fica sem a cobertura deste arquivo; '
     + 'uma entrada sem página real por trás é lixo na lista'

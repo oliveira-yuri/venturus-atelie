@@ -149,7 +149,26 @@ const PAGINAS = [
     // sem sinopse não exibe parágrafo vazio"); a omissão de campo por
     // atividade (regra 2 do CLAUDE.md no nível do campo) é provada por
     // unidade, direto no componente, em testes/card-atividade.test.mjs.
-    idsExcluidos: ['lista-atividades']
+    idsExcluidos: ['lista-atividades'],
+    /**
+     * O TEXTO DAS ATIVIDADES MUDOU DE TELA (pedido V1, 02/09/2026).
+     *
+     * `/projetos` virou uma lista de blocos: título, capa e resumo, com um
+     * "Saber mais". A sinopse e a ficha técnica passaram a viver em
+     * `/projetos/<id>`.
+     *
+     * Para este teste isso seria "frase da ONG que sumiu de /projetos", e
+     * é exatamente por isso que `destinos` existe: a frase pode estar em
+     * QUALQUER uma das rotas listadas. Mover texto é decisão, e a decisão
+     * fica escrita aqui.
+     *
+     * Na prática o `<div id="lista-atividades">` já sai da comparação
+     * (`idsExcluidos`, acima) porque chegava vazio no HTML estático — então
+     * hoje esta lista não muda o resultado. Ela está aqui pelo dia em que
+     * alguém tirar aquela exclusão, e para que a decisão não fique só no
+     * commit.
+     */
+    destinos: ['/projetos', '/projetos/banzo']
   },
   {
     rota: '/agenda',

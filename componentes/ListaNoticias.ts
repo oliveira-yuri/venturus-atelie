@@ -1,4 +1,4 @@
-import { createElement, Fragment } from 'react';
+import { createElement } from 'react';
 import type { Publicacao } from '@/servidor/dados/publicacoes';
 
 /**
@@ -81,7 +81,12 @@ function paragrafos(texto: string): string[] {
 }
 
 export function ListaNoticias(
-  { publicacoes, mensagemVazio }: { publicacoes: Publicacao[]; mensagemVazio: string }
+  { publicacoes, mensagemVazio, imagens }: {
+    publicacoes: Publicacao[];
+    mensagemVazio: string;
+    /** id → endereço da imagem. Resolvido na página, não aqui — ver /noticias. */
+    imagens?: Map<string, string>;
+  }
 ) {
   if (publicacoes.length === 0) {
     return createElement('p', { className: 'estado estado--vazio' }, mensagemVazio);
@@ -94,7 +99,25 @@ export function ListaNoticias(
       createElement(
         'article',
         { className: 'atividade', id: publicacao.id, key: publicacao.id },
-        createElement('h2', { className: 'atividade__titulo' }, publicacao.titulo),
+        // A IMAGEM, quando há (pedido V1). `alt` vem do banco e é
+        // obrigatório quando há imagem — o `check` de 002_conteudo.sql
+        // recusa a linha sem ele.
+        imagens?.get(publicacao.id)
+          ? createElement('img', {
+            className: 'noticia__imagem',
+            src: imagens.get(publicacao.id),
+            alt: publicacao.imagem_alt ?? '',
+            loading: 'lazy',
+            decoding: 'async'
+          })
+          : null,
+
+        createElement('h2', { className: 'atividade__titulo' },
+          // O TÍTULO É O LINK. Pelo mesmo motivo de CardAtividade.ts: numa
+          // lista, vários "Saber mais" iguais obrigam quem navega saltando
+          // de link em link a adivinhar qual é qual.
+          createElement('a', { className: 'atividade__link', href: `/noticias/${publicacao.id}` },
+            publicacao.titulo)),
 
         // A data só aparece quando existe. Uma linha publicada sem
         // `publicado_em` é possível (alguém ligando a coluna direto pelo
@@ -122,11 +145,25 @@ export function ListaNoticias(
           ? createElement('p', { className: 'atividade__resumo' }, publicacao.resumo)
           : null,
 
+        // O CORPO SAIU DA LISTA (pedido V1: "pequenos blocos, se a pessoa
+        // quiser ver a notícia ela clica em saber mais"). Ele vive agora em
+        // `/noticias/<id>`. Sem resumo, e sem corpo, o bloco ficaria só com
+        // título e data — então quando NÃO há resumo a lista mostra o
+        // primeiro parágrafo como chamada, em vez de um cartão oco.
+        !publicacao.resumo && paragrafos(publicacao.corpo).length > 0
+          ? createElement('p', { className: 'noticia__previa' },
+            paragrafos(publicacao.corpo)[0])
+          : null,
+
         createElement(
-          Fragment,
-          null,
-          ...paragrafos(publicacao.corpo).map((paragrafo, indice) =>
-            createElement('p', { key: indice }, paragrafo)
+          'p',
+          { className: 'atividade__acoes' },
+          createElement(
+            'a',
+            { className: 'botao botao--secundario', href: `/noticias/${publicacao.id}` },
+            'Saber mais',
+            createElement('span', { className: 'apenas-leitor-de-tela' },
+              ` sobre ${publicacao.titulo}`)
           )
         )
       )

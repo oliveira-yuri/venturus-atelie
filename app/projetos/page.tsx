@@ -38,7 +38,7 @@
 // o porquê de a classe `card-atividade` morar no elemento raiz daquele
 // componente.
 import Link from 'next/link';
-import { listarAtividadesComOrigem } from '@/servidor/dados/conteudo';
+import { listarAtividadesComOrigem, enderecoDaCapa } from '@/servidor/dados/conteudo';
 import { CardAtividade } from '@/componentes/CardAtividade';
 
 export const metadata = {
@@ -48,6 +48,20 @@ export const metadata = {
 
 export default async function Projetos() {
   const { registros: atividades, origem } = await listarAtividadesComOrigem();
+
+  // AS CAPAS SÃO RESOLVIDAS AQUI, e não dentro do cartão: `enderecoDaCapa`
+  // precisa do cliente do Supabase, e `componentes/CardAtividade.ts` é
+  // função pura que os testes montam com react-dom/server — um componente
+  // que falasse com o Storage obrigaria o teste a subir o Next.
+  //
+  // `getPublicUrl` não vai à rede (só monta a string), então isto não custa
+  // onze requisições. Ver o cabeçalho de `enderecoDaCapa`.
+  const capas = new Map<string, string>();
+  for (const atividade of atividades) {
+    if (atividade.imagem_caminho) {
+      capas.set(atividade.id, await enderecoDaCapa(atividade.imagem_caminho));
+    }
+  }
 
   return (
     <main id="conteudo" className="conteudo" data-origem-atividades={origem}>
@@ -69,7 +83,11 @@ export default async function Projetos() {
         {atividades.length === 0
           ? <p className="estado estado--vazio">Nenhuma atividade publicada ainda.</p>
           : atividades.map((atividade) => (
-              <CardAtividade key={atividade.id} atividade={atividade} />
+              <CardAtividade
+                key={atividade.id}
+                atividade={atividade}
+                capa={capas.get(atividade.id) ?? null}
+              />
             ))}
       </div>
     </main>

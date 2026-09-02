@@ -96,7 +96,12 @@ test('o formulário é lido campo a campo, e campo que não está na lista não 
   });
 
   assert.deepEqual(lerPublicacao(dados), {
-    id: '', titulo: 'Oficina', resumo: 'Resumo', corpo: 'Texto'
+    id: '', titulo: 'Oficina', resumo: 'Resumo', corpo: 'Texto',
+    // Os três campos da imagem (pedido V1). `arquivo` é `null` porque o
+    // FormData deste teste não tem o campo — e `FormData.get` devolve
+    // null, não undefined. A distinção importa: `imagem_caminho` só é
+    // gravado quando há arquivo NOVO ou `imagem_atual`.
+    arquivo: null, imagem_alt: '', imagem_atual: ''
   });
 });
 
@@ -247,21 +252,51 @@ test('uma notícia publicada vira um artigo com título, data e o texto em pará
     mensagemVazio: VAZIO_NOTICIAS
   }));
 
-  assert.match(html, /<h2 class="atividade__titulo">Oficina de percussão<\/h2>/);
+  // O TÍTULO VIROU LINK para a página da notícia (pedido V1: "pequenos
+  // blocos, se a pessoa quiser ver a notícia ela clica em saber mais").
+  assert.match(html,
+    /<h2 class="atividade__titulo"><a class="atividade__link" href="\/noticias\/[^"]+">Oficina de percussão<\/a><\/h2>/);
   assert.match(html, /1 de setembro de 2026/);
-  assert.match(html, /<p>Primeiro parágrafo\.<\/p>/);
-  assert.match(html, /<p>Segundo parágrafo\.<\/p>/);
+
+  // O CORPO SAIU DA LISTA e foi para `app/noticias/[id]/page.tsx`. O bloco
+  // mostra título, data, resumo e o botão — o que se lê para DECIDIR abrir.
+  assert.doesNotMatch(html, /<p>Primeiro parágrafo\.<\/p>/,
+    'o corpo voltou para a lista: o bloco deixa de ser pequeno e o "Saber mais" perde o sentido');
+  assert.match(html, /href="\/noticias\/[^"]+"[^>]*>Saber mais/);
+
   assert.doesNotMatch(html, /estado--vazio/);
 });
 
-test('a linha em branco separa parágrafos — e só ela; uma quebra simples não parte o texto', () => {
+test('sem resumo, a lista mostra o PRIMEIRO PARÁGRAFO como chamada', () => {
+  // Um bloco só com título e data seria um cartão oco: quem lê a lista não
+  // teria como decidir se vale abrir. Com resumo, ele manda; sem resumo, a
+  // primeira frase do texto faz o papel.
   const html = renderToStaticMarkup(createElement(ListaNoticias, {
-    publicacoes: [exemplo({ corpo: 'uma linha\nainda a mesma\n\noutra' })],
+    publicacoes: [exemplo({ resumo: null, corpo: 'Primeiro parágrafo.\n\nSegundo parágrafo.' })],
     mensagemVazio: VAZIO_NOTICIAS
   }));
 
-  assert.match(html, /<p>uma linha\nainda a mesma<\/p>/);
-  assert.match(html, /<p>outra<\/p>/);
+  assert.match(html, /<p class="noticia__previa">Primeiro parágrafo\.<\/p>/);
+  assert.doesNotMatch(html, /Segundo parágrafo/,
+    'a prévia trouxe o texto inteiro — ela é o PRIMEIRO parágrafo, não o corpo todo');
+});
+
+test('a linha em branco separa parágrafos — e só ela; uma quebra simples não parte o texto', () => {
+  // A REGRA CONTINUA A MESMA, mas o que ela governa mudou de lugar: o
+  // corpo saiu da lista. Ela é medida aqui pela PRÉVIA — que é o primeiro
+  // parágrafo, e só existe se a divisão por linha em branco estiver certa.
+  //
+  // O corpo inteiro em parágrafos é medido em `app/noticias/[id]`, contra a
+  // página renderizada, em testes/paginas.test.mjs.
+  const html = renderToStaticMarkup(createElement(ListaNoticias, {
+    publicacoes: [exemplo({ resumo: null, corpo: 'uma linha\nainda a mesma\n\noutra' })],
+    mensagemVazio: VAZIO_NOTICIAS
+  }));
+
+  assert.match(html, /<p class="noticia__previa">uma linha\nainda a mesma<\/p>/,
+    'a quebra simples partiu o parágrafo: `\\n` sozinho não separa, só a linha em branco');
+  assert.doesNotMatch(html, /<p class="noticia__previa">outra<\/p>/,
+    'a prévia trouxe o segundo parágrafo — ela é só o primeiro');
 });
 
 test('o texto da notícia é escapado — o painel guarda texto puro, não HTML', () => {

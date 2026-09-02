@@ -25,6 +25,17 @@ import clippingLocal from '@/dados-iniciais/clipping.json';
 export type Atividade = {
   id: string;
   titulo: string;
+  /**
+   * A capa (pedido V1, migration 009). NULA enquanto a migration não for
+   * rodada, e nula para as atividades que não têm foto — os dois casos
+   * desenham o cartão sem imagem, que é o que /projetos faz hoje.
+   *
+   * O arquivo mora no bucket `identidade`, que é PÚBLICO — não em
+   * `galeria`, que é privado desde a 008 e guarda o acervo de fotos de
+   * pessoa, sob a RN07. A distinção está escrita na migration.
+   */
+  imagem_caminho?: string | null;
+  imagem_alt?: string | null;
   resumo: string | null;
   descricao: string | null;
   genero: string | null;
@@ -228,13 +239,48 @@ export async function listarAtividadesComOrigem(): Promise<Resultado<Atividade>>
   if (!temSupabase()) return doJson(locais);
 
   try {
-    const { data, error } = await (await obterCliente())
+    const cliente = await obterCliente();
+
+    // criado_em entra na consulta só para virar `carimbo` e é retirado dos
+    // registros logo abaixo: é a prova, impossível de fabricar a partir do
+    // JSON, de que estas linhas vieram do Postgres.
+    const COLUNAS = 'id, titulo, resumo, descricao, genero, duracao, elenco,'
+      + ' classificacao, local, rider, criado_em';
+
+    /**
+     * A MIGRATION 009 PODE NÃO TER SIDO RODADA, e este é o mesmo desenho
+     * que `acoes/contato.ts` usa para a 007: tenta o caminho novo, e cai
+     * no antigo com PRECISÃO quando o banco diz que a coluna não existe.
+     *
+     * `42703` é o código do Postgres para "coluna indefinida". Cair por
+     * um erro qualquer seria esconder uma falha de verdade; cair só por
+     * este código deixa toda outra falha seguir para o tratamento normal,
+     * logo abaixo.
+     *
+     * O AVISO SAI NO LOG uma vez por consulta, com o nome do arquivo a
+     * aplicar. Enquanto isso o site funciona inteiro, sem capa — que é
+     * exatamente como ele estava antes do pedido V1.
+     */
+    // `unknown` no meio, de propósito: as duas consultas devolvem formas
+    // diferentes (uma com as colunas de imagem, outra sem), e deixar o
+    // TypeScript unificar as duas produziria um tipo que não descreve
+    // nenhuma das duas. O `as` no fim é o mesmo que a versão anterior
+    // desta função já fazia.
+    let resposta: { data: unknown; error: unknown } = await cliente
       .from('atividades')
-      // criado_em entra na consulta só para virar `carimbo` e é retirado dos
-      // registros logo abaixo: é a prova, impossível de fabricar a partir do
-      // JSON, de que estas linhas vieram do Postgres.
-      .select('id, titulo, resumo, descricao, genero, duracao, elenco, classificacao, local, rider, criado_em')
+      .select(`${COLUNAS}, imagem_caminho, imagem_alt`)
       .order('titulo');
+
+    if ((resposta.error as { code?: string } | null)?.code === '42703') {
+      console.warn(
+        '[dados] as colunas de imagem de `atividades` não existem: a migration'
+        + ' supabase/migrations/009_imagem_na_atividade.sql ainda não foi rodada.'
+        + ' As atividades continuam aparecendo, sem capa.'
+      );
+      resposta = await cliente.from('atividades').select(COLUNAS).order('titulo');
+    }
+
+    const { data, error } = resposta;
 
     // Banco fora do ar nao pode derrubar a pagina institucional: cai para o
     // JSON versionado, que e o mesmo conteudo real da ONG — agora dizendo
@@ -374,4 +420,52 @@ export async function buscarAtividadeDoPainel(
       .eq('id', id)
       .maybeSingle(),
   null);
+}
+
+
+// =====================================================================
+// A CAPA DA ATIVIDADE (pedido V1, migration 009)
+// =====================================================================
+
+/**
+ * O endereço público da capa de uma atividade.
+ *
+ * `getPublicUrl` e não `createSignedUrl`, e a diferença é a mesma que
+ * separa `servidor/dados/acervo.ts` de `servidor/dados/galeria.ts`:
+ *
+ *   · `galeria` é PRIVADO desde a 008, porque guarda foto de PESSOA — o
+ *     acervo de oficina, com crianças, sob a RN07. Lá o endereço é
+ *     assinado e vence em uma hora;
+ *   · `identidade` é PÚBLICO desde a 006, e foi criado para material
+ *     institucional. A capa de uma atividade é isso: cartaz, ilustração,
+ *     foto de cena de espetáculo.
+ *
+ * Pôr a capa em `galeria` obrigaria /projetos a gastar uma requisição de
+ * assinatura por carregamento, para um arquivo que é público de qualquer
+ * jeito. A migration 009 explica a escolha por inteiro.
+ *
+ * SÍNCRONA por dentro: `getPublicUrl` só monta a string, não vai à rede.
+ * O `await` é do cliente, não dela.
+ */
+export async function enderecoDaCapa(caminho: string): Promise<string> {
+  const { data } = (await obterCliente()).storage.from('identidade').getPublicUrl(caminho);
+  return data.publicUrl;
+}
+
+/**
+ * Uma atividade pelo id, para a página dedicada dela (pedido V1).
+ *
+ * Reaproveita `listarAtividadesComOrigem` em vez de fazer consulta própria,
+ * e isso é decisão: aquela função já carrega a degradação para o JSON
+ * versionado, o carimbo de procedência e a tolerância à migration 009 não
+ * aplicada. Uma consulta separada teria de repetir os três — e divergiria
+ * no primeiro deles que mudasse.
+ *
+ * ONZE ATIVIDADES cabem numa leitura só. No dia em que forem duzentas,
+ * isto vira um `.eq('id', ...)` — e aí a degradação precisa ser reescrita
+ * junto, não depois.
+ */
+export async function buscarAtividade(id: string): Promise<Atividade | null> {
+  const { registros } = await listarAtividadesComOrigem();
+  return registros.find((atividade) => atividade.id === id) ?? null;
 }

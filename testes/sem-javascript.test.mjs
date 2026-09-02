@@ -30,7 +30,7 @@ import assert from 'node:assert/strict';
 import { Builder } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/firefox.js';
 import {
-  PAGINAS_PRONTAS, PAGINAS_CATALOGADAS, ROTAS_PRONTAS_MENU, ROTAS_PENDENTES, rotasReaisDoApp
+  PAGINAS_PRONTAS, PAGINAS_CATALOGADAS, ROTAS_PRONTAS_MENU, ROTAS_PENDENTES, rotasReaisDoApp, ROTAS_DINAMICAS
 } from './apoio/rotas-migracao.mjs';
 
 const BASE = process.env.URL_BASE || 'http://localhost:3123';
@@ -120,9 +120,15 @@ for (const pagina of PAGINAS) {
 test('PAGINAS_CATALOGADAS bate com as páginas reais em app/ (page.tsx) — esquecer de acrescentar uma quebra aqui', async () => {
   const reais = await rotasReaisDoApp();
 
+  // Mesma tradução de testes/links.test.mjs: rota dinâmica aparece em
+  // `app/` como `/projetos/[id]` e no catálogo pelo endereço de exemplo.
+  const reaisTraduzidas = reais.map((rota) =>
+    (rota in ROTAS_DINAMICAS ? (ROTAS_DINAMICAS[rota] ?? rota) : rota));
+
   assert.deepEqual(
-    [...PAGINAS_CATALOGADAS].sort(),
-    [...reais].sort(),
+    [...PAGINAS_CATALOGADAS, ...Object.entries(ROTAS_DINAMICAS)
+      .filter(([, exemplo]) => exemplo === null).map(([rota]) => rota)].sort(),
+    [...reaisTraduzidas].sort(),
     'as listas de testes/apoio/rotas-migracao.mjs e as páginas reais em app/ divergem — '
     + 'uma página nova sem entrada em nenhuma delas fica sem a bateria sem-JavaScript deste arquivo'
   );

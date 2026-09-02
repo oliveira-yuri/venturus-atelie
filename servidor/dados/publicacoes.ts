@@ -62,6 +62,22 @@ export type Publicacao = {
   titulo: string;
   resumo: string | null;
   corpo: string;
+  /**
+   * A imagem da notícia (pedido V1: "admin poder colocar imagens nas
+   * notícias").
+   *
+   * AS COLUNAS SEMPRE EXISTIRAM — `imagem_caminho` e `imagem_alt` estão em
+   * `public.publicacoes` desde 002_conteudo.sql, com a constraint que
+   * exige alt quando há imagem. O que faltava era a tela: a Tarefa P2 fez
+   * o texto, e o item 0t do CLAUDE.md registrava a falta. Nenhuma
+   * migration foi necessária.
+   *
+   * O arquivo mora no bucket `identidade`, que é PÚBLICO — não em
+   * `galeria`, que é privado desde a 008 e guarda o acervo de fotos de
+   * pessoa. Mesma decisão da capa de atividade; a migration 009 a explica.
+   */
+  imagem_caminho: string | null;
+  imagem_alt: string | null;
   publicado: boolean;
   publicado_em: string | null;
   criado_em: string;
@@ -124,4 +140,22 @@ export async function buscarPublicacao(id: string): Promise<Degradavel<Publicaca
       .eq('id', id)
       .maybeSingle(),
   null);
+}
+
+
+/**
+ * O endereço público da imagem de uma notícia.
+ *
+ * A MESMA função de `enderecoDaCapa` em `servidor/dados/conteudo.ts`, e a
+ * duplicação é deliberada: os dois módulos são independentes por desenho
+ * (nenhum módulo de dados importa outro), e um `compartilhado/` para duas
+ * linhas de `getPublicUrl` criaria uma dependência entre camadas para
+ * economizar nada.
+ *
+ * `identidade` e não `galeria`: público contra privado, material
+ * institucional contra acervo de foto de pessoa. Ver a migration 009.
+ */
+export async function enderecoDaImagem(caminho: string): Promise<string> {
+  const { data } = (await obterCliente()).storage.from('identidade').getPublicUrl(caminho);
+  return data.publicUrl;
 }

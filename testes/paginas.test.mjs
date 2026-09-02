@@ -258,3 +258,55 @@ test('nenhuma página pública usa linguagem assistencialista', async () => {
     assert.doesNotMatch(texto, proibidos, `linguagem assistencialista em ${pagina.chave}`);
   }
 });
+
+/* =====================================================================
+   AS PÁGINAS DE DETALHE (pedido V1, 02/09/2026)
+   =====================================================================
+
+   `/projetos` e `/noticias` viraram listas de blocos, e o conteúdo de cada
+   item passou a viver numa página própria.
+
+   Estes testes existem porque DOIS testes de unidade passaram a apontar
+   para cá: `card-atividade.test.mjs` (a ficha técnica saiu do cartão) e
+   `publicacoes.test.mjs` (o corpo saiu da lista). Um comentário que diz "a
+   regra é medida em outro lugar" só vale se o outro lugar de fato a medir.
+   ===================================================================== */
+
+test('/projetos/<id>: a ficha técnica e a sinopse vivem aqui, e campo vazio continua omitido', async () => {
+  // "banzo" é uma das onze atividades do seed da ONG, e tem sinopse E
+  // ficha técnica — é a que exercita os dois caminhos.
+  await navegador.get(`${BASE}/projetos/banzo`);
+
+  const titulo = await navegador.findElement(By.css('h1')).getText();
+  assert.equal(titulo, 'Banzo');
+
+  const texto = await navegador.findElement(By.css('#conteudo')).getText();
+
+  assert.match(texto, /Ficha técnica/, 'a ficha técnica não está na página da atividade');
+  assert.match(texto, /Gênero/, 'a ficha não trouxe o gênero');
+
+  // A REGRA DA OMISSÃO (regra 2 aplicada a campo) — era medida no cartão,
+  // e passou a valer aqui: `<dd>` vazio ou `<dt>` sem valor não aparecem.
+  const vazios = await navegador.executeScript(`
+    return [...document.querySelectorAll('#conteudo dt, #conteudo dd')]
+      .filter((celula) => celula.textContent.trim() === '').length;`);
+  assert.equal(vazios, 0, 'a ficha técnica desenhou rótulo ou valor vazio');
+
+  // E o caminho de volta existe: uma página de detalhe sem saída é um beco.
+  assert.match(texto, /Projetos e atividades/, 'sumiu o link de volta para a lista');
+});
+
+test('/projetos: o bloco NÃO traz a ficha técnica — é isso que o faz pequeno', async () => {
+  await navegador.get(`${BASE}/projetos`);
+  const texto = await navegador.findElement(By.css('#conteudo')).getText();
+
+  assert.doesNotMatch(texto, /Ficha técnica/,
+    'a ficha voltou para a lista: o bloco deixa de ser pequeno e o "Saber mais" perde o sentido');
+  assert.match(texto, /Saber mais/, 'sumiu o caminho para a página da atividade');
+});
+
+test('/projetos/<id> inexistente responde 404, e não uma página de conteúdo vazio', async () => {
+  const resposta = await fetch(`${BASE}/projetos/nao-existe-esta-atividade`);
+  assert.equal(resposta.status, 404,
+    'um id inventado devolveu 200 — a página estaria desenhando um cartão vazio');
+});
