@@ -640,3 +640,62 @@ test('sem JavaScript: o envio válido atravessa a validação e chega ao corpo d
       await navegador.quit();
     }
   });
+
+/* =====================================================================
+   A MÁSCARA DE TELEFONE NA PÁGINA PÚBLICA (pedido V1)
+   =====================================================================
+
+   O pedido dizia, com todas as letras: "máscara de telefone onde tem o
+   campo de telefone (página de contato por exemplo não está aplicando a
+   máscara)". Estava certo — a função vivia copiada em `AbasEntrar` e
+   `FormularioMeusDados`, e este formulário nunca recebeu a cópia.
+
+   `testes/mascara-telefone.test.mjs` varre o CÓDIGO e garante que todo
+   formulário com campo de telefone liga o handler. Este teste aqui mede
+   OUTRA coisa, e as duas são necessárias: que digitar de verdade, num
+   navegador de verdade, produz o número formatado. Uma varredura de código
+   passaria com um `onChange` que não faz nada.
+
+   Roda só com JavaScript ligado, e isso é o desenho: a máscara é enfeite
+   de digitação. Sem script o campo aceita o que a pessoa escrever, e quem
+   valida é o servidor (`apenasDigitos`, em compartilhado/validacao.ts) —
+   comportamento que os testes sem JavaScript deste arquivo já cobrem.
+   ===================================================================== */
+test('a máscara formata o telefone enquanto a pessoa digita, em /contato', async () => {
+  const opcoes = new Options().addArguments('-headless');
+  const navegador = await new Builder().forBrowser('firefox').setFirefoxOptions(opcoes).build();
+
+  try {
+    await navegador.get(`${BASE}/contato`);
+    const campo = await navegador.wait(
+      until.elementLocated(By.css('input[name="telefone"]')), 10000);
+
+    // Espera a hidratação: sem ela o onChange do React ainda não está
+    // preso ao <form> e o campo aceitaria os dígitos crus — verde falso.
+    await navegador.wait(async () => {
+      const marca = await navegador.executeScript(
+        'return document.querySelector("#form-contato") !== null');
+      return marca;
+    }, 10000);
+    await new Promise((pronto) => setTimeout(pronto, 800));
+
+    await campo.sendKeys('11953968344');
+    await new Promise((pronto) => setTimeout(pronto, 300));
+
+    assert.equal(await campo.getAttribute('value'), '(11) 95396-8344',
+      'o campo de telefone de /contato não formatou o número enquanto se digitava');
+
+    // Fixo (8 dígitos depois do DDD) muda o lugar do hífen. Se a máscara
+    // decidisse pelo TAMANHO em vez de pelo primeiro dígito, o hífen
+    // pularia de lugar no meio da digitação — é o que o comentário de
+    // compartilhado/validacao.ts explica, e é o que esta parte trava.
+    await campo.clear();
+    await campo.sendKeys('1132334455');
+    await new Promise((pronto) => setTimeout(pronto, 300));
+
+    assert.equal(await campo.getAttribute('value'), '(11) 3233-4455',
+      'telefone fixo formatado no lugar errado');
+  } finally {
+    await navegador.quit();
+  }
+});

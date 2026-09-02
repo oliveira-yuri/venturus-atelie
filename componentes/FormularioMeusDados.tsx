@@ -8,6 +8,7 @@ import { formatarTelefone, TIPOS_DE_PESSOA } from '@/compartilhado/validacao';
 import type { AvisoDaConta } from '@/compartilhado/avisos-da-conta';
 import type { Perfil } from '@/servidor/dados/conta';
 import { CampoFormulario } from './CampoFormulario';
+import { mascararTelefone } from './mascara-telefone';
 
 /**
  * O formulário de "Meus dados" da área do usuário (RF11), ligado à Server
@@ -49,25 +50,6 @@ import { CampoFormulario } from './CampoFormulario';
  */
 
 const ESTADO_INICIAL: EstadoFormulario = { ok: false, mensagem: '' };
-
-/**
- * A máscara de telefone, igual à de componentes/AbasEntrar.tsx.
- *
- * Só reformata quando o cursor está NO FIM do campo: no meio, a máscara
- * empurraria o cursor e a pessoa digitaria por cima do que já estava. É
- * conveniência de tela — quem valida é `validarMeusDados`, no servidor, e
- * quem guarda só os dígitos é `colunasDoPerfil`.
- */
-function mascararTelefone(evento: ChangeEvent<HTMLFormElement>) {
-  const alvo: unknown = evento.target;
-  if (!(alvo instanceof HTMLInputElement) || alvo.name !== 'telefone') return;
-
-  const noFim = alvo.selectionStart === null || alvo.selectionStart === alvo.value.length;
-  if (!noFim) return;
-
-  const formatado = formatarTelefone(alvo.value);
-  if (formatado !== alvo.value) alvo.value = formatado;
-}
 
 /**
  * UMA CAIXA DE AVISO SÓ, E ISSO FOI DEFEITO VISTO ABRINDO A TELA (regra 10

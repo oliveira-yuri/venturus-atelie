@@ -83,6 +83,18 @@ export type DadosCadastro = {
   maioridade?: boolean;
   consentimento?: boolean;
   papeis?: string[];
+  /**
+   * Pessoa fisica ou juridica (pedido V1). A coluna `tipo_pessoa` de
+   * `public.perfis` sempre aceitou os dois valores e /minha-conta ja
+   * deixava trocar — mas o CADASTRO nao perguntava, e `acoes/autenticacao
+   * .ts` gravava 'fisica' fixo. Uma escola ou empresa que se cadastrasse
+   * entrava como pessoa fisica e so' descobria depois, na area da conta.
+   *
+   * A lista fechada e' a MESMA de `TIPOS_DE_PESSOA`, la' embaixo, que ja'
+   * servia /minha-conta: duas listas para a mesma coluna divergiriam, e
+   * uma delas desenharia opcao que o `check` do Postgres recusa.
+   */
+  tipo_pessoa?: string;
 };
 
 export type ResultadoValidacao = { valido: boolean; erros: Record<string, string> };
@@ -151,6 +163,19 @@ export function validarCadastro(
     if (digitos.length < 10 || digitos.length > 11) {
       erros.telefone = 'O telefone precisa incluir o DDD, como (11) 95396-8344.';
     }
+  }
+
+  // Tipo de pessoa (pedido V1). LISTA FECHADA, e a MESMA que
+  // /minha-conta usa: `ehTipoDePessoa` confere contra `TIPOS_DE_PESSOA`,
+  // que por sua vez e' reconciliada com o `check` de 001_base.sql por
+  // testes/minha-conta.test.mjs. Sem esta trava, um corpo hostil mandaria
+  // `tipo_pessoa=equipe` e o insert quebraria no banco em vez de na tela.
+  //
+  // OBRIGATORIO, e nao opcional com padrao 'fisica': o padrao silencioso
+  // era exatamente o defeito relatado — uma escola se cadastrava e virava
+  // pessoa fisica sem nunca ver a pergunta.
+  if (!ehTipoDePessoaDeclarado(dados.tipo_pessoa)) {
+    erros.tipo_pessoa = 'Escolha se a conta é de uma pessoa ou de uma instituição.';
   }
 
   // RN01 e RF12: somente maiores de 18 anos criam conta.
@@ -330,6 +355,7 @@ export function lerCadastro(dados: FormData): DadosCadastro {
     senha: senhaBruta(dados, 'senha'),
     maioridade: marcado(dados, 'maioridade'),
     consentimento: marcado(dados, 'consentimento'),
+    tipo_pessoa: textoDoCampo(dados, 'tipo_pessoa'),
     papeis
   };
 }
@@ -1135,6 +1161,35 @@ export const TIPOS_DE_PESSOA: Array<{ valor: string; texto: string }> = [
 
 export function ehTipoDePessoa(valor: unknown): boolean {
   return TIPOS_DE_PESSOA.some((opcao) => opcao.valor === valor);
+}
+
+/**
+ * As mesmas opções, MENOS "Prefiro não dizer" — as duas que a coluna
+ * `tipo_pessoa` de fato guarda.
+ *
+ * ===================================================================
+ * POR QUE DUAS LISTAS, SE O ARQUIVO INTEIRO PREGA QUE UMA SÓ
+ * ===================================================================
+ *
+ * Porque são duas REGRAS diferentes sobre a mesma coluna, e não duas
+ * cópias da mesma:
+ *
+ *   · /minha-conta é EDIÇÃO de um dado que já existe, e a coluna aceita
+ *     nulo. Tirar "Prefiro não dizer" de lá tiraria de quem já recusou o
+ *     direito de continuar recusando — mudança de comportamento que
+ *     ninguém pediu;
+ *   · o CADASTRO é onde o dado nasce, e o pedido V1 é explícito: "na hora
+ *     do usuário criar conta ele deve inserir o tipo de pessoa: física ou
+ *     jurídica". Aceitar vazio ali seria o padrão silencioso de novo, só
+ *     que com outra cara.
+ *
+ * A derivação é o que impede a divergência: esta lista é FILTRADA da
+ * outra, então acrescentar um terceiro tipo no banco alcança as duas.
+ */
+export const TIPOS_DE_PESSOA_DECLARADOS = TIPOS_DE_PESSOA.filter((opcao) => opcao.valor !== '');
+
+export function ehTipoDePessoaDeclarado(valor: unknown): boolean {
+  return TIPOS_DE_PESSOA_DECLARADOS.some((opcao) => opcao.valor === valor);
 }
 
 /**

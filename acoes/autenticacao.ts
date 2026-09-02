@@ -148,9 +148,10 @@ const SEM_SESSAO_PARA_TROCAR_SENHA: EstadoFormulario = {
  * (`data.session`), e nao de uma suposicao sobre o painel: se alguem
  * religar a confirmacao, a mensagem volta sozinha a ser a outra.
  */
-const MENSAGEM_CONTA_PRONTA =
-  'Conta criada e pronta para usar. Voce ja esta dentro — seu nome aparece no topo da pagina.';
-
+// A FRASE DE SUCESSO NAO MORA MAIS AQUI. Desde o pedido V1, quem cria
+// conta com sessao e' REDIRECIONADO para a home, e um redirect nao carrega
+// estado — a frase e' escolhida por lista fechada em
+// compartilhado/avisos-da-home.ts, a partir de `?aviso=conta-criada`.
 const MENSAGEM_CONTA_CRIADA =
   'Conta criada. Enviamos um e-mail com um link de confirmação: abra o link e depois volte '
   + 'para entrar — antes disso a entrada não funciona. Se o e-mail não chegar, olhe o spam e, '
@@ -413,7 +414,8 @@ export async function criarConta(
     voluntario: campos.papeis?.includes('voluntario') ? 'on' : '',
     doador: campos.papeis?.includes('doador') ? 'on' : '',
     maioridade: campos.maioridade ? 'on' : '',
-    consentimento: campos.consentimento ? 'on' : ''
+    consentimento: campos.consentimento ? 'on' : '',
+    tipo_pessoa: campos.tipo_pessoa ?? ''
   };
 
   if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros, valores };
@@ -436,10 +438,13 @@ export async function criarConta(
         data: {
           nome: campos.nome,
           telefone: telefone || null,
-          // A tabela aceita 'fisica' ou 'juridica' e o formulário não
-          // pergunta. Quem se cadastra pelo site é pessoa física; conta de
-          // organização é assunto do Bloco B.
-          tipo_pessoa: 'fisica',
+          // AGORA VEM DO FORMULÁRIO (pedido V1). Era 'fisica' fixo, com o
+          // comentário dizendo "o formulário não pergunta" — e por isso uma
+          // escola ou empresa que se cadastrasse entrava como pessoa física
+          // e só descobria depois, em /minha-conta. `validarCadastro` já
+          // recusou o que não estiver na lista fechada, então aqui o valor
+          // é um dos dois do `check` de 001_base.sql.
+          tipo_pessoa: campos.tipo_pessoa,
           eh_voluntario: campos.papeis!.includes('voluntario'),
           eh_doador: campos.papeis!.includes('doador'),
           // A caixa é obrigatória e já foi validada acima (RN01/RF12).
@@ -465,13 +470,33 @@ export async function criarConta(
     // desligada o Supabase ja devolve sessao; com ela ligada, nao devolve.
     // Ver o comentario de MENSAGEM_CONTA_PRONTA: esta linha existe porque a
     // configuracao mudou uma vez sem que nada ficasse vermelho.
-    return {
-      ok: true,
-      mensagem: data?.session ? MENSAGEM_CONTA_PRONTA : MENSAGEM_CONTA_CRIADA
-    };
+    // COM SESSÃO, A PESSOA JÁ ESTÁ DENTRO — E O LUGAR DELA NÃO É ESTA TELA.
+    //
+    // Pedido V1: "usuário criou sua conta, em seguida ele deve ser logado
+    // instantaneamente". A sessão já vinha (o Supabase está com
+    // `mailer_autoconfirm`), mas a pessoa continuava parada em /entrar
+    // lendo uma frase — com o formulário de criar conta ainda na tela,
+    // como se faltasse algo.
+    //
+    // O `redirect` fica FORA do try, como em `entrar` e `sair`: ele
+    // funciona LANÇANDO (é assim que o Next interrompe a Action), e dentro
+    // do try o próprio catch o engoliria e transformaria em "erro ao criar
+    // conta" — depois de a conta ter sido criada.
+    //
+    // `?aviso=conta-criada` porque um redirect não carrega estado: a home
+    // desenha a confirmação a partir de LISTA FECHADA, nunca de texto que
+    // venha na URL.
+    //
+    // SEM sessão (confirmação de e-mail religada no painel do Supabase) o
+    // caminho é o antigo: fica na tela, com a instrução de abrir o link.
+    // Mandá-la para a home nesse instante esconderia justamente o que ela
+    // precisa ler.
+    if (!data?.session) return { ok: true, mensagem: MENSAGEM_CONTA_CRIADA };
   } catch (erro) {
     return { ...estadoDeFalha(erro, 'criarConta (exceção)'), valores };
   }
+
+  redirect('/?aviso=conta-criada');
 }
 
 /**

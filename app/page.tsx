@@ -31,10 +31,19 @@
 // (barra colorida de 6px à esquerda de cada item).
 import Link from 'next/link';
 import { listarClippingComOrigem } from '@/servidor/dados/conteudo';
+import { avisoDaHome } from '@/compartilhado/avisos-da-home';
 import { SecaoNaMidia } from '@/componentes/SecaoNaMidia';
 
-export default async function Home() {
+export default async function Home(
+  { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
+) {
   const { registros: clipping, origem } = await listarClippingComOrigem();
+
+  // Quem acabou de criar conta chega aqui por redirect (pedido V1), e um
+  // redirect não carrega estado. `?aviso=` é escrito por quem quiser, então
+  // passa por LISTA FECHADA — o parâmetro escolhe uma frase nossa, nunca
+  // traz uma. Mesma mecânica de /contato.
+  const aviso = avisoDaHome((await searchParams).aviso);
 
   return (
     // data-origem-clipping segue o mesmo precedente de app/para-escolas/
@@ -42,6 +51,25 @@ export default async function Home() {
     // do JSON versionado, sem mudar o texto lido por leitor de tela nem
     // revelar credencial nenhuma.
     <main id="conteudo" data-origem-clipping={origem}>
+      {/*
+        A confirmação vem ANTES do herói, e não no meio da página: depois do
+        redirect o navegador entrega a página nova pelo começo, e uma
+        confirmação abaixo da dobra é uma confirmação que ninguém lê.
+
+        `role="status"` e não `alert`: esta caixa chega junto com uma página
+        NOVA, não aparece no meio de uma que já estava aberta.
+
+        Sem `?aviso=`, NADA é desenhado — nem uma caixa vazia. É o que
+        mantém testes/paridade-texto.test.mjs comparando o texto desta
+        página com o do HTML original sem precisar excluir esta parte.
+      */}
+      {aviso ? (
+        <div className="conteudo">
+          <div className={aviso.ok ? 'aviso aviso--sucesso' : 'aviso aviso--erro'} role="status">
+            <p>{aviso.texto}</p>
+          </div>
+        </div>
+      ) : null}
       {/*
         HERÓI — `index.html` §4. Ordem no DOM: cartão primeiro, imagem
         depois (é o que `Home 1a Desktop.dc.html` desenha: cartão à

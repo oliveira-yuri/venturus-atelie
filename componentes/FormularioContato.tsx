@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { enviarContato } from '@/acoes/contato';
 import type { EstadoFormulario } from '@/acoes/autenticacao';
 import { CampoFormulario } from './CampoFormulario';
+import { mascararTelefone } from './mascara-telefone';
 
 /**
  * componentes/FormularioContato.tsx — o formulário de /contato (RF07),
@@ -113,8 +114,13 @@ export default function FormularioContato() {
         <p>{estado.mensagem}</p>
       </div>
 
+      {/*
+        `onChange` no <form>, nao no campo: o evento chega por
+        borbulhamento e alcanca o telefone dentro de CampoFormulario, que
+        nao expoe onChange proprio. Ver componentes/mascara-telefone.ts.
+      */}
       <form ref={formulario} id="form-contato" className="formulario" action={enviar}
-            noValidate aria-describedby="aviso-formulario">
+            noValidate aria-describedby="aviso-formulario" onChange={mascararTelefone}>
         <CampoFormulario nome="nome" rotulo="Seu nome" tipo="text" obrigatorio
                           autoComplete="name"
                           erro={estado.erros?.nome}

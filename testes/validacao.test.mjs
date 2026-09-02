@@ -13,6 +13,11 @@ const CADASTRO_VALIDO = {
   senha: 'uma senha longa o suficiente',
   maioridade: true,
   consentimento: true,
+  // Obrigatório desde o pedido V1 ("na hora do usuário criar conta ele deve
+  // inserir o tipo de pessoa"). Antes o cadastro não perguntava e
+  // acoes/autenticacao.ts gravava 'fisica' fixo — ver
+  // TIPOS_DE_PESSOA_DECLARADOS em compartilhado/validacao.ts.
+  tipo_pessoa: 'fisica',
   papeis: ['voluntario']
 };
 
@@ -160,7 +165,10 @@ const CADASTRO_ENVIADO = {
   senha: 'uma senha longa',
   voluntario: 'on',
   maioridade: 'on',
-  consentimento: 'on'
+  consentimento: 'on',
+  // O <select> obrigatório do pedido V1. Sem ele o formulário nem envia
+  // (required no HTML), e a Action recusa de novo.
+  tipo_pessoa: 'fisica'
 };
 
 test('caminho feliz: o cadastro que o formulário envia é lido e aceito', () => {
@@ -173,6 +181,7 @@ test('caminho feliz: o cadastro que o formulário envia é lido e aceito', () =>
     senha: 'uma senha longa',
     maioridade: true,
     consentimento: true,
+    tipo_pessoa: 'fisica',
     papeis: ['voluntario']
   });
 
@@ -255,7 +264,7 @@ test('nenhum campo além dos previstos atravessa a leitura', () => {
   }));
 
   assert.deepEqual(Object.keys(lido).sort(), [
-    'consentimento', 'email', 'maioridade', 'nome', 'papeis', 'senha', 'telefone'
+    'consentimento', 'email', 'maioridade', 'nome', 'papeis', 'senha', 'telefone', 'tipo_pessoa'
   ]);
   assert.deepEqual(lido.papeis, ['voluntario']);
   assert.equal(JSON.stringify(lido).includes('equipe'), false);

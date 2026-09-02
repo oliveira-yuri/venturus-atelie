@@ -190,9 +190,31 @@ export function CampoFormulario({
   if (tipo === 'textarea') {
     controle = createElement('textarea', { ...atributosComuns, rows: 5 });
   } else if (tipo === 'select') {
+    /*
+      A OPCAO VAZIA SO' APARECE EM SELECT OBRIGATORIO SEM VALOR ESCOLHIDO,
+      e existe por um defeito real (pedido V1).
+
+      Um <select> sem opcao vazia ja' chega com a PRIMEIRA selecionada. Num
+      campo obrigatorio isso e' um padrao silencioso: a pessoa nunca ve a
+      pergunta, nao responde nada, e o formulario envia a primeira opcao
+      como se fosse escolha dela. Foi exatamente o que aconteceu com
+      `tipo_pessoa` no cadastro, que gravava 'fisica' para todo mundo.
+
+      Com `required` no <select> e uma <option value=""> no topo, o
+      navegador RECUSA o envio ate' que alguem escolha — inclusive sem
+      JavaScript, que e' quando mais importa. O servidor recusa de novo
+      (`validarCadastro`), porque o `required` do HTML e' sugestao.
+
+      Em select OPCIONAL, ou que ja' tem valor (o de /minha-conta, que le
+      o perfil do banco), nada muda: a opcao vazia nao entra.
+    */
+    const precisaEscolher = obrigatorio && !valorInicial;
     controle = createElement(
       'select',
       atributosComuns,
+      precisaEscolher
+        ? createElement('option', { key: '', value: '' }, 'Escolha uma opção')
+        : null,
       (opcoes ?? []).map((item) => createElement('option', { key: item.valor, value: item.valor }, item.texto || item.valor))
     );
   } else if (tipo === 'checkbox') {

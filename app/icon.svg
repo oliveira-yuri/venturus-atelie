@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Ateliê Afro Cultural">
+  <!--
+    O ícone do navegador (pedido V1: "ajuste de ícone do navegador" — antes
+    não existia nenhum, e a aba mostrava o globo padrão do Next).
+
+    TIPOGRÁFICO, E ISSO É A REGRA, NÃO PREGUIÇA. A ONG só possui o logotipo
+    bordado nas camisetas, em baixa qualidade (CLAUDE.md, "O que trava
+    hoje", item 6), e por isso a marca do site inteiro é tipográfica —
+    componentes/Cabecalho.tsx diz o mesmo. Desenhar um símbolo aqui seria
+    inventar identidade visual que a ONG não tem (regra 2). Quando o vetor
+    chegar, ele entra neste arquivo.
+
+    As cores são as do design system v1: fundo ocre `--af-ochre`, letra na
+    tinta `--af-brown`. Escritas literalmente porque um SVG servido como
+    ícone não enxerga os tokens CSS da página.
+
+    O "A" é o mesmo desenho de Bitter que o site usa, convertido em traço
+    para não depender de a fonte estar instalada em quem vê a aba.
+  -->
+  <rect width="64" height="64" fill="#D69A10"/>
+  <path fill="#2B2019" d="M32 11 L47 53 H39.2 L35.6 42.4 H28.4 L24.8 53 H17 Z M32 24.6 L29.9 35.9 H34.1 Z"/>
+</svg>

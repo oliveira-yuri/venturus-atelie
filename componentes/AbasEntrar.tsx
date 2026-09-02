@@ -5,8 +5,9 @@ import type { ChangeEvent, RefObject } from 'react';
 import Link from 'next/link';
 import { entrar, criarConta } from '@/acoes/autenticacao';
 import type { EstadoFormulario } from '@/acoes/autenticacao';
-import { formatarTelefone } from '@/compartilhado/validacao';
+import { formatarTelefone, TIPOS_DE_PESSOA_DECLARADOS } from '@/compartilhado/validacao';
 import { CampoFormulario } from './CampoFormulario';
+import { mascararTelefone } from './mascara-telefone';
 
 /**
  * As duas abas de /entrar ("Entrar" e "Criar conta") e os dois formulários
@@ -91,40 +92,6 @@ function useFocoNoErro(estado: EstadoFormulario, formulario: RefObject<HTMLFormE
       ?? document.getElementById('aviso');
     alvo?.focus();
   }, [estado, formulario]);
-}
-
-/**
- * Máscara de telefone — porta site/assets/js/paginas/entrar.js, com uma
- * correção.
- *
- * O original formatava SEMPRE e só devolvia o cursor ao fim quando ele já
- * estava lá; mas escrever em `input.value` já joga o cursor para o fim
- * sozinho, então quem corrigisse um dígito no meio era jogado para o fim
- * assim mesmo — o defeito que o comentário de lá dizia estar evitando.
- * Aqui a regra é a mesma na intenção e cumprida de fato: formata só quando
- * o cursor está no fim do campo. Quem edita no meio (ou seleciona um
- * trecho) segue digitando sem nada pular; o valor sai formatado na próxima
- * digitação no fim, e de todo jeito o servidor lê só os dígitos
- * (`apenasDigitos`, compartilhado/validacao.ts).
- *
- * COLAR CONTINUA VALENDO: colar deixa o cursor no fim do que foi colado, ou
- * seja, no fim do campo — o valor colado é aceito e formatado. E como a
- * máscara é enfeite de digitação, não regra, sem JavaScript o campo aceita
- * o telefone como a pessoa escrever.
- */
-function mascararTelefone(evento: ChangeEvent<HTMLFormElement>) {
-  // O evento vem do <form>, por borbulhamento: `target` é o controle que
-  // mudou, e só o campo de telefone interessa. `instanceof` em vez de um
-  // cast porque este handler recebe TODOS os controles do formulário,
-  // inclusive as caixas de marcar.
-  const alvo: unknown = evento.target;
-  if (!(alvo instanceof HTMLInputElement) || alvo.name !== 'telefone') return;
-
-  const noFim = alvo.selectionStart === null || alvo.selectionStart === alvo.value.length;
-  if (!noFim) return;
-
-  const formatado = formatarTelefone(alvo.value);
-  if (formatado !== alvo.value) alvo.value = formatado;
 }
 
 export default function AbasEntrar() {
@@ -224,6 +191,27 @@ export default function AbasEntrar() {
                             ajuda="Opcional. Com DDD, como (11) 95396-8344."
                             erro={estadoCriar.erros?.telefone}
                             valorInicial={estadoCriar.valores?.telefone} />
+
+          {/*
+            TIPO DE PESSOA (pedido V1). Antes o cadastro não perguntava e
+            `acoes/autenticacao.ts` gravava 'fisica' fixo — uma escola ou
+            empresa entrava como pessoa física e só descobria depois, em
+            /minha-conta.
+
+            `TIPOS_DE_PESSOA_DECLARADOS` é a lista de /minha-conta FILTRADA
+            (sem "Prefiro não dizer"): aqui o dado NASCE, e aceitar vazio
+            seria o padrão silencioso de novo. Em /minha-conta, que edita um
+            dado existente numa coluna que aceita nulo, recusar continua
+            valendo. Ver o comentário daquela constante.
+
+            Sem `valorInicial` padrão: quem se cadastra ESCOLHE. Um padrão
+            pré-marcado é o mesmo defeito de antes, só que visível.
+          */}
+          <CampoFormulario nome="tipo_pessoa" rotulo="Esta conta é de" tipo="select"
+                            prefixo="criar" obrigatorio opcoes={TIPOS_DE_PESSOA_DECLARADOS}
+                            ajuda="Uma pessoa, ou uma instituição (escola, empresa, coletivo)."
+                            erro={estadoCriar.erros?.tipo_pessoa}
+                            valorInicial={estadoCriar.valores?.tipo_pessoa} />
 
           <CampoFormulario nome="senha" rotulo="Senha" tipo="password" prefixo="criar"
                             autoComplete="new-password" obrigatorio

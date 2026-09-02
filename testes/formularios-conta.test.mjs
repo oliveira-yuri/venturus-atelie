@@ -282,3 +282,67 @@ test('com JavaScript: o telefone é formatado enquanto se digita, e o valor cola
   assert.equal(await comScript.findElement(By.css('#criar-campo-telefone')).getAttribute('value'),
     '(11) 95396-8344', 'o valor colado já formatado foi alterado pela máscara');
 });
+
+/* =====================================================================
+   TIPO DE PESSOA NO CADASTRO (pedido V1)
+   =====================================================================
+
+   Antes deste bloco o cadastro NÃO perguntava, e `acoes/autenticacao.ts`
+   gravava `tipo_pessoa: 'fisica'` fixo — o comentário no código dizia isso
+   com todas as letras. Uma escola, empresa ou coletivo que se cadastrasse
+   entrava como pessoa física e só descobria depois, em /minha-conta.
+
+   Três coisas precisam continuar verdade, e cada teste mede uma:
+
+     1. o campo existe na tela e NÃO vem pré-escolhido — um <select> sem
+        opção vazia já chega com a primeira selecionada, que é o mesmo
+        padrão silencioso de antes, só que visível;
+     2. a Action recusa quem não escolheu (o `required` do HTML é sugestão:
+        Server Action é endpoint HTTP público, spec §4.5);
+     3. a Action recusa valor fora da lista fechada — senão o insert
+        quebraria no banco, no `check` de 001_base.sql, em vez de na tela.
+   ===================================================================== */
+
+test('o cadastro pergunta o tipo de pessoa, e não vem pré-escolhido', async () => {
+  const html = await fetch(`${BASE}/entrar`).then((r) => r.text());
+
+  const bloco = html.match(/<select[^>]*name="tipo_pessoa"[\s\S]*?<\/select>/);
+  assert.ok(bloco, 'o formulário de criar conta não tem campo tipo_pessoa');
+
+  assert.match(bloco[0], /required/,
+    'o campo de tipo de pessoa não é obrigatório');
+  assert.match(bloco[0], /<option[^>]*value=""/,
+    'o <select> não tem opção vazia: o navegador já chega com "física" escolhida, '
+    + 'que é exatamente o padrão silencioso que este item veio consertar');
+
+  // As duas opções reais, e nada além delas.
+  const valores = [...bloco[0].matchAll(/<option[^>]*value="([^"]*)"/g)].map((m) => m[1]);
+  assert.deepEqual(valores, ['', 'fisica', 'juridica'],
+    `o select desenhou ${JSON.stringify(valores)}; esperava a vazia mais as duas do check de 001_base.sql`);
+});
+
+test('criarConta recusa cadastro sem tipo de pessoa, e com tipo inventado', async () => {
+  const { validarCadastro } = await import('../compartilhado/validacao.ts');
+
+  const base = {
+    nome: 'Fulana de Teste',
+    email: 'fulana@exemplo.test',
+    senha: 'senha-comprida-o-bastante',
+    maioridade: true,
+    consentimento: true,
+    papeis: ['voluntario']
+  };
+
+  const semTipo = validarCadastro({ ...base }, { exigirPapel: false });
+  assert.equal(semTipo.valido, false, 'passou sem escolher o tipo de pessoa');
+  assert.ok(semTipo.erros.tipo_pessoa, 'não apontou o erro no campo tipo_pessoa');
+
+  const inventado = validarCadastro({ ...base, tipo_pessoa: 'equipe' }, { exigirPapel: false });
+  assert.equal(inventado.valido, false, 'aceitou tipo_pessoa fora da lista fechada');
+
+  for (const valido of ['fisica', 'juridica']) {
+    const ok = validarCadastro({ ...base, tipo_pessoa: valido }, { exigirPapel: false });
+    assert.equal(ok.valido, true,
+      `recusou "${valido}", que está no check de 001_base.sql: ${JSON.stringify(ok.erros)}`);
+  }
+});
