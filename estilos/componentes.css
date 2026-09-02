@@ -121,47 +121,15 @@
   .atividade__ficha dt { min-width: 0; }
 }
 
-/* ---------- Abertura da home ---------- */
+/* ---------- Ações empilhadas (CTA duplo ao pé de uma seção) ----------
 
-.abertura {
-  background: var(--af-ochre);
-  padding: var(--af-s8) var(--af-gutter) var(--af-s10);
-}
-
-.abertura__conteudo {
-  max-width: var(--largura-conteudo);
-  margin: 0 auto;
-}
-
-.abertura__peca {
-  /* Fundo, borda e sombra vem de `.af-card af-card--hero` (sistema.css).
-     O que sobra aqui e' so' o que o heroi tem de diferente de um cartao
-     comum: o texto do slogan em corpo cheio e as acoes empilhadas. */
-  position: relative;
-  z-index: 2;
-}
-
-.abertura h1 {
-  font-size: var(--texto-destaque);
-  margin-bottom: var(--espaco-3);
-}
-
-.abertura h1 em { font-style: normal; color: var(--af-ochre-deep); }
-
-.abertura__slogan {
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: var(--texto-medio);
-  color: var(--tinta-suave);
-  max-width: 42ch;
-  margin-bottom: var(--espaco-5);
-}
+   Nasceu na "abertura" da home; a home migrou para `.af-hero__acoes` do
+   design system (estilos/sistema.css), mas esta classe continua viva em
+   /doar, /voluntariado, /para-escolas, /minha-conta e nas telas de oferta e
+   candidatura, com o mesmo papel: dois `.botao` empilhados no celular,
+   lado a lado quando cabe. */
 
 .abertura__acoes {
-  /* Empilhados e em largura cheia, com 10px entre eles — e' o que o design
-     system v1 desenha para o heroi no celular. Lado a lado, dois botoes de
-     50px numa tela de 320px espremeriam "Conhecer nossos projetos" em tres
-     linhas. No desktop eles voltam a ficar lado a lado (regra abaixo). */
   display: flex;
   flex-direction: column;
   align-items: stretch;

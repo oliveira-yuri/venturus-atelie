@@ -1,0 +1,139 @@
+/* =====================================================================
+   Design system "Ateliê Afro" v1 — a PELE sobre os nomes de classe antigos
+   =====================================================================
+
+   estilos/tokens.css já fez os VALORES (cor, tipo, espaço) do site inteiro
+   virarem os do sistema v1, sem tocar em base.css / componentes.css /
+   admin.css. Sobrou o VOCABULÁRIO DE FORMA daqueles arquivos, que ainda é
+   o "Aplique v0":
+
+     · borda de 2px               → o sistema pede 1,5px
+     · sombra deslocada colorida  → o sistema é sempre marrom
+       (`var(--aplique) var(--amarelo|--azul|--marrom)`)  (ocre só em fundo escuro)
+     · título em peso 900 com     → o sistema é 700, sem tracking
+       `letter-spacing: -0.015em`
+
+   Reescrever os três arquivos seria trocar centenas de declarações à mão.
+   Em vez disso, este arquivo REDECLARA as mesmas superfícies com os
+   valores v1, escopado por `#conteudo` (páginas públicas) e `.painel`
+   (admin). O escopo é o que dá a precedência: `.painel .painel__tela-alvo`
+   (0,2,0) vence `.painel__tela-alvo` (0,1,0) de admin.css, e
+   `#conteudo .atividade` (1,1,0) vence até o `:nth-child` de
+   componentes.css (0,3,0) — independente de ordem de arquivo. É a mesma
+   estratégia de ponte de tokens.css, um nível acima.
+
+   É importado UMA vez, no layout raiz (app/layout.tsx), depois de base.css
+   e componentes.css. O painel não o reimporta: o layout raiz o envolve, e
+   o escopo `.painel` alcança as telas de admin. Sem `!important`.
+
+   O que este arquivo NÃO faz: mexer em markup. A home é a única página em
+   classes `.af-*` de verdade (estilos/sistema.css); as demais continuam
+   com o HTML que têm e ganham só a aparência do sistema.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   Tipografia — títulos crus das páginas legadas batendo com `.af-h*`
+   --------------------------------------------------------------------- */
+
+#conteudo h1, #conteudo h2, #conteudo h3,
+.painel h1, .painel h2, .painel h3 {
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: var(--af-lh-tight);
+}
+
+#conteudo .atividade__titulo,
+#conteudo .clipping__item strong,
+#conteudo .album__titulo,
+.painel .atividade-painel__titulo,
+.painel .publicacao__titulo,
+.painel .evento-painel__titulo {
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------------
+   Superfícies — borda 1,5px e sombra dura marrom (a assinatura v1)
+   --------------------------------------------------------------------- */
+
+#conteudo .setor,
+#conteudo .atividade,
+#conteudo .clipping__item,
+#conteudo .aviso,
+#conteudo .estado,
+#conteudo .grupo-campos,
+#conteudo .album__figura,
+#conteudo .conta__item,
+.painel .painel__tela-alvo,
+.painel .painel__acao-principal,
+.painel .painel__dobra,
+.painel .atividade-painel,
+.painel .evento-painel,
+.painel .doacao,
+.painel .voluntario,
+.painel .contato,
+.painel .material,
+.painel .midia,
+.painel .publicacao,
+.painel .exportacoes__alvo,
+.painel .numeros__alvo,
+.painel .apagar__previa,
+.painel .apagar__foto {
+  border-width: 1.5px;
+  box-shadow: var(--af-shadow-md);
+}
+
+/* O `:nth-child` de componentes.css pinta a sombra de cada cartão de
+   /projetos e /agenda de ocre/azul/marrom conforme a posição. O sistema v1
+   moveu "cor é categoria" para a borda de topo do tile; nos cartões de
+   atividade não há tile, então a cor da sombra simplesmente sai. Escopo
+   `#conteudo` (1,1,0) vence `.card-atividade:nth-child() .atividade` (0,3,0). */
+#conteudo .card-atividade .atividade {
+  box-shadow: var(--af-shadow-md);
+}
+
+/* `.aviso--erro` (era sombra marrom) e `.aviso--sucesso` (era azul) são
+   caixas claras: no sistema v1 as duas usam a mesma sombra marrom dura. A
+   distinção entre erro e sucesso não é a cor da sombra — é o texto e a
+   caixa de `role="alert"` que a acompanha. */
+#conteudo .aviso--erro,
+#conteudo .aviso--sucesso { box-shadow: var(--af-shadow-md); }
+
+/* ---------------------------------------------------------------------
+   Campos de formulário — borda 1,5px; foco com a sombra curta do sistema
+   --------------------------------------------------------------------- */
+
+#conteudo .campo input,
+#conteudo .campo textarea,
+#conteudo .campo select,
+.painel .campo input,
+.painel .campo textarea,
+.painel .campo select {
+  border-width: 1.5px;
+}
+
+#conteudo .campo input:focus,
+#conteudo .campo textarea:focus,
+#conteudo .campo select:focus,
+.painel .campo input:focus,
+.painel .campo textarea:focus,
+.painel .campo select:focus {
+  box-shadow: var(--af-shadow-sm);
+}
+
+/* ---------------------------------------------------------------------
+   Faixa listrada como divisor — o ritmo de seção do sistema.
+
+   As páginas públicas institucionais recebem UMA faixa logo após a
+   abertura (a 2ª permitida por página é a do rodapé, em Rodape.tsx). O
+   elemento é `<div class="af-stripe" aria-hidden="true">` no markup de
+   cada página; aqui só se ajusta a margem para ela respirar dentro do
+   `.conteudo` centralizado.
+   --------------------------------------------------------------------- */
+
+/* `.conteudo > .af-stripe` casa as páginas públicas (o <main> leva as duas
+   — id e classe) e NÃO a home (lá a faixa fica fora do <div class="conteudo">
+   e encosta no herói de propósito, como no handoff). A faixa nasce colada
+   às bordas do container centralizado; a margem vertical dá o respiro. */
+.conteudo > .af-stripe {
+  margin: var(--af-s2) calc(var(--espaco-3) * -1) var(--af-s9);
+}

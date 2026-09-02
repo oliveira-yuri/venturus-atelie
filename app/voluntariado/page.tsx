@@ -50,6 +50,8 @@ export default async function Voluntariado() {
         participar e compromisso com o que combinamos.
       </p>
 
+      <div className="af-stripe" aria-hidden="true" />
+
       <section aria-labelledby="titulo-areas">
         <h2 id="titulo-areas">Onde você pode ajudar</h2>
         <p>Escolha uma ou mais áreas. Muita gente atua em duas.</p>

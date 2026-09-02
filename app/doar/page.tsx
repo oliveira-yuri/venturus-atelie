@@ -50,6 +50,8 @@ export default function Doar() {
         são materiais que viram atividade com as crianças — e recursos que sustentam o trabalho.
       </p>
 
+      <div className="af-stripe" aria-hidden="true" />
+
       <section aria-labelledby="titulo-aceitamos">
         <h2 id="titulo-aceitamos">O que recebemos</h2>
         <ul className="lista-simples">

@@ -51,6 +51,8 @@ export default async function Noticias() {
     <main id="conteudo" className="conteudo">
       <h1>Notícias</h1>
       <p className="destaque">O que anda acontecendo no ateliê.</p>
+
+      <div className="af-stripe" aria-hidden="true" />
       <div id="lista-noticias">
         <ListaNoticias publicacoes={publicacoes} mensagemVazio={ESTADO_VAZIO} />
       </div>

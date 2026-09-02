@@ -38,18 +38,27 @@ export function SecaoNaMidia({ registros }: { registros: RegistroClipping[] }) {
     createElement('h2', { id: 'titulo-midia-home' }, 'Na mídia'),
     createElement(
       'ul',
-      { className: 'clipping' },
+      { className: 'af-media' },
       midia.map((registro) =>
         createElement(
           'li',
-          { className: 'clipping__item', key: registro.id },
-          createElement('strong', null, registro.titulo),
-          registro.detalhe
-            ? createElement('span', { className: 'clipping__detalhe' }, registro.detalhe)
-            : null,
-          registro.ano
-            ? createElement('span', { className: 'clipping__ano' }, registro.ano)
-            : null
+          { className: 'af-media__item', key: registro.id },
+          // A barra colorida de 6px do handoff. Decoração pura (a cor
+          // alterna por :nth-child em estilos/sistema.css), então
+          // aria-hidden — e vazia, para não deixar texto solto entre ela e
+          // o título (a fronteira que o cabeçalho de paridade-texto vigia).
+          createElement('span', { className: 'af-media__barra', 'aria-hidden': 'true' }),
+          createElement(
+            'span',
+            { className: 'af-media__corpo' },
+            createElement('span', { className: 'af-media__titulo' }, registro.titulo),
+            registro.detalhe
+              ? createElement('span', { className: 'af-media__meta' }, registro.detalhe)
+              : null,
+            registro.ano
+              ? createElement('span', { className: 'af-media__meta' }, registro.ano)
+              : null
+          )
         )
       )
     )

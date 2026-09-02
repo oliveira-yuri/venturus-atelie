@@ -4,30 +4,31 @@
 // real da ONG, nunca inventado). Conversão mecânica: class ->
 // className, <main id="conteudo"> preservado, e o bloco <noscript> saiu — a
 // navegação agora chega pronta no HTML do servidor (Cabecalho e Rodape em
-// app/layout.tsx). Os links internos (/projetos.html, /agenda.html,
-// /voluntariado.html, /doar.html, /quem-somos.html, /para-escolas.html)
-// perderam o ".html" para casar com o esquema de rotas do Next; a maioria
-// dessas páginas ainda não existe (chegam em fases futuras) — mesma
-// situação que app/quem-somos/page.tsx e app/para-escolas/page.tsx já
-// tratam, e usam next/link mesmo assim (nunca <a> cru para rota interna: um
-// <a> cru faz recarga completa e passa ao largo de
-// componentes/FocoNaNavegacao.tsx).
+// app/layout.tsx). Os links internos perderam o ".html" para casar com o
+// esquema de rotas do Next.
 //
-// O <main id="conteudo"> original NÃO carrega class="conteudo" (ao
-// contrário de quem-somos e para-escolas): a home tem a seção "abertura",
-// de largura cheia, fora do container centralizado, e só o restante das
-// seções entra num <div class="conteudo"> — essa é a diferença estrutural
-// entre esta página e as outras duas já portadas. Preservada aqui.
+// =====================================================================
+// PARIDADE COM O HANDOFF DO DESIGN SYSTEM v1 (index.html §4–§9)
+// =====================================================================
 //
-// "Na mídia" era populada no cliente por assets/js/paginas/prova-social.js,
-// lendo listarClipping() e filtrando tipo === 'midia' (o <div
-// id="lista-midia"> chegava vazio no HTML estático). Agora que a camada de
-// dados existe no servidor (servidor/dados/conteudo.ts) a página busca
-// direto — sem round-trip no navegador, mesmo padrão que
-// app/para-escolas/page.tsx já usa para "Onde já estivemos". A decisão de
-// desenhar a seção (ou omiti-la, sem nenhum registro do tipo "midia") mora
-// em componentes/SecaoNaMidia.ts, espelhando componentes/SecaoOndeEstivemos
-// .ts — mesmo teste de omissão, mesmo motivo (regra 2 do CLAUDE.md).
+// O herói agora é `.af-hero` do sistema: faixa ocre, imagem atrás e o
+// cartão creme de sombra dura avançando sobre ela (estilos/sistema.css). O
+// `.abertura*` legado saiu.
+//
+// AS FOTOS (docs/info-venturus/, decididas com o dono do projeto): todas do
+// COFUNDADOR Wil Oliveira — adulto, figura pública (imprensa nacional,
+// Teatro Municipal). NENHUMA criança identificável vai ao ar (RN07, regra
+// 9 — o público inclui crianças a partir de 10 anos). Quando faltar foto
+// autorizada, `.af-ph` volta a ser o espaço declarado.
+//
+// O TEXTO VISÍVEL NÃO MUDOU. A numeração 01–04 dos tiles e a seta do link
+// "Ler nossa história completa" são `::before`/`::after` em CSS, não markup
+// — conteúdo gerado não entra no <main> e testes/paridade-texto.test.mjs
+// (que compara o texto visível da home inteira) continua honesto.
+//
+// "Na mídia" continua vindo do servidor (servidor/dados/conteudo.ts) via
+// componentes/SecaoNaMidia.ts, agora no markup `.af-media` do sistema
+// (barra colorida de 6px à esquerda de cada item).
 import Link from 'next/link';
 import { listarClippingComOrigem } from '@/servidor/dados/conteudo';
 import { SecaoNaMidia } from '@/componentes/SecaoNaMidia';
@@ -42,29 +43,40 @@ export default async function Home() {
     // revelar credencial nenhuma.
     <main id="conteudo" data-origem-clipping={origem}>
       {/*
-        HERÓI DO DESIGN SYSTEM v1: faixa ocre com um cartão creme de sombra
-        dura por cima. O mockup tem uma imagem 16:9 atrás do cartão, com
-        `margin-bottom:-14px`, e ela NÃO entra aqui: a ONG não entregou uma
-        única foto com autorização de uso registrada (RN07, regra 9 — o
-        público inclui crianças a partir de 10 anos). O `.af-ph` do handoff
-        é um espaço de desenho, não um elemento de produção: publicar uma
-        caixa tracejada escrita "IMAGEM · OFICINA" é anunciar no ar o que
-        falta. Quando a foto autorizada chegar, ela entra aqui.
+        HERÓI — `index.html` §4. Ordem no DOM: cartão primeiro, imagem
+        depois (é o que `Home 1a Desktop.dc.html` desenha: cartão à
+        esquerda, imagem à direita). No celular o CSS sobe a imagem para
+        cima do cartão (`order: -1`) e o cartão avança sobre ela.
       */}
-      <section className="abertura af-hero">
-        <div className="abertura__conteudo">
-          <div className="abertura__peca af-card af-card--hero">
-            <h1 className="af-h1">Arte, memória e <em className="af-mark">pertencimento</em> — feitos à mão, todo dia</h1>
-            <p className="abertura__slogan">
-              Espaço educativo de criação, reflexão e valorização da cultura e memória
-              afro brasileira, na Casa Verde, zona norte de São Paulo.
-            </p>
-            <p className="abertura__acoes">
-              <Link className="botao" href="/projetos">Conhecer nossos projetos</Link>{' '}
-              <Link className="botao botao--secundario" href="/agenda">Ver a agenda</Link>
-            </p>
+      <section className="af-hero">
+        <div className="af-card af-card--hero">
+          <h1 className="af-h1">Arte, memória e <em className="af-mark">pertencimento</em> — feitos à mão, todo dia</h1>
+          <p className="af-text">
+            Espaço educativo de criação, reflexão e valorização da cultura e memória
+            afro brasileira, na Casa Verde, zona norte de São Paulo.
+          </p>
+          <div className="af-hero__acoes">
+            {/* O {' '} entre os dois botões é o espaço que existe no HTML
+                original (quebra de linha entre os <a>); testes/paridade-texto
+                compara texto e ele conta. Visualmente o gap vem do flex. */}
+            <Link className="af-btn af-btn--primary" href="/projetos">Conhecer nossos projetos</Link>{' '}
+            <Link className="af-btn af-btn--outline" href="/agenda">Ver a agenda</Link>
           </div>
         </div>
+        <picture>
+          {/* Retrato 4:5 no desktop, 16:9 no restante — a mesma troca que o
+              handoff faz entre `Home 1a` e `Home 1a Desktop`. */}
+          <source media="(min-width: 64rem)" srcSet="/imagens/heroi-retrato.jpg" width={1000} height={1250} />
+          <img
+            className="af-hero__img"
+            src="/imagens/heroi.jpg"
+            width={1200}
+            height={675}
+            loading="eager"
+            decoding="async"
+            alt="Wil Oliveira, cofundador do Ateliê Afro Cultural, toca um atabaque ao lado do estandarte bordado da instituição."
+          />
+        </picture>
       </section>
 
       {/*
@@ -112,28 +124,61 @@ export default async function Home() {
           {/*
             Carrossel com encaixe no celular, grade de 2 e depois de 3
             colunas a partir do tablet — quem decide é CSS, não script
-            (estilos/sistema.css). O <div> é só o trilho; os três <article>
-            continuam sendo os mesmos elementos, com o mesmo texto.
+            (estilos/sistema.css). Cada setor tem uma foto 2:1 no topo, o
+            espaço `.af-ph--wide` do handoff preenchido.
           */}
           <div className="af-hscroll">
-          <article className="setor">
-            <h3>Literário</h3>
-            <p>Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</p>
+          <article className="setor setor--com-imagem">
+            <img
+              className="setor__img"
+              src="/imagens/setor-literario.jpg"
+              width={1000}
+              height={500}
+              loading="lazy"
+              decoding="async"
+              alt="Wil Oliveira cercado de exemplares do livro infantil Cafú e o Café, de sua autoria."
+            />
+            <div className="setor__corpo">
+              <h3>Literário</h3>
+              <p>Livros de temática negra, leituras, pesquisas, contação de histórias e técnicas de teatro.</p>
+            </div>
           </article>
 
-          <article className="setor">
-            <h3>Musical</h3>
-            <p>Cantigas, instrumentos e corporeidade negra: jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</p>
+          <article className="setor setor--com-imagem">
+            <img
+              className="setor__img"
+              src="/imagens/setor-musical.jpg"
+              width={1000}
+              height={500}
+              loading="lazy"
+              decoding="async"
+              alt="Wil Oliveira em cena no espetáculo Brasil Negreiro, tocando um instrumento de percussão."
+            />
+            <div className="setor__corpo">
+              <h3>Musical</h3>
+              <p>Cantigas, instrumentos e corporeidade negra: jongo, maculelê, maracatu, forró, samba, rap, hip hop e funk.</p>
+            </div>
           </article>
 
-          <article className="setor">
-            <h3>Artístico criativo</h3>
-            <p>Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</p>
+          <article className="setor setor--com-imagem">
+            <img
+              className="setor__img"
+              src="/imagens/setor-artistico.jpg"
+              width={1000}
+              height={500}
+              loading="lazy"
+              decoding="async"
+              alt="Wil Oliveira de chapéu de palha com um tambor, diante de um painel grafitado e do estandarte do ateliê."
+            />
+            <div className="setor__corpo">
+              <h3>Artístico criativo</h3>
+              <p>Pintura em tela, materiais reciclados para figurinos e cenários, desenho, escultura e colagem.</p>
+            </div>
           </article>
 
           </div>
 
-          <p><Link href="/quem-somos">Ler nossa história completa</Link></p>
+          <p><Link className="link-historia" href="/quem-somos">Ler nossa história completa</Link></p>
         </section>
 
         <section aria-labelledby="titulo-escolas-home" className="af-card af-card--dark">

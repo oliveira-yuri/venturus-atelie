@@ -92,6 +92,8 @@ export default async function Contato(
         ateliê: escreva pelo canal que preferir.
       </p>
 
+      <div className="af-stripe" aria-hidden="true" />
+
       <section aria-labelledby="titulo-canais">
         <h2 id="titulo-canais">Canais diretos</h2>
         <dl className="ficha">

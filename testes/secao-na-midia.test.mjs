@@ -86,11 +86,10 @@ test('detalhe e ano só aparecem quando existem, nunca como texto vazio', () => 
   assert.match(html, /Participação em rede nacional/);
   assert.match(html, /2021/);
   // O registro sem detalhe/ano não pode deixar um <span> vazio no lugar.
-  assert.doesNotMatch(html, /<span class="clipping__detalhe"><\/span>/);
-  assert.doesNotMatch(html, /<span class="clipping__ano"><\/span>/);
+  assert.doesNotMatch(html, /<span class="af-media__meta"><\/span>/);
 });
 
-test('strong e span do item ficam colados, sem espaço solto entre eles', () => {
+test('título e meta do item ficam colados, sem espaço solto entre eles', () => {
   // Mesma razão do teste equivalente em testes/prova-social.test.mjs: essa
   // seção sai de testes/paridade-texto.test.mjs (idsExcluidos por comparar
   // conteúdo real contra o <div id="lista-midia"> vazio do HTML estático
@@ -104,5 +103,5 @@ test('strong e span do item ficam colados, sem espaço solto entre eles', () => 
   ];
   const html = renderToStaticMarkup(createElement(SecaoNaMidia, { registros }));
 
-  assert.match(html, /<\/strong><span/);
+  assert.match(html, /<\/span><span class="af-media__meta"/);
 });
