@@ -507,3 +507,85 @@
   gap: var(--espaco-2);
   margin: var(--espaco-3) 0 0;
 }
+
+/* ---------------------------------------------------------------------
+   Galeria em tela cheia (pedido V1)
+
+   O link da miniatura funciona SEM JavaScript (abre a imagem no
+   navegador); com script, componentes/GaleriaEmTelaCheia.tsx o intercepta
+   e abre o diálogo. Ver o cabeçalho daquele arquivo.
+   --------------------------------------------------------------------- */
+
+.album__link { display: block; }
+
+/* O cursor conta que a foto é clicável antes do toque — e o contorno de
+   foco vem do estilo base de <a>, que não foi removido. */
+.album__link:hover .album__foto { opacity: 0.9; }
+
+.album__projeto { text-decoration-thickness: 2px; }
+
+.lightbox {
+  width: min(100% - 1rem, 60rem);
+  max-height: 92dvh;
+  padding: 0;
+  border: var(--af-border);
+  border-radius: 0;
+  background: var(--af-brown);
+  color: var(--af-cream);
+  box-shadow: var(--af-shadow-lg);
+}
+
+.lightbox::backdrop { background: rgba(43, 32, 25, .85); }
+
+.lightbox__caixa { display: flex; flex-direction: column; }
+
+/* `min-height: 0` no flex e `object-fit: contain`: a foto cabe inteira,
+   sem cortar, seja ela retrato ou paisagem. Sem o `min-height`, um item
+   flex não encolhe abaixo do conteúdo e a legenda sai da tela. */
+.lightbox__foto {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  max-height: 70dvh;
+  object-fit: contain;
+  background: #000;
+}
+
+.lightbox__pe {
+  padding: var(--af-s6) var(--af-gutter-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--af-s5);
+}
+
+.lightbox__legenda { margin: 0; display: flex; flex-direction: column; gap: var(--af-s2); }
+
+.lightbox__projeto,
+.lightbox__album {
+  font: 700 var(--af-body) var(--af-font);
+  color: var(--af-ochre);
+}
+
+.lightbox__texto { font: 400 var(--af-body-sm) / 1.5 var(--af-font); color: var(--af-cream-dim); }
+
+.lightbox__controles { display: flex; align-items: center; gap: var(--af-s4); flex-wrap: wrap; }
+
+.lightbox__seta,
+.lightbox__fechar {
+  min-height: var(--af-touch-min);
+  min-width: var(--af-touch-min);
+  padding: 0 var(--af-s5);
+  background: transparent;
+  border: 1.5px solid var(--af-cream);
+  border-radius: var(--af-radius-control);
+  color: var(--af-cream);
+  font: 600 var(--af-body) var(--af-font);
+  cursor: pointer;
+}
+
+.lightbox__seta:hover,
+.lightbox__fechar:hover { background: var(--af-brown-800); }
+
+.lightbox__fechar { margin-left: auto; }
+
+.lightbox__conta { font: 400 var(--af-body-sm) var(--af-font); color: var(--af-cream-dim); }

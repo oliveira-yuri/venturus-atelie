@@ -1005,3 +1005,92 @@ test('a URL ASSINADA passa pelo mesmo img-src que a pública passava', async () 
  *    (não há service_role, spec §4.1). Quando alguém rodar a migration, a
  *    confirmação é abrir /admin/galeria e ver o aviso sumir.
  */
+
+/* =====================================================================
+   9. TELA CHEIA E MENÇÃO AO PROJETO (pedido V1, 02/09/2026)
+   =====================================================================
+
+   "Usuário clica na imagem e ela abre igual a galeria do celular" e "ter
+   uma menção ao respectivo projeto que a foto pertence".
+
+   As duas coisas são verificadas onde dá para verificar sem foto real na
+   tabela (ela está vazia — CLAUDE.md, RF05): a DECISÃO de qual álbum vira
+   link é função pura, e o markup da lista é renderizado de verdade com
+   react-dom/server.
+   ===================================================================== */
+
+test('a ponte álbum→projeto ignora acento e caixa, mas NÃO casa por prefixo', async () => {
+  const { mesmaCoisa, projetoDoAlbum, enderecoDoProjeto } =
+    await import('../compartilhado/albuns-e-projetos.ts');
+
+  // A equipe digita no celular. "Cafú e o Café" e "cafu e o cafe" são a
+  // mesma oficina para qualquer pessoa que olhe.
+  assert.equal(mesmaCoisa('Cafú e o Café', 'cafu e o cafe'), true);
+  assert.equal(mesmaCoisa('  Brasil   Negreiro ', 'brasil negreiro'), true);
+
+  // CASAR POR PREFIXO LIGARIA A FOTO AO PROJETO ERRADO.
+  assert.equal(mesmaCoisa('Cafú e o Café', 'Café'), false);
+  assert.equal(mesmaCoisa('Banzo', 'Banzo 2'), false);
+
+  // Vazio não casa com vazio: um álbum sem nome não pode virar link.
+  assert.equal(mesmaCoisa('', ''), false);
+
+  const projetos = [
+    { id: 'cafu-e-o-cafe', titulo: 'Cafú e o Café' },
+    { id: 'banzo', titulo: 'Banzo' }
+  ];
+  assert.equal(projetoDoAlbum('cafu e o cafe', projetos)?.id, 'cafu-e-o-cafe');
+  assert.equal(projetoDoAlbum('Oficina de sábado', projetos), null,
+    'um álbum que não é atividade nenhuma precisa devolver null, não o primeiro da lista');
+
+  assert.equal(enderecoDoProjeto(projetos[0]), '/projetos#cafu-e-o-cafe',
+    'o endereço leva ao cartão da atividade em /projetos, que já carrega esse id');
+});
+
+test('cada foto é um LINK para ela mesma — sem JavaScript, tocar abre a imagem', async () => {
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { createElement } = await import('react');
+  const { ListaAlbuns } = await import('../componentes/ListaAlbuns.ts');
+
+  const html = renderToStaticMarkup(createElement(ListaAlbuns, {
+    mensagemVazio: 'vazio',
+    albuns: [{
+      nome: 'Cafú e o Café',
+      projeto: { titulo: 'Cafú e o Café', href: '/projetos#cafu-e-o-cafe' },
+      pecas: [{ id: 'a', url: 'https://exemplo.test/1.jpg', alt: 'Uma foto', legenda: 'Legenda' }]
+    }]
+  }));
+
+  // O LINK É O QUE FAZ A GALERIA FUNCIONAR SEM SCRIPT. Se ele virar <div>
+  // com onClick, quem está sem JavaScript perde o acesso à foto inteira.
+  assert.match(html, /<a[^>]+class="album__link"[^>]+href="https:\/\/exemplo\.test\/1\.jpg"/,
+    'a foto deixou de ser link: sem JavaScript não haveria como abri-la');
+
+  // Os `data-` são o que o componente de tela cheia lê.
+  assert.match(html, /data-foto="sim"/);
+  assert.match(html, /data-album="Cafú e o Café"/);
+  assert.match(html, /data-projeto-href="\/projetos#cafu-e-o-cafe"/);
+
+  // E o título do álbum vira link para o projeto.
+  assert.match(html, /<a[^>]+class="album__projeto"[^>]+href="\/projetos#cafu-e-o-cafe"/);
+});
+
+test('álbum que não é atividade nenhuma NÃO vira link para lugar nenhum', async () => {
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { createElement } = await import('react');
+  const { ListaAlbuns } = await import('../componentes/ListaAlbuns.ts');
+
+  const html = renderToStaticMarkup(createElement(ListaAlbuns, {
+    mensagemVazio: 'vazio',
+    albuns: [{
+      nome: 'Oficina de sábado',
+      projeto: null,
+      pecas: [{ id: 'a', url: 'https://exemplo.test/1.jpg', alt: 'Uma foto', legenda: null }]
+    }]
+  }));
+
+  assert.doesNotMatch(html, /album__projeto/,
+    'desenhou link de projeto para um álbum que não é atividade nenhuma');
+  assert.doesNotMatch(html, /data-projeto-href/);
+  assert.match(html, /Oficina de sábado/, 'o nome do álbum sumiu junto com o link');
+});

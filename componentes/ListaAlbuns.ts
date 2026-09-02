@@ -65,7 +65,19 @@ export function ListaAlbuns({ albuns, mensagemVazio }: PropsListaAlbuns) {
       'section',
       { className: 'album', key: album.nome },
 
-      createElement('h2', { className: 'album__titulo' }, album.nome),
+      // O TÍTULO DO ÁLBUM VIRA LINK quando ele é o nome de uma atividade
+      // (pedido V1: "ter uma menção ao respectivo projeto que a foto
+      // pertence"). Quando não é, continua texto — nunca um link para
+      // lugar nenhum. Ver compartilhado/albuns-e-projetos.ts para o porquê
+      // de a ponte ser por NOME e não por coluna.
+      createElement(
+        'h2',
+        { className: 'album__titulo' },
+        album.projeto
+          ? createElement('a', { className: 'album__projeto', href: album.projeto.href },
+            album.nome)
+          : album.nome
+      ),
 
       createElement(
         'ul',
@@ -80,13 +92,40 @@ export function ListaAlbuns({ albuns, mensagemVazio }: PropsListaAlbuns) {
           createElement(
             'figure',
             { className: 'album__figura' },
-            createElement('img', {
-              className: 'album__foto',
-              src: peca.url,
-              alt: peca.alt,
-              loading: 'lazy',
-              decoding: 'async'
-            }),
+
+            // A FOTO VIROU LINK PARA ELA MESMA (pedido V1). Sem JavaScript,
+            // tocar nela abre a imagem em tamanho cheio no navegador — que
+            // já sabe dar zoom e girar. Com JavaScript,
+            // componentes/GaleriaEmTelaCheia.tsx intercepta o clique e
+            // troca isso por um diálogo que também passa para a próxima.
+            //
+            // Os `data-` são o que aquele componente lê: ele é um ouvinte
+            // no documento, e esta lista é de SERVIDOR — convertê-la em
+            // Client Component mandaria a galeria inteira para o navegador.
+            createElement(
+              'a',
+              {
+                className: 'album__link',
+                href: peca.url,
+                'data-foto': 'sim',
+                'data-alt': peca.alt,
+                'data-legenda': peca.legenda ?? '',
+                'data-album': album.nome,
+                ...(album.projeto
+                  ? {
+                    'data-projeto-href': album.projeto.href,
+                    'data-projeto-titulo': album.projeto.titulo
+                  }
+                  : {})
+              },
+              createElement('img', {
+                className: 'album__foto',
+                src: peca.url,
+                alt: peca.alt,
+                loading: 'lazy',
+                decoding: 'async'
+              })
+            ),
             // Legenda nula não vira <figcaption> vazio: a regra 2 do
             // CLAUDE.md aplicada a campo — o que não tem dado é omitido, não
             // desenhado em branco.

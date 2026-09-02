@@ -1,5 +1,6 @@
 import { listarAlbunsPublicados } from '@/servidor/dados/galeria';
 import { ListaAlbuns } from '@/componentes/ListaAlbuns';
+import GaleriaEmTelaCheia from '@/componentes/GaleriaEmTelaCheia';
 
 // Conteúdo copiado literalmente do HTML original de galeria.html — hoje a
 // cópia congelada em testes/apoio/html-original/galeria.html, já que a
@@ -60,6 +61,15 @@ export default async function Galeria() {
       <div className="af-stripe" aria-hidden="true" />
       <div id="lista-albuns">
         <ListaAlbuns albuns={albuns} mensagemVazio={ESTADO_VAZIO} />
+
+        {/*
+          A TELA CHEIA (pedido V1). Montada UMA vez, e não uma por foto: ela
+          escuta o clique no documento e lê os `data-` de cada link — ver o
+          cabeçalho do componente. Sem JavaScript ela não existe, e tocar na
+          foto abre a imagem no navegador, que é o comportamento que a
+          própria lista entrega no HTML.
+        */}
+        <GaleriaEmTelaCheia />
       </div>
     </main>
   );

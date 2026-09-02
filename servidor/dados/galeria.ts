@@ -1,4 +1,6 @@
 import 'server-only';
+import { listarAtividades } from './conteudo';
+import { projetoDoAlbum, enderecoDoProjeto } from '@/compartilhado/albuns-e-projetos';
 import { obterCliente } from '../supabase';
 import {
   consultarComEstado, consultarOuDegradar, temSupabase, descrever, type Degradavel
@@ -150,7 +152,21 @@ export type MidiaVisivel = Midia & { url: string };
  * mesmo motivo de sempre: assim o componente continua sendo função pura de
  * uma estrutura simples, exercitável fora do Next.
  */
-export type Album = { nome: string; pecas: MidiaVisivel[] };
+export type Album = {
+  nome: string;
+  pecas: MidiaVisivel[];
+  /**
+   * A atividade a que este álbum se refere, quando o nome dele é o título
+   * de uma (pedido V1). `null` quando não é — e aí a galeria desenha o
+   * nome como texto, nunca como link para lugar nenhum.
+   *
+   * A ponte é por NOME e não por coluna, e o porquê está em
+   * `compartilhado/albuns-e-projetos.ts`: `public.midia` não tem
+   * `atividade_id`, e a equipe já expressa essa relação escrevendo o nome
+   * da oficina no campo `album`.
+   */
+  projeto: { titulo: string; href: string } | null;
+};
 
 /** O bucket privado de 008_galeria_privada.sql. */
 const BUCKET = 'galeria';
@@ -349,8 +365,25 @@ export async function listarAlbunsPublicados(): Promise<Album[]> {
     else porAlbum.set(peca.album, [peca]);
   }
 
+  // AS ATIVIDADES SÃO BUSCADAS UMA VEZ SÓ, e só quando há álbum para
+  // ligar: sem foto publicada a função já retornou lá em cima. É a mesma
+  // leitura que /projetos faz, e ela degrada sozinha (cai para o JSON
+  // versionado quando não há Supabase) — se falhar de vez, `projetos` vem
+  // vazio e nenhum álbum ganha link. A galeria continua inteira.
+  const projetos = (await listarAtividades()).map((atividade) => ({
+    id: atividade.id,
+    titulo: atividade.titulo
+  }));
+
   return [...porAlbum.entries()]
-    .map(([nome, itens]) => ({ nome, pecas: itens }))
+    .map(([nome, itens]) => {
+      const projeto = projetoDoAlbum(nome, projetos);
+      return {
+        nome,
+        pecas: itens,
+        projeto: projeto ? { titulo: projeto.titulo, href: enderecoDoProjeto(projeto) } : null
+      };
+    })
     .reverse();
 }
 
