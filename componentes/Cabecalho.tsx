@@ -114,7 +114,19 @@ export default function Cabecalho(
   useEffect(() => {
     if (!hidratado) return;
     document.body.style.overflow = menuAberto ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+
+    // A MARCA NO <html>, e ela não é enfeite: o botão flutuante de WhatsApp
+    // (componentes/BotaoWhatsApp.ts) é irmão do <header>, não da gaveta —
+    // então nenhum seletor CSS a partir dela o alcança. O scrim já o cobre
+    // visualmente (z-index 40 contra 25), mas ele continuaria na ordem de
+    // Tab, atrás de um fundo escuro, para quem navega por teclado.
+    if (menuAberto) document.documentElement.setAttribute('data-gaveta', 'aberta');
+    else document.documentElement.removeAttribute('data-gaveta');
+
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.removeAttribute('data-gaveta');
+    };
   }, [hidratado, menuAberto]);
 
   // Trocar de página fecha a gaveta. Sem isto, navegar por um link de dentro

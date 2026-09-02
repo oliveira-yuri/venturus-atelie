@@ -1068,3 +1068,62 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   color: var(--af-brown-400);
   max-width: 52ch;
 }
+
+/* ---------------------------------------------------------------------
+   Botão flutuante de WhatsApp (pedido do grupo)
+
+   NÃO PODE COBRIR O VLIBRAS — ver o cabeçalho de
+   componentes/BotaoWhatsApp.ts. MEDIDO: o widget fica na borda direita, na
+   altura do meio da tela; o canto inferior está livre. A margem abaixo é
+   maior que o necessário de propósito, para absorver uma mudança de
+   posição numa versão futura do widget.
+   --------------------------------------------------------------------- */
+
+.zap {
+  position: fixed;
+  right: var(--af-gutter);
+  bottom: var(--af-s9);
+  z-index: 25;             /* abaixo do cabeçalho (30) e da gaveta (40) */
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--af-s3);
+  min-height: var(--af-touch-cta);
+  padding: 0 var(--af-s7);
+
+  background: var(--af-brown);
+  color: var(--af-cream);
+  border: 1.5px solid var(--af-cream);
+  box-shadow: var(--af-shadow-ochre);
+  font: 600 var(--af-body) var(--af-font);
+  text-decoration: none;
+}
+
+.zap:hover { background: var(--af-brown-800); color: var(--af-cream); }
+
+.zap .icone { margin-right: 0; }
+
+/* Na tela estreita fica só o ícone: o rótulo escrito empurraria o botão
+   para cima do conteúdo. O nome acessível NÃO some junto — ele está no
+   `aria-label`, não neste <span>. */
+@media (max-width: 26rem) {
+  .zap__texto {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .zap { padding: 0; width: var(--af-touch-cta); justify-content: center; }
+}
+
+/* A GAVETA COBRE A TELA INTEIRA: o botão sai do caminho enquanto ela está
+   aberta. `display: none` e não `opacity`, de propósito — o que importa
+   aqui não é sumir da vista (o scrim já faz isso), é sair da ORDEM DE TAB.
+   Sem isto, quem navega por teclado alcança um botão atrás de um fundo
+   escuro.
+
+   A marca vive no <html> porque o botão é irmão do <header>, e não da
+   gaveta: nenhum seletor a partir dela o alcança. Ver componentes/
+   Cabecalho.tsx. */
+html[data-gaveta="aberta"] .zap { display: none; }

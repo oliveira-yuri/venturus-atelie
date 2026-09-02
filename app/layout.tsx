@@ -10,6 +10,7 @@ import '@/estilos/sistema-aplicado.css';
 import Cabecalho from '@/componentes/Cabecalho';
 import Rodape from '@/componentes/Rodape';
 import VLibras from '@/componentes/VLibras';
+import { BotaoWhatsApp } from '@/componentes/BotaoWhatsApp';
 import FocoNaNavegacao from '@/componentes/FocoNaNavegacao';
 import { sessaoParaOCabecalho, type SessaoNoCabecalho } from '@/servidor/sessao';
 import { ehEquipe } from '@/servidor/permissao';
@@ -113,6 +114,13 @@ export default async function LayoutRaiz({ children }: { children: React.ReactNo
         <Cabecalho sessao={sessao} ehEquipe={ehDaEquipe} />
         {children}
         <Rodape />
+        {/*
+          O botão de WhatsApp vem ANTES do VLibras na ordem do documento, e
+          é decisão: quem navega por teclado alcança primeiro o que fala
+          com a ONG, e o widget de tradução — que é de terceiro e monta
+          sozinho — fica por último, onde não atropela a ordem de foco.
+        */}
+        <BotaoWhatsApp />
         <VLibras nonce={nonce} />
       </body>
     </html>

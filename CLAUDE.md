@@ -26,7 +26,7 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (1147 testes)
+npm test                        # suíte completa, modo offline (1150 testes)
 npm run test:supabase           # a mesma suíte, contra o banco real (1078)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
@@ -432,9 +432,9 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 |---|---|---|
 | RF01 | Página inicial | **pronto** — em `refine-design-system-v1` (02/09) bate com `index.html` do handoff: herói `.af-hero` com foto (`<picture>` 16:9 / 4:5), tiles numerados 01–04 (via CSS, sem texto novo — `paridade-texto` intacto), setores com foto 2:1, "Na mídia" em `.af-media`. Fotos só do cofundador, em `public/imagens/` (ver item 0t) |
 | RF02 | Quem somos | **pronto** |
-| RF03 | Projetos e atividades (11, do banco) | **pronto**, agora inclusive a edição pela equipe (Tarefa P4, 01/09): `/admin/atividades` lista as 11 e `/admin/atividades/editar?id=` corrige nome, resumo, sinopse e ficha técnica. **Só editar**: não cria e não apaga (o banco permite; a tela não oferece, e diz por quê). Tirar do ar/pôr de volta existe, num botão separado. Ninguém percorreu o caminho autenticado — não há sessão de equipe |
-| RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem DENTRO de uma publicação continua faltando: a P3 fez a galeria (`public.midia`), não `publicacoes.imagem_caminho` |
-| RF05 | Galeria | **tela e envio prontos** (Tarefa P3, 01/09/2026) — `/galeria` lê `public.midia` (`servidor/dados/galeria.ts`, agrupando por álbum) e a equipe sobe foto, publica, tira do ar e apaga em `/admin/galeria`. A tabela está VAZIA e **nenhum byte foi escrito no bucket por este código**, em ambiente nenhum: falta sessão de equipe. RN07 honrada em **quatro** camadas independentes: RLS da tabela, guarda dentro da Action, tela, e — desde 01/09/2026 — o ARQUIVO, com o bucket privado e URL assinada de uma hora (`supabase/migrations/008_galeria_privada.sql`, item 0j). **A migration 008 ainda não foi rodada por ninguém**, e enquanto não for o bucket segue público sem nada quebrar: a sonda de `bucketAindaAberto()` grita no log e põe um aviso permanente no topo de `/admin/galeria`. Só IMAGEM — vídeo não cabe no limite de corpo de uma Server Action (ver `next.config.ts`) |
+| RF03 | Projetos e atividades (11, do banco) | **pronto**, agora inclusive a edição pela equipe (Tarefa P4, 01/09): `/admin/atividades` lista as 11 e `/admin/atividades/editar?id=` corrige nome, resumo, sinopse e ficha técnica. **Só editar**: não cria e não apaga (o banco permite; a tela não oferece, e diz por quê). Tirar do ar/pôr de volta existe, num botão separado. Ninguém percorreu o caminho autenticado — não há sessão de equipe **PEDIDO V1 (02/09):** `/projetos` virou lista de BLOCOS (título, capa, resumo, "Saber mais") e cada atividade ganhou página própria em `/projetos/[id]`, com sinopse e ficha técnica. O painel passou a CRIAR ("Adicionar projeto") e a subir CAPA — apagar continua fora (item 0w). A capa depende da migration 009, ainda não aplicada (item 0v) |
+| RF04 | Notícias e campanhas | **pronto** (Tarefa P2, 01/09/2026) — `/noticias` lê `public.publicacoes` (`servidor/dados/publicacoes.ts`) e a equipe escreve, edita, publica e tira do ar em `/admin/publicacoes`. A tabela está VAZIA (a ONG ainda não publicou nada), então a página continua mostrando o estado vazio da Tarefa A4. Imagem DENTRO de uma publicação continua faltando: a P3 fez a galeria (`public.midia`), não `publicacoes.imagem_caminho` **PEDIDO V1 (02/09):** `/noticias` virou lista de BLOCOS e cada notícia ganhou página própria em `/noticias/[id]`. A IMAGEM na notícia passou a existir — sem migration: `imagem_caminho` e `imagem_alt` estão em `publicacoes` desde a 002, faltava a tela |
+| RF05 | Galeria | **tela e envio prontos** (Tarefa P3, 01/09/2026) — `/galeria` lê `public.midia` (`servidor/dados/galeria.ts`, agrupando por álbum) e a equipe sobe foto, publica, tira do ar e apaga em `/admin/galeria`. A tabela está VAZIA e **nenhum byte foi escrito no bucket por este código**, em ambiente nenhum: falta sessão de equipe. RN07 honrada em **quatro** camadas independentes: RLS da tabela, guarda dentro da Action, tela, e — desde 01/09/2026 — o ARQUIVO, com o bucket privado e URL assinada de uma hora (`supabase/migrations/008_galeria_privada.sql`, item 0j). **A migration 008 ainda não foi rodada por ninguém**, e enquanto não for o bucket segue público sem nada quebrar: a sonda de `bucketAindaAberto()` grita no log e põe um aviso permanente no topo de `/admin/galeria`. Só IMAGEM — vídeo não cabe no limite de corpo de uma Server Action (ver `next.config.ts`) **PEDIDO V1 (02/09):** a foto abre em TELA CHEIA, com setas e volta nas pontas — e sem JavaScript o toque abre a imagem no navegador, porque cada miniatura é um `<a>` para ela. O álbum vira LINK para o projeto quando o nome bate com uma atividade (ponte por nome, sem coluna nova — `compartilhado/albuns-e-projetos.ts`) |
 | RF06 | Contato institucional | **pronto** |
 | RF07 | Formulário de contato | **pronto, e é o PRIMEIRO caminho de sucesso do projeto medido de ponta a ponta** (01/09/2026) — `/contato` grava em `public.contatos` por `acoes/contato.ts`, sem sessão nenhuma (o formulário é público: `anon` tem `grant insert` e a política é `with check (true)`). MEDIDO contra o Supabase real, sem JavaScript: preencher, enviar, redirect para `/contato?aviso=enviada` e a linha gravada. **Uma linha de teste ficou no banco de produção e precisa ser apagada à mão** — ver "O que trava hoje", item 0m. A tela da equipe para ler estes registros passou a existir no mesmo dia (RF29, `/admin/contatos`). O formulário continua DEPOIS dos canais diretos: WhatsApp e telefone a ONG lê hoje, todos os dias, e a fila do painel depende de alguém abri-la |
 | RF38 | Para escolas | **pronto** |
@@ -449,7 +449,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. **Entrar de verdade passou a funcionar em 01/09/2026** (RF11): com `mailer_autoconfirm` agora `true`, criar conta devolve sessão e `/entrar` autentica — medido no Firefox contra o Auth de produção, com e sem JavaScript, e o cabeçalho mostrou o nome de quem entrou por ter entrado. O caminho da recusa continua provado por `npm run test:supabase`. A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva — e desde a RF11 o nome é um LINK para `/minha-conta`, único caminho até a área do usuário |
 | RF11 | Área do usuário | **pronto, e é o primeiro caminho AUTENTICADO do projeto medido de ponta a ponta** (01/09/2026) — `/minha-conta` mostra a ficha da conta, o formulário de nome/telefone/tipo de pessoa (`acoes/conta.ts`), as candidaturas ao voluntariado e as doações registradas. Quem chega sem sessão é mandado para `/entrar` (redirect, não 404 — o porquê está no cabeçalho da página). MEDIDO contra o Supabase de produção, no Firefox, **com e sem JavaScript**: entrar, abrir a área pelo nome no cabeçalho, corrigir o nome, ver o cabeçalho acompanhar, e a recusa de validação devolvendo o formulário preenchido. **Sem bloco de inscrições**, e não é esquecimento: `public.inscricoes` não tem política de leitura para a própria pessoa NEM coluna ligando inscrição a conta (decisão D4) — ver o fim de `servidor/dados/conta.ts`. **Desde a RF25 (mesmo dia) a lista de candidaturas ENCHE de verdade**: `listarMinhasCandidaturas` traz as áreas junto, por embed do PostgREST, e o estado vazio deixou de dizer "candidatar-se pelo site ainda não existe" — ele agora manda para `/voluntariado/candidatura`. `doacoes` continua VAZIA |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
-| RF33 | Painel administrativo | **quatro telas de trabalho** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). P4 (01/09) fechou o bloco com **atividades**: `/admin/atividades` (as 11 reais, com tirar do ar/pôr de volta) e `/admin/atividades/editar?id=` (corrigir o texto — sem criar e sem apagar). O RF29 (01/09) acrescentou a quinta, que não estava no plano do bloco: `/admin/contatos`, as mensagens recebidas. Quem não é equipe recebe **404** nas oito rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável na suíte. O que FOI medido sem sessão está nos relatórios de P2/P3/P4/RF29 e em `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs`, `testes/atividades.test.mjs` e `testes/contatos.test.mjs` |
+| RF33 | Painel administrativo | **quatro telas de trabalho** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). P4 (01/09) fechou o bloco com **atividades**: `/admin/atividades` (as 11 reais, com tirar do ar/pôr de volta) e `/admin/atividades/editar?id=` (corrigir o texto — sem criar e sem apagar). O RF29 (01/09) acrescentou a quinta, que não estava no plano do bloco: `/admin/contatos`, as mensagens recebidas. Quem não é equipe recebe **404** nas oito rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável na suíte. O que FOI medido sem sessão está nos relatórios de P2/P3/P4/RF29 e em `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs`, `testes/atividades.test.mjs` e `testes/contatos.test.mjs` **PEDIDO V1 (02/09):** confirmação em toda ação (diálogo `<dialog>` interceptando o submit, com página de confirmação como base sem script), confirmação DUPLA por palavra digitada nas duas telas destrutivas, cartões comprimidos com "Ver mais", paginação nas três filas (com o TOTAL escrito na tela), filtro por situação em voluntários, formulário de envio atrás de um botão `<details>`, e instruções em bullets nas oito telas |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
 ### M3 — Eventos
@@ -684,14 +684,18 @@ revisitada e mantida naquela tarefa.
    sem script vê branco. Não foi "consertado" com um teste que exija tela branca — está
    escrito aqui e em `testes/painel-guarda.test.mjs`, que mede o que é verdade (404, o 404
    do projeto, e a tela inteira para quem tem script).
-0g. **Herdada, não corrigida: `vw` em texto no menu.** `estilos/componentes.css:93`,
-   `.cabecalho__menu a { font-size: clamp(0.84rem, 1.15vw, 0.95rem) }` (e o `padding` da
-   linha 87). Contra a regra 8 e contra o aviso escrito em `estilos/tokens.css:43` — dentro
-   de `clamp()` o `vw` fica preso entre dois `rem`, então o dano é menor que um `vw` solto,
-   mas o item do menu ainda deixa de responder ao A+ na faixa do meio. Veio do site
-   estático, não da migração. **Não foi mexida na revisão final do Bloco A**: trocar por
-   `rem` muda a largura do menu em telas grandes, e isso é decisão de desenho, não de
-   unidade — precisa de olho humano na tela, não de um commit.
+0g. **RESOLVIDO em 02/09/2026 — fica registrado por um ano, e depois some.** Este item dizia
+   que `.cabecalho__menu a` usava `clamp(0.84rem, 1.15vw, 0.95rem)`, contra a regra 8: dentro
+   de `clamp()` o `vw` fica preso entre dois `rem`, mas o item do menu deixava de responder ao
+   A+ na faixa do meio.
+
+   O design system v1 apagou aquela regra junto com o `.cabecalho__menu` inteiro (a navegação
+   virou gaveta, `estilos/sistema.css`). MEDIDO: `grep -n "vw" estilos/*.css` só devolve
+   COMENTÁRIOS — os avisos de não usar. Não há uma única declaração com `vw` no CSS do
+   projeto.
+
+   Fica aqui porque o item era antigo e alguém pode vir procurá-lo. Apagar depois da entrega.
+
 0h. **Decisão tomada, risco aceito: o VLibras continua no painel.** Ele é montado no
    layout raiz, que envolve também `/admin`, e a CSP usa `strict-dynamic` — confiança em
    cadeia para tudo que ele carregar, numa tela que vai mostrar nome, telefone e
@@ -951,8 +955,8 @@ revisitada e mantida naquela tarefa.
    se perdeu junto com os relatórios. Se algo aqui parecer incompleto sobre eventos, doações,
    acervo, voluntários, indicadores ou o manual, a fonte é o relatório da tarefa, não o código.
 
-0t. **O design system v1 está numa branch.** A branch `design-system-v1` (01/09/2026, saída de
-   `migracao-nextjs`) troca a linguagem visual do site inteiro — tokens, tipografia, cabeçalho,
+0t. **O design system v1 está EM `migracao-nextjs` desde 02/09/2026** (era uma branch;
+   mesclada por fast-forward, sem conflito). Ele troca a linguagem visual do site inteiro — tokens, tipografia, cabeçalho,
    gaveta, barra de acessibilidade, rodapé. Em `refine-design-system-v1` (02/09/2026) a home
    passou a bater com `index.html` do handoff e o sistema alcançou as demais telas. O que
    MUDOU nesta rodada, e o que ainda falta:
@@ -963,9 +967,19 @@ revisitada e mantida naquela tarefa.
       Decisão do dono do projeto: **só imagens do cofundador Wil Oliveira** — adulto, figura
       pública (imprensa nacional, Teatro Municipal). Nenhuma criança identificável vai ao ar
       (RN07, regra 9). A foto `( Ateliê Afro Cultural ).jpg.jpeg`, que mostra o rosto de uma
-      criança, foi descartada. **Pendência: confirmar a autorização de uso de imagem do
-      fundador antes do deploy** — a regra 9 é bloqueante. `.af-ph` segue em `sistema.css`
-      como o espaço declarado para onde ainda não há foto.
+      criança, foi descartada. **A autorização foi confirmada pelo dono do projeto em
+      02/09/2026** ("SIM FOMOS AUTORIZADOS, mas não use foto das crianças") — a regra 9 deixou
+      de ser bloqueante para estas cinco.
+
+      `.af-ph` continua em `sistema.css` SEM USO em página nenhuma, e isso é de propósito: ele
+      é o espaço declarado para onde ainda não há foto. Hoje não há esse lugar; ele existe para
+      o dia em que houver.
+
+      **Uma pendência sobrou, e não é RN07:** `public/imagens/heroi-retrato.jpg` (o herói do
+      desktop) tem a marca d'água "TEATRO MUNICIPAL — ADÉLIA LORENZETTI" queimada no canto.
+      Isso é AUTORIA, não autorização de uso de imagem — parece crédito de fotógrafa. Decisão
+      do dono em 02/09: **manter**, com o crédito visível. Registrado para que ninguém o
+      recorte achando que é sujeira.
    2. **A lista "Na mídia" virou `.af-media`.** `componentes/SecaoNaMidia.ts` agora emite o
       markup do sistema (barra colorida de 6px, `af-media__item/__barra/__corpo/__titulo/
       __meta`). `testes/secao-na-midia.test.mjs` e `testes/paginas.test.mjs` foram
@@ -1133,10 +1147,20 @@ revisitada e mantida naquela tarefa.
 
 De `docs/Correções Web Ateliê.txt`:
 
-- Conta de administrador que adiciona, remove e atualiza projetos, agenda, notícias e galeria —
-  já é RF33 e está no plano
-- Botão flutuante de WhatsApp no canto inferior direito — **novo, fora do escopo original**.
-  Atenção: o VLibras já ocupa esse canto; empilhar ou trocar de lado, nunca remover o VLibras
+- ~~Conta de administrador que adiciona, remove e atualiza projetos, agenda, notícias e
+  galeria~~ — **feito**: é o RF33, e as oito telas existem. "Remove" ficou de fora em
+  atividades e eventos, de propósito e com o argumento escrito (itens 0k e 0w).
+- ~~Botão flutuante de WhatsApp no canto inferior direito~~ — **feito em 02/09/2026**
+  (`componentes/BotaoWhatsApp.ts`). O aviso da nota original valia: MEDIDO a 390px, o
+  VLibras fica na borda DIREITA na altura do meio da tela, não no canto — o canto inferior
+  estava livre. Há teste que falha se um dos dois se mover para cima do outro
+  (`testes/paginas.test.mjs`), e a instrução do grupo continua valendo: mover o botão,
+  nunca remover o VLibras.
+
+**A lista está vazia.** Os pedidos que chegaram depois estão em
+`docs/alterações-atelie-v1/`, e os 34 itens dela foram feitos em 02/09/2026 — menos os dois
+que o próprio pedido marcou como "apenas se der tempo" (painel com gráficos e integração com
+gateway de pagamento), que continuam fora.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
