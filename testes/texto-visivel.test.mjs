@@ -25,7 +25,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  removerTags, decodificarEntidades, normalizarEspacos
+  removerTags, decodificarEntidades, normalizarEspacos, blocosDeTexto
 } from './apoio/texto-visivel.mjs';
 
 // =====================================================================
@@ -155,4 +155,69 @@ test('decodificarEntidades: texto sem entidade nenhuma passa intacto', () => {
     'Rua Dr. Paulo Gatti, 135 — Vila Romero'
   );
   assert.equal(decodificarEntidades(''), '');
+});
+
+// =====================================================================
+// blocosDeTexto — a extração que a decisão D1 (02/09/2026) introduziu
+//
+// Verificada AQUI, de fora, com o resultado escrito à mão. É a mesma
+// disciplina que o cabeçalho deste arquivo explica para as outras três:
+// paridade-texto.test.mjs aplica esta função ao HTML original E ao
+// renderizado, então um defeito nela se aplicaria aos dois lados e a
+// diferença se cancelaria — o teste ficaria verde com a página errada.
+// =====================================================================
+
+test('blocosDeTexto: cada elemento de bloco vira um item; os em linha ficam dentro', () => {
+  assert.deepEqual(
+    blocosDeTexto('<h1>Fale com a gente</h1><p>Escolas e <a href="x">instituições</a>.</p>'),
+    ['Fale com a gente', 'Escolas e instituições.']
+  );
+});
+
+test('blocosDeTexto: o defeito do e-mail colado continua visível — é a razão de tudo isto', () => {
+  // Com o espaço (o que o HTML original tem) e sem ele (o que o JSX comeu).
+  // Os dois produzem UM bloco, e eles são DIFERENTES: é essa diferença que
+  // faz o teste de paridade acusar a frase como sumida.
+  const comEspaco = blocosDeTexto('<p>pelo e-mail <a href="mailto:x">atelieafro@gmail.com</a></p>');
+  const semEspaco = blocosDeTexto('<p>pelo e-mail<a href="mailto:x">atelieafro@gmail.com</a></p>');
+
+  assert.deepEqual(comEspaco, ['pelo e-mail atelieafro@gmail.com']);
+  assert.deepEqual(semEspaco, ['pelo e-mailatelieafro@gmail.com']);
+  assert.notDeepEqual(comEspaco, semEspaco);
+});
+
+test('blocosDeTexto: bloco vazio não vira item, e entidade é decodificada', () => {
+  assert.deepEqual(
+    blocosDeTexto('<div></div><p>   </p><p>Ateli&#39;e &amp; Afro</p><li></li>'),
+    ["Ateli'e & Afro"]
+  );
+});
+
+test('blocosDeTexto: comentário do React não vira texto', () => {
+  // `<!--$-->` é marcador de hidratação e aparece em todo HTML servido pelo
+  // Next. Se virasse item, TODA página teria blocos de lixo.
+  assert.deepEqual(
+    blocosDeTexto('<p>Antes</p><!--$--><p>Depois</p><!--/$-->'),
+    ['Antes', 'Depois']
+  );
+});
+
+test('blocosDeTexto usa a MESMA lista de blocos que removerTags', () => {
+  // Duas listas divergiriam em qual elemento quebra linha, e a divergência
+  // seria invisível: uma função diria que <section> quebra e a outra não.
+  // Aqui um elemento de cada família prova que as duas concordam.
+  for (const tag of ['section', 'article', 'li', 'dd', 'figcaption']) {
+    assert.deepEqual(
+      blocosDeTexto(`<${tag}>um</${tag}><${tag}>dois</${tag}>`),
+      ['um', 'dois'],
+      `<${tag}> deveria separar blocos, e não separou`
+    );
+  }
+  for (const tag of ['a', 'strong', 'em', 'span']) {
+    assert.deepEqual(
+      blocosDeTexto(`<p>um<${tag}>dois</${tag}></p>`),
+      ['umdois'],
+      `<${tag}> é elemento EM LINHA e não pode separar blocos`
+    );
+  }
 });

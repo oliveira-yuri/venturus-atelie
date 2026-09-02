@@ -74,7 +74,9 @@ import path from 'node:path';
 // cegas a defeito nelas mesmas (medido — ver o cabeçalho do módulo). Agora
 // testes/texto-visivel.test.mjs as verifica de fora, com resultado escrito
 // à mão.
-import { removerTags, decodificarEntidades, normalizarEspacos } from './apoio/texto-visivel.mjs';
+import {
+  removerTags, decodificarEntidades, normalizarEspacos, blocosDeTexto
+} from './apoio/texto-visivel.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(__dirname, '..');
@@ -432,8 +434,74 @@ function extrairTextoDoMain(html, idsExcluidos = [], exigirPresenca = false) {
  * verificação de verdade, não uma dispensa — trocar `idsAcrescentados` por
  * `idsExcluidos` (ou vice-versa) derruba o teste nos dois sentidos.
  */
+/**
+ * =====================================================================
+ * DE "IDÊNTICO" PARA "NENHUMA FRASE SUMIU" — decisão D1, 02/09/2026
+ * =====================================================================
+ *
+ * Este teste comparava o texto do <main> por IGUALDADE com o HTML
+ * congelado. Isso foi o certo enquanto a missão era provar que a migração
+ * para o Next não perdeu uma palavra da ONG — e funcionou: foi ele que
+ * pegou `e-mailatelieafro@gmail.com` quando ninguém estava olhando.
+ *
+ * A missão mudou. O design system v1 e o pedido V1 ACRESCENTAM texto às
+ * páginas (numeração dos caminhos, "Saber mais", seções novas) e, no bloco
+ * de projetos e notícias, MOVEM texto para uma rota de detalhe. Com
+ * igualdade, toda melhoria de tela vira vermelho — e a saída fácil,
+ * excluir mais um id da comparação, esvazia a garantia sem ninguém notar.
+ *
+ * Então a asserção passa a ser a que realmente importa:
+ *
+ *     TODO BLOCO DE TEXTO DO HTML ORIGINAL AINDA APARECE NO SITE.
+ *
+ * "Bloco" é título, parágrafo, item de lista — ver `blocosDeTexto` em
+ * testes/apoio/texto-visivel.mjs. Acrescentar é livre; SUMIR não é.
+ *
+ * =====================================================================
+ * O QUE SE PERDE, E O QUE COBRE O BURACO
+ * =====================================================================
+ *
+ * Perde-se o alarme contra texto ACRESCENTADO por engano — antes, qualquer
+ * palavra a mais derrubava o teste. Isso é justamente o que precisava
+ * mudar, mas deixa um flanco: conteúdo institucional inventado (regra 2)
+ * não é mais pego aqui.
+ *
+ * Quem cobre: `testes/paginas.test.mjs`, que afirma o conteúdo real de cada
+ * rota, e a revisão humana de cada tarefa. Está registrado para quem vier:
+ * este arquivo garante que nada SOME; ele não garante mais que nada ENTRE.
+ *
+ * =====================================================================
+ * `destinos`: para quando o texto muda de rota
+ * =====================================================================
+ *
+ * Por padrão a frase é procurada na PRÓPRIA rota. Uma página que passa a
+ * distribuir seu conteúdo em rotas de detalhe declara `destinos` — e a
+ * frase pode estar em qualquer uma delas. É explícito de propósito: mover
+ * texto para outra tela é decisão, e decisão fica escrita.
+ */
+/**
+ * Quantos blocos cada página rendeu, preenchido pelos testes do laço e
+ * conferido pelo teste do total, logo depois dele.
+ */
+const contagemDeBlocos = new Map();
+
+async function textoDaRota(rota, idsExcluidos) {
+  const resposta = await fetch(`${BASE}${rota}`);
+  assert.equal(resposta.status, 200, `${rota} não respondeu 200`);
+  const html = await resposta.text();
+
+  const semExcluidos = removerSecoesExcluidas(html, idsExcluidos, /* exigirPresenca */ false);
+  const abre = semExcluidos.match(/<main\b[^>]*id=["\']conteudo["\'][^>]*>/i);
+  assert.ok(abre, `não achou <main id="conteudo"> em ${rota}`);
+  const inicio = abre.index + abre[0].length;
+  const fim = semExcluidos.indexOf('</main>', inicio);
+  assert.ok(fim !== -1, `não achou </main> em ${rota}`);
+
+  return normalizarEspacos(decodificarEntidades(removerTags(semExcluidos.slice(inicio, fim))));
+}
+
 for (const pagina of PAGINAS) {
-  test(`${pagina.rota}: texto visível do <main> é idêntico ao HTML original`, async () => {
+  test(`${pagina.rota}: nenhuma frase do HTML original sumiu do site`, async () => {
     const idsExcluidos = pagina.idsExcluidos ?? [];
     const idsAcrescentados = pagina.idsAcrescentados ?? [];
 
@@ -448,17 +516,70 @@ for (const pagina of PAGINAS) {
       );
     }
 
-    const textoOriginal = extrairTextoDoMain(htmlOriginal, idsExcluidos, /* exigirPresenca */ true);
+    // O <main> do original, sem as seções excluídas, partido em blocos.
+    const semExcluidosOriginal = removerSecoesExcluidas(
+      htmlOriginal, idsExcluidos, /* exigirPresenca */ true);
+    const abre = semExcluidosOriginal.match(/<main\b[^>]*id=["\']conteudo["\'][^>]*>/i);
+    assert.ok(abre, 'não achou <main id="conteudo"> no HTML original');
+    const inicio = abre.index + abre[0].length;
+    const fim = semExcluidosOriginal.indexOf('</main>', inicio);
+    const blocosOriginais = blocosDeTexto(semExcluidosOriginal.slice(inicio, fim));
 
-    const resposta = await fetch(`${BASE}${pagina.rota}`);
-    assert.equal(resposta.status, 200, `${pagina.rota} não respondeu 200`);
-    const htmlRenderizado = await resposta.text();
-    const textoRenderizado = extrairTextoDoMain(
-      htmlRenderizado, [...idsExcluidos, ...idsAcrescentados], /* exigirPresenca */ false);
+    // TRAVA CONTRA VACUIDADE, primeira metade: sem ela, um erro de
+    // extração que devolvesse lista vazia deixaria este teste verde sem
+    // verificar nada. O piso é 1 e não mais, porque quatro páginas
+    // (/noticias, /galeria, /acervo, /recuperar-acesso) legitimamente têm
+    // dois blocos depois das exclusões — são telas de estado vazio, e a
+    // lista que as preenche sai da comparação. MEDIDO. A trava de verdade
+    // é a segunda metade, no teste do TOTAL, logo abaixo do laço.
+    assert.ok(blocosOriginais.length >= 1,
+      `${pagina.rota}: o HTML original não rendeu bloco de texto nenhum — `
+      + 'a extração quebrou, ou a exclusão comeu a página inteira');
+    contagemDeBlocos.set(pagina.rota, blocosOriginais.length);
 
-    assert.equal(textoRenderizado, textoOriginal);
+    const rotas = pagina.destinos ?? [pagina.rota];
+    const textos = [];
+    for (const rota of rotas) {
+      textos.push(await textoDaRota(rota, [...idsExcluidos, ...idsAcrescentados]));
+    }
+
+    const sumiram = blocosOriginais.filter(
+      (bloco) => !textos.some((texto) => texto.includes(bloco)));
+
+    assert.deepEqual(sumiram, [],
+      `${pagina.rota}: ${sumiram.length} bloco(s) de texto do HTML original não foram `
+      + `encontrados em ${rotas.join(', ')}:\n  - ` + sumiram.join('\n  - '));
   });
 }
+
+/**
+ * TRAVA CONTRA VACUIDADE, segunda metade.
+ *
+ * O piso por página é 1, porque quatro delas têm mesmo pouquíssimo texto
+ * depois das exclusões. Um piso baixo em cada uma, porém, deixaria passar o
+ * defeito que mais assusta aqui: `blocosDeTexto` quebrar de um jeito que
+ * devolva um bloco por página em vez de vinte. Cada teste ficaria verde,
+ * comparando quase nada, e ninguém veria.
+ *
+ * Por isso o TOTAL é cobrado à parte. 173 é o que as 14 páginas de PAGINAS
+ * rendem hoje — MEDIDO em 02/09/2026, contando bloco a bloco. O piso está
+ * um pouco abaixo para tolerar edição legítima da cópia congelada (que não
+ * deveria acontecer: ver testes/apoio/html-original/LEIA-ME.txt), e bem
+ * acima do que qualquer quebra de extração produziria.
+ */
+test('a extração por bloco não degradou: o total das páginas continua alto', () => {
+  const total = [...contagemDeBlocos.values()].reduce((soma, n) => soma + n, 0);
+
+  assert.equal(contagemDeBlocos.size, PAGINAS.length,
+    `só ${contagemDeBlocos.size} das ${PAGINAS.length} páginas foram medidas — `
+    + 'algum teste do laço não chegou a contar, e o total abaixo não vale');
+
+  assert.ok(total >= 160,
+    `as ${PAGINAS.length} páginas renderam ${total} blocos de texto no total; `
+    + 'esperava ao menos 160 (MEDIDO: 173 em 02/09/2026). Uma queda desse tamanho '
+    + 'significa que blocosDeTexto parou de partir o HTML — e cada teste acima '
+    + 'passou a comparar quase nada.');
+});
 
 // =====================================================================
 // Reconciliação da lista de exclusões — Rodada de correção 1 da Tarefa A5.

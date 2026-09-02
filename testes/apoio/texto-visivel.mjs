@@ -76,3 +76,57 @@ export function decodificarEntidades(texto) {
 export function normalizarEspacos(texto) {
   return texto.replace(/\s+/g, ' ').trim();
 }
+
+/**
+ * O texto visível, mas PARTIDO POR BLOCO em vez de achatado numa string só.
+ *
+ * =====================================================================
+ * POR QUE ISTO EXISTE (decisão D1, 02/09/2026)
+ * =====================================================================
+ *
+ * `removerTags` troca todo elemento de bloco por um espaço, e o resultado é
+ * uma linha só: título, parágrafo e item de lista viram texto corrido. Isso
+ * serve para comparar duas páginas POR IGUALDADE — que foi o que
+ * `paridade-texto.test.mjs` fez enquanto a missão era provar que a migração
+ * não perdeu uma palavra.
+ *
+ * A missão mudou. O design system e o pedido V1 ACRESCENTAM texto às
+ * páginas (numeração, "Saber mais", seções novas) e às vezes MOVEM texto
+ * para uma rota de detalhe. Com igualdade, toda melhoria de tela vira teste
+ * vermelho — e a saída fácil, excluir mais um id da comparação, vai
+ * esvaziando a garantia até ela não valer nada.
+ *
+ * A garantia que precisa sobreviver é outra, e é mais simples de dizer:
+ * NENHUMA FRASE DA ONG PODE SUMIR DO SITE. Para cobrar isso é preciso ter
+ * as frases separadas, e é o que esta função entrega.
+ *
+ * =====================================================================
+ * O QUE ELA PRESERVA DO TESTE ANTIGO
+ * =====================================================================
+ *
+ * O defeito real que a paridade pegou foi `e-mailatelieafro@gmail.com`:
+ * duas palavras coladas por falta de espaço entre elementos EM LINHA. Ele
+ * continua sendo pego, porque o bloco original ("E-mail
+ * atelieafro@gmail.com") deixa de ser encontrado no renderizado — a busca é
+ * pelo conteúdo do bloco inteiro, não por palavra solta.
+ *
+ * `BLOCOS` é a MESMA lista que `removerTags` usa. Duas listas divergiriam
+ * em qual elemento quebra linha, e a divergência seria invisível.
+ *
+ * O SENTINELA É ``, e não um espaço: um espaço partiria em cada
+ * palavra. É um caractere de controle que não aparece em conteúdo de texto
+ * — se um dia aparecer, ele some junto com o bloco, e o teste acusa.
+ */
+export const SENTINELA_DE_BLOCO = '';
+
+export function blocosDeTexto(html) {
+  const marcado = html
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (_match, tag) =>
+      BLOCOS.has(tag.toLowerCase()) ? SENTINELA_DE_BLOCO : '');
+
+  return decodificarEntidades(marcado)
+    .split(SENTINELA_DE_BLOCO)
+    .map((pedaco) => normalizarEspacos(pedaco))
+    .filter((pedaco) => pedaco.length > 0);
+}
