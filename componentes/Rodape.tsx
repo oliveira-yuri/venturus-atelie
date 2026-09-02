@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Icone } from '@/componentes/Icone';
 
 /**
  * Rodape compartilhado. Traz os cinco contatos nomeados pela ONG (RF06) —
@@ -37,12 +38,17 @@ export default function Rodape() {
         <div className="af-footer__cols">
           <div className="rodape__bloco">
             <h2>Fale com a gente</h2>
+            {/*
+              ÍCONES NOS CANAIS (pedido V1). Cada um acompanha o rótulo
+              escrito e é `aria-hidden` — quem usa leitor de tela continua
+              ouvindo "WhatsApp", uma vez só. Ver componentes/Icone.ts.
+            */}
             <ul className="af-footer__links rodape__lista">
-              <li><a href="tel:+5511953968344">(11) 95396-8344</a></li>
-              <li><a href="https://wa.me/5511953968344" rel="noopener">WhatsApp</a></li>
-              <li><a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a></li>
-              <li><a href="https://instagram.com/atelie_afrocultural" rel="noopener">Instagram</a></li>
-              <li><a href="https://tiktok.com/@ateli.afro.cultur" rel="noopener">TikTok</a></li>
+              <li><a href="tel:+5511953968344"><Icone nome="telefone" />(11) 95396-8344</a></li>
+              <li><a href="https://wa.me/5511953968344" rel="noopener"><Icone nome="whatsapp" />WhatsApp</a></li>
+              <li><a href="mailto:atelieafro@gmail.com"><Icone nome="email" />atelieafro@gmail.com</a></li>
+              <li><a href="https://instagram.com/atelie_afrocultural" rel="noopener"><Icone nome="instagram" />Instagram</a></li>
+              <li><a href="https://tiktok.com/@ateli.afro.cultur" rel="noopener"><Icone nome="tiktok" />TikTok</a></li>
             </ul>
           </div>
 

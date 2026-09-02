@@ -1019,3 +1019,52 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   font: 600 var(--af-body-sm) var(--af-font);
   color: var(--af-ochre-deep);
 }
+
+/* Ícone decorativo dos canais e das redes (pedido V1).
+
+   `currentColor` no SVG + este alinhamento: ele acompanha o texto, cresce
+   com o A+ (a caixa é em `em`, não em px) e vira preto no alto contraste
+   junto com a tinta. Ver componentes/Icone.ts. */
+.icone {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  vertical-align: -0.2em;
+  margin-right: var(--af-s3);
+}
+
+/* Nos links do rodapé, que já são flex, o ícone é item da linha. */
+.af-footer__links a .icone { margin-right: var(--af-s4); }
+
+/* ---------------------------------------------------------------------
+   Mapa da sede (pedido V1)
+
+   Ver componentes/Mapa.ts: ele é ACRÉSCIMO ao endereço escrito, nunca
+   substituição, e a conexão com o Google está declarada em /privacidade.
+   --------------------------------------------------------------------- */
+
+.mapa { margin: var(--af-s7) 0 0; max-width: 40rem; }
+
+.mapa__quadro {
+  display: block;
+  width: 100%;
+  /* 4:3 no celular. `aspect-ratio` em vez de altura fixa: o quadro
+     acompanha a largura sem deixar faixa vazia nem cortar o mapa. */
+  aspect-ratio: 4 / 3;
+  border: var(--af-border);
+  box-shadow: var(--af-shadow-sm);
+}
+
+@media (min-width: 40rem) {
+  .mapa__quadro { aspect-ratio: 16 / 9; }
+}
+
+/* O aviso existe porque o iframe PODE não aparecer — bloqueador, rede
+   ruim, extensão de privacidade. Sem ele, a pessoa veria um retângulo
+   vazio e não saberia se o site quebrou. */
+.mapa__aviso {
+  margin: var(--af-s4) 0 0;
+  font: 400 var(--af-body-sm) / 1.5 var(--af-font);
+  color: var(--af-brown-400);
+  max-width: 52ch;
+}

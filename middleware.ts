@@ -274,7 +274,20 @@ export async function middleware(requisicao: NextRequest) {
     // O iframe Unity que renderiza o avatar/traducao so existe depois do
     // clique no icone — sem esta diretiva ele cai em default-src 'self' e
     // e bloqueado, e a traducao nunca aparece.
-    `frame-src https://vlibras.gov.br`,
+    // `www.google.com` entra pelo MAPA de /quem-somos e /contato (pedido
+    // V1). É o host de `https://www.google.com/maps/embed`, e não
+    // `maps.google.com` — MEDIDO: o endereço do embed é servido por
+    // www.google.com, e listar o outro deixaria o iframe em branco sem
+    // erro nenhum na tela.
+    //
+    // ISTO TEM PREÇO E ELE ESTÁ ESCRITO EM /privacidade: quem abre aquelas
+    // duas páginas passa a fazer uma requisição ao Google. É a primeira
+    // dependência de terceiro do site fora do VLibras, e foi decisão do
+    // dono do projeto (pedido V1: "a parte de onde estamos colocar o mapa
+    // do google também"). O `loading="lazy"` do iframe adia essa
+    // requisição até a pessoa rolar até o mapa — quem não desce nunca a
+    // faz.
+    `frame-src https://vlibras.gov.br https://www.google.com`,
     `frame-ancestors 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

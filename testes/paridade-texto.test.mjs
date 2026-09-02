@@ -436,6 +436,39 @@ function extrairTextoDoMain(html, idsExcluidos = [], exigirPresenca = false) {
  */
 /**
  * =====================================================================
+ * FRASES DELIBERADAMENTE REESCRITAS
+ * =====================================================================
+ *
+ * A regra deste arquivo é "nenhuma frase da ONG pode sumir do site". Ela
+ * está certa, e é justamente por isso que precisa de uma porta declarada:
+ * às vezes uma frase do original DEIXA DE SER VERDADE, e mantê-la seria
+ * pior do que perdê-la.
+ *
+ * Cada entrada aqui exige as DUAS PONTAS, e é isso que a torna uma
+ * verificação em vez de uma dispensa:
+ *
+ *   · `antiga` precisa estar AUSENTE do site (prova que a troca aconteceu);
+ *   · `nova` precisa estar PRESENTE (prova que ela foi substituída, e não
+ *     simplesmente apagada).
+ *
+ * Trocar uma por outra, ou esquecer de acrescentar a nova, derruba o teste.
+ * E o `porque` fica escrito aqui, no lugar onde a próxima pessoa vai
+ * procurar quando estranhar a diferença.
+ */
+const FRASES_SUBSTITUIDAS = [
+  {
+    rota: '/privacidade',
+    antiga: 'Fora esses dois, o site não busca nada em servidores de terceiros.',
+    nova: 'Fora esses dois, o site quase não busca nada em servidores de terceiros.',
+    porque: 'O mapa do Google em /quem-somos e /contato (pedido V1, 02/09/2026) tornou a '
+      + 'afirmação original FALSA. Uma política de privacidade que afirma o que deixou de ser '
+      + 'verdade é pior que uma que não afirmava nada. A página passou a declarar o mapa num '
+      + 'parágrafo próprio, logo abaixo.'
+  }
+];
+
+/**
+ * =====================================================================
  * DE "IDÊNTICO" PARA "NENHUMA FRASE SUMIU" — decisão D1, 02/09/2026
  * =====================================================================
  *
@@ -543,8 +576,15 @@ for (const pagina of PAGINAS) {
       textos.push(await textoDaRota(rota, [...idsExcluidos, ...idsAcrescentados]));
     }
 
-    const sumiram = blocosOriginais.filter(
-      (bloco) => !textos.some((texto) => texto.includes(bloco)));
+    // As frases declaradas como reescritas saem da cobrança de PRESENÇA —
+    // e ganham, logo abaixo, uma cobrança própria e mais dura.
+    const substituidas = FRASES_SUBSTITUIDAS
+      .filter((entrada) => entrada.rota === pagina.rota)
+      .map((entrada) => entrada.antiga);
+
+    const sumiram = blocosOriginais
+      .filter((bloco) => !substituidas.some((antiga) => bloco.includes(antiga)))
+      .filter((bloco) => !textos.some((texto) => texto.includes(bloco)));
 
     assert.deepEqual(sumiram, [],
       `${pagina.rota}: ${sumiram.length} bloco(s) de texto do HTML original não foram `
@@ -735,3 +775,38 @@ test('toda exclusão de paridade-texto tem cobertura registrada (arquivo existen
     );
   }
 });
+
+/**
+ * A cobrança das frases reescritas, e ela é MAIS DURA que a de presença:
+ * exige que a antiga tenha sumido E que a nova esteja no lugar.
+ *
+ * Sem a primeira metade, alguém declararia uma substituição que nunca
+ * aconteceu e a frase antiga continuaria na tela, mentindo. Sem a segunda,
+ * "substituir" viraria sinônimo de "apagar".
+ */
+for (const entrada of FRASES_SUBSTITUIDAS) {
+  test(`${entrada.rota}: a frase reescrita foi de fato trocada, nas duas pontas`, async () => {
+    const pagina = PAGINAS.find((p) => p.rota === entrada.rota);
+    assert.ok(pagina, `FRASES_SUBSTITUIDAS cita ${entrada.rota}, que não está em PAGINAS`);
+
+    // A antiga precisa EXISTIR no original — senão a entrada é letra morta,
+    // ou alguém errou a transcrição e a exclusão não está protegendo nada.
+    const htmlOriginal = readFileSync(path.join(RAIZ, pagina.arquivoOriginal), 'utf-8');
+    const abre = htmlOriginal.match(/<main\b[^>]*id=["\']conteudo["\'][^>]*>/i);
+    const originalTexto = normalizarEspacos(decodificarEntidades(removerTags(
+      htmlOriginal.slice(abre.index + abre[0].length, htmlOriginal.indexOf('</main>')))));
+    assert.ok(originalTexto.includes(entrada.antiga),
+      `a frase declarada como antiga não existe no HTML original de ${entrada.rota} — `
+      + 'a entrada está errada, e não está protegendo nada');
+
+    const texto = await textoDaRota(entrada.rota, pagina.idsExcluidos ?? []);
+
+    assert.ok(!texto.includes(entrada.antiga),
+      `a frase antiga AINDA ESTÁ na tela de ${entrada.rota}: "${entrada.antiga}". `
+      + `Ela foi declarada como substituída porque ${entrada.porque}`);
+
+    assert.ok(texto.includes(entrada.nova),
+      `a frase nova NÃO está na tela de ${entrada.rota}: "${entrada.nova}". `
+      + 'Substituir não é apagar.');
+  });
+}

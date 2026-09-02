@@ -40,6 +40,8 @@
 // que não existia lá), e o resto do <main> continua comparado palavra por
 // palavra, na mesma ordem de antes.
 import FormularioContato from '@/componentes/FormularioContato';
+import { Icone } from '@/componentes/Icone';
+import { Mapa } from '@/componentes/Mapa';
 import { avisoDeContato } from '@/compartilhado/avisos-de-contato';
 
 export const metadata = {
@@ -97,12 +99,23 @@ export default async function Contato(
       <section aria-labelledby="titulo-canais">
         <h2 id="titulo-canais">Canais diretos</h2>
         <dl className="ficha">
-          <div><dt>Telefone</dt><dd><a href="tel:+5511953968344">(11) 95396-8344</a></dd></div>
-          <div><dt>WhatsApp</dt><dd><a href="https://wa.me/5511953968344" rel="noopener">(11) 95396-8344</a></dd></div>
-          <div><dt>E-mail</dt><dd><a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a></dd></div>
-          <div><dt>Instagram</dt><dd><a href="https://instagram.com/atelie_afrocultural" rel="noopener">@atelie_afrocultural</a></dd></div>
-          <div><dt>TikTok</dt><dd><a href="https://tiktok.com/@ateli.afro.cultur" rel="noopener">@ateli.afro.cultur</a></dd></div>
-          <div><dt>YouTube</dt><dd><a href="https://www.youtube.com/channel/UCWeZ-53etejdUzUi3eR81zg" rel="noopener">Nosso canal</a></dd></div>
+          {/*
+            ÍCONES NOS CANAIS (pedido V1). Eles ficam no <dt>, junto do
+            NOME do canal, e não no <dd>: o rótulo é o que se procura ao
+            correr o olho pela lista. Todos `aria-hidden` — o texto ao lado
+            já diz a mesma coisa, e anunciar os dois faria o leitor de tela
+            repetir "Instagram Instagram".
+
+            O TEXTO NÃO MUDOU. `testes/paridade-texto.test.mjs` compara o
+            que a página diz com o HTML original, e um ícone decorativo não
+            é texto.
+          */}
+          <div><dt><Icone nome="telefone" />Telefone</dt><dd><a href="tel:+5511953968344">(11) 95396-8344</a></dd></div>
+          <div><dt><Icone nome="whatsapp" />WhatsApp</dt><dd><a href="https://wa.me/5511953968344" rel="noopener">(11) 95396-8344</a></dd></div>
+          <div><dt><Icone nome="email" />E-mail</dt><dd><a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a></dd></div>
+          <div><dt><Icone nome="instagram" />Instagram</dt><dd><a href="https://instagram.com/atelie_afrocultural" rel="noopener">@atelie_afrocultural</a></dd></div>
+          <div><dt><Icone nome="tiktok" />TikTok</dt><dd><a href="https://tiktok.com/@ateli.afro.cultur" rel="noopener">@ateli.afro.cultur</a></dd></div>
+          <div><dt><Icone nome="youtube" />YouTube</dt><dd><a href="https://www.youtube.com/channel/UCWeZ-53etejdUzUi3eR81zg" rel="noopener">Nosso canal</a></dd></div>
         </dl>
       </section>
 
@@ -126,6 +139,15 @@ export default async function Contato(
           São Paulo/SP — CEP 02468-030
         </address>
         <p>Nossa sede fica no bairro da Casa Verde, zona norte de São Paulo.</p>
+
+        {/*
+          O MAPA VEM DEPOIS DO ENDEREÇO ESCRITO, e é acréscimo — nunca
+          substituição. Quem está com o iframe bloqueado, sem JavaScript ou
+          usando leitor de tela precisa do endereço em texto, que continua
+          acima. Ver componentes/Mapa.ts para o preço desta escolha, que
+          está declarado em /privacidade.
+        */}
+        <Mapa />
       </section>
     </main>
   );

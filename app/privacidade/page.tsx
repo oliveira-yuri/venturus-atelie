@@ -101,10 +101,30 @@ export default function Privacidade() {
           servidores no Brasil (região São Paulo), e um serviço de envio de e-mail, usado só para
           entregar as mensagens que você mesmo pediu.
         </p>
+        {/*
+          ESTA FRASE FOI REESCRITA, e não acrescentada. A original dizia
+          "Fora esses dois, o site não busca nada em servidores de
+          terceiros" — e o mapa de /quem-somos e /contato (pedido V1,
+          02/09/2026) a tornou FALSA. Uma política de privacidade que
+          afirma o que deixou de ser verdade é pior que uma que não
+          afirmava nada.
+
+          A substituição é DECLARADA em testes/paridade-texto.test.mjs
+          (`frasesSubstituidas`), que exige as duas pontas: a frase antiga
+          precisa ter sumido, e a nova precisa estar no lugar. Sem isso, a
+          correção passaria por "texto da ONG que se perdeu".
+        */}
         <p>
-          Fora esses dois, o site não busca nada em servidores de terceiros. As letras que você está
-          lendo, por exemplo, vêm do nosso próprio site — e não de um serviço de fontes que veria
-          sua visita.
+          Fora esses dois, o site quase não busca nada em servidores de terceiros. As letras que
+          você está lendo, por exemplo, vêm do nosso próprio site — e não de um serviço de fontes
+          que veria sua visita.
+        </p>
+        <p>
+          A exceção é o <strong>mapa</strong> das páginas "Quem somos" e "Contato": ele é
+          carregado do Google, então abrir uma dessas páginas e rolar até o mapa faz o seu
+          navegador falar com o Google. O mapa só é buscado quando você chega até ele — se não
+          rolar até lá, essa conexão não acontece. O endereço do ateliê está escrito em texto
+          logo acima do mapa, e continua legível sem ele.
         </p>
         <p>
           O site também oferece o <strong>VLibras</strong>, tradutor para Libras mantido pelo

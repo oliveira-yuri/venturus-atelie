@@ -14,6 +14,7 @@
 // no 404 e o Next recarrega a pagina de qualquer jeito, mas as 12 paginas da
 // fase 2 vao copiar o padrao que virem aqui.
 import Link from 'next/link';
+import { Mapa } from '@/componentes/Mapa';
 
 export const metadata = {
   title: 'Quem somos — Ateliê Afro Cultural',
@@ -54,6 +55,14 @@ export default function QuemSomos() {
           Sabemos que há necessidade de trabalhar e conscientizar o público infantil acerca das
           práticas e representações que configuram o racismo.
         </p>
+
+        {/*
+          O MAPA (pedido V1). Aqui a seção não tem o endereço escrito — ela
+          fala do BAIRRO, não da rua. O endereço completo está no rodapé de
+          toda página e em /contato, e o mapa mostra o mesmo ponto. Ver
+          componentes/Mapa.ts.
+        */}
+        <Mapa />
       </section>
 
       <section aria-labelledby="titulo-idealizadores">

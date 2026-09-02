@@ -46,7 +46,19 @@ function componentes() {
     .map((nome) => ({ nome, fonte: readFileSync(path.join(COMPONENTES, nome), 'utf-8') }));
 }
 
-const TEM_CAMPO = /nome="telefone"|name="telefone"/;
+/**
+ * O que é CAMPO de telefone, e não qualquer coisa chamada "telefone".
+ *
+ * A primeira versão desta constante era `/nome="telefone"|name="telefone"/`
+ * — frouxa demais. `componentes/Icone.ts` ganhou um ícone de telefone, e
+ * `<Icone nome="telefone" />` no rodapé passou a casar: o teste acusou um
+ * componente sem campo nenhum de "não ligar a máscara". Um teste que
+ * aponta o arquivo errado ensina a ignorá-lo.
+ *
+ * `CampoFormulario` é o único jeito de este projeto desenhar campo, e o
+ * `<input name="telefone">` cru cobre o caso de alguém não usá-lo.
+ */
+const TEM_CAMPO = /<CampoFormulario[^>]*\snome="telefone"|<input[^>]*\sname="telefone"/s;
 const LIGA_MASCARA = /onChange=\{mascararTelefone\}/;
 
 test('todo formulário com campo de telefone liga a máscara', () => {
