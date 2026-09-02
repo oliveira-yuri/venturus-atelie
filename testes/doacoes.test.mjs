@@ -520,12 +520,17 @@ test('o `<select>` de tipo nasce VAZIO e o de situação não — as duas decis�
   // A doação SEMPRE tem situação (`not null default 'ofertada'`): uma opção
   // vazia seria oferecer à equipe apagar um estado que não pode ficar vazio.
   assert.ok(OPCOES_DE_SITUACAO.every((opcao) => opcao.valor !== ''));
-  assert.equal(OPCOES_DE_SITUACAO.length, SITUACOES_DA_DOACAO.length);
+
+  // UMA A MAIS que as situações do banco, desde o pedido V1: a primeira é
+  // "não mudar por enquanto", que NÃO é situação — é a ausência de
+  // mudança, e nunca chega ao `update`. Ver o bloco "RESPONDER SEM MUDAR A
+  // SITUAÇÃO" no fim deste arquivo.
+  assert.equal(OPCOES_DE_SITUACAO.length, SITUACOES_DA_DOACAO.length + 1);
 
   // O texto do select é a `escolha` (que explica), não o `rotulo` (que
   // nomeia): um select de quatro substantivos soltos, num celular, é
-  // adivinhação.
-  assert.equal(OPCOES_DE_SITUACAO[0].texto, SITUACOES_DA_DOACAO[0].escolha);
+  // adivinhação. A partir da SEGUNDA opção, que é a primeira situação real.
+  assert.equal(OPCOES_DE_SITUACAO[1].texto, SITUACOES_DA_DOACAO[0].escolha);
 });
 
 // =====================================================================
@@ -932,4 +937,88 @@ test('a seção nova de /doar leva ao formulário de oferta, com o texto inteiro
   );
 
   assert.match(html.slice(abre, fecha), /href="\/doar\/ofertar"/);
+});
+
+/* =====================================================================
+   RESPONDER SEM MUDAR A SITUAÇÃO (pedido V1)
+   =====================================================================
+
+   "GAP na resposta do admin para o user sem mudança de status da
+   solicitação." Era defeito de verdade: o `<select>` de situação era
+   obrigatório, então mandar um recado ("dá para trazer na terça?") obrigava
+   a declarar a doação aceita, recusada ou recebida.
+
+   O conserto é um valor que a TELA oferece e o BANCO nunca vê. É essa
+   assimetria que estes testes vigiam — se `MANTER_SITUACAO` escapar para o
+   objeto do `update`, o Postgres recusa no `check` de 004_pessoas.sql e a
+   equipe lê um erro de banco no lugar de uma resposta enviada.
+   ===================================================================== */
+
+test('MANTER_SITUACAO não é uma situação do banco', async () => {
+  const { MANTER_SITUACAO, SITUACOES_ACEITAS_NA_ANALISE } =
+    await import('../compartilhado/validacao.ts');
+  const { readFile } = await import('node:fs/promises');
+
+  assert.ok(!SITUACOES_ACEITAS_NA_ANALISE.includes(MANTER_SITUACAO),
+    'MANTER_SITUACAO entrou na lista das situações reais — ele é a AUSÊNCIA de mudança');
+
+  // Contra o `check` do banco, não contra outra constante nossa.
+  const sql = await readFile(
+    new URL('../supabase/migrations/004_pessoas.sql', import.meta.url), 'utf-8');
+  const bloco = sql.match(/situacao\s+text not null default 'ofertada'\s*\n?\s*check \(situacao in \(([^)]*)\)\)/);
+  assert.ok(bloco, 'não achei o check de doacoes.situacao em 004_pessoas.sql');
+  assert.ok(!bloco[1].includes(`'${MANTER_SITUACAO}'`),
+    `'${MANTER_SITUACAO}' está no check do banco — então ele NÃO é o sentinela que este `
+    + 'desenho supõe, e colunasDaAnalise deveria passar a gravá-lo');
+});
+
+test('as duas cópias de MANTER_SITUACAO não divergiram', async () => {
+  // `compartilhado/doacoes.ts` não tem import nenhum, de propósito, então a
+  // string existe em dois arquivos. Duas cópias divergem; esta é a rede.
+  const daValidacao = (await import('../compartilhado/validacao.ts')).MANTER_SITUACAO;
+  const dasOpcoes = (await import('../compartilhado/doacoes.ts')).MANTER_SITUACAO;
+  assert.equal(daValidacao, dasOpcoes,
+    'MANTER_SITUACAO divergiu entre validacao.ts e doacoes.ts: a tela ofereceria um valor '
+    + 'que a Action não reconhece, e o envio viraria erro de situação inexistente');
+});
+
+test('colunasDaAnalise OMITE a coluna situacao quando a equipe escolhe não mudar', async () => {
+  const { colunasDaAnalise, MANTER_SITUACAO } = await import('../compartilhado/validacao.ts');
+  const atual = { respondida_em: null, recebida_em: null };
+  const agora = '2026-09-02T12:00:00.000Z';
+
+  const mantendo = colunasDaAnalise(
+    { id: 'x', situacao: MANTER_SITUACAO, resposta: 'Dá para trazer na terça?', valor: '' },
+    atual, agora);
+
+  assert.ok(!('situacao' in mantendo),
+    'a coluna situacao foi ao update mesmo com "não mudar" — o Postgres recusaria no check');
+  assert.equal(mantendo.resposta, 'Dá para trazer na terça?');
+  assert.equal(mantendo.respondida_em, agora,
+    'responder JÁ É responder: a data precisa ser carimbada mesmo sem mudar a situação');
+
+  // O contrário continua valendo: escolhendo uma situação de verdade, ela vai.
+  const mudando = colunasDaAnalise(
+    { id: 'x', situacao: 'aceita', resposta: 'Pode trazer', valor: '' }, atual, agora);
+  assert.equal(mudando.situacao, 'aceita');
+});
+
+test('"não mudar" sem escrever nada é recusado — seria um envio que não faz nada', async () => {
+  const { validarAnalise, MANTER_SITUACAO } = await import('../compartilhado/validacao.ts');
+
+  const vazio = validarAnalise(
+    { id: 'x', situacao: MANTER_SITUACAO, resposta: '', valor: '' }, 'item');
+  assert.equal(vazio.valido, false);
+  assert.ok(vazio.erros.resposta,
+    'manter a situação E não escrever nada precisa ser recusado no campo da resposta');
+
+  const comTexto = validarAnalise(
+    { id: 'x', situacao: MANTER_SITUACAO, resposta: 'Recebemos, obrigado.', valor: '' }, 'item');
+  assert.equal(comTexto.valido, true, JSON.stringify(comTexto.erros));
+});
+
+test('a opção "não mudar" é a PRIMEIRA do select — é o padrão de quem só quer responder', async () => {
+  const { OPCOES_DE_SITUACAO, MANTER_SITUACAO } = await import('../compartilhado/doacoes.ts');
+  assert.equal(OPCOES_DE_SITUACAO[0].valor, MANTER_SITUACAO,
+    'a opção de não mudar precisa vir primeiro: responder sem mexer no andamento é o caso comum');
 });

@@ -190,9 +190,35 @@ export function ehSituacaoDeDoacao(valor: unknown): valor is SituacaoDeDoacao {
  * tem uma situação (a coluna é `not null default 'ofertada'`), e o campo
  * nasce com a atual já selecionada. Uma opção vazia seria oferecer à equipe
  * apagar um estado que não pode ficar vazio.
+ *
+ * ===================================================================
+ * A PRIMEIRA OPÇÃO NÃO É UMA SITUAÇÃO — É A AUSÊNCIA DE MUDANÇA
+ * ===================================================================
+ *
+ * "Não mudar por enquanto" conserta o defeito que o pedido V1 relatou:
+ * responder e mudar o andamento eram o MESMO gesto, então a equipe não
+ * conseguia mandar um recado ("dá para trazer na terça?") sem declarar a
+ * doação aceita, recusada ou recebida.
+ *
+ * Ela vem PRIMEIRO, e é o padrão de quem só quer escrever. O valor
+ * `MANTER_SITUACAO` não existe no `check` de 004_pessoas.sql e nunca
+ * chega ao banco: `colunasDaAnalise` deixa a coluna fora do update.
  */
-export const OPCOES_DE_SITUACAO: Array<{ valor: string; texto: string }> =
-  SITUACOES_DA_DOACAO.map((situacao) => ({ valor: situacao.valor, texto: situacao.escolha }));
+/**
+ * A MESMA string de `compartilhado/validacao.ts`, repetida aqui porque este
+ * arquivo NÃO TEM IMPORT NENHUM, de propósito (ver o cabeçalho): é assim
+ * que os testes o importam pelo runtime nativo do Node.
+ *
+ * Duas cópias de uma string é exatamente o tipo de coisa que diverge — por
+ * isso `testes/doacoes.test.mjs` reconcilia as duas e falha se elas se
+ * separarem.
+ */
+export const MANTER_SITUACAO = 'manter';
+
+export const OPCOES_DE_SITUACAO: Array<{ valor: string; texto: string }> = [
+  { valor: MANTER_SITUACAO, texto: 'Não mudar por enquanto — só responder' },
+  ...SITUACOES_DA_DOACAO.map((situacao) => ({ valor: situacao.valor, texto: situacao.escolha }))
+];
 
 /** O rótulo de uma situação. Valor desconhecido volta como veio (ver `rotuloDoTipo`). */
 export function rotuloDaSituacaoDeDoacao(valor: string): string {

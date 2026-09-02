@@ -961,3 +961,61 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
 .af-navlink--conta { border-top: 2px solid var(--af-ochre); }
 .af-navlink--painel { color: var(--af-ochre); font-weight: 600; }
 .af-navlink--painel:hover { background: var(--af-brown-800); color: var(--af-ochre); }
+
+/* ---------------------------------------------------------------------
+   Bloco do Pix (RF23)
+
+   A marca de teste NÃO é discreta de propósito: enquanto a chave for de
+   exemplo, ela precisa ser a primeira coisa que se lê ali. Ver o
+   comentário no topo de app/doar/page.tsx.
+   --------------------------------------------------------------------- */
+
+.pix { display: flex; flex-direction: column; align-items: flex-start; gap: var(--af-s7); }
+
+.pix__marca-de-teste {
+  margin: 0;
+  align-self: stretch;
+  padding: var(--af-s6) var(--af-gutter-card);
+  background: var(--af-ochre);
+  color: var(--af-brown);
+  border: var(--af-border);
+  box-shadow: var(--af-shadow-sm);
+  font: 400 var(--af-body) / var(--af-lh-body) var(--af-font);
+}
+
+.pix__marca-de-teste a { color: var(--af-brown); }
+
+.pix__chave {
+  margin: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--af-s2);
+  padding: var(--af-s6) var(--af-gutter-card);
+  background: var(--af-card);
+  border: var(--af-border);
+}
+
+.pix__rotulo {
+  font: 600 var(--af-overline) var(--af-font);
+  letter-spacing: var(--af-ls-overline);
+  text-transform: uppercase;
+  color: var(--af-brown-400);
+}
+
+/* A chave precisa ser copiável com o dedo, e lida sem ambiguidade —
+   `anywhere` porque uma chave aleatória é uma palavra só e estouraria a
+   caixa numa tela de 320px. */
+.pix__valor {
+  font: 700 var(--af-h3) var(--af-font);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.pix__qr { border: var(--af-border); box-shadow: var(--af-shadow-sm); }
+
+.pix__legenda {
+  margin: 0;
+  font: 600 var(--af-body-sm) var(--af-font);
+  color: var(--af-ochre-deep);
+}

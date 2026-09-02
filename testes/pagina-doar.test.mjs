@@ -60,8 +60,14 @@ async function html() {
  * testes/paridade-texto.test.mjs já faz para o `<main>` inteiro.
  */
 function textoDoAviso(paginaHtml) {
-  const bloco = paginaHtml.match(/<div class="aviso">([\s\S]*?)<\/div>/);
-  assert.ok(bloco, 'não achei <div class="aviso"> em /doar — o ramo sem chave Pix deveria estar no ar');
+  // APONTA PARA A MARCA DE TESTE desde 02/09/2026. Antes lia a caixa "sem
+  // chave Pix", que saiu quando a chave de exemplo entrou. O que este
+  // extrator vigia não mudou: a armadilha do JSX comer os espaços ao redor
+  // de um link. O parágrafo novo tem exatamente o mesmo padrão — `{' '}`
+  // antes e depois do <a> do WhatsApp — e é o mesmo defeito que já
+  // aconteceu neste projeto em /privacidade.
+  const bloco = paginaHtml.match(/<p class="pix__marca-de-teste"[^>]*>([\s\S]*?)<\/p>/);
+  assert.ok(bloco, 'não achei <p class="pix__marca-de-teste"> em /doar');
   return bloco[1]
     // React SSR insere `<!-- -->` como marcador de fronteira entre nós de
     // texto adjacentes (aqui, ao redor de cada `{' '}` explícito) — não é
@@ -70,6 +76,7 @@ function textoDoAviso(paginaHtml) {
     // antes das tags).
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<\/?p[^>]*>/g, ' ')
+    .replace(/<\/?strong[^>]*>/g, '')
     .replace(/<a[^>]*>|<\/a>/g, '')
     .replace(/&#x27;|&#39;/g, '\'')
     .replace(/&quot;/g, '"')
@@ -83,27 +90,63 @@ test('/doar traz a seção "Doação em dinheiro"', async () => {
   assert.match(pagina, /<h2 id="titulo-financeiro">Doação em dinheiro<\/h2>/);
 });
 
-test('/doar nunca mostra uma chave Pix — nem inventada, nem de preenchimento', async () => {
+/* =====================================================================
+   A CHAVE PIX EXISTE AGORA, E É DE TESTE (pedido V1, 02/09/2026)
+   =====================================================================
+
+   Estes três testes cobravam a AUSÊNCIA de chave Pix — a decisão D7 estava
+   pendente e o site nunca podia mostrar chave inventada. O que eles
+   protegiam continua valendo, e ficou MAIS importante, não menos: agora há
+   uma chave na tela, e ela é de exemplo.
+
+   A guarda mudou de lugar, não de intenção. `testes/pix.test.mjs`
+   reconcilia a chave com a bandeira `PIX_E_DE_TESTE` nos dois sentidos —
+   chave de exemplo sem aviso reprova, chave real com aviso também. Foi
+   provado quebrável nas duas direções.
+
+   O que sobra aqui é a outra metade: o canal imediato do WhatsApp, que a
+   ONG tem HOJE e que precisa continuar alcançável enquanto a conta
+   institucional não existe. Ele mudou de caixa (saiu do aviso "sem chave" e
+   entrou na marca de teste), e é isso que se cobra abaixo.
+   ===================================================================== */
+
+test('/doar mostra a chave como sendo de TESTE, com o canal imediato do WhatsApp', async () => {
   const pagina = await html();
-  assert.doesNotMatch(pagina, /Chave Pix/, 'a chave Pix é decisão D7, ainda pendente com a ONG');
-  assert.doesNotMatch(pagina, /aviso--sucesso/, 'o ramo com chave (CHAVE_PIX preenchida) não deveria renderizar');
+
+  assert.match(pagina, /Esta chave é de teste/,
+    'a chave aparece sem dizer que é de teste — alguém transferiria para o nada');
+
+  assert.match(pagina, /O Ateliê ainda está organizando a\s+conta institucional/,
+    'sumiu a explicação de POR QUE a chave é de teste');
+
+  assert.match(pagina, /fale pelo WhatsApp/,
+    'sumiu o canal que a ONG tem hoje — enquanto não há conta, é por ali que se doa');
+
+  assert.match(pagina, /wa\.me\/5511953968344/,
+    'o link do WhatsApp não aponta para o número real da ONG');
 });
 
-test('/doar mostra o aviso real de conta em organização, com um canal imediato (WhatsApp)', async () => {
-  const pagina = await html();
-  assert.match(
-    pagina,
-    /Estamos organizando a conta institucional para receber doações em dinheiro/
-  );
-  assert.match(pagina, /fale com a gente pelo WhatsApp/);
-});
-
-test('/doar: o aviso sem chave Pix é a frase inteira, com o espaço certo nas duas pontas do link de WhatsApp', async () => {
-  const pagina = await html();
+test('/doar: a frase da marca de teste chega inteira, com o espaço nas duas pontas do link', async () => {
+  // A ARMADILHA DO JSX COME ESPAÇOS (restrição global #3). Uma quebra de
+  // linha encostada numa tag é REMOVIDA pelo JSX, e o resultado é
+  // "hoje,fale pelo WhatsApp." colado. Já aconteceu neste projeto, em
+  // /privacidade, e o teste de paridade pegou. Aqui a asserção é por
+  // igualdade da frase inteira — a única forma de observar um espaço que
+  // sumiu.
   assert.equal(
-    textoDoAviso(pagina),
-    'Estamos organizando a conta institucional para receber doações em dinheiro com a '
-    + 'transparência que o assunto merece. Enquanto isso, fale com a gente pelo WhatsApp que '
-    + 'explicamos exatamente para onde vai o recurso e quem recebe.'
+    textoDoAviso(await html()),
+    'Esta chave é de teste. O Ateliê ainda está organizando a conta institucional — '
+    + 'nenhuma transferência para a chave abaixo chega à ONG. Para doar de verdade hoje, '
+    + 'fale pelo WhatsApp.'
   );
 });
+
+test('/doar não promete recibo nem cobrança (RN08)', async () => {
+  // Vale mais agora que há chave na tela: com um QR à vista, é fácil a
+  // página parecer um checkout. Ela não é — o site REGISTRA doação, não
+  // processa pagamento, e a frase precisa continuar dizendo isso.
+  const pagina = await html();
+  assert.match(pagina, /não recebe pagamento e não emite\s+recibo/,
+    'sumiu a frase que diz que o site não cobra e não emite recibo');
+});
+

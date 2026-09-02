@@ -2310,6 +2310,35 @@ export function numeroDoValor(texto: string): number | null {
 export const SITUACOES_ACEITAS_NA_ANALISE = ['ofertada', 'aceita', 'recusada', 'recebida'];
 
 /**
+ * "Não mudar por enquanto" — o valor que RESPONDE SEM MEXER NA SITUAÇÃO.
+ *
+ * ===================================================================
+ * ISTO CONSERTA UM DEFEITO, NÃO ACRESCENTA UM ENFEITE
+ * ===================================================================
+ *
+ * Até aqui, responder e mudar a situação eram o MESMO gesto: o `<select>`
+ * era obrigatório, então a equipe não conseguia mandar um recado ("dá para
+ * trazer na terça?") sem também declarar a doação aceita, recusada ou
+ * recebida. O pedido V1 relatou exatamente isso: "GAP na resposta do admin
+ * para o user sem mudança de status da solicitação".
+ *
+ * ===================================================================
+ * O VALOR NÃO EXISTE NO BANCO, E NÃO PODE EXISTIR
+ * ===================================================================
+ *
+ * `doacoes.situacao` tem `check (situacao in ('ofertada', 'aceita',
+ * 'recusada', 'recebida'))` em 004_pessoas.sql. 'manter' não é uma quinta
+ * situação: é a AUSÊNCIA de mudança, e por isso `colunasDaAnalise` deixa a
+ * coluna FORA do objeto do update quando ele chega — o Postgres nunca o vê.
+ *
+ * Um valor que a tela oferece e o banco não conhece só é seguro assim: se
+ * ele escapasse para o `update`, o insert falharia no `check` e a equipe
+ * leria um erro de banco no lugar de uma resposta enviada. Há teste que
+ * falha se `colunasDaAnalise` voltar a incluir a coluna nesse caso.
+ */
+export const MANTER_SITUACAO = 'manter';
+
+/**
  * O que a tela de resposta manda — e é a lista COMPLETA do que a Action
  * `responderDoacao` aceita.
  *
@@ -2371,13 +2400,20 @@ export function validarAnalise(campos: CamposAnalise, tipoDaLinha: string): Resu
 
   if (!campos.situacao) {
     erros.situacao = 'Escolha em que pé está esta doação.';
-  } else if (!SITUACOES_ACEITAS_NA_ANALISE.includes(campos.situacao)) {
+  } else if (campos.situacao !== MANTER_SITUACAO
+    && !SITUACOES_ACEITAS_NA_ANALISE.includes(campos.situacao)) {
     erros.situacao = 'Essa situação não existe. Atualize a página e escolha de novo.';
   }
 
   if (campos.resposta.length > LIMITE_RESPOSTA) {
     erros.resposta = `A resposta passou de ${LIMITE_RESPOSTA} caracteres. O resto se conversa `
       + 'por WhatsApp ou e-mail, que é onde a pessoa deixou o contato.';
+  } else if (campos.situacao === MANTER_SITUACAO && !campos.resposta) {
+    // Manter a situação E não escrever nada é um envio que não faz coisa
+    // nenhuma. Dizer isso é melhor que gravar um update vazio e responder
+    // "guardado".
+    erros.resposta = 'Para responder sem mudar a situação, escreva a resposta. '
+      + 'Sem texto e sem mudança, este envio não faria nada.';
   } else if (campos.situacao === 'recusada' && !campos.resposta) {
     erros.resposta = 'Escreva por que não dá para receber desta vez. Quem ofereceu lê esta '
       + 'resposta em "Sua conta", e uma recusa sem motivo é a pior notícia possível.';
@@ -2429,19 +2465,26 @@ export function colunasDaAnalise(
   atual: { respondida_em: string | null; recebida_em: string | null },
   agora: string
 ): {
-  situacao: string;
+  situacao?: string;
   resposta: string | null;
   valor: number | null;
   respondida_em: string | null;
   recebida_em: string | null;
 } {
-  const jaRespondeu = campos.situacao !== 'ofertada';
+  const manter = campos.situacao === MANTER_SITUACAO;
+  const jaRespondeu = manter || campos.situacao !== 'ofertada';
   const valor = numeroDoValor(campos.valor);
 
   return {
-    situacao: campos.situacao,
+    // A COLUNA SAI DO OBJETO quando a equipe escolheu não mudar. Não é
+    // `situacao: null` nem `situacao: 'manter'`: os dois quebrariam o
+    // `check` de 004_pessoas.sql, e a equipe leria um erro de banco no
+    // lugar de uma resposta enviada. Ver MANTER_SITUACAO.
+    ...(manter ? {} : { situacao: campos.situacao }),
     resposta: campos.resposta || null,
     valor: valor !== null && !Number.isNaN(valor) ? valor : null,
+    // Responder JÁ É responder, mesmo sem mudar a situação — por isso
+    // `manter` carimba a data como qualquer outra resposta.
     respondida_em: atual.respondida_em ?? (jaRespondeu ? agora : null),
     recebida_em: atual.recebida_em ?? (campos.situacao === 'recebida' ? agora : null)
   };

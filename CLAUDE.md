@@ -983,6 +983,29 @@ revisitada e mantida naquela tarefa.
    antes), mas o padrão ficou menor — e quem nunca toca no A+ é a maioria. Se o grupo achar
    pequeno, é UMA linha: `--af-body` em `estilos/tokens.css`.
 
+0u. **A chave Pix da tela é `chaveteste-123`, e ela NÃO PODE IR PARA O LANÇAMENTO.**
+   Nasceu em 02/09/2026, a pedido do dono do projeto, para a apresentação — a decisão D7 (a
+   chave real da ONG) continua pendente, porque a conta institucional ainda está sendo
+   organizada.
+
+   O QR ao lado dela também é falso, desenhado à mão em `componentes/QrCodeDeTeste.ts`, e
+   **não codifica nada**: nenhum leitor o reconhece. Isso é característica, não limitação —
+   um QR que parece de verdade e não funciona faz a pessoa concluir que doou.
+
+   **Três marcas independentes dizem que é teste**, e o número é o desenho: a caixa ocre
+   acima da chave, a tarja DENTRO do SVG (que sobrevive a uma captura de tela circulando por
+   WhatsApp) e a legenda logo abaixo do QR, junto do gesto de apontar a câmera.
+
+   **A trava é uma reconciliação, e foi provada nos dois sentidos** (`testes/pix.test.mjs`):
+   chave que parece de teste com `PIX_E_DE_TESTE = false` reprova; chave que parece real com
+   `true` também. Não dá para tirar o aviso sem trocar a chave, nem trocar a chave sem tirar
+   o aviso.
+
+   **Para o lançamento:** trocar `CHAVE_PIX` e `PIX_E_DE_TESTE` em `app/doar/page.tsx`, e
+   trocar `QrCodeDeTeste` por um QR de verdade — que é decisão à parte, porque gerar QR exige
+   biblioteca (regra 7) ou a imagem pronta vinda do banco da ONG. Depois disso, apagar este
+   item.
+
 **Do projeto, válidos para as duas branches:**
 
 1. **O e-mail do Supabase encolheu de bloqueador para incômodo — e a MENSAGEM DA TELA ficou

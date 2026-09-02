@@ -27,6 +27,23 @@ before(async () => {
 
 after(async () => { await navegador?.quit(); });
 
+
+/**
+ * Espera a HIDRATACAO antes de mexer no hamburguer.
+ *
+ * `aria-expanded` so' e' emitido depois que `hidratado` vira true (ver
+ * componentes/Cabecalho.tsx). Antes disso o botao existe e e' clicavel, mas
+ * o React ainda nao assumiu: o clique nao abre nada e o atributo nao esta'
+ * la'. Sem esta espera o teste falha de forma intermitente — foi medido.
+ */
+async function botaoDoMenuPronto() {
+  const botao = await navegador.findElement(By.css('.af-burger'));
+  await navegador.wait(
+    async () => (await botao.getAttribute('aria-expanded')) !== null,
+    5000, 'a pagina nao hidratou: o hamburguer continua sem aria-expanded');
+  return botao;
+}
+
 test('sem JavaScript, os 11 links do menu chegam no HTML cru e o nav nao vem oculto', async () => {
   // fetch puro, sem navegador: exatamente o que alcança quem visita sem JS.
   const html = await fetch(`${BASE}/`).then((resposta) => resposta.text());
@@ -123,7 +140,7 @@ test('Esc fecha o menu mesmo sem sair do botao, e devolve o foco a ele', async (
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(`${BASE}/`);
 
-  const botao = await navegador.findElement(By.css('.af-burger'));
+  const botao = await botaoDoMenuPronto();
   await botao.click();
   assert.equal(await botao.getAttribute('aria-expanded'), 'true', 'o clique deveria abrir o menu');
 
@@ -153,7 +170,7 @@ test('abre pelo botao, da Tab ate um link do menu, e Esc fecha e devolve o foco 
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(`${BASE}/`);
 
-  const botao = await navegador.findElement(By.css('.af-burger'));
+  const botao = await botaoDoMenuPronto();
   await botao.click();
   assert.equal(await botao.getAttribute('aria-expanded'), 'true', 'o clique deveria abrir o menu');
 

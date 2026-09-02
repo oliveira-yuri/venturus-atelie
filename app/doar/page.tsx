@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { QrCodeDeTeste } from '@/componentes/QrCodeDeTeste';
 
 // Conteúdo copiado literalmente do HTML original de doar.html — hoje a
 // cópia congelada em testes/apoio/html-original/doar.html, já que a
@@ -36,9 +37,31 @@ export const metadata = {
   description: 'Como apoiar o Ateliê Afro Cultural: livros, instrumentos musicais, materiais de arte, itens de acervo e recursos financeiros.'
 };
 
-// Decisão pendente D7 — ver o comentário no topo do arquivo. `null` aqui é
-// o mesmo estado que site/assets/js/paginas/doar.js tem em produção hoje.
-const CHAVE_PIX: string | null = null;
+// =====================================================================
+// CHAVE DE TESTE — NÃO PODE IR PARA O LANÇAMENTO REAL
+// =====================================================================
+//
+// A decisão D7 (a chave Pix real da ONG) continua PENDENTE: a conta
+// institucional ainda está sendo organizada. O dono do projeto pediu, em
+// 02/09/2026, uma chave de teste e um QR falso para a apresentação — com a
+// ressalva, dele mesmo, de deixar explícito na tela que é de teste.
+//
+// É o que este bloco faz, em três lugares que se reforçam: a caixa de aviso
+// acima da chave, a tarja DENTRO do QR (que sobrevive a uma captura de
+// tela) e a legenda abaixo dele.
+//
+// QUANDO A CHAVE DE VERDADE CHEGAR: trocar as duas constantes abaixo, pôr
+// `PIX_E_DE_TESTE` em `false`, e trocar `QrCodeDeTeste` por um QR de
+// verdade — que é uma decisão à parte, porque gerar QR exige biblioteca
+// (regra 7 do CLAUDE.md) ou a imagem pronta vinda do banco da ONG.
+//
+// O site está com `noindex` em quatro lugares enquanto isso (item 0c de "O
+// que trava hoje"), então nada disto é achável por busca. Mesmo assim:
+// nenhuma chave de teste pode sobreviver ao dia do lançamento. Há item no
+// CLAUDE.md e teste que falha se a marca de teste sumir com a chave ainda
+// sendo a de exemplo.
+const CHAVE_PIX: string | null = 'chaveteste-123';
+const PIX_E_DE_TESTE = true;
 
 export default function Doar() {
   return (
@@ -116,9 +139,37 @@ export default function Doar() {
         <h2 id="titulo-financeiro">Doação em dinheiro</h2>
         <div id="dados-pix">
           {CHAVE_PIX ? (
-            <div className="aviso aviso--sucesso">
-              <p><strong>Chave Pix:</strong> {CHAVE_PIX}</p>
-              <p>Depois de transferir, avise a gente para registrarmos sua doação.</p>
+            <div className="pix">
+              {PIX_E_DE_TESTE ? (
+                <p className="pix__marca-de-teste" role="status">
+                  <strong>Esta chave é de teste.</strong> O Ateliê ainda está organizando a
+                  conta institucional — nenhuma transferência para a chave abaixo chega à
+                  ONG. Para doar de verdade hoje,{' '}
+                  <a href="https://wa.me/5511953968344" rel="noopener">fale pelo WhatsApp</a>.
+                </p>
+              ) : null}
+
+              <p className="pix__chave">
+                <span className="pix__rotulo">Chave Pix</span>
+                <span className="pix__valor">{CHAVE_PIX}</span>
+              </p>
+
+              <QrCodeDeTeste chave={CHAVE_PIX} />
+
+              {/* A legenda que o pedido V1 exige, logo abaixo do QR. Ela é
+                  a TERCEIRA marca (a primeira é a caixa acima, a segunda é
+                  a tarja dentro da própria imagem) — e é a que fica junto
+                  do gesto de apontar a câmera. */}
+              <p className="pix__legenda">
+                QR Code de exemplo, apenas para demonstração — ele não funciona.
+              </p>
+
+              <p>
+                Depois de transferir,{' '}
+                <a href="https://wa.me/5511953968344" rel="noopener">avise a gente</a>{' '}
+                para registrarmos sua doação. O site não recebe pagamento e não emite
+                recibo: quem registra o que chegou é a equipe, depois do fato.
+              </p>
             </div>
           ) : (
             <div className="aviso">
