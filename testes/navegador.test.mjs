@@ -46,6 +46,27 @@ async function escalaAtual() {
  * esconde-la atras de um botao que nao existe sem script seria tirar o
  * controle de tamanho de texto de quem mais precisa dele (regra 8).
  */
+/**
+ * O hamburguer, DEPOIS de a pagina hidratar.
+ *
+ * `aria-expanded` so' e' emitido quando `hidratado` vira true (ver
+ * componentes/Cabecalho.tsx). Antes disso o botao existe e e' clicavel, mas
+ * o React ainda nao assumiu: o clique nao abre nada.
+ *
+ * MEDIDO: sem esta espera, "Esc fecha o menu e devolve o foco ao botao"
+ * falhava de forma INTERMITENTE — verde em tres rodadas isoladas seguidas,
+ * vermelho na suite inteira, onde a maquina esta' mais ocupada. E' a mesma
+ * corrida que ja' foi corrigida em testes/cabecalho.test.mjs e no helper
+ * da barra de acessibilidade, logo abaixo.
+ */
+async function botaoDoMenuPronto() {
+  const botao = await navegador.findElement(By.css('.af-burger'));
+  await navegador.wait(
+    async () => (await botao.getAttribute('aria-expanded')) !== null,
+    5000, 'a pagina nao hidratou: o hamburguer continua sem aria-expanded');
+  return botao;
+}
+
 async function abrirBarraDeAcessibilidade() {
   const botao = await navegador.findElement(By.css('[aria-controls="barra-acessibilidade"]'));
 
@@ -135,7 +156,7 @@ test('Esc fecha o menu e devolve o foco ao botão', async () => {
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(endereco);
 
-  const botao = await navegador.findElement(By.css('.af-burger'));
+  const botao = await botaoDoMenuPronto();
   await botao.click();
   assert.equal(await botao.getAttribute('aria-expanded'), 'true');
 
@@ -207,7 +228,7 @@ test('não há rolagem horizontal em largura de celular', async () => {
 test('todo alvo de toque tem pelo menos 44px', async () => {
   await navegador.manage().window().setRect({ width: 375, height: 720 });
   await navegador.get(endereco);
-  await navegador.findElement(By.css('.af-burger')).click();
+  await (await botaoDoMenuPronto()).click();
 
   const pequenos = await navegador.executeScript(`
     const alvos = document.querySelectorAll(

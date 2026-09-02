@@ -102,6 +102,15 @@ export default async function PaginaDeAtividades(
         ]}
       />
 
+      {/* O botão vem ANTES da lista, e é o mesmo desenho de
+          /admin/publicacoes: alvo grande, uma coluna, no alcance do polegar
+          (regra 4 — a ONG opera isto de pé, no celular). */}
+      <p className="painel__acoes">
+        <Link className="painel__acao-principal" href="/admin/atividades/editar">
+          Adicionar projeto
+        </Link>
+      </p>
+
       <ListaAtividades
         atividades={atividades}
         degradou={degradou}

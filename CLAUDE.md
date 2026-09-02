@@ -26,7 +26,7 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (1080 testes)
+npm test                        # suíte completa, modo offline (1147 testes)
 npm run test:supabase           # a mesma suíte, contra o banco real (1078)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
@@ -982,6 +982,51 @@ revisitada e mantida naquela tarefa.
    pediu "textos grandes". O A+ recupera com folga (137,5% dá 19,9px, mais que os 17px de
    antes), mas o padrão ficou menor — e quem nunca toca no A+ é a maioria. Se o grupo achar
    pequeno, é UMA linha: `--af-body` em `estilos/tokens.css`.
+
+0v. **A migration 009 está escrita e NÃO APLICADA — e, como a 007, a falta não dá erro.**
+   `supabase/migrations/009_imagem_na_atividade.sql` acrescenta `imagem_caminho` e
+   `imagem_alt` a `public.atividades` (as MESMAS colunas que `publicacoes` tem desde a 002),
+   para a capa dos projetos que o pedido V1 pediu.
+
+   **Enquanto não for rodada, o site funciona inteiro, sem capa.**
+   `servidor/dados/conteudo.ts` tenta as colunas novas e cai no caminho antigo com PRECISÃO —
+   só no código `42703` do Postgres ("coluna indefinida"), nunca num erro qualquer. O aviso
+   sai no log, com o nome do arquivo a aplicar. É o mesmo desenho que `acoes/contato.ts` usa
+   para a 007.
+
+   **Uma decisão dela precisa ser lida antes de mexer:** a capa vai para o bucket
+   `identidade`, que é PÚBLICO desde a 006 — não para `galeria`, que é PRIVADO desde a 008.
+   A primeira versão desta migration criava política de storage supondo o contrário, e caiu ao
+   ser verificada: num bucket privado o endereço público não existe nem com política. Como
+   consequência, a 009 **não toca em política nenhuma** — só acrescenta colunas.
+
+   **A RN07 não se aplica à capa**, e a distinção está escrita na migration: a regra protege
+   FOTO DE PESSOA (o acervo de oficina, com crianças), que mora em `public.midia`, no bucket
+   `galeria`. Capa de atividade é cartaz, ilustração, foto de cena.
+
+   Depois de aplicar, apagar este item.
+
+0w. **Criar atividade pelo painel passou a existir, e isso AGRAVA o item 0k.** O pedido V1
+   pediu "adicionar projeto", e o dono do projeto aprovou. Uma atividade criada em
+   `/admin/atividades/editar` (sem `?id=`) existe **só no banco**: `dados-iniciais/
+   atividades.json` não a conhece, e ninguém atualiza o repositório a partir do painel.
+
+   **A consequência prática:** um deploy sem as variáveis do Supabase (item 0e) faz a página
+   de projetos servir as onze do JSON e sumir com as novas — sem erro nenhum, sem aviso na
+   tela.
+
+   **APAGAR continua fora, e o argumento não mudou:** é o único gesto sem desfazer.
+   `testes/atividades.test.mjs` falha se um `.delete(` aparecer na Action, e exige que exista
+   exatamente UM `insert`. O que sustenta permitir criar é a existência da saída: uma
+   atividade criada por engano pode ser TIRADA DO AR pelo botão que já existe — some da
+   página, o texto fica guardado. Há teste que falha se `alternarAtividade` sumir.
+
+   **Um achado sobre o conteúdo da ONG, que vale registrar:** o apelido (`id`) de uma
+   atividade nova é derivado do título, e ele reproduz nove dos onze ids do seed. Os outros
+   dois foram encurtados à mão pela ONG — "Brasil Negreiro: imaginário em liberdade" virou
+   `brasil-negreiro`. Isso não é defeito da derivação; é uma pessoa decidindo que o endereço
+   ficava melhor curto. A tela **não oferece editar o endereço**, porque mudar o `id` quebraria
+   os links já compartilhados.
 
 0u. **A chave Pix da tela é `chaveteste-123`, e ela NÃO PODE IR PARA O LANÇAMENTO.**
    Nasceu em 02/09/2026, a pedido do dono do projeto, para a apresentação — a decisão D7 (a

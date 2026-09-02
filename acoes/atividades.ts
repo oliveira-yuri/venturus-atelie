@@ -113,8 +113,9 @@ import { revalidatePath } from 'next/cache';
 import { obterCliente } from '@/servidor/supabase';
 import { temSupabase, descrever } from '@/servidor/dados/degradacao';
 import { ehEquipe } from '@/servidor/permissao';
+import { subirImagemInstitucional, apagarImagemInstitucional } from '@/servidor/upload-de-imagem';
 import {
-  lerAtividade, validarAtividade, lerAlternancia, ehIdentificadorDeAtividade
+  lerAtividade, validarAtividade, lerAlternancia, ehIdentificadorDeAtividade, apelidoDeAtividade
 } from '@/compartilhado/validacao';
 import type { EstadoFormulario } from './autenticacao';
 
@@ -199,7 +200,11 @@ export async function salvarAtividade(
     elenco: campos.elenco,
     classificacao: campos.classificacao,
     local: campos.local,
-    rider: campos.rider
+    rider: campos.rider,
+    // O arquivo não volta (um <input type="file"> não aceita valor por
+    // HTML). O alt e o caminho já gravado voltam — ver `acoes/publicacoes.ts`.
+    imagem_alt: campos.imagem_alt ?? '',
+    imagem_atual: campos.imagem_atual ?? ''
   };
 
   if (!valido) return { ok: false, mensagem: CONFIRA_OS_CAMPOS, erros, valores };
@@ -213,6 +218,33 @@ export async function salvarAtividade(
   // coluna aceita nulo e componentes/CardAtividade.ts OMITE o que é nulo
   // (regra 2 do CLAUDE.md no nível do campo). Guardar '' faria a ficha
   // técnica desenhar uma linha com o rótulo e nenhum valor.
+  // A CAPA SOBE ANTES DA LINHA — mesma ordem e mesma limpeza de órfão de
+  // `acoes/publicacoes.ts`.
+  let caminhoDaImagem: string | null = campos.imagem_atual || null;
+  let subiuAgora: string | null = null;
+
+  const arquivo = campos.arquivo;
+  if (arquivo instanceof File && arquivo.size > 0) {
+    const envio = await subirImagemInstitucional(arquivo, 'projetos');
+
+    if (!envio.ok) {
+      return {
+        ok: false,
+        valores,
+        mensagem: CONFIRA_OS_CAMPOS,
+        erros: {
+          arquivo: envio.motivo === 'nao-e-imagem'
+            ? 'Este arquivo não é uma imagem que o site saiba mostrar. Aceitamos JPG, PNG, GIF '
+              + 'e WebP.'
+            : 'Não deu para subir a imagem agora. O texto continua nesta tela: tente de novo.'
+        }
+      };
+    }
+
+    caminhoDaImagem = envio.caminho;
+    subiuAgora = envio.caminho;
+  }
+
   const linha = {
     titulo: campos.titulo,
     resumo: campos.resumo || null,
@@ -222,9 +254,12 @@ export async function salvarAtividade(
     elenco: campos.elenco || null,
     classificacao: campos.classificacao || null,
     local: campos.local || null,
-    rider: campos.rider || null
+    rider: campos.rider || null,
+    imagem_caminho: caminhoDaImagem,
+    imagem_alt: caminhoDaImagem ? (campos.imagem_alt || null) : null
   };
 
+  const criando = !campos.id;
   let falha: EstadoFormulario | null = null;
 
   try {
@@ -240,6 +275,59 @@ export async function salvarAtividade(
     // "Correção guardada" sem ter guardado nada. E aqui o risco é maior que
     // nas publicações: `id` é `text`, então nem o Postgres reclama do
     // formato — nada acusaria.
+    if (criando) {
+      /*
+       * ATIVIDADE NOVA (pedido V1). O `id` é `text` e NÃO é gerado pelo
+       * banco — as onze do seed têm apelidos escritos à mão
+       * ("banzo", "cafu-e-o-cafe"). Então ele é derivado do título, aqui,
+       * e o resultado é o endereço da página: /projetos/<id>.
+       *
+       * `insert` SEM `upsert`: se o apelido já existir, o Postgres recusa
+       * pela chave primária, e a equipe lê que já existe uma atividade com
+       * esse nome. Sobrescrever em silêncio o texto de outra atividade
+       * seria o pior desfecho possível.
+       *
+       * `publicado` NÃO ENTRA na linha, e a ausência é o desenho: a coluna
+       * é `not null default true` (002_conteudo.sql), ao contrário de
+       * `publicacoes`. Uma atividade nova nasce NO AR — que é o certo aqui:
+       * quem criou acabou de escrever o texto e quer vê-lo na página, e o
+       * botão "Tirar do ar" existe para o caso contrário.
+       */
+      const apelido = apelidoDeAtividade(campos.titulo);
+
+      // APELIDO VAZIO É RECUSADO AQUI, e não no banco. Um título só de
+      // emoji ou só de pontuação produz string vazia, e `id` é `text` —
+      // o Postgres aceitaria '' como chave primária, e a atividade ganharia
+      // o endereço `/projetos/`, que é a própria lista.
+      if (!ehIdentificadorDeAtividade(apelido)) {
+        if (subiuAgora) await apagarImagemInstitucional(subiuAgora);
+        return {
+          ok: false,
+          valores,
+          mensagem: CONFIRA_OS_CAMPOS,
+          erros: {
+            titulo: 'Este nome não dá para virar endereço de página. Use ao menos uma letra '
+              + 'ou um número — acentos e pontuação podem ficar, eles são convertidos.'
+          }
+        };
+      }
+
+      const { error } = await supabase
+        .from('atividades')
+        .insert({ ...linha, id: apelido });
+
+      if (error) {
+        console.error('[atividades] criar:', descrever(error));
+        falha = (error as { code?: string }).code === '23505'
+          ? {
+            ok: false,
+            valores,
+            mensagem: 'Já existe uma atividade com um nome muito parecido com este. '
+              + 'Mude o nome, ou volte à lista e edite a que já está lá.'
+          }
+          : { ok: false, mensagem: naoDeuParaGravar(), valores };
+      }
+    } else {
     const { data, error } = await supabase
       .from('atividades')
       .update(linha)
@@ -258,12 +346,18 @@ export async function salvarAtividade(
           + 'tela: se ela sumiu mesmo, copie o texto antes de sair daqui.'
       };
     }
+    }
   } catch (erro) {
     console.error('[atividades] salvar (exceção):', descrever(erro));
     falha = { ok: false, mensagem: naoDeuParaGravar(), valores };
   }
 
-  if (falha) return falha;
+  if (falha) {
+    // O arquivo já está no bucket e a linha não foi gravada. Só apaga o que
+    // ESTA chamada subiu — nunca a capa que já estava na atividade.
+    if (subiuAgora) await apagarImagemInstitucional(subiuAgora);
+    return falha;
+  }
 
   // A página pública muda AGORA: as 11 atividades estão no ar, ao contrário
   // das notícias, que nascem como rascunho. Sem isto, a correção poderia

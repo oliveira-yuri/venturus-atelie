@@ -844,7 +844,15 @@ export function validarMidia(campos: CamposMidia): ResultadoValidacao {
  * separada. E `criado_em` também não: é do banco, não de quem escreve.
  */
 export type CamposAtividade = {
-  /** Qual das 11 está sendo corrigida. NUNCA vazio: esta tela não cria. */
+  /**
+   * Qual atividade. VAZIO quando é uma atividade NOVA (pedido V1: "criar
+   * na página do admin um botão para Adicionar projeto").
+   *
+   * Era "NUNCA vazio: esta tela não cria", e a mudança tem preço — está
+   * escrita no cabeçalho de `acoes/atividades.ts` e no item 0k do
+   * CLAUDE.md: uma atividade criada pelo painel existe SÓ no banco, e o
+   * JSON versionado não a conhece.
+   */
   id: string;
   titulo: string;
   resumo: string;
@@ -855,6 +863,10 @@ export type CamposAtividade = {
   classificacao: string;
   local: string;
   rider: string;
+  /** O arquivo enviado, quando houver. Ver `CamposPublicacao`. */
+  arquivo?: FormDataEntryValue | null;
+  imagem_alt?: string;
+  imagem_atual?: string;
 };
 
 /**
@@ -893,6 +905,45 @@ export const LIMITE_FICHA = 200;
 const FORMATO_ID_ATIVIDADE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const LIMITE_ID_ATIVIDADE = 80;
 
+/**
+ * O apelido (`id`) de uma atividade NOVA, derivado do título.
+ *
+ * =====================================================================
+ * POR QUE DERIVAR, E NÃO GERAR UM UUID
+ * =====================================================================
+ *
+ * `atividades.id` é `text`, e as onze do seed têm apelidos escritos à mão
+ * pela ONG: "banzo", "cafu-e-o-cafe", "brasil-negreiro". Desde o pedido V1
+ * esse id é também o ENDEREÇO da página — `/projetos/banzo`.
+ *
+ * Um uuid daria `/projetos/8f14e45f-...`, que não se lê, não se dita por
+ * telefone e não diz nada a quem recebe o link. Derivar do título mantém a
+ * forma que a ONG já usa, e o endereço continua sendo uma frase.
+ *
+ * =====================================================================
+ * COLISÃO É RECUSADA, NÃO CONTORNADA
+ * =====================================================================
+ *
+ * Duas atividades com o mesmo nome dariam o mesmo apelido. Esta função NÃO
+ * acrescenta sufixo nem número: quem grava é `acoes/atividades.ts`, com um
+ * `insert` simples, e o Postgres recusa pela chave primária. A equipe lê
+ * "já existe uma atividade com um nome parecido" e decide — que é melhor
+ * que ganhar um `/projetos/banzo-2` sem entender de onde ele veio.
+ *
+ * O resultado passa por `ehIdentificadorDeAtividade` antes de ir ao banco:
+ * um título só de emoji, ou só de pontuação, produz string vazia — e a
+ * Action recusa em vez de gravar uma linha com id vazio.
+ */
+export function apelidoDeAtividade(titulo: string): string {
+  return String(titulo ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, LIMITE_ID_ATIVIDADE);
+}
+
 export function ehIdentificadorDeAtividade(valor: unknown): boolean {
   return typeof valor === 'string'
     && valor.length <= LIMITE_ID_ATIVIDADE
@@ -919,12 +970,27 @@ export function lerAtividade(dados: FormData): CamposAtividade {
     elenco: textoDoCampo(dados, 'elenco'),
     classificacao: textoDoCampo(dados, 'classificacao'),
     local: textoDoCampo(dados, 'local'),
-    rider: textoDoCampo(dados, 'rider')
+    rider: textoDoCampo(dados, 'rider'),
+    // A CAPA (pedido V1, migration 009). Mesma trinca da notícia — ver
+    // `lerPublicacao` para o porquê de `imagem_atual` existir.
+    arquivo: dados.get('arquivo'),
+    imagem_alt: textoDoCampo(dados, 'imagem_alt'),
+    imagem_atual: textoDoCampo(dados, 'imagem_atual')
   };
 }
 
-/** Os seis campos da ficha técnica, com o rótulo que a tela usa. */
-const FICHA_DA_ATIVIDADE: Array<[keyof CamposAtividade, string]> = [
+/**
+ * Os seis campos da ficha técnica, com o rótulo que a tela usa.
+ *
+ * O tipo é a UNIÃO EXPLÍCITA dos seis, e não `keyof CamposAtividade`: desde
+ * que o tipo ganhou os campos da capa (que são opcionais e um deles é um
+ * File), `keyof` passou a incluir chaves cujo valor não tem `.length` — e o
+ * laço abaixo, que mede tamanho de texto, deixou de compilar. Listar os
+ * seis é mais verboso e diz a verdade: a ficha técnica é ESTES seis.
+ */
+type CampoDaFicha = 'genero' | 'duracao' | 'elenco' | 'classificacao' | 'local' | 'rider';
+
+const FICHA_DA_ATIVIDADE: Array<[CampoDaFicha, string]> = [
   ['genero', 'gênero'],
   ['duracao', 'duração'],
   ['elenco', 'elenco'],
@@ -945,14 +1011,27 @@ const FICHA_DA_ATIVIDADE: Array<[keyof CamposAtividade, string]> = [
 export function validarAtividade(campos: CamposAtividade): ResultadoValidacao {
   const erros: Record<string, string> = {};
 
-  // O id vem do link que a própria lista do painel montou. Esta tela não
-  // cria atividade: sem id, ou com id que nunca foi um apelido, alguém
-  // montou a requisição à mão.
-  if (!campos.id) {
-    erros.id = 'Não foi possível saber qual atividade é esta. Volte à lista e abra pelo botão '
-      + '"Editar".';
-  } else if (!ehIdentificadorDeAtividade(campos.id)) {
+  // ID VAZIO É ATIVIDADE NOVA (pedido V1), e não mais um erro. Quando ele
+  // vem, ainda precisa ser um apelido válido: `id` é `text` no Postgres,
+  // então nem o banco reclamaria do formato, e um id com barra ou espaço
+  // viraria uma URL que não resolve.
+  if (campos.id && !ehIdentificadorDeAtividade(campos.id)) {
     erros.id = 'Não foi possível identificar qual atividade é esta. Volte à lista e abra de novo.';
+  }
+
+  // A DESCRIÇÃO DA CAPA É OBRIGATÓRIA QUANDO HÁ CAPA — mesma regra da
+  // notícia, e o `check` da migration 009 recusa a linha sem ela. Validar
+  // aqui devolve o formulário preenchido em vez de um erro de Postgres.
+  const temArquivoNovo = campos.arquivo instanceof File && campos.arquivo.size > 0;
+  const temImagem = temArquivoNovo || Boolean(campos.imagem_atual);
+
+  if (temImagem && !campos.imagem_alt?.trim()) {
+    erros.imagem_alt = 'Descreva a imagem em uma frase, para quem não pode vê-la. '
+      + 'Exemplo: "cena do espetáculo, com o ator tocando um berimbau".';
+  }
+
+  if (temArquivoNovo && (campos.arquivo as File).size > LIMITE_ARQUIVO_BYTES) {
+    erros.arquivo = mensagemDeArquivoGrande((campos.arquivo as File).size);
   }
 
   if (!campos.titulo) {

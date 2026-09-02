@@ -157,7 +157,10 @@ test('o formulário é lido campo a campo, e campo que não está na lista não 
 
   assert.deepEqual(lerAtividade(dados), {
     id: ID, titulo: 'Banzo', resumo: 'R', descricao: 'D',
-    genero: 'G', duracao: 'Du', elenco: 'E', classificacao: 'C', local: 'L', rider: 'Ri'
+    genero: 'G', duracao: 'Du', elenco: 'E', classificacao: 'C', local: 'L', rider: 'Ri',
+    // Os três campos da capa (pedido V1). `arquivo` é `null` porque este
+    // FormData não tem o campo — `FormData.get` devolve null, não undefined.
+    arquivo: null, imagem_alt: '', imagem_atual: ''
   });
 });
 
@@ -177,15 +180,76 @@ test('sem nome a atividade é recusada — e espaço em branco não é nome', ()
   assert.equal(soEspaco.erros.titulo, 'Escreva o nome da atividade.');
 });
 
-test('esta tela NÃO cria: sem id a Action recusa, em vez de inserir uma atividade nova', () => {
-  // A diferença mais importante para `validarPublicacao`, onde id vazio
-  // significa "notícia nova". Aqui significa requisição malformada — e se
-  // isto deixar de valer, alguém acabou de dar à tela um caminho de criação
-  // que a tarefa recusou de propósito.
+test('sem id é ATIVIDADE NOVA, e o apelido sai do título', async () => {
+  // MUDOU no pedido V1. Até 02/09/2026 id vazio era requisição malformada:
+  // esta tela não criava. Agora criar existe, e id vazio é o sinal disso —
+  // como em `validarPublicacao`, onde sempre foi assim.
   const { valido, erros } = validarAtividade(lerAtividade(formulario({ titulo: 'Banzo' })));
 
-  assert.equal(valido, false);
-  assert.match(erros.id, /Não foi possível saber qual atividade/);
+  assert.equal(valido, true, `recusou uma atividade nova válida: ${JSON.stringify(erros)}`);
+
+  const { apelidoDeAtividade } = await import('../compartilhado/validacao.ts');
+
+  // O APELIDO É O ENDEREÇO DA PÁGINA. Um uuid daria `/projetos/8f14e45f-…`,
+  // que não se lê nem se dita por telefone. Derivar do título mantém a
+  // forma que a ONG já usa nas onze do seed.
+  assert.equal(apelidoDeAtividade('Banzo'), 'banzo');
+  assert.equal(apelidoDeAtividade('Cafú e o Café'), 'cafu-e-o-cafe');
+  assert.equal(apelidoDeAtividade('A Cabaça e o Canto Ancestral!!!'), 'a-cabaca-e-o-canto-ancestral');
+});
+
+test('a derivação produz apelido VÁLIDO para todos os onze títulos reais', async () => {
+  /*
+   * A ASSERÇÃO CERTA, e ela mudou depois de MEDIR.
+   *
+   * A primeira versão deste teste exigia que a derivação REPRODUZISSE os
+   * onze ids do seed. Ela falhou, e a falha ensinou uma coisa sobre o
+   * conteúdo da ONG: DOIS dos onze foram encurtados à mão por eles —
+   *
+   *     "Brasil Negreiro: imaginário em liberdade"  →  brasil-negreiro
+   *     "Ateliê Afro Cultural Itinerante"           →  atelie-itinerante
+   *
+   * Isso não é defeito da derivação: é uma pessoa decidindo que o endereço
+   * ficava melhor curto. Reescrever a derivação para "acertar" esses dois
+   * seria adivinhar quando encurtar — e erraria no primeiro título novo.
+   *
+   * O que precisa continuar verdade é mais modesto e mais útil: para
+   * QUALQUER título real, a derivação produz um apelido que a validação
+   * aceita. O nome curto continua sendo escolha de quem escreve, e hoje
+   * essa escolha se faz no seed — a tela não oferece editar o endereço,
+   * porque mudar o id quebraria os links já compartilhados.
+   */
+  const { apelidoDeAtividade, ehIdentificadorDeAtividade } =
+    await import('../compartilhado/validacao.ts');
+
+  const recusados = atividadesReais
+    .map((a) => ({ titulo: a.titulo, derivado: apelidoDeAtividade(a.titulo) }))
+    .filter(({ derivado }) => !ehIdentificadorDeAtividade(derivado));
+
+  assert.deepEqual(recusados, [],
+    'a derivação produziu apelido inválido para um título real da ONG: '
+    + recusados.map((r) => `"${r.titulo}" → "${r.derivado}"`).join(', '));
+
+  // E os NOVE que a ONG não encurtou continuam batendo — é o que prova que
+  // a derivação segue a mesma convenção, e não inventou formato próprio.
+  const batem = atividadesReais
+    .filter((a) => a.id === apelidoDeAtividade(a.titulo)).length;
+  assert.ok(batem >= 9,
+    `só ${batem} dos ${atividadesReais.length} ids reais são a derivação do título; `
+    + 'esperava ao menos 9 — a convenção do apelido mudou');
+});
+
+test('título que não vira endereço é recusado antes de chegar ao banco', async () => {
+  // `id` é `text`, então o Postgres aceitaria '' como chave primária — e a
+  // atividade ganharia o endereço `/projetos/`, que é a própria lista.
+  const { apelidoDeAtividade, ehIdentificadorDeAtividade } =
+    await import('../compartilhado/validacao.ts');
+
+  for (const titulo of ['   ', '🎭🥁', '...', '---']) {
+    const apelido = apelidoDeAtividade(titulo);
+    assert.equal(ehIdentificadorDeAtividade(apelido), false,
+      `"${titulo}" produziu o apelido "${apelido}", que passou pela validação`);
+  }
 });
 
 test('id de atividade é apelido de texto, não uuid — os 11 reais passam', () => {
@@ -468,18 +532,43 @@ test('toda Server Action de atividades chama ehEquipe() por conta própria', asy
   );
 });
 
-test('NÃO EXISTE insert nem delete em acoes/atividades.ts — a tela só edita', async () => {
-  // A decisão desta tarefa, transformada em trava. As 11 atividades são
-  // conteúdo da ONG; apagar por engano num celular não tem desfazer, e criar
-  // sem poder apagar deixaria a equipe sem saída depois de um toque errado.
-  // O banco PERMITE as duas (a política é `for all`) — quem recusa é este
-  // arquivo, e é isto que o mantém recusando.
+test('NÃO EXISTE delete em acoes/atividades.ts — criar passou a existir, apagar não', async () => {
+  /*
+   * A TRAVA MUDOU DE FORMA, NÃO DE INTENÇÃO.
+   *
+   * Até 02/09/2026 esta varredura proibia `insert` E `delete`, e o
+   * argumento era um só: "criar sem poder apagar deixaria a equipe sem
+   * saída depois de um toque errado".
+   *
+   * O pedido V1 pediu criar ("adicionar projeto"), e o dono do projeto
+   * aprovou. Então o argumento foi reexaminado, e ele NÃO se aplica ao
+   * outro lado: uma atividade criada por engano pode ser TIRADA DO AR pelo
+   * botão que já existe. Ela some da página de projetos, o texto fica
+   * guardado, e nada se perde. A saída existe.
+   *
+   * APAGAR continua fora, e o argumento dele é intacto: é o único gesto
+   * sem desfazer. O banco PERMITE (a política é `for all`) — quem recusa é
+   * este arquivo.
+   */
   const codigo = await fonte('../acoes/atividades.ts');
 
-  assert.doesNotMatch(codigo, /\.insert\s*\(/,
-    'apareceu um insert: esta tela não cria atividade (ver o cabeçalho do arquivo)');
   assert.doesNotMatch(codigo, /\.delete\s*\(/,
-    'apareceu um delete: apagar é o único gesto sem desfazer, e a tarefa o recusou');
+    'apareceu um delete: apagar é o único gesto sem desfazer, e continua recusado');
+
+  // E o insert precisa ser EXATAMENTE UM: o de criar. Dois inserts nesta
+  // Action significariam uma segunda gravação que ninguém revisou.
+  const inserts = [...codigo.matchAll(/\.insert\s*\(/g)];
+  assert.equal(inserts.length, 1,
+    `acoes/atividades.ts tem ${inserts.length} inserts; esperava exatamente 1 (o de criar)`);
+});
+
+test('a saída para uma atividade criada por engano existe, e é tirar do ar', async () => {
+  // É o que sustenta a decisão acima. Sem `alternarAtividade`, criar viraria
+  // um gesto sem volta — e aí apagar teria de existir.
+  const codigo = await fonte('../acoes/atividades.ts');
+  assert.match(codigo, /export async function alternarAtividade/,
+    'sumiu o botão de tirar do ar: sem ele, criar por engano não tem saída, e a decisão de '
+    + 'permitir criar deixa de se sustentar');
 });
 
 test('a Action que salva texto NUNCA escreve o campo `publicado` — tirar do ar é outro botão', async () => {

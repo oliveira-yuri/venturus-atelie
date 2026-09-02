@@ -60,7 +60,17 @@ const CAMPOS_DA_FICHA = ['genero', 'duracao', 'elenco', 'classificacao', 'local'
 
 type CampoDeTexto = 'titulo' | 'resumo' | 'descricao' | (typeof CAMPOS_DA_FICHA)[number];
 
-export default function FormularioAtividade({ atividade }: { atividade: AtividadeDoPainel }) {
+/**
+ * `atividade` é OPCIONAL desde o pedido V1: sem ela, o formulário é o de
+ * uma atividade NOVA ("adicionar projeto"). Com ela, é o de correção — que
+ * era o único caso até aqui.
+ *
+ * A diferença é só o `id`: vazio significa nova, e `acoes/atividades.ts`
+ * deriva o apelido do título. Ver `apelidoDeAtividade`.
+ */
+export default function FormularioAtividade(
+  { atividade }: { atividade?: AtividadeDoPainel }
+) {
   const [estado, enviar, salvando] = useActionState(salvarAtividade, ESTADO_INICIAL);
   const formulario = useRef<HTMLFormElement>(null);
   const jaRenderizou = useRef(false);
@@ -98,7 +108,24 @@ export default function FormularioAtividade({ atividade }: { atividade: Atividad
    * apagaria de novo, e de novo. E `??` já cobre o `null` que vem das
    * colunas opcionais.
    */
-  const valor = (nome: CampoDeTexto) => estado.valores?.[nome] ?? atividade[nome] ?? '';
+  // `atividade?.` desde que o formulário serve também para criar (pedido
+  // V1): numa atividade nova não há linha nenhuma de onde tirar valor.
+  const valor = (nome: CampoDeTexto) => estado.valores?.[nome] ?? atividade?.[nome] ?? '';
+
+  /**
+   * Os dois campos da capa, que existem no ESTADO e na LINHA com nomes
+   * diferentes — `imagem_atual`/`imagem_alt` no formulário,
+   * `imagem_caminho`/`imagem_alt` na linha. Mesma tradução de
+   * componentes/FormularioPublicacao.tsx, e pelo mesmo motivo: unificar com
+   * `valor` exigiria um tipo que aceitasse chaves inexistentes, e aí um
+   * erro de digitação passaria calado.
+   */
+  const valorDaImagem = (nome: 'imagem_atual' | 'imagem_alt') => {
+    const noEstado = estado.valores?.[nome];
+    if (noEstado !== undefined) return noEstado;
+    if (nome === 'imagem_atual') return atividade?.imagem_caminho ?? '';
+    return atividade?.imagem_alt ?? '';
+  };
 
   // O `<details>` abre sozinho se algum campo de dentro voltou com erro.
   const erroNaFicha = CAMPOS_DA_FICHA.some((nome) => Boolean(estado.erros?.[nome]));
@@ -115,8 +142,13 @@ export default function FormularioAtividade({ atividade }: { atividade: Atividad
         <p>{estado.mensagem}</p>
       </div>
 
+      {/*
+        `encType="multipart/form-data"` desde que o formulário aceita capa
+        (pedido V1). Sem ele, SEM JavaScript, o navegador manda o NOME do
+        arquivo em vez do conteúdo. Ver componentes/FormularioPublicacao.tsx.
+      */}
       <form ref={formulario} id="form-atividade" className="formulario" action={enviar}
-            noValidate aria-describedby="aviso">
+            noValidate aria-describedby="aviso" encType="multipart/form-data">
         {/*
           Qual das 11 está sendo corrigida. Campo escondido e NÃO um
           parâmetro fechado no servidor porque o `<form>` precisa mandá-lo no
@@ -128,7 +160,13 @@ export default function FormularioAtividade({ atividade }: { atividade: Atividad
           CLAUDE.md) — nunca o fato de o campo estar escondido. "Escondido"
           aqui quer dizer "não desenhado", não "protegido".
         */}
-        <input type="hidden" name="id" value={atividade.id} />
+        {/* VAZIO quando é atividade nova — é assim que a Action sabe que
+            deve criar em vez de corrigir. */}
+        <input type="hidden" name="id" value={atividade?.id ?? ''} />
+
+        {/* O caminho da capa já gravada: sem ele, corrigir só o texto
+            APAGARIA a capa. Ver componentes/FormularioPublicacao.tsx. */}
+        <input type="hidden" name="imagem_atual" value={valorDaImagem('imagem_atual')} />
 
         <CampoFormulario nome="titulo" rotulo="Nome da atividade" tipo="text" obrigatorio
                           ajuda="Aparece como título do cartão na página de projetos."
@@ -191,6 +229,21 @@ export default function FormularioAtividade({ atividade }: { atividade: Atividad
                             ajuda="O que a atividade exige do espaço — som, microfone, palco."
                             erro={estado.erros?.rider} valorInicial={valor('rider')} />
         </details>
+
+        <CampoFormulario nome="arquivo" rotulo="Imagem do projeto" tipo="file"
+                          accept="image/*"
+                          ajuda={atividade?.imagem_caminho
+                            ? 'Este projeto já tem imagem. Escolher outra substitui a atual; '
+                              + 'deixar em branco mantém a que está lá.'
+                            : 'Opcional. Cartaz, ilustração ou foto de cena. JPG, PNG, GIF ou '
+                              + 'WebP, até 4 MB.'}
+                          erro={estado.erros?.arquivo} />
+
+        <CampoFormulario nome="imagem_alt" rotulo="Descrição da imagem" tipo="text"
+                          ajuda={'Obrigatória quando há imagem. Uma frase dizendo o que se vê, '
+                            + 'para quem não pode ver.'}
+                          erro={estado.erros?.imagem_alt}
+                          valorInicial={valorDaImagem('imagem_alt')} />
 
         {/* O erro de `id` não tem campo visível para se pendurar — o input é
             escondido —, então ele é mostrado aqui. Sem isto, um id inválido
