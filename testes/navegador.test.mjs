@@ -47,9 +47,21 @@ async function escalaAtual() {
  * controle de tamanho de texto de quem mais precisa dele (regra 8).
  */
 async function abrirBarraDeAcessibilidade() {
+  const botao = await navegador.findElement(By.css('[aria-controls="barra-acessibilidade"]'));
+
+  // ESPERAR A HIDRATACAO PRIMEIRO, e este e' o ponto delicado. Logo depois
+  // de `get()` a barra esta' ABERTA — e' o HTML do servidor. Se o teste
+  // seguir em frente nesse instante, o React hidrata logo em seguida,
+  // recolhe a barra, e o clique seguinte cai num elemento que acabou de
+  // sumir (`ElementNotInteractableError`, intermitente). O sinal exato de
+  // que a hidratacao aconteceu e' o `aria-expanded` do botao: componentes/
+  // Cabecalho.tsx so' o emite quando `hidratado` e' true.
+  await navegador.wait(async () => (await botao.getAttribute('aria-expanded')) !== null, 5000,
+    'a pagina nao hidratou: o botao "Aa" continua sem aria-expanded');
+
   const barra = await navegador.findElement(By.css('#barra-acessibilidade'));
   if (await barra.isDisplayed()) return;
-  await navegador.findElement(By.css('[aria-controls="barra-acessibilidade"]')).click();
+  await botao.click();
   await navegador.wait(async () => await barra.isDisplayed(), 2000);
 }
 

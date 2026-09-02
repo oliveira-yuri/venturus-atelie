@@ -471,7 +471,16 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   padding: var(--af-s8) var(--af-gutter) var(--af-s10);
 }
 
-.af-hero picture { display: block; }
+/* `order` vale para FILHO DIRETO do flex, e o filho aqui e' o <picture> —
+   nao o <img> que mora dentro dele. MEDIDO em 02/09/2026, a 390px: com o
+   `order: -1` no <img>, `getComputedStyle(picture).order` respondia "0" e o
+   cartao ficava ACIMA da imagem, o contrario do handoff e do que o
+   comentario de app/page.tsx promete. No desktop nao aparecia, porque la' a
+   grade de duas colunas posiciona os dois por conta propria. */
+.af-hero picture {
+  display: block;
+  order: -1;
+}
 
 .af-hero__img {
   display: block;
@@ -479,7 +488,6 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   height: auto;
   object-fit: cover;
   border: var(--af-border);
-  order: -1;              /* no celular a imagem fica acima do cartão */
   position: relative;
   z-index: 1;
 }
@@ -827,7 +835,12 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
     padding: 2.5rem;
     box-shadow: 8px 8px 0 var(--af-brown);
   }
-  .af-hero__img { order: 0; }              /* volta para a 2ª coluna */
+  /* Volta para a 2a coluna: cartao a ESQUERDA, imagem a DIREITA, que e' o
+     que `Home 1a Desktop.dc.html` desenha. O `order` precisa ser zerado no
+     <picture>, pelo mesmo motivo que ele precisou ser posto la': o <img>
+     nao e' filho direto da grade. MEDIDO: com o reset so' no <img>, as duas
+     colunas trocavam de lado a partir de 1024px. */
+  .af-hero picture { order: 0; }
   .af-hero__acoes { flex-direction: row; flex-wrap: wrap; }
   .af-hero__acoes .af-btn { width: auto; padding-inline: var(--af-s9); }
 
