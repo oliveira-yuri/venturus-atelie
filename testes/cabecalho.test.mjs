@@ -183,3 +183,92 @@ test('o alvo do link de pular para o conteudo existe na pagina', async () => {
   assert.match(html, /id="conteudo"/,
     'o link de pular aponta para #conteudo, mas nenhum elemento tem esse id');
 });
+
+/* =====================================================================
+   OS DOIS ITENS DE QUEM ESTÁ DENTRO (pedido V1)
+   =====================================================================
+
+   "Colocar uma opção minha conta" e "colocar uma opção de botão do painel
+   do admin (assim que ele fizer o login na sua conta)".
+
+   Eles ficam FORA de `ITENS` — a lista que vale para toda visita e que
+   `links-menu.test.mjs` reconcilia contra as rotas. Um item condicional
+   dentro dela faria os testes contarem um número que muda conforme quem
+   olha.
+
+   O que se mede aqui é a AUSÊNCIA para quem não tem sessão, que é o caso
+   que a suíte alcança: não há sessão utilizável nela (CLAUDE.md, "O que
+   trava hoje", itens 2 e 3). A presença foi conferida com o navegador, com
+   a porta de diagnóstico do cabeçalho e o remendo local que o relatório da
+   tarefa descreve — e o teste de unidade abaixo prova a decisão no
+   componente, sem servidor.
+   ===================================================================== */
+
+test('visita sem sessão não vê "Minha conta" nem "Painel" no menu', async () => {
+  const html = await fetch(`${BASE}/`).then((resposta) => resposta.text());
+
+  const bloco = html.match(/<nav[^>]*aria-label="Principal"[\s\S]*?<\/nav>/);
+  assert.ok(bloco, 'não isolei o nav');
+
+  assert.doesNotMatch(bloco[0], /href="\/minha-conta"/,
+    'o menu de uma visita anônima oferece /minha-conta, que só redirecionaria para /entrar');
+
+  // O MAIS IMPORTANTE DOS DOIS. `/admin` responde 404 para quem não é
+  // equipe justamente para não contar que existe; um link no menu de toda
+  // visita desfaria isso.
+  assert.doesNotMatch(bloco[0], /href="\/admin"/,
+    'o menu de uma visita anônima revela /admin — o painel não admite existir para quem '
+    + 'não é equipe, e o link contaria');
+  assert.doesNotMatch(html, /Painel da equipe/,
+    'a expressão "Painel da equipe" aparece no HTML de uma visita anônima');
+});
+
+test('a tabela de quem vê o quê no menu: sem sessão, com sessão, com equipe', async () => {
+  // A DECISÃO é função pura (compartilhado/itens-de-quem-entrou.ts) porque
+  // componentes/MenuMovel.tsx é `.tsx` e o runtime nativo do Node não
+  // transforma JSX — dentro dele, esta regra ficaria sem verificação
+  // nenhuma, justamente na parte que a suíte não alcança por não ter sessão.
+  const { itensDeQuemEntrou, ITEM_MINHA_CONTA, ITEM_PAINEL } =
+    await import('../compartilhado/itens-de-quem-entrou.ts');
+
+  assert.deepEqual(itensDeQuemEntrou(false, false), [],
+    'visita anônima não pode receber item nenhum');
+
+  assert.deepEqual(itensDeQuemEntrou(true, false), [ITEM_MINHA_CONTA],
+    'quem tem conta vê "Minha conta" — e SÓ ela: ter conta não é ser equipe');
+
+  assert.deepEqual(itensDeQuemEntrou(true, true), [ITEM_MINHA_CONTA, ITEM_PAINEL],
+    'quem é equipe vê os dois');
+
+  // SER EQUIPE SEM SESSÃO É IMPOSSÍVEL, e a função não pode confiar nisso:
+  // `app/layout.tsx` só pergunta ehEquipe() quando há sessão, e se essa
+  // ordem mudar um dia, o menu não pode passar a oferecer o painel a quem
+  // não entrou.
+  assert.deepEqual(itensDeQuemEntrou(false, true), [],
+    'sem sessão, nem mesmo o sinal de equipe pode desenhar o painel');
+});
+
+test('os dois itens NÃO estão em ITENS — o menu de toda visita continua com 11', async () => {
+  // Se um deles vazasse para ITENS, `links-menu.test.mjs` e a contagem de 11
+  // deste arquivo passariam a medir um número que muda conforme quem olha.
+  //
+  // A verificação é sobre a FONTE, e não por import: componentes/MenuMovel
+  // .tsx é `.tsx`, e o runtime nativo do Node não transforma JSX. Um teste
+  // que tentasse importar e desistisse em silêncio no `catch` passaria
+  // sempre — que é o pior tipo de teste verde.
+  const { readFile } = await import('node:fs/promises');
+  const fonte = await readFile(new URL('../componentes/MenuMovel.tsx', import.meta.url), 'utf-8');
+
+  const bloco = fonte.match(/export const ITENS = \[([\s\S]*?)\];/);
+  assert.ok(bloco, 'não achei a declaração de ITENS em MenuMovel.tsx');
+
+  const hrefs = [...bloco[1].matchAll(/href: '([^']+)'/g)].map((m) => m[1]);
+  assert.equal(hrefs.length, 11,
+    `ITENS tem ${hrefs.length} entradas; o menu de toda visita são 11`);
+
+  for (const proibido of ['/minha-conta', '/admin']) {
+    assert.ok(!hrefs.includes(proibido),
+      `"${proibido}" entrou em ITENS — ele é condicional e mora em `
+      + 'compartilhado/itens-de-quem-entrou.ts. Em ITENS, ele apareceria para toda visita.');
+  }
+});

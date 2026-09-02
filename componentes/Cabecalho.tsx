@@ -78,7 +78,9 @@ type SessaoNoCabecalho = { nome: string };
  * formulários de /entrar. Um `onClick` deixaria justamente quem está sem
  * script preso na sessão.
  */
-export default function Cabecalho({ sessao }: { sessao?: SessaoNoCabecalho | null }) {
+export default function Cabecalho(
+  { sessao, ehEquipe = false }: { sessao?: SessaoNoCabecalho | null; ehEquipe?: boolean }
+) {
   const rota = usePathname();
   const emEntrar = rota === '/entrar' || rota === '/recuperar-acesso';
 
@@ -210,6 +212,8 @@ export default function Cabecalho({ sessao }: { sessao?: SessaoNoCabecalho | nul
       <MenuMovel
         hidratado={hidratado}
         aberto={menuAberto}
+        temSessao={Boolean(sessao)}
+        ehEquipe={ehEquipe}
         aoFechar={() => { setMenuAberto(false); botaoMenu.current?.focus(); }}
       />
     </header>

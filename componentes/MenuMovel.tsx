@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { itensDeQuemEntrou } from '@/compartilhado/itens-de-quem-entrou';
 
 export const ITENS = [
   { texto: 'Início', href: '/' },
@@ -56,10 +57,14 @@ export const ITENS = [
 export default function MenuMovel({
   hidratado,
   aberto,
+  temSessao = false,
+  ehEquipe = false,
   aoFechar
 }: {
   hidratado: boolean;
   aberto: boolean;
+  temSessao?: boolean;
+  ehEquipe?: boolean;
   aoFechar: () => void;
 }) {
   const rota = usePathname();
@@ -122,6 +127,30 @@ export default function MenuMovel({
                 className="af-navlink"
                 href={item.href}
                 aria-current={rota === item.href ? 'page' : undefined}
+              >
+                {item.texto}
+              </Link>
+            </li>
+          ))}
+
+          {/*
+            OS DOIS ITENS DE QUEM ESTÁ DENTRO (pedido V1). Quem decide
+            quais aparecem é `itensDeQuemEntrou`, em compartilhado/ — função
+            pura, provada com uma tabela em testes/cabecalho.test.mjs.
+            A decisão não mora aqui porque este arquivo é `.tsx`, e o
+            runtime nativo do Node não o importa: ela ficaria sem
+            verificação justamente na parte que a suíte não alcança por
+            falta de sessão. Ver o cabeçalho daquele módulo.
+          */}
+          {itensDeQuemEntrou(temSessao, ehEquipe).map((item) => (
+            <li key={item.href}>
+              <Link
+                className={`af-navlink ${item.classe}`}
+                href={item.href}
+                aria-current={
+                  rota === item.href || (item.href === '/admin' && rota.startsWith('/admin'))
+                    ? 'page' : undefined
+                }
               >
                 {item.texto}
               </Link>

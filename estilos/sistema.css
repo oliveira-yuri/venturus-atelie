@@ -954,3 +954,10 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   .af-dialogo__acoes { flex-direction: row-reverse; justify-content: flex-start; }
   .af-dialogo__acoes > * { flex: 0 0 auto; }
 }
+
+/* Os dois itens de quem está dentro (pedido V1): "Minha conta" e "Painel
+   da equipe". A borda de topo os separa dos 11 que valem para toda visita —
+   é a mesma divisão que a gaveta já faz entre navegação e o CTA de doar. */
+.af-navlink--conta { border-top: 2px solid var(--af-ochre); }
+.af-navlink--painel { color: var(--af-ochre); font-weight: 600; }
+.af-navlink--painel:hover { background: var(--af-brown-800); color: var(--af-ochre); }

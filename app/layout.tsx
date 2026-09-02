@@ -12,6 +12,7 @@ import Rodape from '@/componentes/Rodape';
 import VLibras from '@/componentes/VLibras';
 import FocoNaNavegacao from '@/componentes/FocoNaNavegacao';
 import { sessaoParaOCabecalho, type SessaoNoCabecalho } from '@/servidor/sessao';
+import { ehEquipe } from '@/servidor/permissao';
 
 export const metadata = {
   title: 'Ateliê Afro Cultural',
@@ -63,6 +64,25 @@ export default async function LayoutRaiz({ children }: { children: React.ReactNo
     ? { nome: nomeForcado }
     : await sessaoParaOCabecalho();
 
+  // "PAINEL" NO MENU, PARA QUEM É EQUIPE (pedido V1).
+  //
+  // A pergunta custa uma consulta a `perfis` — e por isso ela só acontece
+  // QUANDO HÁ SESSÃO. Visita anônima, que é a esmagadora maioria, não paga
+  // nada: sem sessão o menu não teria o item de qualquer jeito.
+  // `ehEquipe()` é memoizada por requisição (`cache()`), então a mesma
+  // pergunta feita de novo dentro de /admin não custa uma segunda ida ao
+  // banco.
+  //
+  // ISTO NÃO AUTORIZA COISA ALGUMA, e a distinção importa. O booleano
+  // decide se um LINK é desenhado. Quem decide o que pode ser lido ou
+  // gravado é `ehEquipe()` na página do painel e a RLS no banco (regras 5
+  // e 6). Um `true` forjado no HTML daria à pessoa um link para uma tela
+  // que responde 404 para ela.
+  //
+  // E ele NÃO vaza a existência do painel: quem não é equipe nunca recebe o
+  // item, exatamente como `/admin` nunca admite existir para quem não é.
+  const ehDaEquipe = sessao !== null && !nomeForcado && await ehEquipe();
+
   return (
     // suppressHydrationWarning aplicado só no <html>: a Tarefa 3 acrescenta o
     // script anti-piscada, que altera atributos deste elemento antes da
@@ -90,7 +110,7 @@ export default async function LayoutRaiz({ children }: { children: React.ReactNo
         />
         <a className="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
         <FocoNaNavegacao />
-        <Cabecalho sessao={sessao} />
+        <Cabecalho sessao={sessao} ehEquipe={ehDaEquipe} />
         {children}
         <Rodape />
         <VLibras nonce={nonce} />
