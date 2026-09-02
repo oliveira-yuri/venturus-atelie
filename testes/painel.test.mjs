@@ -185,8 +185,25 @@ test('/entrar: as duas abas funcionam pelo teclado', async () => {
 
 test('RF12: a caixa de maioridade existe e é obrigatória', async () => {
   await navegador.get(`${BASE}/entrar`);
-  await navegador.wait(async () =>
-    (await navegador.findElements(By.css('#aba-criar'))).length > 0, 5000);
+
+  // ESPERAR A HIDRATAÇÃO ANTES DE CLICAR NA ABA. Sem script os DOIS painéis
+  // chegam abertos (um painel `hidden` seria um formulário que ninguém
+  // alcança — ver o cabeçalho de componentes/AbasEntrar.tsx), e o `hidden`
+  // só entra depois que o React assume. Enquanto isso as abas não trocam
+  // nada, e o clique não faz efeito.
+  //
+  // O sinal exato é o `hidden` no painel de CRIAR, e não no de entrar: a
+  // aba inicial é "entrar", então é o outro painel que a hidratação
+  // recolhe. (Escrevi o contrário na primeira tentativa e o teste esperou
+  // dez segundos por um atributo que nunca ia aparecer.)
+  //
+  // MEDIDO: sem a espera, este teste passava 3/3 isolado e falhava na suíte
+  // inteira, onde a máquina está mais ocupada — a quinta corrida desta
+  // família.
+  await navegador.wait(async () => navegador.executeScript(
+    'return document.querySelector("#painel-criar")?.hasAttribute("hidden") === true'
+  ), 10000, 'a página /entrar não hidratou: o painel de criar continua sem `hidden`');
+
   await navegador.findElement(By.css('#aba-criar')).click();
 
   const caixa = await navegador.executeScript(`

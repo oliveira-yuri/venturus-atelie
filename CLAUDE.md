@@ -26,7 +26,7 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (1150 testes)
+npm test                        # suíte completa, modo offline (1148 testes)
 npm run test:supabase           # a mesma suíte, contra o banco real (1078)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
@@ -997,28 +997,26 @@ revisitada e mantida naquela tarefa.
    antes), mas o padrão ficou menor — e quem nunca toca no A+ é a maioria. Se o grupo achar
    pequeno, é UMA linha: `--af-body` em `estilos/tokens.css`.
 
-0v. **A migration 009 está escrita e NÃO APLICADA — e, como a 007, a falta não dá erro.**
-   `supabase/migrations/009_imagem_na_atividade.sql` acrescenta `imagem_caminho` e
-   `imagem_alt` a `public.atividades` (as MESMAS colunas que `publicacoes` tem desde a 002),
-   para a capa dos projetos que o pedido V1 pediu.
+0v. **A migration 009 foi APLICADA em 02/09/2026, e o efeito foi medido.**
+   `supabase/migrations/009_imagem_na_atividade.sql` acrescentou `imagem_caminho` e
+   `imagem_alt` a `public.atividades`.
 
-   **Enquanto não for rodada, o site funciona inteiro, sem capa.**
-   `servidor/dados/conteudo.ts` tenta as colunas novas e cai no caminho antigo com PRECISÃO —
-   só no código `42703` do Postgres ("coluna indefinida"), nunca num erro qualquer. O aviso
-   sai no log, com o nome do arquivo a aplicar. É o mesmo desenho que `acoes/contato.ts` usa
-   para a 007.
+   **Conferido contra o projeto de verdade, sem mandar chave de escrita nenhuma:** as duas
+   colunas respondem no PostgREST e as onze atividades continuam válidas, com as duas nulas.
+   O site parou de usar o caminho de fallback — o aviso `009_imagem_na_atividade` não aparece
+   mais no log, e `/projetos` serve `data-origem-atividades="banco"`.
 
-   **Uma decisão dela precisa ser lida antes de mexer:** a capa vai para o bucket
-   `identidade`, que é PÚBLICO desde a 006 — não para `galeria`, que é PRIVADO desde a 008.
-   A primeira versão desta migration criava política de storage supondo o contrário, e caiu ao
-   ser verificada: num bucket privado o endereço público não existe nem com política. Como
-   consequência, a 009 **não toca em política nenhuma** — só acrescenta colunas.
+   **E a 008 não foi afrouxada por efeito colateral**, que era o risco. As duas respostas
+   diferem exatamente como o desenho prevê: `identidade` responde `NoSuchKey` (bucket aceito,
+   só falta o arquivo — ou seja, PÚBLICO) e `galeria` responde `NoSuchBucket` (PRIVADO). A
+   política de INSERT de 006 segue intacta e cobre `identidade`; a 008 só mexeu na de leitura.
 
-   **A RN07 não se aplica à capa**, e a distinção está escrita na migration: a regra protege
-   FOTO DE PESSOA (o acervo de oficina, com crianças), que mora em `public.midia`, no bucket
-   `galeria`. Capa de atividade é cartaz, ilustração, foto de cena.
-
-   Depois de aplicar, apagar este item.
+   **O que NINGUÉM percorreu ainda: subir uma capa de verdade.** Tentei com o remendo local, e
+   a RLS recusou — corretamente: o remendo finge o `ehEquipe()` do NOSSO código, e o
+   `public.eh_equipe()` do BANCO olha `auth.uid()`, que naquela sessão era anônimo. O caminho
+   da FALHA ficou provado (erro no campo certo, formulário preservado, nenhum órfão no
+   bucket); o do SUCESSO só quem tem sessão de equipe prova. **É um item da lista de "O que
+   trava hoje" nº 3.**
 
 0w. **Criar atividade pelo painel passou a existir, e isso AGRAVA o item 0k.** O pedido V1
    pediu "adicionar projeto", e o dono do projeto aprovou. Uma atividade criada em
@@ -1064,6 +1062,27 @@ revisitada e mantida naquela tarefa.
    trocar `QrCodeDeTeste` por um QR de verdade — que é decisão à parte, porque gerar QR exige
    biblioteca (regra 7) ou a imagem pronta vinda do banco da ONG. Depois disso, apagar este
    item.
+
+0x. **`npm run test:supabase` ficou vermelho por CONTEÚDO, não por defeito — e o mecanismo que
+   faltava passou a existir.** Ao percorrer o painel em 02/09/2026, a equipe publicou uma
+   foto, um material, um evento e uma notícia de teste. Dez testes ficaram vermelhos de uma
+   vez, todos afirmando "a tabela está vazia hoje".
+
+   O item 0k já previa isso para as atividades — "será a suíte cobrando conteúdo, não defeito
+   de código" — e previa sem ter mecanismo. Agora tem.
+
+   **O conserto NÃO foi afrouxar a asserção**, foi cobrar o invariante certo:
+
+       OU a lista está vazia E o estado vazio traz o texto real,
+       OU a lista tem itens E o estado vazio NÃO aparece.
+
+   As duas metades importam: sem a segunda, uma página que desenhasse itens E o "ainda não
+   publicamos nada" ao mesmo tempo passaria — e é exatamente essa contradição que a pessoa
+   veria na tela. `vazioOuCheio()` mora em `testes/paginas-vazias-a4.test.mjs`, e foi provado
+   verde nos DOIS modos: com a tabela vazia (offline) e com ela cheia (com credenciais).
+
+   **Se um teste voltar a supor tabela vazia, ele volta a apodrecer.** Uma suíte que fica
+   vermelha por hábito é uma suíte que ninguém lê.
 
 **Do projeto, válidos para as duas branches:**
 

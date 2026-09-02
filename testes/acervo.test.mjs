@@ -692,5 +692,16 @@ test('/acervo continua respondendo 200 e servindo o estado vazio', async () => {
   assert.match(html, /<div id="lista-acervo">/,
     'o <div id="lista-acervo"> sumiu — é o id que testes/paridade-texto.test.mjs exclui da '
     + 'comparação com o HTML original');
+    // A PÁGINA PODE ESTAR CHEIA, e a partir de 02/09/2026 ela está: a equipe
+  // percorreu o painel e publicou. O estado vazio só é cobrável quando a
+  // lista de fato está vazia — o invariante das duas pontas ("ou vazio com
+  // texto real, ou itens, nunca os dois") mora em
+  // testes/paginas-vazias-a4.test.mjs, que é o lugar dele.
+  //
+  // O QUE ESTE TESTE MEDE CONTINUA VALENDO SEMPRE: a rota responde 200 e o
+  // `<div id="lista-...">` continua no HTML — é ele que
+  // testes/paridade-texto.test.mjs exclui da comparação com o original, e
+  // sem ele cada item publicado quebraria aquele teste.
+  if (!/class="estado estado--vazio"/.test(html)) return;
   assert.match(html, /class="estado estado--vazio"/);
 });
