@@ -1,7 +1,10 @@
-Correções Web Ateliê
+Quero que você faça apenas:
 
-Seria legal ter uma conta de administrador, onde ele pode adicionar e remover e atualizar: projetos, agenda, notícias, galeria.
+Documento de requisitos em PDF
+Arquitetura 
+Arquitetura renderizada
+Protótipios UI/UX - Estático/offline
+Estrutura de pastas atual (não temos informações sobre o que seria o anexo I, então vamos fazer a estrutura das pastas que nós temos)
+Compactar em .zip
 
-Seria legal colocar um popup do whatsapp no canto inferior direito da página. Para ficar como destaque e caso a pessoa queira entrar em contato ela já vê o ícone do whatsapp.
-
-
+Como que você faria cada um desses itens??

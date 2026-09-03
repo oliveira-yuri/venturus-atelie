@@ -31,6 +31,8 @@ FORA = {"entrega/03-prototipos/capturas.json"}
 
 EXIGIDOS = [
     "entrega/LEIA-ME.md",
+    "entrega/00-proposta-de-impacto/proposta-de-impacto.pdf",
+    "entrega/00-proposta-de-impacto/proposta-de-impacto.html",
     "entrega/01-documento-de-requisitos/requisitos.pdf",
     "entrega/01-documento-de-requisitos/requisitos.html",
     "entrega/02-arquitetura/arquitetura.md",
