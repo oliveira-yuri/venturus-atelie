@@ -258,6 +258,93 @@ describe('as travas do código', () => {
 // 5. A migration 012
 // =====================================================================
 
+describe('a migration 013: o que a service role alcanca', () => {
+  /*
+   * MEDIDO em 03/09/2026, contra producao: a chave `service_role` recebia
+   * `42501 permission denied` nas SETE tabelas que a Edge Function
+   * consulta. Ela ignora a RLS, mas nao ignora `grant` — e nenhuma
+   * migration deste projeto tinha concedido nada a ela, porque ate a 011
+   * nao existia codigo que usasse a service role (spec §4.1).
+   *
+   * O sintoma era um e-mail que nunca chegava, com a funcao respondendo
+   * `registro_nao_encontrado` para um registro que EXISTE: o Postgres
+   * responde `permission denied`, e a funcao lia isso como "nao achei".
+   *
+   * Este bloco cobra a RELACAO, nao o conteudo de hoje: toda tabela que a
+   * funcao consulta precisa estar na migration. No dia em que alguem
+   * acrescentar um `.from(` sem o grant, o vermelho aparece aqui em vez
+   * de aparecer como um e-mail que some.
+   */
+
+  const migration = () => sqlSemComentarios('supabase/migrations/013_service_role.sql');
+
+  test('toda tabela consultada pela Edge Function recebe grant de leitura', async () => {
+    const codigo = await fonte('supabase/functions/enviar-email/index.ts');
+
+    const consultadas = [...codigo.matchAll(/\.from\('([a-z_]+)'\)/g)].map((m) => m[1]);
+    assert.ok(consultadas.length > 0, 'a varredura precisa achar as consultas');
+
+    const sql = await migration();
+
+    for (const tabela of new Set(consultadas)) {
+      assert.match(
+        sql,
+        new RegExp(`grant select on public\\.${tabela}\\s+to service_role`),
+        `a funcao consulta public.${tabela} e a migration 013 nao concede select nela`
+      );
+    }
+  });
+
+  test('as tabelas embutidas por embed tambem recebem — elas viram join', async () => {
+    const codigo = await fonte('supabase/functions/enviar-email/index.ts');
+    const sql = await migration();
+
+    // `select('..., eventos(titulo)')` e' um join no PostgREST, e join exige
+    // privilegio na tabela do outro lado. Nenhum `.from(` a nomeia, entao a
+    // varredura de cima nao a alcanca.
+    for (const embutida of ['eventos', 'perfis']) {
+      assert.ok(
+        new RegExp(`${embutida}\\(`).test(codigo),
+        `este teste supoe que a funcao embute ${embutida}; se deixou de embutir, corrija-o`
+      );
+      assert.match(
+        sql,
+        new RegExp(`grant select on public\\.${embutida}\\s+to service_role`),
+        `a funcao embute public.${embutida} e a migration 013 nao concede select nela`
+      );
+    }
+  });
+
+  test('so `envios` recebe escrita, e nunca delete', async () => {
+    const sql = await migration();
+
+    assert.match(sql, /grant insert, update on public\.envios\s+to service_role/);
+
+    // A funcao monta mensagem a partir de registro; ela nao corrige
+    // registro. E apagar de `envios` seria poder reenviar o mesmo e-mail,
+    // que e' justamente o que o indice unico de 011 impede.
+    const escritas = [...sql.matchAll(/grant ([a-z, ]+) on public\.([a-z_]+)\s+to service_role/g)];
+    for (const [, privilegios, tabela] of escritas) {
+      if (tabela === 'envios') continue;
+      assert.equal(
+        privilegios.trim(), 'select',
+        `public.${tabela} nao pode receber escrita: a funcao so le`
+      );
+    }
+    assert.doesNotMatch(sql, /delete/, 'nenhuma tabela pode dar delete a service_role');
+  });
+
+  test('a migration NAO cria tabela, politica nem funcao — ela so concede', async () => {
+    const sql = await migration();
+
+    // O mesmo cuidado da 010: uma migration de privilegio que criasse
+    // objeto passaria a mexer no desenho de seguranca sem que o nome dela
+    // dissesse isso.
+    assert.doesNotMatch(sql, /create\s+(table|policy|function|index)/i);
+    assert.doesNotMatch(sql, /alter\s+table/i);
+  });
+});
+
 describe('a migration 012 diz o mesmo que o site', () => {
   test('a política NÃO tem nenhuma forma de `publicado` sozinho', async () => {
     // É a diferença para `publicacoes`, onde `publicado` significa "o mundo

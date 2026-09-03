@@ -1290,6 +1290,746 @@ create policy "galeria: equipe le tudo"
   on storage.objects for select
   using (bucket_id = 'galeria' and public.eh_equipe());
 
+-- ############ 009_imagem_na_atividade.sql ############
+-- =====================================================================
+-- 009 — Imagem na atividade (pedido V1, 02/09/2026)
+--
+-- "Colocar imagens dos projetos."
+--
+-- `public.publicacoes` ja tinha `imagem_caminho` e `imagem_alt` desde
+-- 002_conteudo.sql; `public.atividades` nao. Esta migration acrescenta as
+-- MESMAS duas colunas, com a MESMA constraint — para que as duas telas do
+-- painel se comportem igual e ninguem precise lembrar de qual e' qual.
+--
+-- ---------------------------------------------------------------------
+-- NENHUMA POLITICA DE STORAGE MUDA, E ISSO E' O PONTO
+-- ---------------------------------------------------------------------
+--
+-- A primeira versao desta migration criava uma politica nova em
+-- `storage.objects`, porque supunha que a capa iria para o bucket
+-- `galeria`. Estava errada, e a premissa caiu ao ser verificada:
+--
+--   · `galeria` e' PRIVADO desde a 008. Num bucket privado o endereco
+--     publico nao existe — nem com politica; so' URL assinada, que vence
+--     em uma hora. Uma capa de projeto assinada obrigaria /projetos a
+--     gastar uma requisicao de assinatura por carregamento;
+--   · `identidade` ja e' PUBLICO (006_storage.sql), a 008 NAO o tocou
+--     (ela isolou so' `galeria`), e ele foi criado exatamente para isto:
+--     material institucional da ONG.
+--
+-- Entao a capa vai para `identidade`, e este arquivo so' acrescenta duas
+-- colunas. Nenhuma politica nova, nenhum risco de afrouxar a RN07 por
+-- efeito colateral.
+--
+-- ---------------------------------------------------------------------
+-- E A RN07? NAO SE APLICA AQUI, E A DISTINCAO IMPORTA
+-- ---------------------------------------------------------------------
+--
+-- A RN07 protege FOTO DE PESSOA — o acervo de oficina, com criancas a
+-- partir de 10 anos. Esse acervo mora em `public.midia`, no bucket
+-- `galeria`, sob a politica da 008, que exige linha publicada E
+-- autorizada.
+--
+-- A capa de uma atividade e' outra coisa: e' material institucional sobre
+-- a PROPRIA atividade — cartaz, ilustracao, foto de cena de espetaculo. Se
+-- um dia alguem quiser pos uma foto de crianca como capa, a regra continua
+-- valendo pelo caminho de sempre: quem sobe responde pela autorizacao, e a
+-- tela do painel diz isso com todas as letras.
+--
+-- ---------------------------------------------------------------------
+-- NADA AQUI QUEBRA O QUE JA' EXISTE
+-- ---------------------------------------------------------------------
+--
+-- As duas colunas nascem NULAS e sem default. As onze atividades que a ONG
+-- entregou pelo seed continuam validas, sem imagem, e /projetos desenha o
+-- cartao sem foto exatamente como hoje.
+--
+-- Enquanto esta migration NAO for rodada, o site tambem nao quebra: a
+-- leitura pede as colunas com `?? null` e o formulario do painel nao
+-- mostra o campo. O aviso vive no log e no CLAUDE.md, como o da 007.
+--
+-- ---------------------------------------------------------------------
+-- O ALT E' OBRIGATORIO QUANDO HA' IMAGEM, E ISSO E' REGRA, NAO GOSTO
+-- ---------------------------------------------------------------------
+--
+-- Mesma constraint de `publicacoes`. Acessibilidade e' requisito neste
+-- projeto (regra 8), e imagem sem alt e' imagem que nao existe para quem
+-- usa leitor de tela. Deixar isso a cargo da tela nao basta: Server Action
+-- e' endpoint HTTP publico (spec §4.5), e o banco e' a ultima linha.
+-- =====================================================================
+
+alter table public.atividades
+  add column if not exists imagem_caminho text,
+  add column if not exists imagem_alt     text;
+
+alter table public.atividades
+  drop constraint if exists atividade_alt_obrigatorio_com_imagem;
+
+-- `not valid` + `validate` num passo separado: com onze linhas o custo e'
+-- zero, mas o padrao fica certo para o dia em que a tabela for grande.
+alter table public.atividades
+  add constraint atividade_alt_obrigatorio_com_imagem
+  check (imagem_caminho is null or (imagem_alt is not null and length(trim(imagem_alt)) > 0))
+  not valid;
+
+alter table public.atividades
+  validate constraint atividade_alt_obrigatorio_com_imagem;
+
+comment on column public.atividades.imagem_caminho is
+  'Caminho da capa no bucket `identidade`, que e publico (006_storage.sql). '
+  'NAO e uma linha de public.midia: e material institucional sobre a propria '
+  'atividade, e nao o acervo de fotos de oficina — esse fica em `galeria`, '
+  'privado desde a 008, sob a RN07.';
+
+-- ############ 010_inscricao_por_visitante.sql ############
+-- =====================================================================
+-- 010 — Inscricao em evento sem conta (RF15)
+--
+-- A FUNCAO IRMA QUE A 007 DEIXOU ANOTADA. Palavra por palavra, o que
+-- estava escrito no fim de 007_limite_por_visitante.sql:
+--
+--     RF15 (inscricao em evento sem conta) vai precisar da funcao irma —
+--     `registrar_inscricao(p_visitante, ...)`, com o mesmo `set_config` na
+--     mesma transacao. Enquanto ela nao existir, `public.inscricoes`
+--     continua com o balde por CABECALHO, ou seja, com o balde global de
+--     hoje. Isso nao e um problema em aberto: nao existe uma linha de
+--     codigo que insira em `inscricoes` nesta branch.
+--
+-- Passou a existir. `acoes/inscricoes.ts` insere, e por isso esta migration
+-- deixou de ser opcional: sem ela o limite de `public.inscricoes` volta a
+-- ser o balde por cabecalho, que neste desenho e SEMPRE o servidor — 30
+-- inscricoes por hora para o site inteiro. O caminho de /para-escolas e
+-- justamente uma turma se inscrevendo de um endereco so, e a 11a pessoa
+-- fecharia o formulario para todo mundo (spec §4.6).
+--
+-- ESTA MIGRATION NAO CRIA TABELA E NAO MEXE EM POLITICA. Ela acrescenta
+-- duas funcoes e nada mais. `public.inscricoes`, a RLS dela e o trigger
+-- `limitar_inscricoes` de 005 continuam exatamente como estao.
+--
+-- ---------------------------------------------------------------------
+-- POR QUE NAO PRECISOU MEXER EM `limitar_envios()`
+-- ---------------------------------------------------------------------
+--
+-- A funcao de 007 ja le `app.origem_do_visitante` e ja separa o balde por
+-- `tg_table_name`. Ou seja, ela e generica desde que foi escrita: basta
+-- que quem insere em `inscricoes` defina a mesma configuracao na mesma
+-- transacao, que e o que `registrar_inscricao` faz abaixo. O balde de
+-- inscricoes e SEPARADO do de contatos (`origem, tabela`), entao a turma
+-- que se inscreve num evento nao gasta nada do balde de mensagens.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- vagas_restantes() — quantas sobram, ou NULL quando o evento nao limita
+--
+-- SECURITY DEFINER, e aqui isso e OBRIGATORIO, nao preferencia. `anon` tem
+-- `grant insert` em public.inscricoes e NENHUM select (003_eventos.sql):
+-- uma contagem feita com os privilegios de quem chamou devolveria ZERO
+-- para todo mundo, e a verificacao de vagas passaria SEMPRE, em silencio.
+-- Uma trava que nunca dispara e pior que trava nenhuma, porque ninguem vai
+-- procurar por ela.
+--
+-- O QUE ELA DEIXA VER, dito em voz alta: um numero. Quantas vagas restam
+-- num evento publicado — nao quem se inscreveu, nao quantas pessoas ha na
+-- lista de um evento que nao esta publicado. E informacao que qualquer
+-- pagina de evento do mundo mostra, e que a agenda publica passa a mostrar
+-- ("restam N vagas"). Nenhum dado pessoal atravessa esta funcao.
+--
+-- EVENTO QUE NAO EXISTE, QUE NAO ESTA PUBLICADO OU QUE JA ACABOU devolve
+-- 0 — ou seja, "nao da para se inscrever". Devolver NULL nesses casos
+-- (que e o valor de "sem limite") abriria inscricao em rascunho.
+-- ---------------------------------------------------------------------
+create or replace function public.vagas_restantes(p_evento_id uuid)
+returns integer
+language plpgsql
+security definer
+-- SEM `stable`, e a omissao e' deliberada: uma funcao STABLE recebe o
+-- snapshot do statement que a chamou. Dentro de `reservar_vaga()`, logo
+-- depois de o `for update` liberar, isso significaria contar sem enxergar a
+-- inscricao que a outra transacao acabou de confirmar — ou seja, a corrida
+-- voltaria por dentro da trava que existe para fecha-la. VOLATILE (o padrao)
+-- reavalia a cada chamada. O custo e' uma contagem por chamada, que e' o que
+-- se quer aqui.
+set search_path = public
+as $$
+declare
+  v_vagas    integer;
+  v_fim      timestamptz;
+  v_ocupadas integer;
+begin
+  select e.vagas, coalesce(e.termina_em, e.comeca_em)
+    into v_vagas, v_fim
+  from public.eventos e
+  where e.id = p_evento_id and e.publicado;
+
+  -- `not found` cobre os tres casos de uma vez: id inexistente, evento em
+  -- rascunho, e id nulo.
+  if not found then
+    return 0;
+  end if;
+
+  -- Evento que ja terminou nao recebe inscricao. O corte e pelo FIM, e nao
+  -- pelo comeco, de proposito: quem chega atrasado a uma oficina de duas
+  -- horas ainda participa, e uma inscricao recusada na porta seria uma
+  -- pessoa mandada embora por causa do relogio.
+  if v_fim < now() then
+    return 0;
+  end if;
+
+  -- Sem limite declarado, sem limite. NULL e o valor de "ilimitado" em
+  -- toda a cadeia — a coluna aceita nulo (`check (vagas is null or vagas >
+  -- 0)`), esta funcao devolve nulo, e o site escreve "vagas abertas" em vez
+  -- de um numero.
+  if v_vagas is null then
+    return null;
+  end if;
+
+  select count(*) into v_ocupadas
+  from public.inscricoes i
+  where i.evento_id = p_evento_id;
+
+  -- `greatest(..., 0)`: se um dia houver mais inscritos que vagas (o
+  -- caminho de degradacao descrito em acoes/inscricoes.ts grava sem
+  -- conferir), a resposta certa e "nenhuma", nunca um numero negativo
+  -- desenhado na tela.
+  return greatest(v_vagas - v_ocupadas, 0);
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- reservar_vaga() — a mesma pergunta, com a linha do evento TRAVADA
+--
+-- POR QUE DUAS FUNCOES PARA UMA CONTA SO. `vagas_restantes()` responde uma
+-- pergunta de LEITURA, e e chamada ao desenhar a pagina; travar a linha do
+-- evento a cada visita seria serializar toda a agenda publica por nada.
+-- Esta aqui e chamada UMA vez, no instante de gravar, e existe por causa da
+-- corrida:
+--
+--   duas pessoas enviam ao mesmo tempo o formulario do ultimo lugar;
+--   as duas consultas contam N-1 ocupadas; as duas veem 1 vaga; as duas
+--   gravam. O evento fica com uma pessoa a mais do que cabe na sala.
+--
+-- E a mesma corrida que CLAUDE.md descreve para a candidatura duplicada da
+-- RF25 — e ali ela ficou EM ABERTO, porque fechar exigia migration. Esta E
+-- a migration, entao aqui ela fecha: o `for update` na linha do evento faz
+-- a segunda requisicao esperar a primeira terminar antes de contar.
+--
+-- O `for update` mora DENTRO de uma funcao `security definer` porque
+-- travar linha exige privilegio que `anon` nao tem em `public.eventos`
+-- (ele so tem `grant select`).
+--
+-- A TRAVA DURA ATE O FIM DA TRANSACAO, que e a chamada da funcao mais o
+-- insert que vem logo depois — microssegundos. Ela serializa apenas as
+-- inscricoes DO MESMO EVENTO; dois eventos diferentes nao se esperam.
+-- ---------------------------------------------------------------------
+create or replace function public.reservar_vaga(p_evento_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existe boolean;
+begin
+  -- Trava a linha do evento. Quem chegar depois espera aqui.
+  select true into v_existe
+  from public.eventos e
+  where e.id = p_evento_id and e.publicado
+  for update;
+
+  -- TRES RESPOSTAS, E NAO DUAS, porque "este evento nao aceita inscricao" e
+  -- "este evento lotou" mandam a pessoa fazer coisas diferentes: a primeira
+  -- e' um endereco velho ou um evento que ja aconteceu, e a segunda e' um
+  -- convite a olhar a agenda de novo mais tarde. Um booleano aqui obrigaria
+  -- quem chama a adivinhar qual dos dois foi.
+  if not found then
+    return 'indisponivel';
+  end if;
+
+  -- Agora a contagem e confiavel: ninguem mais insere neste evento
+  -- enquanto esta transacao nao terminar.
+  if coalesce(public.vagas_restantes(p_evento_id), 1) > 0 then
+    return 'ok';
+  end if;
+
+  -- `vagas_restantes` tambem devolve 0 para evento que ja terminou, e o
+  -- desfecho e' o mesmo: nao da' para se inscrever. A tela publica nem
+  -- oferece o formulario nesse caso (a agenda so lista o que ainda vem),
+  -- entao quem chega aqui montou a requisicao a mao ou guardou a pagina
+  -- aberta por dias.
+  return 'lotado';
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- registrar_inscricao() — a porta do formulario publico (RF15)
+--
+-- SECURITY INVOKER, pelo mesmo motivo escrito em `registrar_contato` (007):
+-- ela roda com os privilegios de quem chamou, entao a RLS de
+-- `public.inscricoes` continua valendo palavra por palavra. Quem precisa de
+-- definer sao o trigger (que grava em `envios_recentes`) e as duas funcoes
+-- de vaga acima (que CONTAM uma tabela cuja leitura e' negada) — e as tres
+-- ja sao.
+--
+-- ---------------------------------------------------------------------
+-- O QUE ELA NAO ACEITA DE FORA
+-- ---------------------------------------------------------------------
+--
+-- Nao ha parametro para `id` nem para `criado_em`: os dois nascem de
+-- `default` da coluna. E' a regra 6 do CLAUDE.md aplicada a esta tabela —
+-- o insert e' escrito coluna por coluna, nunca a partir do corpo recebido.
+--
+-- `p_consentimento` NAO e' "corrigido" para true em lugar nenhum. Vindo
+-- falso, o `check (consentimento_dados)` da tabela recusa a linha
+-- (003_eventos.sql). A validacao do site recusa antes; esta e' a rede
+-- embaixo dela, e ela precisa continuar sendo uma rede de verdade.
+--
+-- O MESMO VALE PARA `p_responsavel_*`: a constraint
+-- `responsavel_obrigatorio_para_menor` (RN02) e' quem decide, e ela e' do
+-- esquema. Se alguem montar um corpo com `eh_menor` verdadeiro e
+-- responsavel vazio, quem recusa e' o Postgres.
+--
+-- ---------------------------------------------------------------------
+-- POR QUE `returns text` E NAO `returns void`
+-- ---------------------------------------------------------------------
+--
+-- `registrar_contato` devolve void porque o unico desfecho ruim dela e' uma
+-- excecao. Aqui existe um desfecho que NAO e' erro e que a pessoa precisa
+-- entender: o evento lotou. Levantar excecao para isso obrigaria a traduzir
+-- um SQLSTATE inventado, e o P0001 ja esta ocupado pelo limite de envios —
+-- a pessoa que tentou se inscrever num evento cheio leria "muitas mensagens
+-- deste ponto de acesso", que nao tem nada a ver.
+--
+-- NADA DA LINHA GRAVADA VOLTA, e isso continua igual a 007: `anon` tem
+-- `grant insert` e NENHUM select em `public.inscricoes` (003_eventos.sql).
+-- O texto devolvido e' uma das tres palavras fechadas abaixo, nunca dado.
+-- ---------------------------------------------------------------------
+create or replace function public.registrar_inscricao(
+  p_visitante            text,
+  p_evento_id            uuid,
+  p_nome                 text,
+  p_email                text,
+  p_consentimento        boolean,
+  p_telefone             text default null,
+  p_cpf                  text default null,
+  p_eh_menor             boolean default false,
+  p_responsavel_nome     text default null,
+  p_responsavel_telefone text default null,
+  p_autoriza_imagem      boolean default false
+)
+returns text
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_origem text;
+  v_vaga   text;
+begin
+  -- O que nao for um SHA-256 em hexadecimal e' tratado como "nao sei quem
+  -- e'": todos os envios sem origem identificavel compartilham um balde so.
+  -- Identico a `registrar_contato`, e de proposito — duas regras de origem
+  -- no mesmo banco divergiriam.
+  v_origem := case
+    when p_visitante ~ '^[0-9a-f]{64}$' then p_visitante
+    else encode(sha256(convert_to('desconhecida', 'UTF8')), 'hex')
+  end;
+
+  -- `is_local => true`: vale so ate o fim desta transacao. E' o que
+  -- `limitar_envios()` (007) le para saber de quem e' o balde. Sem esta
+  -- linha, o trigger cai no caminho do cabecalho — que neste desenho e'
+  -- sempre este servidor, ou seja, um balde global.
+  perform set_config('app.origem_do_visitante', v_origem, true);
+
+  -- A VAGA E' CONFERIDA ANTES DO INSERT, com a linha do evento travada.
+  -- Ver `reservar_vaga` acima.
+  v_vaga := public.reservar_vaga(p_evento_id);
+  if v_vaga <> 'ok' then
+    return v_vaga;
+  end if;
+
+  -- Coluna por coluna. Campos de texto vazios viram NULL e nao string
+  -- vazia: as colunas aceitam nulo, e a tela da equipe omite o que e' nulo
+  -- (regra 2 do CLAUDE.md aplicada a campo). Um telefone de responsavel
+  -- gravado como '' passaria pela constraint de RN02 se ela olhasse so
+  -- nulidade — ela olha `length(trim(...)) > 0` justamente por isso.
+  insert into public.inscricoes
+    (evento_id, nome, email, telefone, cpf, eh_menor,
+     responsavel_nome, responsavel_telefone, autoriza_imagem, consentimento_dados)
+  values
+    (p_evento_id,
+     p_nome,
+     p_email,
+     nullif(btrim(coalesce(p_telefone, '')), ''),
+     nullif(btrim(coalesce(p_cpf, '')), ''),
+     coalesce(p_eh_menor, false),
+     nullif(btrim(coalesce(p_responsavel_nome, '')), ''),
+     nullif(btrim(coalesce(p_responsavel_telefone, '')), ''),
+     coalesce(p_autoriza_imagem, false),
+     coalesce(p_consentimento, false));
+
+  return 'ok';
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- Permissoes
+--
+-- A inscricao e' PUBLICA (RF15, decisao D4: reduzir atrito importa mais que
+-- historico individual). `anon` precisa executar as tres funcoes, e ja
+-- tinha `grant insert` na tabela (003_eventos.sql) — nada de novo se abre
+-- aqui.
+--
+-- `revoke all ... from public` primeiro porque funcao nasce executavel por
+-- PUBLIC no Postgres: sem isto, "quem pode executar" ficaria implicito, e a
+-- lista explicita abaixo nao seria a lista de verdade. Isso pesa mais nas
+-- duas `security definer`: elas CONTAM uma tabela cuja leitura e' negada.
+-- ---------------------------------------------------------------------
+revoke all on function public.vagas_restantes(uuid) from public;
+revoke all on function public.reservar_vaga(uuid) from public;
+revoke all on function public.registrar_inscricao(
+  text, uuid, text, text, boolean, text, text, boolean, text, text, boolean) from public;
+
+grant execute on function public.vagas_restantes(uuid) to anon, authenticated;
+grant execute on function public.reservar_vaga(uuid) to anon, authenticated;
+grant execute on function public.registrar_inscricao(
+  text, uuid, text, text, boolean, text, text, boolean, text, text, boolean)
+  to anon, authenticated;
+
+-- ############ 011_envios_de_email.sql ############
+-- =====================================================================
+-- 011 — Registro de envios de e-mail (RF18, RF20, RF28)
+--
+-- A spec §9 desenhou a Edge Function `enviar-email` e disse o essencial:
+--
+--     Ela NAO CONFIA NO PAYLOAD: recebe apenas o identificador do
+--     registro, busca os dados no banco e monta a mensagem. Sem isso, o
+--     endereco da funcao seria um formulario aberto para enviar e-mail em
+--     nome da ONG.
+--
+-- O que ela nao disse, e esta migration resolve: ONDE fica o registro do
+-- que foi enviado. Sem tabela, tres coisas ficam impossiveis:
+--
+--   1. NAO REENVIAR. Uma confirmacao de inscricao mandada duas vezes faz a
+--      pessoa achar que se inscreveu duas vezes — e ligar para a ONG para
+--      desfazer uma das duas, que nao existe;
+--   2. SABER QUE FALHOU. Envio de e-mail falha em silencio por natureza:
+--      quem nao recebeu nao reclama, porque nao sabe que devia receber.
+--      Sem registro, a ONG so descobriria numa oficina vazia;
+--   3. PRESTAR CONTAS. RF28 manda mensagem para um GRUPO, e "para quem foi
+--      isso?" e' pergunta de auditoria, nao de curiosidade.
+--
+-- ---------------------------------------------------------------------
+-- O ENDERECO NAO E' GRAVADO — SO' O HASH
+-- ---------------------------------------------------------------------
+--
+-- Mesma disciplina de `envios_recentes` (005/007), e pelo mesmo motivo:
+-- o e-mail da pessoa ja' esta' na tabela de origem (`inscricoes`,
+-- `doacoes`), ligado a ela pela chave estrangeira. Copia-lo para ca'
+-- criaria um SEGUNDO lugar com dado pessoal, que a promessa de exclusao
+-- de /privacidade teria de lembrar de limpar — e nao lembraria.
+--
+-- O hash serve para a unica pergunta que este registro precisa responder
+-- sem abrir a outra tabela: "ja' mandei para esta pessoa?".
+-- =====================================================================
+
+create table public.envios (
+  id             uuid primary key default gen_random_uuid(),
+
+  -- O QUE FOI ENVIADO. Lista fechada, e ela e' a mesma do `case` da Edge
+  -- Function — divergindo, um envio novo entraria com um tipo que nenhuma
+  -- tela sabe ler.
+  tipo           text not null check (tipo in ('inscricao', 'doacao', 'aviso')),
+
+  -- QUAL REGISTRO. `uuid` sem foreign key DE PROPOSITO: as tres origens
+  -- estao em tabelas diferentes (`inscricoes`, `doacoes`, e o RF28 nao tem
+  -- tabela de origem nenhuma — o "grupo" e' uma consulta). Uma FK exigiria
+  -- tres colunas, duas sempre nulas.
+  --
+  -- A CONSEQUENCIA, dita em voz alta: apagar uma inscricao NAO apaga o
+  -- registro do envio. E' o certo — o e-mail foi mandado, e isso continua
+  -- verdade depois. Para o RF28 esta coluna e' nula.
+  referencia_id  uuid,
+
+  -- PARA QUEM, sem guardar para quem. Ver o cabecalho.
+  destinatario   text not null,
+
+  -- COMO TERMINOU. 'enviado' e' o unico desfecho bom; os outros dois sao o
+  -- que a ONG precisa VER.
+  situacao       text not null default 'enviado'
+                 check (situacao in ('enviado', 'falhou', 'recusado')),
+
+  -- O que o provedor respondeu quando falhou. Texto livre, do Resend —
+  -- NUNCA o corpo do e-mail, que carregaria o dado pessoal de volta.
+  erro           text,
+
+  criado_em      timestamptz not null default now()
+);
+
+-- A TRAVA CONTRA REENVIO, e ela e' um indice, nao codigo.
+--
+-- Codigo que consulta antes de gravar perde a corrida de duas chamadas
+-- simultaneas — e' a mesma corrida que a candidatura duplicada da RF25
+-- deixou em aberto, e que a 010 fechou com um `for update`. Aqui o jeito
+-- barato e' um indice unico PARCIAL: so' vale para o que deu certo, entao
+-- um envio que FALHOU pode ser tentado de novo.
+--
+-- `where referencia_id is not null` porque o RF28 (aviso para grupo) nao
+-- tem referencia: mandar dois avisos diferentes para a mesma pessoa e' o
+-- uso normal daquele requisito, nao um defeito.
+create unique index envios_sem_repetir
+  on public.envios (tipo, referencia_id, destinatario)
+  where referencia_id is not null and situacao = 'enviado';
+
+create index envios_criado_em_idx on public.envios (criado_em desc);
+
+alter table public.envios enable row level security;
+
+-- ---------------------------------------------------------------------
+-- RLS: so' a equipe LE, e ninguem do site ESCREVE
+--
+-- Quem escreve aqui e' a Edge Function, com a service role — que ignora
+-- RLS por construcao. Por isso NAO existe politica de insert: nao ha' um
+-- unico caminho pelo qual `anon` ou `authenticated` gravem nesta tabela,
+-- e e' assim que precisa continuar. Um insert aberto aqui deixaria
+-- qualquer pessoa marcar um envio como feito, e a trava contra reenvio
+-- viraria uma trava contra ENVIAR.
+-- ---------------------------------------------------------------------
+create policy "envios: so a equipe le"
+  on public.envios for select
+  using (public.eh_equipe());
+
+-- `anon` nao recebe nada. `authenticated` recebe SELECT, e quem filtra e'
+-- a politica acima — a mesma divisao de trabalho do resto do schema: o
+-- grant decide se pode tentar, a politica decide o que volta.
+grant select on public.envios to authenticated;
+
+-- ############ 012_avisos.sql ############
+-- =====================================================================
+-- 012 — Mural de avisos (RF27) e mensagem para grupo (RF28)
+--
+-- ---------------------------------------------------------------------
+-- POR QUE UMA TABELA NOVA, E NAO UMA COLUNA EM `publicacoes`
+-- ---------------------------------------------------------------------
+--
+-- O caminho barato seria acrescentar `interno boolean` a `public.
+-- publicacoes` e filtrar. Foi recusado, e o motivo esta MEDIDO: a politica
+-- daquela tabela e' `using (publicado or public.eh_equipe())`, e um
+-- anonimo com a chave publicavel LE tudo que tem `publicado = true`
+-- (HTTP 200, conferido em 01/09/2026).
+--
+-- Ou seja: reaproveitar `publicacoes` faria a seguranca da comunicacao
+-- INTERNA depender de um `and not interno` escrito certo em toda consulta
+-- e em toda politica, para sempre. Um esquecimento publicaria na internet
+-- aberta um aviso escrito para dentro da equipe — e ninguem veria, porque
+-- nada quebra.
+--
+-- Tabela separada, politica separada: o pior caso de um erro aqui e' um
+-- aviso que ninguem le, nao um aviso que todo mundo le.
+--
+-- ---------------------------------------------------------------------
+-- UMA TABELA SERVE OS DOIS REQUISITOS, E ISSO E' DESENHO
+-- ---------------------------------------------------------------------
+--
+-- RF27 quer um MURAL que voluntario le no site. RF28 quer MANDAR uma
+-- mensagem para um grupo. E' o mesmo texto: a ONG escreve o aviso uma vez,
+-- ele fica no mural, e um botao separado o manda por e-mail.
+--
+-- Isso tambem e' o que faz o RF28 caber na regra da Edge Function (spec
+-- §9): ela nao aceita texto no payload, so' um identificador. Com o aviso
+-- ja' gravado, o que viaja e' o `id` — e a funcao busca o corpo aqui.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- eh_voluntario_ativo() — quem enxerga o mural
+--
+-- ESPELHA `public.eh_equipe()` (001_base.sql) linha por linha: `stable`,
+-- `security definer`, `search_path = public`. O definer e' o que evita a
+-- recursao — sem ele, uma politica em `voluntarios` que consultasse
+-- `voluntarios` estouraria com "stack depth limit exceeded", que e' o
+-- defeito que `eh_equipe` ja' teve de resolver.
+--
+-- 'ativo' E NAO 'novo', E ESTA E' A DECISAO DESTA MIGRATION.
+--
+-- `public.voluntarios.situacao` tem quatro valores ('novo', 'em_contato',
+-- 'ativo', 'inativo'). O escopo pede o mural "visivel para voluntarios
+-- autenticados", e a leitura honesta disso e' quem JA' E' voluntario — nao
+-- quem acabou de mandar o formulario.
+--
+-- A diferenca importa: `/voluntariado/candidatura` e' publica e qualquer
+-- pessoa com conta se candidata. Se 'novo' contasse, bastaria preencher um
+-- formulario para passar a ler a comunicacao interna da ONG.
+--
+-- O PRECO, dito em voz alta: um aviso novo NAO alcanca ninguem ate a
+-- equipe promover alguem a 'ativo' em /admin/voluntarios — o que ja' e' um
+-- toque naquela tela, e ja' e' o gesto que significa "esta pessoa entrou".
+-- ---------------------------------------------------------------------
+create or replace function public.eh_voluntario_ativo()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.voluntarios v
+    where v.perfil_id = auth.uid() and v.situacao = 'ativo'
+  );
+$$;
+
+revoke all on function public.eh_voluntario_ativo() from public;
+-- `anon` NAO recebe: sem sessao, `auth.uid()` e' nulo e a resposta seria
+-- sempre falsa — mas conceder execucao a quem nao tem conta convidaria a
+-- usar esta funcao como se ela fosse publica em alguma politica futura.
+grant execute on function public.eh_voluntario_ativo() to authenticated;
+
+-- ---------------------------------------------------------------------
+-- avisos (RF27, RF28)
+-- ---------------------------------------------------------------------
+create table public.avisos (
+  id           uuid primary key default gen_random_uuid(),
+  titulo       text not null,
+  corpo        text not null,
+
+  -- COMO EM `publicacoes` E AO CONTRARIO DE `atividades`: nasce FALSE.
+  -- Escrever nao e' publicar, e num mural interno o descuido poe algo na
+  -- frente de gente que ainda nao devia ver.
+  publicado    boolean not null default false,
+
+  -- Carimbada ao publicar, e SO' se ainda for nula (corrigir e republicar
+  -- nao e' republicar). Ao tirar do ar ela FICA — e' um fato, e apaga-la
+  -- seria destruir informacao num gesto sem desfazer. Mesma regra de
+  -- `publicacoes`.
+  publicado_em timestamptz,
+
+  criado_em    timestamptz not null default now()
+);
+
+create index avisos_publicado_em_idx on public.avisos (publicado_em desc nulls last);
+
+alter table public.avisos enable row level security;
+
+-- A POLITICA DE LEITURA, e ela e' a razao desta migration existir.
+--
+-- Repare no que NAO esta aqui: nenhuma forma de `publicado` sozinho. Um
+-- aviso publicado continua invisivel para quem nao e' voluntario ativo nem
+-- equipe. E' o oposto de `publicacoes`, onde `publicado` significa "o
+-- mundo ve".
+create policy "avisos: voluntario ativo e equipe leem"
+  on public.avisos for select
+  using ((publicado and public.eh_voluntario_ativo()) or public.eh_equipe());
+
+create policy "avisos: equipe gerencia"
+  on public.avisos for all
+  using (public.eh_equipe()) with check (public.eh_equipe());
+
+-- ---------------------------------------------------------------------
+-- Permissoes
+--
+-- `anon` NAO RECEBE NADA, nem select. E' a primeira trava, antes da RLS:
+-- mesmo que a politica acima fosse reescrita errada um dia, o papel
+-- anonimo nao teria o privilegio de tentar. E' a mesma disciplina de
+-- `inscricoes` (003) e `doacoes`.
+-- ---------------------------------------------------------------------
+grant select on public.avisos to authenticated;
+grant insert, update, delete on public.avisos to authenticated;
+
+-- ############ 013_service_role.sql ############
+-- =====================================================================
+-- 013 — Os privilegios que faltavam ao `service_role` (RF18, RF20, RF28)
+--
+-- MEDIDO em 03/09/2026, contra o projeto de producao, com a chave
+-- `service_role` na mao: `select` em `inscricoes` responde
+--
+--     42501 permission denied for table inscricoes
+--     hint: GRANT SELECT ON public.inscricoes TO service_role;
+--
+-- e a mesma coisa em `eventos`, `doacoes`, `perfis`, `avisos`,
+-- `voluntarios` e `envios`. As SETE. Ou seja: o `service_role` deste
+-- projeto nao enxergava uma linha de tabela nenhuma.
+--
+-- ---------------------------------------------------------------------
+-- POR QUE ISSO PASSOU DESPERCEBIDO ATE' AGORA
+-- ---------------------------------------------------------------------
+--
+-- Duas coisas se somaram, e nenhuma das duas da erro visivel:
+--
+--   1. TODA migration deste projeto concede privilegio NOMINALMENTE, a
+--      `anon` e a `authenticated`, e nunca a `service_role` — porque
+--      ate' a 011 nao existia uma linha de codigo que usasse a service
+--      role (spec 4.1: "nao existe service_role neste repositorio"). A
+--      Edge Function foi o primeiro uso, e ela nasceu depois das tabelas;
+--
+--   2. o `service_role` IGNORA a RLS, e e' facil ler isso como "ele passa
+--      por cima de tudo". Nao passa: `grant` vem ANTES da politica, e e'
+--      exatamente a trava que o resto do projeto usa de proposito (o
+--      comentario de 003_eventos.sql diz isso sobre `anon`). A mesma
+--      trava que protege a tabela de `anon` estava trancando a funcao.
+--
+-- O sintoma era um e-mail que nunca chegava, com a funcao respondendo
+-- `registro_nao_encontrado` para um registro que EXISTE — e o Postgres
+-- nao conta que a causa foi privilegio: ele responde `permission denied`,
+-- que a funcao lia como "nao achei". Ver `papelDaChave()` em
+-- `supabase/functions/enviar-email/index.ts`, que foi escrita para nunca
+-- mais precisar medir isso por fora.
+--
+-- ---------------------------------------------------------------------
+-- POR QUE NOMINAL, E NAO `grant all on all tables`
+-- ---------------------------------------------------------------------
+--
+-- Um projeto Supabase de fabrica traz `alter default privileges ... grant
+-- all on tables to anon, authenticated, service_role`. Este aqui nao tem
+-- isso valendo, e o resultado — sem querer — foi melhor: o que a service
+-- role alcanca e' o que esta escrito, e esta escrito aqui.
+--
+-- Entao a lista abaixo e' EXATAMENTE o que a Edge Function consulta, e
+-- nada mais. As cinco de `.from(...)`:
+--
+--     inscricoes   doacoes   avisos   voluntarios   envios
+--
+-- mais as DUAS que so' aparecem como embed do PostgREST — e que exigem
+-- privilegio do mesmo jeito, porque viram `join`:
+--
+--     eventos (dentro de inscricoes)   perfis (dentro de doacoes e de
+--                                              voluntarios)
+--
+-- `testes/avisos.test.mjs` reconcilia as duas pontas: toda tabela que a
+-- funcao consulta precisa aparecer aqui, e o teste fica vermelho no dia
+-- em que alguem acrescentar um `.from(` sem o grant. E' a mesma disciplina
+-- das tres palavras de `registrar_inscricao` (010).
+--
+-- ---------------------------------------------------------------------
+-- O QUE ELA NAO PODE ESCREVER
+-- ---------------------------------------------------------------------
+--
+-- So' `envios` recebe `insert` e `update`, porque so' ela e' escrita pela
+-- funcao (a reserva antes do envio, e o `situacao = 'falhou'` depois).
+-- Nas outras seis o privilegio e' de LEITURA, e isso importa: a funcao
+-- monta mensagem a partir de registro, ela nao corrige registro. Um
+-- `update` em `inscricoes` vindo dali seria a ONG alterando o que uma
+-- pessoa preencheu, sem tela e sem rastro.
+--
+-- `delete` nao aparece em lugar nenhum, nem em `envios`: o registro de
+-- envio e' o que impede o reenvio (o indice unico parcial de 011). Uma
+-- funcao que pudesse apagar dali poderia mandar o mesmo e-mail de novo.
+-- =====================================================================
+
+-- Leitura: as sete tabelas que a Edge Function precisa enxergar.
+grant select on public.inscricoes  to service_role;
+grant select on public.eventos     to service_role;
+grant select on public.doacoes     to service_role;
+grant select on public.perfis      to service_role;
+grant select on public.avisos      to service_role;
+grant select on public.voluntarios to service_role;
+grant select on public.envios      to service_role;
+
+-- Escrita: so' o registro do proprio envio.
+grant insert, update on public.envios to service_role;
+
+-- A funcao `eh_voluntario_ativo()` (012) e' consultada pela POLITICA de
+-- `avisos`, e nao por esta chave — o `service_role` ignora RLS, entao a
+-- politica nem chega a ser avaliada. Fica anotado para quem vier
+-- procurar: nao falta grant de funcao aqui.
+
 -- ############ seed.sql ############
 -- =====================================================================
 -- Seed — conteudo real do Ateliê Afro Cultural
