@@ -549,7 +549,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | Página de erro 500 (`app/error.tsx`) | **pronto** — com o layout inteiro, como o 404 |
 | `/robots.txt` (`app/robots.ts`) | **pronto** — em modo prévia, ver "O que trava hoje" 0c |
 | Supabase Storage (bucket `galeria`) | **ligado pelo código** (P3) — `upload`, `remove` e, desde 01/09/2026, `createSignedUrls` no lugar de `getPublicUrl` (item 0j), com o host do projeto no `img-src` da CSP (e **não** no `connect-src`; a URL assinada tem a MESMA origem, medido). **Nenhum arquivo real subiu**: falta sessão de equipe |
-| Migration 008 (bucket `galeria` privado) | **escrita e testada, NÃO APLICADA** — `supabase/migrations/008_galeria_privada.sql`. Mesma situação da 007: este repositório não tem credencial para aplicar migration (spec §4.1); quem aplica é uma pessoa, no SQL Editor do Supabase. Provada contra Postgres real em `npm run rls` (bloco "RN07 no ARQUIVO", 6 testes). **Diferente da 007, a falta desta é ANUNCIADA**: a sonda de `bucketAindaAberto()` bate no endereço público sem chave nenhuma e, enquanto ele responder, o painel mostra o aviso. Ver item 0j |
+| Migration 008 (bucket `galeria` privado) | **APLICADA, e o efeito foi medido** (conferido em 03/09/2026) — `supabase/migrations/008_galeria_privada.sql`. Sem mandar chave nenhuma: `galeria` responde `NoSuchBucket` (privado) e `acervo`/`identidade` respondem `NoSuchKey` (públicos, que é o certo — download livre é o RF36). A sonda de `bucketAindaAberto()` para de acusar sozinha, e é assim que se confere |
 | Migration 010 (inscrição por visitante) | **APLICADA em 02/09/2026, e o efeito foi medido** — `supabase/migrations/010_inscricao_por_visitante.sql`. É a função irmã que a 007 deixou anotada. Provada contra Postgres real em `npm run rls` (bloco "RF15", 14 testes) **e** contra o projeto de produção (item 0y) |
 | Domínio próprio `atelieafrocultural.site` | **comprado e no ar** (02/09/2026) — registrado na Hostinger, nameservers na Vercel. O site responde em `www.atelieafrocultural.site` (o apex faz 308 para o www), com a CSP, o `noindex` e o banco ligado (`data-origem-atividades="banco"`). **Isso resolve a decisão D6**, que assumia não haver domínio |
 | E-mail (Resend) | **DNS pronto, conta por ligar** — SPF, DKIM (218 caracteres, íntegro) e o MX do return-path `send` conferidos por `dig` em 02/09/2026, região São Paulo. Click tracking DESLIGADO de propósito: ele reescreveria todo link do e-mail, o que contradiz /privacidade e poria um salto no meio de um link de token de uso único. **Falta**: DMARC (`_dmarc` TXT `v=DMARC1; p=none;`), a API key na Edge Function e o SMTP no Supabase Auth. O Resend substituiu o Brevo porque **passou a haver domínio** — sem ele o Resend só entrega no e-mail da própria conta |
@@ -805,54 +805,36 @@ revisitada e mantida naquela tarefa.
    codificados, sob o limite documentado de 6 MB da plataforma — **conta, não medição**.
    Conferir no primeiro deploy real, subindo uma foto de ~3,5 MB pelo painel. Se a Netlify
    recusar antes, a mensagem será dela, não nossa, e o número aqui precisa cair.
-0j. **O conserto do bucket público está ESCRITO e NÃO APLICADO — e é a única coisa que
-   falta agora.** Reescrito em 01/09/2026, quando o problema foi corrigido no código.
+0j. **O bucket da galeria é PRIVADO, e isso foi conferido em 03/09/2026.** A migration
+   `008_galeria_privada.sql` foi aplicada em algum momento entre 01/09 e 03/09 — este item
+   passou dias dizendo o contrário, e ninguém tinha medido de novo.
 
-   **O que era o problema.** `supabase/migrations/006_storage.sql` criou os três buckets
-   com `public: true` e uma política de select sem condição. Consequência: uma foto
-   GUARDADA, uma SEM AUTORIZAÇÃO e uma TIRADA DO AR continuavam baixáveis por quem tivesse
-   o endereço. A coluna `publicado` governava o que a página desenhava; nunca governou o
-   arquivo. **MEDIDO em 01/09/2026 contra o projeto de verdade, sem mandar chave nenhuma:**
-   `GET /storage/v1/object/public/galeria/nao-existe.jpg` respondeu
-   `{"code":"NoSuchKey","message":"Object not found"}` — leia o código: `NoSuchKey`, não
-   `NoSuchBucket`. O endereço aceitou o bucket e só reclamou da chave. (Um bucket que não
-   existe responde `NoSuchBucket`; a diferença também foi medida.)
+   **O que era o problema.** `006_storage.sql` criou os três buckets com `public: true`.
+   Consequência: uma foto GUARDADA, uma SEM AUTORIZAÇÃO e uma TIRADA DO AR continuavam
+   baixáveis por quem tivesse o endereço. A coluna `publicado` governava o que a página
+   desenhava; nunca governou o arquivo.
 
-   **O que já mudou, no código desta branch:**
-   1. `supabase/migrations/008_galeria_privada.sql` torna `galeria` privado e troca a
-      leitura de `storage.objects` por uma que exige a linha de `public.midia` publicada E
-      autorizada. `acervo` e `identidade` NÃO foram tocados — são material para download
-      livre (RF35/RF36); a política deles precisou ser recriada só porque a original cobria
-      os três num `in (...)` só, e política do Postgres soma com OU;
-   2. `servidor/dados/galeria.ts` trocou `getPublicUrl` por `createSignedUrls` — plural, uma
-      requisição para a lista inteira. **`getPublicUrl` continua em `acervo.ts`, de
-      propósito.** O prazo é **uma hora**, com a conta escrita em
-      `compartilhado/galeria-privada.ts`: prazo curto quebra o `loading="lazy"` (foto abaixo
-      da dobra só é baixada quando a pessoa rola até ela, o que pode ser meia hora depois);
-      prazo longo recria a brecha com data de validade;
-   3. o endereço passou a poder ser NULO, e as duas telas tratam isso de formas opostas: a
-      galeria pública OMITE a foto, o painel MANTÉM a linha com uma frase no lugar da
-      miniatura — porque é ali que está quem pode apagar a linha órfã.
+   **MEDIDO agora, contra o projeto de verdade, sem mandar chave nenhuma:**
 
-   **O QUE FALTA, e é uma pessoa:** rodar `008_galeria_privada.sql` no SQL Editor do painel
-   do Supabase. Este repositório não tem, e não vai ter, credencial capaz de aplicar
-   migration (não existe service_role — spec §4.1). **Enquanto não for rodada, NADA
-   QUEBRA** — URL assinada funciona em bucket público também —, e por isso a falta seria
-   mais um item 0e. Contra isso existe uma sonda: `bucketAindaAberto()` bate no endereço
-   público sem chave nenhuma, e enquanto ele responder `NoSuchKey` o painel desenha um aviso
-   permanente no topo de `/admin/galeria` **e** o servidor grita `[galeria] O BUCKET
-   "galeria" AINDA É PÚBLICO` no log. Quando a migration for aplicada, o aviso some sozinho
-   — e é assim que se confere, porque o lado fechado da sonda não pôde ser medido daqui.
-   Depois disso, apagar este item.
+   | Bucket | Resposta | O que significa |
+   |---|---|---|
+   | `galeria` | `NoSuchBucket` | **PRIVADO** — o endereço público nem aceita o bucket |
+   | `acervo` | `NoSuchKey` | público, e é o CERTO: download livre é o RF36 |
+   | `identidade` | `NoSuchKey` | público, e é o certo: material institucional |
+
+   Ou seja, a 008 fez exatamente o que devia e **não afrouxou os outros dois**, que era o
+   risco de uma migration que recria política.
 
    **O QUE MUDA NO RACIOCÍNIO DO "APAGAR", e é sutil.** Antes: "tirar do ar" não cumpria a
-   RN07 de jeito nenhum, e só "Apagar" cumpria. Com a migration aplicada, tirar do ar passa
-   a cumprir — **com atraso de até uma hora**, porque uma URL assinada é um PORTADOR e as já
-   emitidas continuam valendo até vencer. Para o caso urgente da RN07 (autorização retirada,
-   foto de criança subida por engano) uma hora é tempo demais, e apagar continua sendo o
-   único gesto que age no mesmo instante: sem o arquivo no bucket, toda URL assinada viva
-   morre junto. **A galeria continua tendo "Apagar" e a tela de notícias não; o argumento
-   mudou de "tirar do ar não resolve" para "tirar do ar demora até uma hora".**
+   RN07 de jeito nenhum, e só "Apagar" cumpria. Agora tirar do ar cumpre — **com atraso de
+   até uma hora**, porque uma URL assinada é um PORTADOR e as já emitidas valem até vencer.
+   Para o caso urgente da RN07 (autorização retirada, foto de criança subida por engano) uma
+   hora é tempo demais, e apagar continua sendo o único gesto que age no mesmo instante: sem
+   o arquivo no bucket, toda URL assinada viva morre junto.
+
+   **A galeria continua tendo "Apagar" e a tela de notícias não; o argumento mudou de "tirar
+   do ar não resolve" para "tirar do ar demora até uma hora".**
+
 0k. **A fonte dupla das atividades passou a poder DIVERGIR, e nada disso dá erro visível.**
    Nasceu com a Tarefa P4 (01/09/2026): a equipe corrige o texto das 11 atividades em
    `/admin/atividades`, a correção vai para `public.atividades` e **não volta** para

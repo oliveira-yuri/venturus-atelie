@@ -215,8 +215,8 @@ export const REGRAS = [
     e: 'MEDIDO contra produção: select anônimo em contatos, inscricoes, voluntarios, doacoes e avisos responde 42501 permission denied — antes mesmo da RLS.' },
   { id: 'RN06', nome: 'CPF condicional por evento', s: 'pronto',
     e: 'O campo só aparece quando o evento declara exige_cpf, e a Action valida a partir do BANCO, nunca do formulário. Os onze dígitos iguais são recusados à parte — eles passam na conta do módulo 11.' },
-  { id: 'RN07', nome: 'Foto só com autorização registrada', s: 'parcial',
-    e: 'Quatro camadas: RLS, guarda na Action, tela, e o ARQUIVO (bucket privado com URL assinada). A quarta depende da migration 008, ainda não aplicada.' },
+  { id: 'RN07', nome: 'Foto só com autorização registrada', s: 'pronto',
+    e: 'Quatro camadas independentes: RLS da tabela, guarda dentro da Action, tela, e o ARQUIVO. MEDIDO contra produção sem mandar chave: `galeria` responde NoSuchBucket (privado) enquanto `acervo` e `identidade` respondem NoSuchKey (públicos, e é o certo — download livre é o RF36).' },
   { id: 'RN08', nome: 'Registra doações, não processa pagamento', s: 'pronto',
     e: 'lerOferta não lê campo de valor; valor só é escrito pela equipe, depois do fato.' }
 ];
