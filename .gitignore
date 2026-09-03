@@ -1,5 +1,9 @@
 material-origem/
 acervo-web/
+# 233 MB de material bruto da ONG (PDFs dos espetáculos, fotos), da mesma
+# natureza de material-origem/. Fica no disco de quem trabalha, fora do git —
+# a spec §3 já decidiu isso para os outros dois diretórios.
+Informações - Ateliê Afro Cultural/
 *.zip
 
 # Material bruto que a equipe deixou como referência (PDFs de portfólio,
@@ -26,3 +30,9 @@ next-env.d.ts
 # linha um `git add -A` distraido leva o repositorio inteiro para dentro
 # dele mesmo.
 .claude/worktrees/
+
+# Pacote de submissão gerado (PNGs grandes, saída derivada).
+# A BARRA NA FRENTE ANCORA NA RAIZ, e ela é obrigatória: sem ela o padrão
+# casa com QUALQUER diretório chamado "entrega" — inclusive
+# ferramentas/entrega/, que é código e precisa ser versionado.
+/entrega/
