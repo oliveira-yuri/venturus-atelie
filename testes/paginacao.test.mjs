@@ -207,15 +207,27 @@ test('trocar de página NÃO apaga o filtro que estiver na URL', async () => {
    O FILTRO DA FILA (pedido V1) — componentes/FiltroDaFila.ts
    ===================================================================== */
 
-async function desenharFiltro(atual) {
+/**
+ * O filtro, desenhado.
+ *
+ * A ASSINATURA MUDOU EM 03/09/2026 (pedido V1: filtro por nome, e-mail,
+ * área e tipo de pessoa, além da situação). Antes era um `<select>` só, e
+ * o helper recebia o valor dele; agora recebe o objeto de filtro inteiro.
+ */
+async function desenharFiltro(filtro = {}, opcoes = {}) {
   const { renderToStaticMarkup } = await import('react-dom/server');
   const { createElement } = await import('react');
   const { FiltroDaFila } = await import('../componentes/FiltroDaFila.ts');
+  const { FILTRO_VAZIO, filtroAtivo } = await import('../compartilhado/filtro-de-voluntarios.ts');
+
+  const cheio = { ...FILTRO_VAZIO, ...filtro };
+
   return renderToStaticMarkup(createElement(FiltroDaFila, {
-    rotulo: 'Mostrar',
+    filtro: cheio,
+    ativo: filtroAtivo(cheio),
     nomePlural: 'candidaturas',
-    atual,
-    opcoes: [
+    areas: opcoes.areas ?? ['Comunicação e mídias', 'Produção de eventos'],
+    situacoes: [
       { valor: 'novo', rotulo: 'Nova' },
       { valor: 'em_contato', rotulo: 'Em contato' }
     ]
@@ -223,27 +235,71 @@ async function desenharFiltro(atual) {
 }
 
 test('o filtro é um <form method="get"> — funciona sem JavaScript', async () => {
-  const html = await desenharFiltro('');
+  const html = await desenharFiltro();
   assert.match(html, /<form[^>]+method="get"/,
     'o filtro deixou de ser GET: sem script não haveria como aplicá-lo');
   assert.match(html, /<button type="submit"/,
     'sem botão de enviar, quem está sem JavaScript escolhe no select e não consegue filtrar');
 });
 
-test('"todas" vem primeiro e tem valor vazio — some da URL sozinho', async () => {
-  const html = await desenharFiltro('');
-  const opcoes = [...html.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
-  assert.deepEqual(opcoes, ['', 'novo', 'em_contato']);
+test('"todas" vem primeiro e tem valor vazio em TODO select — some da URL sozinho', async () => {
+  /*
+   * A regra vale para os TRÊS selects desde 03/09/2026, e o teste passou a
+   * cobrá-la em cada um. Antes ele varria o formulário inteiro e comparava
+   * uma lista chapada — o que funcionava com um select só, e virou uma
+   * afirmação sobre a ORDEM dos campos no momento em que apareceram outros
+   * dois.
+   *
+   * O invariante que não envelhece é por select: a primeira opção de cada
+   * um é a vazia. Um valor vazio some da URL sozinho quando o navegador
+   * monta a query, e é isso que faz `?` significar "sem filtro".
+   */
+  const html = await desenharFiltro();
+  const selects = [...html.matchAll(/<select[^>]*name="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)];
+
+  assert.equal(selects.length, 3,
+    `esperava três selects (área, situação, tipo de pessoa), achei ${selects.length}`);
+
+  for (const [, nome, corpo] of selects) {
+    const valores = [...corpo.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
+    assert.equal(valores[0], '',
+      `o select "${nome}" não começa com a opção vazia — "todas" deixou de ser o estado natural`);
+  }
+
+  // E o de situação continua trazendo exatamente as opções recebidas.
+  const situacao = selects.find(([, nome]) => nome === 'situacao');
+  const valores = [...situacao[2].matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
+  assert.deepEqual(valores, ['', 'novo', 'em_contato']);
+});
+
+test('a busca é UM campo para nome e e-mail — não dois', async () => {
+  // Obrigar a escolher em qual coluna procurar é pedir que a pessoa saiba
+  // onde o dado mora. Ver `combina` em compartilhado/filtro-de-voluntarios.ts.
+  const html = await desenharFiltro();
+
+  assert.match(html, /name="busca"/);
+  assert.doesNotMatch(html, /name="email"/,
+    'apareceu um campo de e-mail separado — a busca casa nome OU e-mail num campo só');
+});
+
+test('o campo de ÁREA some quando não há áreas — um select de uma opção não faz nada', async () => {
+  const semAreas = await desenharFiltro({}, { areas: [] });
+  assert.doesNotMatch(semAreas, /name="area"/,
+    'desenhou o select de área com a tabela vazia: um controle que não filtra nada, e que a '
+    + 'equipe tentaria usar');
+
+  const comAreas = await desenharFiltro();
+  assert.match(comAreas, /name="area"/);
 });
 
 test('a SAÍDA do filtro só aparece quando há filtro em vigor', async () => {
   // Sem ela, quem filtrou por "nova" e esqueceu concluiria que só existem
   // duas candidaturas no mundo.
-  const semFiltro = await desenharFiltro('');
+  const semFiltro = await desenharFiltro();
   assert.doesNotMatch(semFiltro, /Ver todas as candidaturas/,
     'ofereceu "ver todas" sem haver filtro — um botão que não faz nada');
 
-  const comFiltro = await desenharFiltro('novo');
+  const comFiltro = await desenharFiltro({ situacao: 'novo' });
   assert.match(comFiltro, /<a[^>]+href="\?"[^>]*>Ver todas as candidaturas/,
     'filtrando, precisa haver o caminho de volta — e ele é um LINK, não um reset');
 });
@@ -251,7 +307,7 @@ test('a SAÍDA do filtro só aparece quando há filtro em vigor', async () => {
 test('o filtro NÃO carrega a página atual — filtrar volta para a primeira', async () => {
   // Filtrar por "nova" estando na página 3 e continuar na 3 mostraria uma
   // tela vazia: o recorte novo tem menos páginas.
-  const html = await desenharFiltro('novo');
+  const html = await desenharFiltro({ situacao: 'novo' });
   assert.doesNotMatch(html, /name="pagina"/,
     'o filtro leva a página junto — filtrar da página 3 cairia numa tela vazia');
 });

@@ -102,6 +102,12 @@ export type CandidaturaDaEquipe = {
   nome: string | null;
   email: string | null;
   telefone: string | null;
+  /**
+   * 'fisica' | 'juridica'. Entrou com o filtro do pedido V1 — é o que o
+   * pedido chama de "CPF/PJ", e é o dado que existe: `public.perfis` não
+   * guarda CPF nenhum, por coleta mínima (RNF09).
+   */
+  tipo_pessoa: string | null;
   /** Os NOMES das áreas, já prontos para desenhar. Vazio é desfecho parcial. */
   areas: string[];
 };
@@ -122,7 +128,8 @@ type CandidaturaCrua = {
   mensagem: string | null;
   situacao: string;
   criado_em: string;
-  perfis: { nome: string; email: string; telefone: string | null } | null;
+  perfis: { nome: string; email: string; telefone: string | null;
+            tipo_pessoa: string | null } | null;
   voluntario_areas: Array<{ areas_voluntariado: { id: string; nome: string } | null }> | null;
 };
 
@@ -155,8 +162,6 @@ type CandidaturaCrua = {
  * áreas valeria três, e a paginação mentiria.
  */
 export async function listarCandidaturas(
-  paginacao?: { de: number; ate: number },
-  situacao?: string
 ): Promise<Degradavel<CandidaturaDaEquipe[]> & { total: number | null }> {
   const resposta = await consultarComContagem<CandidaturaCrua[]>(
     'voluntarios (painel)',
@@ -165,23 +170,18 @@ export async function listarCandidaturas(
         .from('voluntarios')
         .select(
           'id, mensagem, situacao, criado_em,'
-          + ' perfis(nome, email, telefone),'
+          + ' perfis(nome, email, telefone, tipo_pessoa),'
           + ' voluntario_areas(areas_voluntariado(id, nome))',
           { count: 'exact' }
         )
         .order('criado_em', { ascending: false });
 
-      // O FILTRO ENTRA ANTES DO RECORTE, e a ordem é o que faz a paginação
-      // ficar honesta: `count: 'exact'` passa a contar o que RESTOU do
-      // filtro, então a tela escreve "3 candidaturas" quando há três novas,
-      // e não "3 de 47". Filtrar depois de paginar daria vinte linhas das
-      // quais três apareceriam — e a contagem mentiria.
-      //
-      // `situacao` já veio da lista fechada de quem chama; aqui ela é só
-      // repassada. Um valor inventado não chega até este ponto.
-      if (situacao) consulta = consulta.eq('situacao', situacao);
-
-      return paginacao ? consulta.range(paginacao.de, paginacao.ate) : consulta;
+      // SEM `.eq()` E SEM `.range()` desde 03/09/2026 — ver o cabeçalho.
+      // Quem filtra é `filtrarCandidaturas` (função pura, medida sem banco),
+      // e quem recorta é a página, DEPOIS do filtro. É essa ordem que
+      // mantém a contagem honesta: a tela escreve "3 candidaturas" quando o
+      // filtro deixou três, e não "3 de 47".
+      return consulta;
     },
     []
   );
@@ -212,6 +212,7 @@ function achatar(linha: CandidaturaCrua): CandidaturaDaEquipe {
     nome: linha.perfis?.nome ?? null,
     email: linha.perfis?.email ?? null,
     telefone: linha.perfis?.telefone ?? null,
+    tipo_pessoa: linha.perfis?.tipo_pessoa ?? null,
     areas: (linha.voluntario_areas ?? [])
       .map((ligacao) => ligacao.areas_voluntariado?.nome)
       .filter((nome): nome is string => Boolean(nome))

@@ -2,7 +2,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ehEquipe } from '@/servidor/permissao';
 import { listarCandidaturas } from '@/servidor/dados/voluntarios';
+import { listarAreasComEstado } from '@/servidor/dados/voluntariado';
 import { paginar, CANDIDATURAS } from '@/compartilhado/paginacao';
+import {
+  lerFiltro, filtrarCandidaturas, parametrosDoFiltro, filtroAtivo, TIPOS_DE_PESSOA_DO_FILTRO
+} from '@/compartilhado/filtro-de-voluntarios';
 import { Paginacao } from '@/componentes/Paginacao';
 import { mudarSituacaoDaCandidatura } from '@/acoes/voluntarios';
 import { avisoDeVoluntarios } from '@/compartilhado/avisos-do-painel';
@@ -79,20 +83,38 @@ export default async function PaginaDeVoluntarios(
   // para o porquê da contagem vir antes do recorte.
   const parametros = await searchParams;
 
-  // O FILTRO PASSA POR LISTA FECHADA (pedido V1). `?situacao=` é escrito
-  // por quem quiser; um valor inventado vira "todas", e não um `.eq()` com
-  // lixo dentro. Mesma disciplina de `?aviso=`.
-  const pedida = typeof parametros.situacao === 'string' ? parametros.situacao : '';
-  const filtro = ehSituacaoDeVoluntario(pedida) ? pedida : '';
+  /*
+    QUATRO CAMPOS DE FILTRO (pedido V1), e todos por `GET`.
+    ===================================================================
 
-  const provisoria = paginar(Number.MAX_SAFE_INTEGER, parametros.pagina);
-  const primeira = await listarCandidaturas(
-    { de: provisoria.de, ate: provisoria.ate }, filtro || undefined);
-  const paginacao = paginar(primeira.total ?? 0, parametros.pagina);
-  const { valor: candidaturas, degradou } = paginacao.de === provisoria.de
-    ? primeira
-    : await listarCandidaturas(
-      { de: paginacao.de, ate: paginacao.ate }, filtro || undefined);
+    Por `GET` porque isso dá três coisas de graça: funciona SEM JavaScript,
+    o botão voltar desfaz o filtro, e o endereço filtrado é um link que a
+    equipe manda para outra pessoa.
+
+    A SITUAÇÃO passa por lista fechada — `?situacao=` é escrito por quem
+    quiser, e um valor inventado vira "todas". Os outros três não precisam
+    de lista: eles alimentam uma comparação de texto em memória, não uma
+    consulta, então o pior que um valor estranho faz é não casar com nada.
+
+    O FILTRO VEM ANTES DO RECORTE, e é essa ordem que mantém a contagem
+    honesta. Filtrar depois de paginar daria vinte linhas das quais três
+    apareceriam — e a tela escreveria "3 de 47" para uma busca que achou 3.
+  */
+  const filtro = lerFiltro(parametros);
+  if (filtro.situacao && !ehSituacaoDeVoluntario(filtro.situacao)) filtro.situacao = '';
+
+  // As áreas do select vêm do BANCO, não de uma lista escrita aqui: a ONG
+  // pode criar uma sexta, e um filtro que não a oferecesse esconderia
+  // candidaturas sem dizer que escondeu. `listarAreasComEstado` degrada para
+  // lista vazia, e aí o campo de área some — ver componentes/FiltroDaFila.ts.
+  const [{ valor: todas, degradou }, { valor: areas }] = await Promise.all([
+    listarCandidaturas(),
+    listarAreasComEstado()
+  ]);
+  const encontradas = filtrarCandidaturas(todas, filtro);
+
+  const paginacao = paginar(encontradas.length, parametros.pagina);
+  const candidaturas = encontradas.slice(paginacao.de, paginacao.ate + 1);
 
   // O resultado da última Action chega pela URL (a Action termina em
   // redirect, que é o que a faz funcionar sem JavaScript, e um redirect não
@@ -155,12 +177,13 @@ export default async function PaginaDeVoluntarios(
         não pode dar certo.
       */}
       {degradou ? null : (
-        <FiltroDaFila
-          rotulo="Mostrar"
-          nomePlural="candidaturas"
-          atual={filtro}
-          opcoes={SITUACOES_DE_VOLUNTARIO.map((s) => ({ valor: s.valor, rotulo: s.rotulo }))}
-        />
+          <FiltroDaFila
+            filtro={filtro}
+            ativo={filtroAtivo(filtro)}
+            nomePlural="candidaturas"
+            areas={areas.map((area) => area.nome)}
+            situacoes={SITUACOES_DE_VOLUNTARIO.map((s) => ({ valor: s.valor, rotulo: s.rotulo }))}
+          />
       )}
 
       <ListaVoluntarios
@@ -182,7 +205,7 @@ export default async function PaginaDeVoluntarios(
           /* O filtro viaja com a página: sem isto, ir para a página 2
              devolveria a lista inteira, e a equipe veria uma lista
              diferente da que estava lendo. */
-          parametros={filtro ? { situacao: filtro } : undefined}
+          parametros={parametrosDoFiltro(filtro)}
         />
       )}
     </main>

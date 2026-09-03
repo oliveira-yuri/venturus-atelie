@@ -1288,13 +1288,24 @@ revisitada e mantida naquela tarefa.
    oferece troca de e-mail e diz isso por escrito. Saída definitiva continua sendo apontar o
    Auth para o SMTP do Brevo.
 
-   **A PONTA SOLTA:** `MENSAGEM_CONTA_CRIADA` (`acoes/autenticacao.ts`) ainda diz "abra o link
-   e depois volte para entrar — antes disso a entrada não funciona". Com autoconfirm ligado
-   isso deixou de ser verdade: a pessoa já pode entrar, e a frase manda esperar um e-mail que
-   não vem. Não foi corrigida pela RF11 porque é texto de OUTRA tela e a mudança de
-   configuração pode não ter sido deliberada — **conferir com quem mexeu no painel do
-   Supabase antes de reescrever**. Se o autoconfirm veio para ficar, a frase certa é "conta
-   criada, você já está dentro".
+   **UMA PONTA QUE PARECIA SOLTA, E NÃO ESTAVA — conferido em 03/09/2026.**
+   Este item afirmava que `MENSAGEM_CONTA_CRIADA` (`acoes/autenticacao.ts`) mentia, porque ela
+   diz "abra o link e depois volte para entrar — antes disso a entrada não funciona".
+
+   LIDO O CÓDIGO: ela só é devolvida dentro de `if (!data?.session)`, ou seja, **quando o
+   `signUp` NÃO devolveu sessão** — que é exatamente o caso de a confirmação por e-mail ter
+   sido religada no painel do Supabase. Com `mailer_autoconfirm: true` (medido de novo hoje em
+   `GET /auth/v1/settings`) esse ramo não roda: a pessoa recebe sessão e é levada para a home
+   com `?aviso=conta-criada`.
+
+   A frase está CERTA para o ramo em que vive, e o comentário ao lado dela já dizia isso
+   ("SEM sessão (confirmação de e-mail religada no painel do Supabase) o caminho é o antigo").
+   Quem escreveu este item leu a constante sem ler onde ela é usada.
+
+   **Fica registrado porque a correção errada custaria mais que o defeito:** trocar a frase
+   por "conta criada, você já está dentro" a tornaria mentira no dia em que alguém desligasse
+   o autoconfirm — e aí ninguém saberia que precisa abrir um e-mail.
+
 2. **Não existe conta de administrador.** Criar pelo painel do Supabase (não precisa mais de
    *Auto Confirm User*, com `mailer_autoconfirm: true` — ver item 1) e promover com
    `update public.perfis set eh_equipe = true where email = '...'`. **Existe, desde

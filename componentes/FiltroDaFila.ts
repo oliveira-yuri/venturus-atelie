@@ -1,60 +1,84 @@
 import { createElement } from 'react';
+import type { FiltroDeVoluntarios } from '../compartilhado/filtro-de-voluntarios.ts';
+import { TIPOS_DE_PESSOA_DO_FILTRO } from '../compartilhado/filtro-de-voluntarios.ts';
 
 /**
- * O filtro das filas do painel (pedido V1).
+ * componentes/FiltroDaFila.ts — o filtro da fila de candidaturas.
  *
  * =====================================================================
- * `<form method="get">`, E NÃO JAVASCRIPT
+ * TUDO POR `GET`, E ISSO DÁ TRÊS COISAS DE GRAÇA
  * =====================================================================
  *
- * Um formulário GET comum: o navegador monta a URL sozinho, a página
- * recarrega com o filtro aplicado, o botão voltar desfaz, e o endereço
- * pode ser mandado por WhatsApp para outra pessoa da equipe. Tudo isso sem
- * uma linha de script — que é a condição de toda tela deste painel.
+ * `method="get"` num `<form>` sem `action` recarrega a MESMA página com os
+ * campos na query. Consequências, e as três importam:
  *
- * O botão "Filtrar" fica na tela SEMPRE, e não só quando o JavaScript
- * carrega: sem ele, quem está sem script escolhe no `<select>` e não tem
- * como enviar. Com script, o botão continua sendo o que envia — nada aqui
- * filtra "enquanto se digita", porque isso exigiria script e mudaria a
- * página debaixo do dedo de quem está lendo.
- *
- * =====================================================================
- * FILTRAR NÃO PODE ESCONDER SEM DIZER
- * =====================================================================
- *
- * É a mesma regra da paginação, e é a mais importante das duas: quando há
- * filtro ativo, `componentes/Paginacao.ts` escreve quantos registros
- * existem NAQUELE recorte — e este componente desenha o botão "Ver todas",
- * que é a saída. Sem ele, a equipe que filtrou por "nova" e esqueceu
- * concluiria que só há duas candidaturas no mundo.
+ *  · funciona SEM JavaScript — não há `onChange`, não há estado no
+ *    cliente. É o requisito de sempre neste projeto;
+ *  · o botão VOLTAR desfaz o filtro, porque cada busca é uma entrada no
+ *    histórico. Um filtro em memória não teria isso, e a equipe ficaria
+ *    presa até achar o botão de limpar;
+ *  · o endereço filtrado é um LINK. "Olha as candidaturas de comunicação
+ *    que estão em contato" vira uma mensagem de WhatsApp.
  *
  * =====================================================================
- * O FILTRO ZERA A PÁGINA, DE PROPÓSITO
+ * QUATRO CAMPOS, E A BUSCA É UM SÓ PARA NOME E E-MAIL
  * =====================================================================
  *
- * Não há `<input type="hidden" name="pagina">` aqui. Filtrar por "nova"
- * estando na página 3 e continuar na 3 mostraria uma tela vazia — o
- * recorte novo tem menos páginas. Voltar para a primeira é o único
- * desfecho que sempre faz sentido.
+ * O pedido V1 pede filtro por "nome, email, cpf/pj, área de atuação e
+ * status". Nome e e-mail ficaram no MESMO campo: quem procura digita o que
+ * lembra, e obrigar a escolher em qual coluna procurar é pedir que a
+ * pessoa saiba onde o dado mora. Ver `combina` em
+ * compartilhado/filtro-de-voluntarios.ts.
  *
- * Escrito com createElement (arquivo `.ts`) pelo mesmo motivo de
- * Paginacao.ts: o runtime nativo do Node o importa e o teste o renderiza.
+ * "CPF/PJ" virou tipo de pessoa, porque não existe CPF em `public.perfis`
+ * — e não deve existir (coleta mínima, RNF09). O motivo inteiro está no
+ * módulo do filtro.
+ *
+ * Escrito com createElement (`.ts`, não `.tsx`) pelo mesmo motivo dos
+ * outros componentes do painel: o runtime nativo do Node o importa e o
+ * teste o renderiza de verdade, sem subir o Next.
  */
+
 export type OpcaoDeFiltro = { valor: string; rotulo: string };
 
+/** Um `<select>` com a opção "todas" na frente. */
+function campoSelect(
+  id: string,
+  nome: string,
+  rotulo: string,
+  textoDeTodas: string,
+  opcoes: OpcaoDeFiltro[],
+  atual: string
+) {
+  return createElement(
+    'p',
+    { className: 'filtro__campo' },
+    createElement('label', { className: 'filtro__rotulo', htmlFor: id }, rotulo),
+    createElement(
+      'select',
+      { id, name: nome, defaultValue: atual },
+      // A opção "todas" vem PRIMEIRO e tem valor vazio: é o estado natural
+      // da fila, e um valor vazio some da URL sozinho quando o navegador
+      // monta a query.
+      createElement('option', { key: '', value: '' }, textoDeTodas),
+      ...opcoes.map((opcao) =>
+        createElement('option', { key: opcao.valor, value: opcao.valor }, opcao.rotulo))
+    )
+  );
+}
+
 export function FiltroDaFila(
-  { opcoes, atual, rotulo, nomePlural }: {
-    opcoes: OpcaoDeFiltro[];
-    /** O valor em vigor, ou '' para "todas". */
-    atual: string;
-    /** O que se filtra ("Situação"). */
-    rotulo: string;
+  { filtro, situacoes, areas, nomePlural, ativo }: {
+    filtro: FiltroDeVoluntarios;
+    situacoes: OpcaoDeFiltro[];
+    /** As áreas reais, do banco. Vazio esconde o campo — ver abaixo. */
+    areas: string[];
     /** Para o texto do botão de limpar ("Ver todas as candidaturas"). */
     nomePlural: string;
+    /** Há algum campo preenchido? Decide se a saída aparece. */
+    ativo: boolean;
   }
 ) {
-  const filtrando = atual !== '';
-
   return createElement(
     'form',
     { className: 'filtro', method: 'get', role: 'search' },
@@ -62,18 +86,35 @@ export function FiltroDaFila(
     createElement(
       'p',
       { className: 'filtro__campo' },
-      createElement('label', { className: 'filtro__rotulo', htmlFor: 'filtro-situacao' }, rotulo),
-      createElement(
-        'select',
-        { id: 'filtro-situacao', name: 'situacao', defaultValue: atual },
-        // A opção "todas" vem PRIMEIRO e tem valor vazio: é o estado
-        // natural da fila, e um valor vazio some da URL sozinho quando o
-        // navegador monta a query.
-        createElement('option', { key: '', value: '' }, `Todas as ${nomePlural}`),
-        ...opcoes.map((opcao) =>
-          createElement('option', { key: opcao.valor, value: opcao.valor }, opcao.rotulo))
-      )
+      createElement('label', { className: 'filtro__rotulo', htmlFor: 'filtro-busca' },
+        'Nome ou e-mail'),
+      createElement('input', {
+        id: 'filtro-busca',
+        name: 'busca',
+        type: 'search',
+        defaultValue: filtro.busca,
+        placeholder: 'parte do nome serve',
+        // `search` em vez de `text`: no celular o teclado ganha a tecla
+        // "buscar" no lugar do Enter, e o campo ganha o botão de limpar
+        // do próprio navegador.
+        autoComplete: 'off'
+      })
     ),
+
+    // O CAMPO DE ÁREA SÓ EXISTE SE HOUVER ÁREAS. Sem elas — banco fora do
+    // ar, ou tabela vazia — um select com uma opção só ("todas") seria um
+    // controle que não faz nada, e a equipe tentaria usá-lo.
+    areas.length > 0
+      ? campoSelect('filtro-area', 'area', 'Área de atuação', 'Todas as áreas',
+        areas.map((nome) => ({ valor: nome, rotulo: nome })), filtro.area)
+      : null,
+
+    campoSelect('filtro-situacao', 'situacao', 'Situação', `Todas as ${nomePlural}`,
+      situacoes, filtro.situacao),
+
+    campoSelect('filtro-tipo', 'tipo_pessoa', 'Pessoa', 'Física e jurídica',
+      TIPOS_DE_PESSOA_DO_FILTRO.map((t) => ({ valor: t.valor, rotulo: t.rotulo })),
+      filtro.tipoPessoa),
 
     createElement(
       'p',
@@ -81,10 +122,10 @@ export function FiltroDaFila(
       createElement('button', { type: 'submit', className: 'filtro__botao' }, 'Filtrar'),
 
       // A SAÍDA, e ela só aparece quando há de onde sair. É um link, e não
-      // um botão de reset: `reset` devolveria o <select> ao valor inicial
-      // sem recarregar a página, ou seja, a lista continuaria filtrada e a
+      // um botão de reset: `reset` devolveria os campos ao valor inicial
+      // SEM recarregar a página, ou seja, a lista continuaria filtrada e a
       // tela passaria a mentir sobre o próprio estado.
-      filtrando
+      ativo
         ? createElement(
           'a',
           { className: 'filtro__limpar', href: '?' },

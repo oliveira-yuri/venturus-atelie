@@ -671,3 +671,43 @@
 /* O formulário respira dentro da moldura. */
 .conta__alterar > .formulario,
 .conta__alterar > div { padding: 0 1rem 1rem; }
+
+/* =====================================================================
+   A marca da ONG no rodapé (pedido V1 + RNF06)
+
+   O arquivo é PRETO com fundo transparente, e o rodapé é escuro — então ele
+   precisa ser invertido para aparecer. `invert(1)` num PNG de preto puro dá
+   branco puro.
+
+   A INVERSÃO VALE NOS DOIS MODOS DE CONTRASTE, e isso foi MEDIDO — a
+   primeira versão desta regra a desfazia no alto contraste, supondo que o
+   fundo do rodapé ficasse branco ali. Ele não fica:
+
+       contraste normal  →  rodapé rgb(43, 32, 25), marrom
+       alto contraste    →  rodapé rgb(0, 0, 0), PRETO
+
+   Ou seja, `filter: none` no alto contraste desenhava um logo preto sobre
+   fundo preto: a marca sumia exatamente para quem depende do modo de
+   contraste. Branco sobre preto é o contraste máximo, que é o que aquele
+   modo quer — então a inversão FICA.
+   ===================================================================== */
+
+.af-footer__marca {
+  margin: 1.4rem 0 .6rem;
+  text-align: center;
+}
+
+.af-footer__marca img {
+  width: min(260px, 70%);
+  height: auto;
+  filter: invert(1);
+  /* O logo é da ONG e não é botão: opacidade levemente contida para ele
+     não competir com os links do rodapé, que são o que se usa. */
+  opacity: .92;
+}
+
+/* No alto contraste a inversão CONTINUA (ver acima) — o que muda é a
+   opacidade, que vai a 1: naquele modo nada deve estar meio apagado. */
+html[data-contraste="alto"] .af-footer__marca img {
+  opacity: 1;
+}

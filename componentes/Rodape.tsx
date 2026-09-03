@@ -72,6 +72,32 @@ export default function Rodape() {
           </div>
         </div>
 
+        {/*
+          ===================================================================
+          A MARCA DA ONG, ENFIM (pedido V1 + RNF06)
+          ===================================================================
+
+          O formulário de levantamento respondeu "(X) Sim, mas em baixa
+          qualidade" sobre o logotipo — e ANEXOU o arquivo, na última página.
+          Ele estava lá o tempo todo; ninguém tinha ido buscar. Extraído do
+          PDF em 03/09/2026, reduzido para 520px e limpo das franjas cinzas
+          que o JPEG original tinha deixado em volta de cada traço (286 KB →
+          12 KB, com fundo transparente).
+
+          `alt` VAZIO, e não "logotipo do Ateliê Afro Cultural": o nome da
+          ONG já está escrito no cabeçalho de toda página e aqui em cima, no
+          endereço. Um alt descritivo faria quem usa leitor de tela ouvir o
+          nome uma terceira vez, sem ganhar informação nenhuma. A imagem é
+          decorativa NESTE lugar — o que ela acrescenta é para quem enxerga.
+
+          `loading="lazy"` porque o rodapé fica abaixo da dobra em toda
+          página: quem não rolar até aqui não baixa os 12 KB.
+        */}
+        <p className="af-footer__marca">
+          <img src="/imagens/logo-atelie.png" alt="" width={260} height={106}
+               loading="lazy" decoding="async" />
+        </p>
+
         <p className="af-footer__legal rodape__aviso">
           <Link href="/privacidade">Política de privacidade</Link>
         </p>

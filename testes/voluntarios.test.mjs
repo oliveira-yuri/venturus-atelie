@@ -47,7 +47,10 @@
  * que o embed de `servidor/dados/voluntarios.ts` RESOLVE. Ver o teste no fim
  * do bloco 3 e o cabeçalho daquele arquivo.
  */
-import { test } from 'node:test';
+import { test, describe } from 'node:test';
+import {
+  filtrarCandidaturas, lerFiltro, parametrosDoFiltro, filtroAtivo, FILTRO_VAZIO
+} from '../compartilhado/filtro-de-voluntarios.ts';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -830,4 +833,96 @@ test('acoes/voluntariado.ts continua guardado por usuarioAtual(), NÃO por ehEqu
   assert.doesNotMatch(codigo, /ehEquipe/,
     'candidatar-se passou a exigir sessão de EQUIPE: isso trancaria justamente o público '
     + 'daquela tela — quem se oferece para ajudar não trabalha na ONG');
+});
+
+// =====================================================================
+// O FILTRO DA FILA (pedido V1, 03/09/2026)
+//
+// Ele é função PURA de propósito — entra uma lista, sai uma lista —, e é
+// por isso que estes testes existem sem banco nenhum. A alternativa era
+// filtrar no PostgREST, e ela quebraria em dois lugares: nome, e-mail e
+// área moram FORA de `public.voluntarios` (exigiriam `!inner` aninhado, que
+// nenhuma suíte deste projeto alcança), e a contagem passaria a contar as
+// linhas do pai, fazendo a paginação mentir.
+// =====================================================================
+
+describe('filtro de voluntários', () => {
+  const LISTA = [
+    { nome: 'Maria Ávila', email: 'maria@exemplo.test', situacao: 'novo',
+      areas: ['Comunicação e mídias'], tipo_pessoa: 'fisica' },
+    { nome: 'João Silva', email: 'joao@outro.test', situacao: 'ativo',
+      areas: ['Produção de eventos', 'Organização de acervo'], tipo_pessoa: 'fisica' },
+    { nome: 'Instituto Cultura', email: 'contato@instituto.test', situacao: 'ativo',
+      areas: ['Apoio administrativo'], tipo_pessoa: 'juridica' },
+    { nome: null, email: null, situacao: 'inativo', areas: [], tipo_pessoa: null }
+  ];
+
+  const filtrar = (f) => filtrarCandidaturas(LISTA, { ...FILTRO_VAZIO, ...f });
+  const nomes = (r) => r.map((c) => c.nome);
+
+  test('sem filtro, devolve a lista inteira — inclusive a linha sem perfil', () => {
+    assert.equal(filtrar({}).length, LISTA.length);
+  });
+
+  test('a busca IGNORA acento e caixa — quem procura digita como lembra', () => {
+    assert.deepEqual(nomes(filtrar({ busca: 'avila' })), ['Maria Ávila']);
+    assert.deepEqual(nomes(filtrar({ busca: 'ÁVILA' })), ['Maria Ávila']);
+    assert.deepEqual(nomes(filtrar({ busca: '  maria  ' })), ['Maria Ávila']);
+  });
+
+  test('a busca casa nome OU e-mail — é um campo só', () => {
+    assert.deepEqual(nomes(filtrar({ busca: 'joao' })), ['João Silva']);
+    // Só o e-mail contém "outro"; o nome não.
+    assert.deepEqual(nomes(filtrar({ busca: 'outro' })), ['João Silva']);
+  });
+
+  test('a linha SEM PERFIL não derruba a busca', () => {
+    // `nome` e `email` nulos são o desfecho de um perfil que não veio no
+    // embed. Um `.toLowerCase()` em cima de null derrubaria a tela inteira.
+    assert.equal(filtrar({ busca: 'qualquer' }).length, 0);
+  });
+
+  test('a área casa por nome EXATO, não por trecho', () => {
+    assert.deepEqual(nomes(filtrar({ area: 'Produção de eventos' })), ['João Silva']);
+    // "Produção" sozinho NÃO casa: um "contém" faria uma área futura
+    // chamada "Produção" arrastar "Produção de eventos" junto.
+    assert.equal(filtrar({ area: 'Produção' }).length, 0);
+  });
+
+  test('quem tem duas áreas aparece nas duas', () => {
+    assert.deepEqual(nomes(filtrar({ area: 'Organização de acervo' })), ['João Silva']);
+  });
+
+  test('tipo de pessoa separa física de jurídica', () => {
+    assert.deepEqual(nomes(filtrar({ tipoPessoa: 'juridica' })), ['Instituto Cultura']);
+    assert.equal(filtrar({ tipoPessoa: 'fisica' }).length, 2);
+  });
+
+  test('OS CAMPOS SE SOMAM (E, não OU) — filtrar é reduzir', () => {
+    // Um OU devolveria MAIS resultados a cada campo preenchido, que é o
+    // contrário do que "filtrar" significa para quem está usando.
+    assert.deepEqual(nomes(filtrar({ situacao: 'ativo', tipoPessoa: 'fisica' })), ['João Silva']);
+    assert.equal(filtrar({ situacao: 'ativo', tipoPessoa: 'juridica' }).length, 1);
+    assert.equal(filtrar({ situacao: 'novo', tipoPessoa: 'juridica' }).length, 0);
+  });
+
+  test('lerFiltro aceita lixo da URL sem estourar', () => {
+    // `?busca=` é escrito por quem quiser. Valor que não é texto (array,
+    // ausente) vira vazio — nunca exceção, nunca `[object Object]` na busca.
+    const lido = lerFiltro({ busca: ['a', 'b'], area: undefined, situacao: 'novo', tipo_pessoa: 7 });
+    assert.deepEqual(lido, { busca: '', area: '', situacao: 'novo', tipoPessoa: '' });
+  });
+
+  test('parametrosDoFiltro só leva o que está preenchido', () => {
+    // Um `?busca=` vazio na URL é sujeira que a equipe copia e cola.
+    assert.deepEqual(parametrosDoFiltro({ ...FILTRO_VAZIO, situacao: 'novo' }), { situacao: 'novo' });
+    assert.deepEqual(parametrosDoFiltro(FILTRO_VAZIO), {});
+  });
+
+  test('filtroAtivo reconhece qualquer um dos quatro campos', () => {
+    assert.equal(filtroAtivo(FILTRO_VAZIO), false);
+    for (const campo of ['busca', 'area', 'situacao', 'tipoPessoa']) {
+      assert.equal(filtroAtivo({ ...FILTRO_VAZIO, [campo]: 'x' }), true, `${campo} não ativou`);
+    }
+  });
 });
