@@ -1175,18 +1175,40 @@ revisitada e mantida naquela tarefa.
    inscritos **não apaga** (mesma decisão do item 0n, e pelo mesmo motivo — o que a pessoa
    preencheu é registro). Hoje isso só se faz no SQL Editor.
 
-0aa. **A RF15 foi medida contra o Supabase real, e o que NÃO deu para ver está dito aqui.**
-   MEDIDO em 02/09/2026, com `next build` + `next start` e as credenciais de produção: a
-   página de inscrição do único evento publicado desenha o cartão do evento com a data no
-   fuso da ONG (13:00 UTC → 10:00 de São Paulo), o local, a faixa etária e a descrição — e
-   cai no estado certo, "este evento já aconteceu", porque ele já aconteceu. As três rotas
-   novas do painel respondem 404 sem sessão de equipe.
+0aa. **A RF15 foi medida contra o Supabase real, e o que falta medir é UMA coisa só.**
+   Com a migration 010 aplicada e um evento FUTURO publicado pela equipe (02/09/2026),
+   `next build` + `next start` com as credenciais de produção:
 
-   **O FORMULÁRIO EM SI NINGUÉM VIU AINDA**, e o motivo é bobo: só existe um evento
-   publicado no banco, e ele é do passado. Basta publicar um evento com data FUTURA em
-   `/admin/eventos` para o botão "Quero me inscrever" aparecer na agenda e o formulário
-   abrir. É o único passo que falta para a RF15 ter sido vista de ponta a ponta — e a
-   metade do BANCO já está provada em `npm run rls`.
+   · `/agenda` desenha "Quero me inscrever" **só no evento futuro**. O de ontem continua na
+     seção "Já aconteceu", sem botão — é o `inscricoesAbertas` de `ListaEventos.ts`;
+   · a página de inscrição serve os NOVE campos no HTML, com `<form method="POST">` e os
+     campos `$ACTION_REF` que o Next usa para a Action funcionar **sem JavaScript**;
+   · o grupo do responsável (RN02) chega **aberto** — sem script não existiria quem o
+     revelasse, e a pessoa veria um erro apontando para um campo que nunca viu;
+   · **sem campo de CPF**, porque o evento tem `exige_cpf = false` (RN06);
+   · **sem frase de vagas**, porque o evento não tem limite — "vagas abertas" não é
+     inventado quando não se sabe;
+   · a frase da RN07 diz, por escrito, que dá para participar sem autorizar imagem;
+   · a página do evento que JÁ ACONTECEU cai no estado certo, com a data no fuso da ONG.
+
+   **O QUE CONTINUA SEM MEDIÇÃO: o insert dando certo pelo formulário.** Não é falta de
+   caminho — é escolha. Enviar de verdade grava uma linha em `public.inscricoes` do banco de
+   PRODUÇÃO, numa tabela cuja tela **não apaga** de propósito (o texto é registro), e o
+   projeto já carrega três dessas dívidas: os itens 0m, 0o e 0q. Uma quarta precisa ser
+   decisão de quem é dono do banco, não de quem implementa.
+
+   **O que já cobre esse caminho, sem sujar produção:** `npm run rls` grava de verdade
+   contra um Postgres com as migrations reais (bloco "RF15" — a linha chega à tabela, o
+   vazio vira NULL, evento lotado recusa sem gravar, e as duas constraints do esquema
+   seguram); e contra o Supabase de produção as três funções foram chamadas e responderam
+   as palavras certas (item 0y). O que sobra sem prova é a cola navegador → Action → RPC,
+   que é estruturalmente idêntica à de `acoes/contato.ts` — essa sim medida de ponta a
+   ponta, sem JavaScript, em 01/09/2026.
+
+   **Se alguém decidir medir:** o e-mail `teste-rf15@exemplo.invalid` e o nome
+   `TESTE AUTOMATIZADO - apagar (RF15)`, e depois
+   `delete from public.inscricoes where email = 'teste-rf15@exemplo.invalid';` no SQL
+   Editor. A equipe LÊ essa linha em `/admin/eventos/inscritos`, mas não a apaga por ali.
 
 **Do projeto, válidos para as duas branches:**
 
