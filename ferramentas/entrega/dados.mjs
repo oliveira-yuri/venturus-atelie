@@ -147,10 +147,10 @@ export const REQUISITOS = [
   // ---- M6 ----
   { id: 'RF27', m: 'M6', nome: 'Mural de avisos',
     o: '§6', s: 'parcial', onde: '/avisos · /admin/avisos',
-    e: 'Tabela NOVA, não uma coluna em publicacoes — reaproveitar aquela política publicaria comunicação interna na internet aberta. "Voluntário" = situação ATIVA. 9 testes contra Postgres real. A migration 012 está escrita e NÃO aplicada.' },
+    e: 'Tabela NOVA, não uma coluna em publicacoes — reaproveitar aquela política publicaria comunicação interna na internet aberta. "Voluntário" = situação ATIVA. 9 testes contra Postgres real. Migration 012 APLICADA e medida em produção (a tabela e a função respondem 42501 a anon, que é o desenho). O mural ainda não foi visto COM conteúdo: exige um aviso publicado e alguém com candidatura ativa.' },
   { id: 'RF28', m: 'M6', nome: 'Mensagem para grupo',
     o: '§6', s: 'parcial', onde: '/admin/avisos',
-    e: 'Grupo por lista fechada; nenhum alcança "todo mundo". Um e-mail por pessoa (/emails/batch), nunca uma lista no mesmo campo. Depende da migration 012.' },
+    e: 'Grupo por lista fechada; nenhum alcança "todo mundo". Um e-mail por pessoa (/emails/batch), nunca uma lista no mesmo campo. Migration 012 aplicada; o envio real ainda não foi disparado.' },
   { id: 'RF29', m: 'M6', nome: 'Registro central de contatos',
     o: '§4, §6', s: 'pronto', onde: '/admin/contatos',
     e: 'Fila de atendimento com novo / em contato / concluída. Lê e tria: não apaga e não edita a mensagem — o texto recebido é registro.' },

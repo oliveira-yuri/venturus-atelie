@@ -555,7 +555,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | E-mail (Resend) | **DNS pronto, conta por ligar** — SPF, DKIM (218 caracteres, íntegro) e o MX do return-path `send` conferidos por `dig` em 02/09/2026, região São Paulo. Click tracking DESLIGADO de propósito: ele reescreveria todo link do e-mail, o que contradiz /privacidade e poria um salto no meio de um link de token de uso único. **Falta**: DMARC (`_dmarc` TXT `v=DMARC1; p=none;`), a API key na Edge Function e o SMTP no Supabase Auth. O Resend substituiu o Brevo porque **passou a haver domínio** — sem ele o Resend só entrega no e-mail da própria conta |
 | Edge Function de e-mail | **escrita e PUBLICADA** (02/09/2026) — `supabase/functions/enviar-email/`. Único ponto do projeto com a service role (spec §9). MEDIDO em produção: ela responde `401 {"erro":"nao_autorizado"}` sem a chave compartilhada — e como a conferência de configuração vem ANTES da conferência da chave, esse 401 prova que os quatro secrets estão lá (faltando um, seria `500 nao_configurada`) |
 | Migration 011 (registro de envios) | **APLICADA** (02/09/2026) — MEDIDO: `select` anônimo em `envios` responde `42501 permission denied`, e não `PGRST205 could not find the table`. A tabela existe e `anon` não alcança |
-| Migration 012 (mural de avisos) | **escrita e testada, NÃO APLICADA** — `supabase/migrations/012_avisos.sql`. Provada em `npm run rls` (bloco "RF27", 9 testes). Ver item 0ab |
+| Migration 012 (mural de avisos) | **APLICADA em 03/09/2026, e o efeito foi medido** — `supabase/migrations/012_avisos.sql`. Sem mandar chave nenhuma: `select` em `avisos` responde `42501 permission denied` (e não `PGRST205 could not find the table`), e `eh_voluntario_ativo()` responde `42501 permission denied for function`. Os dois erros são o desenho — `anon` não recebe grant em nenhum dos dois |
 | Manual da ONG (RNF07) | **escrito, não verificado com a equipe** (01/09/2026) — `docs/manual-da-equipe.md` (as quatro telas do painel, entrar/sair/senha, RN07 explicada, o que o painel NÃO faz e por quê, o que fazer quando dá erro) e `docs/guia-rapido-da-equipe.md` (uma página para imprimir). Escrito lendo as telas, passo a passo; **ninguém percorreu o painel autenticado para conferir** (item 3 de "O que trava hoje"), e o treinamento presencial que a RNF07 também pede continua faltando |
 
 ---
@@ -1217,30 +1217,33 @@ revisitada e mantida naquela tarefa.
    `delete from public.inscricoes where email = 'teste-rf15@exemplo.invalid';` no SQL
    Editor. A equipe LÊ essa linha em `/admin/eventos/inscritos`, mas não a apaga por ali.
 
-0ab. **A migration 012 está escrita, testada e NÃO APLICADA — e a falta dela é a única que
-   ESCONDE em vez de degradar.** Nasceu com o RF27 (02/09/2026).
-   `supabase/migrations/012_avisos.sql` cria `public.avisos` e a função
+0ab. **A migration 012 foi APLICADA em 03/09/2026, e o efeito foi medido.**
+   `supabase/migrations/012_avisos.sql` criou `public.avisos` e a função
    `public.eh_voluntario_ativo()`.
 
-   **O comportamento sem ela é diferente de todas as outras migrations pendentes.** A 007 e a
-   010 tinham caminho de degradação: o formulário continuava gravando, só com limite pior.
-   Aqui não há caminho: sem a tabela, `/admin/avisos` mostra o estado de falha e `/avisos`
-   diz que não deu para carregar. **Nada quebra, e nada funciona** — o que é honesto, e é o
-   melhor desfecho possível para uma tela de comunicação interna que não existe ainda.
+   **CONFERIDO contra o projeto de verdade, sem mandar chave nenhuma:**
 
-   **Como aplicar:** colar `012_avisos.sql` no SQL Editor do Supabase. Depois disso, apagar
-   este item.
+   | Sonda | Resposta | O que ela prova |
+   |---|---|---|
+   | `select` em `avisos` | `42501 permission denied` | a tabela EXISTE — se não existisse, seria `PGRST205 could not find the table` |
+   | `eh_voluntario_ativo()` | `42501 permission denied for function` | a função existe, e `anon` não a executa |
+
+   Os dois `42501` são o desenho, não defeito: `anon` não recebe grant em nenhum dos dois. É
+   a trava ANTES da RLS — mesmo que a política fosse reescrita errada um dia, o papel anônimo
+   não teria o privilégio de tentar.
+
+   **O QUE AINDA NÃO FOI VISTO:** o mural com conteúdo. Ele só desenha alguma coisa quando
+   existir um aviso PUBLICADO **e** alguém com candidatura `ativo` — e as duas candidaturas
+   de `public.voluntarios` hoje estão como `novo`. Promover alguém em `/admin/voluntarios` é
+   o gesto que falta, e ele é da equipe.
 
    **Uma decisão desta migration precisa ser conferida com o grupo**, e ela está no comentário
    da função: *"voluntário autenticado"* virou `situacao = 'ativo'`, e não `'novo'`. O escopo
    pede o mural "visível para voluntários autenticados", e a leitura honesta disso é quem JÁ
    É voluntário. A diferença importa porque `/voluntariado/candidatura` é pública: se `novo`
    contasse, bastaria preencher um formulário para passar a ler a comunicação interna da ONG.
-
-   **O preço, dito em voz alta:** um aviso novo não alcança ninguém até a equipe promover
-   alguém a `ativo` em `/admin/voluntarios` — o que já é um toque naquela tela, e já é o gesto
-   que significa "esta pessoa entrou". Mudar para incluir `em_contato` é uma linha, na função
-   do banco e no comentário que a explica.
+   Mudar para incluir `em_contato` é uma linha, na função do banco e no comentário que a
+   explica.
 
 0ac. **O RF28 é o único gesto do painel que não tem desfazer, e três coisas seguram isso.**
    Todo o resto é reversível: tirar do ar devolve, editar regrava, apagar uma foto tem tela de
