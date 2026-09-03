@@ -355,7 +355,14 @@ export const PAGINAS_SO_PARA_EQUIPE = [
  * conteúdo é comunicação interna da ONG: não há o que mostrar a quem não
  * entrou, e a resposta certa é a tela de entrar.
  */
-export const PAGINAS_SO_PARA_QUEM_ENTROU = ['/minha-conta', '/avisos'];
+export const PAGINAS_SO_PARA_QUEM_ENTROU = [
+  '/minha-conta',
+  // As duas telas que o pedido V1 tirou de dentro de /minha-conta
+  // (03/09/2026). Mesma guarda da mãe: redirect para /entrar, nunca 404.
+  '/minha-conta/candidaturas',
+  '/minha-conta/doacoes',
+  '/avisos'
+];
 
 /**
  * Toda página real de app/, pública ou não — é ESTA lista que precisa

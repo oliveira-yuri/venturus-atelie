@@ -147,7 +147,7 @@ function doacao(campos = {}) {
 // 1. A trava do corpo hostil: o que a requisição NÃO consegue gravar
 // =====================================================================
 
-test('lerOferta lê DOIS campos por nome e ignora todo o resto do corpo', () => {
+test('lerOferta lê TRÊS campos por nome e ignora todo o resto do corpo', () => {
   const dados = formulario({
     tipo: 'item',
     descricao: 'Dez livros de literatura negra',
@@ -165,10 +165,43 @@ test('lerOferta lê DOIS campos por nome e ignora todo o resto do corpo', () => 
     eh_equipe: 'true'
   });
 
+  // `quantia` entrou em 03/09/2026 (pedido V1: campo de dinheiro em vez de
+  // texto). Ela NÃO vira a coluna `valor` — vira texto na descrição, e o
+  // teste de `colunasDaOferta` abaixo é quem cobra isso.
   assert.deepEqual(lerOferta(dados), {
     tipo: 'item',
-    descricao: 'Dez livros de literatura negra'
+    descricao: 'Dez livros de literatura negra',
+    quantia: ''
   });
+
+  // A trava que mais importa continua valendo: `valor` foi mandado no corpo
+  // ('99999') e NÃO apareceu em lugar nenhum do objeto lido.
+  assert.equal(JSON.stringify(lerOferta(dados)).includes('99999'), false,
+    'o `valor` mandado no corpo atravessou lerOferta');
+});
+
+test('DINHEIRO vira texto na descrição, e NUNCA a coluna `valor`', () => {
+  /*
+   * A decisão está no comentário de `quantia`, em compartilhado/validacao.ts:
+   * `doacoes.valor` é o que a ONG CONFIRMOU ter recebido, escrito pela
+   * equipe depois do fato (RF21, RN08). O que a pessoa digita na oferta é
+   * intenção, e intenção entra na descrição.
+   *
+   * Sem isto, o total dos indicadores passaria a somar promessa.
+   */
+  const colunas = colunasDaOferta(
+    lerOferta(formulario({ tipo: 'recurso_financeiro', quantia: '1.250,5' })),
+    ID
+  );
+
+  assert.deepEqual(Object.keys(colunas).sort(), ['descricao', 'perfil_id', 'tipo']);
+  assert.equal('valor' in colunas, false,
+    'colunasDaOferta passou a escrever `valor`: a promessa virou registro');
+
+  // CANÔNICO, e não o que a pessoa digitou: quem escreve "1.250,5" e quem
+  // escreve "1250,50" gravam a mesma coisa, e a equipe lê uma lista
+  // consistente em vez de doze grafias.
+  assert.match(colunas.descricao, /1\.250,50/);
 });
 
 test('colunasDaOferta não conhece `situacao`, `valor` nem `doador_nome` — nem para escrever o default', () => {
@@ -511,11 +544,29 @@ test('rótulo de valor desconhecido volta COMO VEIO, em vez de virar um genéric
   assert.equal(rotuloDaSituacaoDeDoacao('arquivada'), 'arquivada');
 });
 
-test('o `<select>` de tipo nasce VAZIO e o de situação não — as duas decisões', () => {
-  // Sem a opção vazia, o navegador já vem com "Um item" selecionado e quem
-  // quer doar dinheiro envia "item" sem perceber que havia escolha.
-  assert.equal(OPCOES_DE_TIPO[0].valor, '');
-  assert.equal(OPCOES_DE_TIPO.length, TIPOS_DE_DOACAO.length + 1);
+test('o `<select>` de tipo NÃO tem mais opção vazia, e o de situação continua sem — as duas decisões', () => {
+  /*
+   * ESTE TESTE JÁ AFIRMOU O CONTRÁRIO, e a inversão é registro de uma
+   * decisão, não de um defeito.
+   *
+   * Até 03/09/2026 a primeira opção era vazia, e o motivo estava escrito:
+   * sem ela o navegador já vem com "Um item" marcado, e quem quer doar
+   * dinheiro enviaria "item" sem perceber que havia escolha.
+   *
+   * O que mudou foi o formulário. Os dois tipos passaram a abrir CAMPOS
+   * DIFERENTES — item abre texto, dinheiro abre quantia —, então escolher
+   * errado deixou de ser invisível: a pessoa vê o campo errado antes de
+   * enviar. Com duas opções só, o placeholder virou um toque a mais num
+   * celular, e uma recusa que a tela podia evitar.
+   *
+   * O QUE NÃO MUDOU, e é o que este teste garante: `validarOferta` continua
+   * recusando tipo vazio e tipo fora da lista. A tela nunca foi a guarda.
+   */
+  assert.equal(OPCOES_DE_TIPO.length, TIPOS_DE_DOACAO.length,
+    'voltou a haver uma opção a mais que os tipos reais — se for o placeholder, '
+    + 'a decisão de 03/09 foi desfeita sem passar por aqui');
+  assert.ok(OPCOES_DE_TIPO.every((opcao) => opcao.valor !== ''),
+    'apareceu uma opção de valor vazio no select de tipo');
 
   // A doação SEMPRE tem situação (`not null default 'ofertada'`): uma opção
   // vazia seria oferecer à equipe apagar um estado que não pode ficar vazio.

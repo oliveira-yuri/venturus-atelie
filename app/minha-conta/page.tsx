@@ -2,11 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { usuarioAtual } from '@/servidor/sessao';
 import {
-  buscarMeuPerfil, listarMinhasCandidaturas, listarMinhasDoacoes
+  buscarMeuPerfil
 } from '@/servidor/dados/conta';
 import { avisoDaConta } from '@/compartilhado/avisos-da-conta';
-import { candidaturaEmAndamento } from '@/compartilhado/candidatura';
-import { FichaDaConta, MinhasCandidaturas, MinhasDoacoes } from '@/componentes/MinhaConta';
+import { FichaDaConta } from '@/componentes/MinhaConta';
 import FormularioMeusDados from '@/componentes/FormularioMeusDados';
 
 /**
@@ -111,10 +110,11 @@ export default async function MinhaConta(
   // O ID VEM DAQUI, da sessão verificada — nunca de `searchParams`. As três
   // consultas o recebem como argumento; ver o cabeçalho de
   // servidor/dados/conta.ts.
+  // UMA CONSULTA SÓ, desde 03/09/2026. As de candidaturas e doações saíram
+  // com as seções que as usavam — cada uma agora roda na página dela. Quem
+  // veio corrigir o telefone deixou de pagar por duas idas ao banco cujo
+  // resultado ele não ia ler.
   const { valor: perfil, degradou: perfilDegradou } = await buscarMeuPerfil(usuario.id);
-  const { valor: candidaturas, degradou: candidaturasDegradaram } =
-    await listarMinhasCandidaturas(usuario.id);
-  const { valor: doacoes, degradou: doacoesDegradaram } = await listarMinhasDoacoes(usuario.id);
 
   // O resultado da última Action chega pela URL (a Action termina em
   // redirect, que é o que a faz funcionar sem JavaScript, e um redirect não
@@ -169,8 +169,38 @@ export default async function MinhaConta(
                 inclusive o e-mail, que a seção seguinte explica por que
                 fica de fora.
               */}
-              <FormularioMeusDados perfil={perfil} avisoDaUrl={aviso} />
-              <FichaDaConta perfil={perfil} />
+                {/*
+                  ===================================================================
+                  A FICHA VEM PRIMEIRO, E O FORMULÁRIO FICA ATRÁS DE UM BOTÃO
+                  ===================================================================
+
+                  Pedido V1 (03/09/2026): "os inputs para alterar os dados devem
+                  aparecer apenas se o usuário clicar em um botãozinho escrito
+                  'alterar meus dados'".
+
+                  A ORDEM INVERTEU JUNTO, e é consequência: com o formulário
+                  fechado, o que a pessoa vê ao abrir a página passou a ser o que
+                  ela veio ver — os próprios dados. Antes ela via três campos e
+                  precisava rolar para achar a ficha.
+
+                  `<details>` E NÃO JAVASCRIPT, pelo mesmo motivo do formulário de
+                  envio da galeria: o `<summary>` já É o botão, abre e fecha
+                  sozinho, é alcançável por teclado e anuncia o estado a quem usa
+                  leitor de tela — tudo sem script. Um `useState` esconderia o
+                  formulário de quem está sem JavaScript, que é justamente quem
+                  não pode perder nada.
+
+                  `open` QUANDO A ACTION RECUSOU: se a pessoa acabou de enviar e
+                  algum campo voltou com erro, o formulário precisa chegar ABERTO —
+                  senão o erro fica dentro de uma gaveta fechada, e ela lê uma
+                  recusa apontando para um campo que sumiu.
+                */}
+                <FichaDaConta perfil={perfil} />
+
+                <details className="conta__alterar" open={aviso?.ok === false}>
+                  <summary className="conta__alterar-botao">Alterar meus dados</summary>
+                  <FormularioMeusDados perfil={perfil} avisoDaUrl={aviso} />
+                </details>
             </>
           )
           : perfilDegradou
@@ -236,93 +266,45 @@ export default async function MinhaConta(
         </p>
       </section>
 
-      <section aria-labelledby="titulo-candidaturas">
-        <h2 id="titulo-candidaturas">Minhas candidaturas ao voluntariado</h2>
+      {/*
+        ===================================================================
+        DUAS PÁGINAS, E NÃO DUAS SEÇÕES EMPILHADAS
+        ===================================================================
 
-        <MinhasCandidaturas
-          candidaturas={candidaturas}
-          degradou={candidaturasDegradaram}
-        />
+        Pedido V1 (03/09/2026): "aba de minhas candidaturas ao voluntariado e
+        minhas doações devem ser dois botões que quando clicados abrem uma
+        página dedicada".
 
-        {/*
-          O ÚNICO CAMINHO ATÉ O MURAL (RF27), e ele fica aqui pelo mesmo
-          motivo de /minha-conta ficar atrás do nome no cabeçalho: o menu é
-          o mesmo para toda visita, e um item "Avisos" ali só redirecionaria
-          a maioria.
+        A razão de fundo é a regra 4. Esta página tinha crescido para quatro
+        seções, e num celular quem vinha ver a própria candidatura rolava por
+        dados, senha e e-mail antes de chegar. Duas páginas curtas são
+        melhores que uma longa quando a pessoa já sabe o que veio buscar.
 
-          O LINK APARECE PARA QUEM TEM QUALQUER CANDIDATURA, e não só para
-          quem está `ativo`. É deliberado: quem se candidatou ontem precisa
-          conseguir CHEGAR ao mural para ler, na própria página dele, que
-          ele é para quem já está voluntariando — e o que fazer enquanto
-          isso. Esconder o link faria a pessoa nunca descobrir que o mural
-          existe, e a explicação não teria onde aparecer.
+        O QUE ISSO CUSTA, dito em voz alta: uma navegação a mais para quem
+        queria só dar uma olhada geral. Aceito — o caso comum é vir com um
+        assunto na cabeça, não passear.
 
-          Quem não pode ler não lê: a política de `public.avisos`
-          (migration 012) decide isso no banco, muito antes desta página.
-        */}
-        {candidaturas.length > 0 ? (
-          <p className="chamada-final">
-            <Link href="/avisos">Ver o mural de avisos</Link> — recados da equipe para quem
-            está voluntariando.
-          </p>
-        ) : null}
+        As duas consultas SAÍRAM desta página junto com as seções. Cada uma
+        agora roda na página dela, o que também torna esta mais rápida: quem
+        veio corrigir o telefone deixou de pagar por duas consultas que não
+        ia ler.
 
-        {/*
-          O BOTÃO SÓ APARECE PARA QUEM NÃO TEM CANDIDATURA EM ANDAMENTO, e é
-          a mesma regra que a tela de candidatura e a Server Action aplicam
-          (compartilhado/candidatura.ts). Oferecer "Candidatar-se" a quem já
-          se candidatou seria oferecer um gesto que o servidor recusa — e,
-          pior, uma linha repetida que só a equipe do Ateliê consegue
-          apagar (não há política de delete para a própria pessoa em
-          `public.voluntarios`).
+        `.botao` e não link em linha corrida: é navegação para uma tela, e o
+        alvo precisa dos 44px (RNF08).
+      */}
+      <section aria-labelledby="titulo-minhas-coisas">
+        <h2 id="titulo-minhas-coisas">Minhas participações</h2>
 
-          `.botao`, e não um link em linha corrida: isto é uma AÇÃO, e alvo
-          de ação precisa de 44px de altura (RNF08, regra 4 do CLAUDE.md) —
-          a mesma medição que motivou o "Trocar minha senha" acima.
-        */}
-        {candidaturaEmAndamento(candidaturas)
-          ? (
-            <p>
-              As áreas em que o Ateliê precisa de gente estão na{' '}
-              <Link href="/voluntariado">página de voluntariado</Link>.
-            </p>
-          )
-          : (
-            <p className="abertura__acoes">
-              <Link className="botao" href="/voluntariado/candidatura">
-                Candidatar-se ao voluntariado
-              </Link>
-            </p>
-          )}
-      </section>
-
-      <section aria-labelledby="titulo-doacoes">
-        <h2 id="titulo-doacoes">Minhas doações</h2>
-
-        <MinhasDoacoes doacoes={doacoes} degradou={doacoesDegradaram} />
-
-        {/*
-          O BOTÃO APARECE SEMPRE, ao contrário do de candidatar-se logo
-          acima — e a assimetria é decisão, não descuido.
-
-          Lá o botão some para quem já tem candidatura em andamento, porque
-          candidatar-se duas vezes é oferecer um gesto que o servidor recusa
-          (e uma linha repetida que só a equipe consegue apagar). Aqui doar
-          duas vezes são DUAS doações, as duas legítimas: quem doou livros em
-          março e um tambor em agosto fez duas coisas. Esconder o botão de
-          quem já doou seria esconder o caminho justamente de quem mais
-          apoia a ONG. O argumento inteiro está em acoes/doacoes.ts.
-
-          `.botao`, e não um link em linha corrida: isto é uma AÇÃO, e alvo
-          de ação precisa de 44px de altura (RNF08, regra 4 do CLAUDE.md) —
-          a mesma medição que motivou o "Trocar minha senha" acima.
-        */}
         <p className="abertura__acoes">
-          <Link className="botao" href="/doar/ofertar">Oferecer uma doação</Link>
+          <Link className="botao" href="/minha-conta/candidaturas">
+            Minhas candidaturas ao voluntariado
+          </Link>
         </p>
 
-        <p>
-          As formas de doar estão na <Link href="/doar">página de doações</Link>.
+        <p className="abertura__acoes">
+          <Link className="botao" href="/minha-conta/doacoes">
+            Minhas doações
+          </Link>
         </p>
       </section>
 

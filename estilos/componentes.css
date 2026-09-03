@@ -616,3 +616,58 @@
 
 /* O "Quero me inscrever" de cada evento da agenda. */
 .atividade__acao { margin-top: 0.8rem; }
+
+/* =====================================================================
+   "Alterar meus dados" — o formulário atrás de um botão (pedido V1)
+
+   `<details>` nativo, sem script: o `<summary>` já É o botão. O CSS só
+   faz ele PARECER um botão, porque por padrão o navegador desenha um
+   triângulo e texto solto — que ninguém reconhece como algo para tocar.
+   ===================================================================== */
+
+.conta__alterar {
+  border: 1.5px solid var(--tinta);
+  margin: 1.2rem 0;
+  background: #fff;
+}
+
+.conta__alterar-botao {
+  /* `list-style: none` + o `::-webkit-details-marker` tiram o triângulo
+     nos dois motores. O estado aberto/fechado continua sendo anunciado
+     pelo próprio <details> a quem usa leitor de tela. */
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  /* 44px de alvo (RNF08) — a mesma medida dos botões do painel. */
+  min-height: 44px;
+  padding: .7rem 1rem;
+  font-weight: 700;
+  background: var(--creme, #f4efe6);
+}
+
+.conta__alterar-botao::-webkit-details-marker { display: none; }
+
+/* A seta desenhada por nós, que gira ao abrir: um sinal a mais de que o
+   toque teve efeito, além do conteúdo aparecer. */
+.conta__alterar-botao::before {
+  content: "";
+  width: .5rem;
+  height: .5rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform .18s ease;
+  flex: none;
+}
+
+.conta__alterar[open] > .conta__alterar-botao::before { transform: rotate(45deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .conta__alterar-botao::before { transition: none; }
+}
+
+/* O formulário respira dentro da moldura. */
+.conta__alterar > .formulario,
+.conta__alterar > div { padding: 0 1rem 1rem; }

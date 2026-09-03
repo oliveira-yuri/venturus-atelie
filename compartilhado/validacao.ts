@@ -2266,8 +2266,24 @@ export type CamposOferta = {
    * é compartilhado/doacoes.ts.
    */
   tipo: string;
-  /** Texto livre: o que a pessoa quer doar (RF19). */
+  /** Texto livre: o que a pessoa quer doar, quando é ITEM (RF19). */
   descricao: string;
+  /**
+   * Quanto, quando é DINHEIRO. Texto CRU no formato brasileiro — quem
+   * interpreta é `numeroDoValor`.
+   *
+   * ELE NÃO VIRA A COLUNA `valor`, e essa é a decisão mais importante deste
+   * campo. `doacoes.valor` é o que a ONG CONFIRMOU ter recebido, escrito
+   * pela equipe depois do fato (RF21, RN08). O que a pessoa digita aqui é
+   * uma intenção, e intenção entra na DESCRIÇÃO — que é campo de texto
+   * livre por desenho.
+   *
+   * Assim a tela ganha o campo de quantia que o pedido V1 pediu, e o total
+   * dos indicadores continua somando fato, não promessa. Se um dia a ONG
+   * quiser registrar a promessa como número, isso é coluna nova e decisão
+   * do grupo — não um efeito colateral deste campo.
+   */
+  quantia: string;
 };
 
 /**
@@ -2296,7 +2312,8 @@ export const LIMITE_RESPOSTA = 2_000;
 export function lerOferta(dados: FormData): CamposOferta {
   return {
     tipo: textoDoCampo(dados, 'tipo'),
-    descricao: textoDoCampo(dados, 'descricao')
+    descricao: textoDoCampo(dados, 'descricao'),
+    quantia: textoDoCampo(dados, 'quantia')
   };
 }
 
@@ -2320,7 +2337,31 @@ export function validarOferta(campos: CamposOferta, tiposValidos: string[]): Res
     erros.tipo = 'Essa opção não existe. Atualize a página e escolha de novo.';
   }
 
-  if (!campos.descricao) {
+  /*
+   * CADA TIPO COBRA UM CAMPO DIFERENTE (pedido V1, 03/09/2026).
+   *
+   * Antes havia um campo de texto só, para os dois casos. Quem queria doar
+   * dinheiro escrevia "uns 200 reais", "R$200", "duzentos" — e a equipe
+   * lia doze grafias da mesma coisa.
+   *
+   * A validação segue o TIPO, e não a presença do campo, por um motivo que
+   * só aparece sem JavaScript: ali os DOIS campos chegam preenchíveis (não
+   * há quem esconda um), então a pessoa pode preencher os dois. Quem manda
+   * é o que ela escolheu no select — o outro campo é ignorado, e não vira
+   * erro.
+   */
+  const ehDinheiro = campos.tipo === 'recurso_financeiro';
+
+  if (ehDinheiro) {
+    if (!campos.quantia) {
+      erros.quantia = 'Diga quanto você pretende doar. Pode ser um valor aproximado — a gente '
+        + 'combina o resto quando responder.';
+    } else if (numeroDoValor(campos.quantia) === null) {
+      erros.quantia = 'Confira o valor: escreva em reais, como 250,00 ou 1.500,00.';
+    } else if ((numeroDoValor(campos.quantia) ?? 0) <= 0) {
+      erros.quantia = 'O valor precisa ser maior que zero.';
+    }
+  } else if (!campos.descricao) {
     erros.descricao = 'Conte o que você quer doar. Pode ser em poucas palavras — é isso que a '
       + 'gente lê para responder se conseguimos receber.';
   } else if (campos.descricao.length > LIMITE_OFERTA) {
@@ -2360,6 +2401,20 @@ export function colunasDaOferta(
   campos: CamposOferta,
   perfilId: string
 ): { perfil_id: string; tipo: string; descricao: string } {
+  // DINHEIRO VIRA TEXTO NA DESCRIÇÃO, e não a coluna `valor` — ver o
+  // comentário de `quantia` em CamposOferta. A formatação passa por
+  // `numeroDoValor` primeiro para que o que fica gravado seja canônico:
+  // quem digitou "1.250,5" e quem digitou "1250,50" gravam a mesma coisa,
+  // e a equipe lê uma lista consistente em vez de doze grafias.
+  if (campos.tipo === 'recurso_financeiro') {
+    const numero = numeroDoValor(campos.quantia);
+    const escrito = numero === null
+      ? campos.quantia
+      : numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    return { perfil_id: perfilId, tipo: campos.tipo, descricao: escrito };
+  }
+
   return { perfil_id: perfilId, tipo: campos.tipo, descricao: campos.descricao };
 }
 

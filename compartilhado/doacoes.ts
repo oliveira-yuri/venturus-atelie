@@ -100,16 +100,29 @@ export function ehTipoDeDoacao(valor: unknown): valor is TipoDeDoacao {
  * (`{ valor, texto }`) — DERIVADAS da lista acima, nunca escritas duas
  * vezes.
  *
- * A PRIMEIRA OPÇÃO É VAZIA de propósito, e não é enfeite: sem ela o
- * navegador já vem com "Um item" selecionado, e quem quer doar dinheiro
- * envia "item" sem perceber que havia escolha. Com a opção vazia e o campo
- * marcado como obrigatório, o próprio HTML recusa o envio em branco — e o
- * servidor recusa de novo (`validarOferta`), porque a tela não é a guarda.
+ * ===================================================================
+ * A OPÇÃO VAZIA SAIU EM 03/09/2026, E O QUE ELA PROTEGIA CONTINUA
+ * PROTEGIDO — POR OUTRO MECANISMO
+ * ===================================================================
+ *
+ * Ela existia por um motivo real, escrito aqui: sem ela o navegador já vem
+ * com "Um item" selecionado, e quem quer doar dinheiro enviaria "item" sem
+ * perceber que havia escolha.
+ *
+ * O que mudou foi o formulário. Os dois tipos agora abrem CAMPOS
+ * DIFERENTES — item abre um campo de texto, dinheiro abre um campo de
+ * quantia. Escolher errado deixou de ser invisível: a pessoa vê o campo
+ * errado na frente dela antes de enviar.
+ *
+ * Com duas opções só, o placeholder passou a atrapalhar mais do que
+ * proteger: era um toque a mais num celular, e a recusa por "não escolheu"
+ * era um erro que a tela podia ter evitado.
+ *
+ * A VALIDAÇÃO DO SERVIDOR NÃO MUDOU. `validarOferta` continua recusando
+ * tipo vazio e tipo fora da lista — a tela nunca foi a guarda.
  */
-export const OPCOES_DE_TIPO: Array<{ valor: string; texto: string }> = [
-  { valor: '', texto: 'Escolha uma opção' },
-  ...TIPOS_DE_DOACAO.map((tipo) => ({ valor: tipo.valor, texto: tipo.rotulo }))
-];
+export const OPCOES_DE_TIPO: Array<{ valor: string; texto: string }> =
+  TIPOS_DE_DOACAO.map((tipo) => ({ valor: tipo.valor, texto: tipo.rotulo }));
 
 /**
  * O rótulo de um tipo. Valor desconhecido volta COMO VEIO — mesma regra de

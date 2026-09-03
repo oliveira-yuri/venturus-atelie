@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { ofertar } from '@/acoes/doacoes';
 import type { EstadoFormulario } from '@/acoes/autenticacao';
-import { OPCOES_DE_TIPO } from '@/compartilhado/doacoes';
+import { OPCOES_DE_TIPO, TIPOS_DE_DOACAO } from '@/compartilhado/doacoes';
 import { LIMITE_OFERTA } from '@/compartilhado/validacao';
 import { CampoFormulario } from './CampoFormulario';
+import { mascararDinheiro } from './mascara-dinheiro';
 
 /**
  * componentes/FormularioOferta.tsx — o formulário de `/doar/ofertar`
@@ -54,6 +55,28 @@ const ESTADO_INICIAL: EstadoFormulario = { ok: false, mensagem: '' };
 export default function FormularioOferta() {
   const [estado, enviar, enviando] = useActionState(ofertar, ESTADO_INICIAL);
   const formulario = useRef<HTMLFormElement>(null);
+
+  /*
+    QUAL CAMPO MOSTRAR, e por que isso depende de `hidratado`.
+
+    Antes de o React assumir a página, `hidden` não pode esconder nada: sem
+    script ninguém revelaria o campo de volta, e a pessoa ficaria sem um dos
+    dois. Então o HTML do servidor traz OS DOIS abertos, e o recolhimento só
+    começa depois da hidratação — o mesmo mecanismo da gaveta do menu e da
+    barra de acessibilidade.
+
+    O valor inicial vem do que a Action devolveu (numa recusa) ou da
+    primeira opção do select, que agora não tem mais placeholder.
+  */
+  const [tipo, setTipo] = useState(estado.valores?.tipo ?? TIPOS_DE_DOACAO[0].valor);
+  const [hidratado, setHidratado] = useState(false);
+  useEffect(() => { setHidratado(true); }, []);
+  const ehDinheiro = tipo === 'recurso_financeiro';
+
+  function aoTrocarTipo(evento: { target: EventTarget | null }) {
+    const alvo = evento.target;
+    if (alvo instanceof HTMLSelectElement && alvo.name === 'tipo') setTipo(alvo.value);
+  }
   const jaRenderizou = useRef(false);
 
   // FOCO NO ERRO — mesmo motivo dos outros formulários: sem isto o foco
@@ -109,17 +132,51 @@ export default function FormularioOferta() {
           valorInicial={valor('tipo')}
         />
 
-        <CampoFormulario
-          nome="descricao"
-          rotulo="Conte o que é"
-          tipo="textarea"
-          obrigatorio
-          ajuda={'Quantos livros, que instrumento, que tipo de material — e, se já souber, '
-            + 'como pretende entregar. A gente responde dizendo se conseguimos receber. '
-            + `Até ${LIMITE_OFERTA} caracteres.`}
-          erro={estado.erros?.descricao}
-          valorInicial={valor('descricao')}
-        />
+        {/*
+          ===================================================================
+          UM CAMPO POR TIPO — E OS DOIS CHEGAM ABERTOS SEM JAVASCRIPT
+          ===================================================================
+
+          O pedido V1 quer um campo de TEXTO para item e um campo de QUANTIA
+          para dinheiro. Com script, o irrelevante é escondido assim que a
+          pessoa escolhe.
+
+          SEM SCRIPT, OS DOIS FICAM VISÍVEIS, e isso é deliberado: não há
+          quem revele um campo escondido, e a pessoa veria um erro apontando
+          para um campo que nunca apareceu. É a mesma decisão dos campos de
+          responsável em FormularioInscricao.tsx e dos dois painéis de
+          /entrar.
+
+          Quem decide qual dos dois vale é o SERVIDOR, pelo tipo escolhido
+          (`validarOferta`) — preencher os dois não é erro, o outro é
+          ignorado.
+        */}
+        <div hidden={hidratado && ehDinheiro}>
+          <CampoFormulario
+            nome="descricao"
+            rotulo="Conte o que é"
+            tipo="textarea"
+            ajuda={'Quantos livros, que instrumento, que tipo de material — e, se já souber, '
+              + 'como pretende entregar. A gente responde dizendo se conseguimos receber. '
+              + `Até ${LIMITE_OFERTA} caracteres.`}
+            erro={estado.erros?.descricao}
+            valorInicial={valor('descricao')}
+          />
+        </div>
+
+        <div hidden={hidratado && !ehDinheiro}>
+          <CampoFormulario
+            nome="quantia"
+            rotulo="Quanto você quer doar (R$)"
+            tipo="text"
+            inputMode="numeric"
+            ajuda={'Digite só os números — os centavos entram sozinhos, como numa maquininha. '
+              + 'Pode ser um valor aproximado: a gente combina o resto quando responder. '
+              + 'O site não cobra nada e não recebe pagamento.'}
+            erro={estado.erros?.quantia}
+            valorInicial={valor('quantia')}
+          />
+        </div>
 
         {/* O texto muda junto com o estado: um botão que só troca de cor não
             diz nada a quem não vê a cor (regra 8). */}

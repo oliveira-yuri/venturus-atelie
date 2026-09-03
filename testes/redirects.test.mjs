@@ -143,6 +143,14 @@ const PAGINAS_SEM_URL_ANTIGA = [
   '/admin/avisos',
   '/admin/avisos/editar',
   '/avisos',
+  /*
+   * As duas páginas que o pedido V1 tirou de dentro de /minha-conta
+   * (03/09/2026). O site antigo tinha `minha-area.html` — a LISTA —, e ela
+   * continua com o redirect dela. O que nunca existiu foi uma página por
+   * assunto: lá tudo vivia empilhado na mesma tela.
+   */
+  '/minha-conta/candidaturas',
+  '/minha-conta/doacoes',
   // Tarefa P2 do painel. As duas telas de publicações NUNCA existiram como
   // arquivo: a home do painel antigo (hoje congelada em
   // testes/apoio/html-original/admin/index.html) LINKAVA para "publicacoes",
