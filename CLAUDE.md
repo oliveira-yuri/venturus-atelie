@@ -527,7 +527,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | `/robots.txt` (`app/robots.ts`) | **pronto** — em modo prévia, ver "O que trava hoje" 0c |
 | Supabase Storage (bucket `galeria`) | **ligado pelo código** (P3) — `upload`, `remove` e, desde 01/09/2026, `createSignedUrls` no lugar de `getPublicUrl` (item 0j), com o host do projeto no `img-src` da CSP (e **não** no `connect-src`; a URL assinada tem a MESMA origem, medido). **Nenhum arquivo real subiu**: falta sessão de equipe |
 | Migration 008 (bucket `galeria` privado) | **escrita e testada, NÃO APLICADA** — `supabase/migrations/008_galeria_privada.sql`. Mesma situação da 007: este repositório não tem credencial para aplicar migration (spec §4.1); quem aplica é uma pessoa, no SQL Editor do Supabase. Provada contra Postgres real em `npm run rls` (bloco "RN07 no ARQUIVO", 6 testes). **Diferente da 007, a falta desta é ANUNCIADA**: a sonda de `bucketAindaAberto()` bate no endereço público sem chave nenhuma e, enquanto ele responder, o painel mostra o aviso. Ver item 0j |
-| Migration 010 (inscrição por visitante) | **escrita e testada, NÃO APLICADA** — `supabase/migrations/010_inscricao_por_visitante.sql`. É a função irmã que a 007 deixou anotada. Mesma situação da 007 e da 008: quem aplica é uma pessoa, no SQL Editor. Provada contra Postgres real em `npm run rls` (bloco "RF15", 14 testes). Ver item 0y |
+| Migration 010 (inscrição por visitante) | **APLICADA em 02/09/2026, e o efeito foi medido** — `supabase/migrations/010_inscricao_por_visitante.sql`. É a função irmã que a 007 deixou anotada. Provada contra Postgres real em `npm run rls` (bloco "RF15", 14 testes) **e** contra o projeto de produção (item 0y) |
 | Domínio próprio `atelieafrocultural.site` | **comprado e no ar** (02/09/2026) — registrado na Hostinger, nameservers na Vercel. O site responde em `www.atelieafrocultural.site` (o apex faz 308 para o www), com a CSP, o `noindex` e o banco ligado (`data-origem-atividades="banco"`). **Isso resolve a decisão D6**, que assumia não haver domínio |
 | E-mail (Resend) | **DNS pronto, conta por ligar** — SPF, DKIM (218 caracteres, íntegro) e o MX do return-path `send` conferidos por `dig` em 02/09/2026, região São Paulo. Click tracking DESLIGADO de propósito: ele reescreveria todo link do e-mail, o que contradiz /privacidade e poria um salto no meio de um link de token de uso único. **Falta**: DMARC (`_dmarc` TXT `v=DMARC1; p=none;`), a API key na Edge Function e o SMTP no Supabase Auth. O Resend substituiu o Brevo porque **passou a haver domínio** — sem ele o Resend só entrega no e-mail da própria conta |
 | Edge Function de e-mail | **falta** |
@@ -1113,39 +1113,35 @@ revisitada e mantida naquela tarefa.
    **Se um teste voltar a supor tabela vazia, ele volta a apodrecer.** Uma suíte que fica
    vermelha por hábito é uma suíte que ninguém lê.
 
-0y. **A migration 010 está escrita, testada e NÃO APLICADA — e agora ela é a única que
-   FALTA de verdade.** Nasceu com a RF15 (02/09/2026).
-   `supabase/migrations/010_inscricao_por_visitante.sql` acrescenta três funções e **nada
-   mais** (nenhuma tabela, nenhuma política — há teste que falha se alguém puser um
-   `create policy` ali): `registrar_inscricao` (a porta pública), `vagas_restantes` (a
-   contagem) e `reservar_vaga` (a mesma contagem, com a linha do evento TRAVADA).
+0y. **A migration 010 foi APLICADA em 02/09/2026, e o efeito foi medido.**
+   `supabase/migrations/010_inscricao_por_visitante.sql` acrescentou três funções e **nada
+   mais** — nenhuma tabela, nenhuma política (há teste que falha se um `create policy`
+   aparecer ali).
 
-   **Ela é a função irmã que a 007 deixou anotada, palavra por palavra:**
+   **CONFERIDO contra o projeto de verdade, sem gravar uma linha:**
 
-       RF15 vai precisar da função irmã — `registrar_inscricao(p_visitante, ...)`.
-       Enquanto ela não existir, `public.inscricoes` continua com o balde por CABEÇALHO.
-       Isso não é um problema em aberto: não existe uma linha de código que insira em
-       `inscricoes` nesta branch.
+   | Chamada | Resposta | O que ela prova |
+   |---|---|---|
+   | `vagas_restantes(<evento real>)` | `0` | a contagem responde, e o evento que já acabou não aceita inscrição |
+   | `reservar_vaga(<evento real>)` | `"lotado"` | a trava existe e é executável por `anon` |
+   | `registrar_inscricao(<evento inexistente>)` | `"indisponivel"` | a função existe **e devolve a palavra exata que `acoes/inscricoes.ts` espera** |
+   | `select` em `inscricoes` como `anon` | `42501 permission denied` | as três funções **não** viraram porta lateral de leitura |
 
-   Passou a existir. **Enquanto a 010 não for aplicada, o formulário CONTINUA
-   FUNCIONANDO** — `acoes/inscricoes.ts` recebe `PGRST202` e cai num insert direto, que
-   grava. MEDIDO em 02/09/2026 contra o Supabase real: a sonda de `vagasRestantes()` grita
-   no log com o nome do arquivo a aplicar. O que degrada são DUAS coisas:
+   A terceira foi chamada com um evento inexistente **de propósito**: `registrar_inscricao`
+   retorna ANTES do insert quando `reservar_vaga` não responde `ok`, então ela prova a
+   função sem gravar nada no banco de produção. É a mesma disciplina do item 0m, que
+   lamenta uma linha de teste que ficou.
 
-   1. **o LIMITE** volta a ser o balde global de 005 — 30 inscrições por hora para o site
-      inteiro, porque quem faz a requisição é sempre este servidor. O caminho de
-      `/para-escolas` é uma turma se inscrevendo de um IP só, e a 31ª pessoa fecharia o
-      formulário para todo mundo (spec §4.6);
-   2. **a VAGA deixa de ser conferida.** `anon` não tem select em `public.inscricoes`, então
-      contar do lado do servidor devolveria zero para todo mundo e a trava passaria SEMPRE.
-      Uma verificação que nunca dispara é pior que nenhuma. Sem a função não há como
-      conferir, e o código diz isso em vez de fingir.
+   **E o site parou de degradar:** o aviso `[inscricoes] a função public.vagas_restantes
+   não existe` sumiu do log. Antes da migration ele aparecia a cada abertura da página de
+   inscrição — o formulário funcionava do mesmo jeito (insert direto), mas com o balde
+   global de 005 e **sem conferir vaga nenhuma**.
 
-   **Como aplicar:** colar `010_inscricao_por_visitante.sql` no SQL Editor do Supabase.
-   Depois disso, apagar este item. `npm run rls` prova a migration contra um Postgres de
-   verdade (14 testes, bloco "RF15") — inclusive que evento lotado recusa sem gravar, que
-   rascunho responde `indisponivel`, e que as duas constraints do esquema (LGPD e RN02)
-   continuam sendo a rede embaixo da validação da tela.
+   **O que a 010 fechou, e vale registrar porque era invisível:** a corrida de duas pessoas
+   enviando ao mesmo tempo o formulário do último lugar. `reservar_vaga` trava a linha do
+   evento (`for update`), então a segunda requisição espera a primeira terminar antes de
+   contar. É a mesma corrida que continua EM ABERTO na candidatura duplicada da RF25 — lá
+   fechar exigia migration, e a migration não era daquela tarefa.
 
 0z. **A RF15 grava dado de CRIANÇA, e isso muda o peso de duas telas.** `public.inscricoes`
    é a única tabela do projeto com nome e telefone de RESPONSÁVEL por menor de idade
