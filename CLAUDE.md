@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (1202 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (1203)
+npm test                        # suíte completa, modo offline (1249 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (1250)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -37,7 +37,30 @@ npx next dev                    # servir o site
 npx @axe-core/cli http://localhost:3000/ --browser firefox   # acessibilidade
 ```
 
-**MEDIDO em 02/09/2026:** 1202 no modo offline (1188 passando, 5 pulados com motivo
+**MEDIDO em 02/09/2026, ao fim do dia:** 1249 no modo offline (1235 passando, 5 pulados, 9
+`test.todo`) e 1250 com credenciais (1235 passando, 6 pulados, 9 todo), com **zero falhas nos
+dois**. `npm run rls` foi para **118**.
+
+**DOIS TESTES APODRECERAM NESSE DIA, e os dois foram consertados cobrando o invariante certo
+em vez de afrouxar a asserção** — é o item 0x acontecendo de novo, agora com a agenda:
+
+1. `/agenda continua no ar (...) e o estado vazio escrito` afirmava "a tabela está vazia
+   hoje". Ficou vermelho quando a equipe publicou um evento, e estava CERTO em ficar. Agora
+   cobre as duas metades: ou está vazia E traz o texto do estado vazio, ou tem itens E o
+   estado vazio NÃO aparece. Sem a segunda metade, uma página que desenhasse eventos e
+   "nenhuma atividade marcada" ao mesmo tempo passaria;
+2. `ehRotaDinamica()` (`testes/apoio/rotas-migracao.mjs`) cortava só o `[...]` FINAL e
+   comparava por prefixo. Funciona para `/projetos/[id]`; quebra para
+   `/agenda/[id]/inscricao`, onde o `[id]` está no MEIO. **E o defeito era invisível**: com
+   `public.eventos` vazia nenhum link daqueles chegava a ser desenhado. Pior — eu tinha
+   escrito, em comentário, que "nenhum link do site aponta para /agenda/<algo>", como se
+   fosse permanente, e aquilo só valia com a tabela vazia. Agora cada `[algo]` vira `[^/]+` e
+   o casamento é da rota inteira.
+
+**A lição, que vale para o próximo teste:** afirmação sobre o CONTEÚDO de hoje envelhece.
+Afirmação sobre a RELAÇÃO entre o conteúdo e a tela, não.
+
+**MEDIDO antes, no mesmo dia:** 1202 no modo offline (1188 passando, 5 pulados com motivo
 declarado, 9 `test.todo`) e 1203 com credenciais (1188 passando, 6 pulados, 9 todo), com
 **zero falhas nos dois**. `npm run rls` foi de 87 para **101** contra um Postgres de verdade.
 
@@ -505,8 +528,8 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | RF35 | Catálogo com busca | página e busca por `?busca` prontas, **sem dados** |
 | RF36 | Visualização e download | **pronto** (01/09/2026), menos o contador — dois caminhos por material: abrir e baixar. ACHADO: o botão de baixar **nunca baixou nada**, porque o atributo `download` do HTML é ignorado ENTRE ORIGENS e o arquivo mora em `<projeto>.supabase.co`; agora vai `?download=<nome>`, e o nome sai do título, não do uuid. A coluna `downloads` continua em zero e a tela não a mostra: contar visitante exige função `security definer` (MEDIDO: `update` anônimo → `42501`) |
 | RF37 | Publicação de material | **pronto** (01/09/2026) — `/admin/acervo` e `/admin/acervo/apagar`. Só PDF, por assinatura de bytes (`%PDF-`), até 4 MB. O bucket `acervo` é PÚBLICO de propósito (o oposto da galeria na 008): "tirar do ar" mexe só na tabela, então a tela tem apagar |
-| RF27 | Mural de avisos | **bloqueado por migration** (investigado em 01/09/2026, não é código faltando). O escopo pede "visível para voluntários autenticados", e `publicacoes` só sabe `publicado` (mundo) ou não (equipe) — MEDIDO: anônimo com a chave publicável lê `publicado=true` (HTTP 200). Nenhuma política do schema tem a forma `auth.uid() is not null`. Reaproveitar a tabela publicaria comunicação interna na internet aberta |
-| RF28 | Mensagem para grupo | **bloqueado pelo Brevo** — duas faltas independentes, as duas confirmadas em 01/09/2026: não existe `supabase/functions/` (a Edge Function `enviar-email` da spec §9 nunca foi escrita) e não há tabela de envios. Os destinatários existem; o que não existe é com o que enviar |
+| RF27 | Mural de avisos | **pronto** (02/09/2026) — `/avisos` para quem é voluntário, `/admin/avisos` para a equipe escrever. **Tabela NOVA (`public.avisos`, migration 012), e não uma coluna em `publicacoes`**: a política daquela tabela é `using (publicado or eh_equipe())`, e um anônimo com a chave publicável lê tudo que tem `publicado = true` — reaproveitá-la faria a segurança da comunicação interna depender de um `and not interno` escrito certo em toda consulta, para sempre. A política daqui não tem nenhuma forma de `publicado` sozinho. **"Voluntário" = `situacao = 'ativo'`**, não `novo`: qualquer pessoa com conta se candidata, e se `novo` contasse bastaria preencher um formulário para ler a comunicação interna. Depende da migration 012, **ainda não aplicada** (item 0ab) |
+| RF28 | Mensagem para grupo | **pronto** (02/09/2026) — botão separado na tela de avisos, com grupo por lista fechada (voluntários ativos / quem doou / inscritos de um evento). **Nenhum grupo alcança "todo mundo"**, e há teste que falha se aparecer um. **É o único gesto do painel que não tem desfazer**, e por isso os três estão separados (escrever → publicar → enviar), o de enviar só existe em aviso publicado, e o CSS lhe dá a única cor de alerta do painel. O texto NÃO viaja: vai o `id`, e a Edge Function busca o corpo no banco (spec §9). **Um e-mail por pessoa** (`/emails/batch`), nunca uma lista no mesmo `to` — que mostraria o endereço de cada um para todos. Apertar duas vezes não manda duas vezes: o índice único de `envios` pula quem já recebeu |
 | RF29 | Registro central de contatos | **pronto** (01/09/2026) — `/admin/contatos` lê `public.contatos` (`servidor/dados/contatos.ts`) e a equipe marca o andamento do atendimento: nova → em contato → concluída, e de volta, em qualquer sentido (`acoes/contatos.ts`, uma Action, um `update` de uma coluna). A fila começa por quem ainda espera resposta e o que foi concluído DESCE, nunca some. **Ela lê e tria: não apaga e não edita a mensagem** — o texto recebido é registro. Consequência LGPD em aberto: /privacidade promete exclusão a pedido, e isso só se faz no SQL Editor (item 0n). Ninguém percorreu o caminho autenticado — não há sessão de equipe na suíte; o que foi medido está no relatório e em `testes/contatos.test.mjs` + o bloco RF29 de `npm run rls` |
 | RF30–RF32 | Indicadores, CSV, PDF | **os três prontos** — RF30 e RF31 em 01/09/2026, **RF32 em 02/09/2026**: `/admin/relatorio` é uma folha com os seis indicadores e a agenda com inscritos/presentes/sem conferir por evento, mais `estilos/impressao.css` (`@media print` puro) e um botão que chama `window.print()`. **Sem biblioteca de PDF**, e a spec §9 decidiu isso antes da tarefa: no Android, "imprimir" abre "Salvar como PDF". O botão é conveniência — **sem JavaScript o menu do navegador produz o MESMO documento**, porque quem o gera é o CSS. A folha de impressão é importada no layout do painel inteiro, então imprimir qualquer tela dele passou a dar um documento legível. Seis números na home do painel, abaixo dos cartões (no topo empurrariam o trabalho para fora da dobra a 375px), com `count` + `head: true` — nenhuma linha atravessa a rede para desenhar um algarismo. **Zero é número; contagem que falhou é traço**, nunca um zero inventado. CSV em `/admin/exportar/{contatos,voluntarios}`, com neutralização de fórmula (`= + - @`) — as aspas NÃO protegem disso. ANTES DIZIA: falta — **falta** — os indicadores da home do painel existiam no site antigo e **não foram portados**; só na `main` |
 
@@ -530,7 +553,9 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | Migration 010 (inscrição por visitante) | **APLICADA em 02/09/2026, e o efeito foi medido** — `supabase/migrations/010_inscricao_por_visitante.sql`. É a função irmã que a 007 deixou anotada. Provada contra Postgres real em `npm run rls` (bloco "RF15", 14 testes) **e** contra o projeto de produção (item 0y) |
 | Domínio próprio `atelieafrocultural.site` | **comprado e no ar** (02/09/2026) — registrado na Hostinger, nameservers na Vercel. O site responde em `www.atelieafrocultural.site` (o apex faz 308 para o www), com a CSP, o `noindex` e o banco ligado (`data-origem-atividades="banco"`). **Isso resolve a decisão D6**, que assumia não haver domínio |
 | E-mail (Resend) | **DNS pronto, conta por ligar** — SPF, DKIM (218 caracteres, íntegro) e o MX do return-path `send` conferidos por `dig` em 02/09/2026, região São Paulo. Click tracking DESLIGADO de propósito: ele reescreveria todo link do e-mail, o que contradiz /privacidade e poria um salto no meio de um link de token de uso único. **Falta**: DMARC (`_dmarc` TXT `v=DMARC1; p=none;`), a API key na Edge Function e o SMTP no Supabase Auth. O Resend substituiu o Brevo porque **passou a haver domínio** — sem ele o Resend só entrega no e-mail da própria conta |
-| Edge Function de e-mail | **falta** |
+| Edge Function de e-mail | **escrita e PUBLICADA** (02/09/2026) — `supabase/functions/enviar-email/`. Único ponto do projeto com a service role (spec §9). MEDIDO em produção: ela responde `401 {"erro":"nao_autorizado"}` sem a chave compartilhada — e como a conferência de configuração vem ANTES da conferência da chave, esse 401 prova que os quatro secrets estão lá (faltando um, seria `500 nao_configurada`) |
+| Migration 011 (registro de envios) | **APLICADA** (02/09/2026) — MEDIDO: `select` anônimo em `envios` responde `42501 permission denied`, e não `PGRST205 could not find the table`. A tabela existe e `anon` não alcança |
+| Migration 012 (mural de avisos) | **escrita e testada, NÃO APLICADA** — `supabase/migrations/012_avisos.sql`. Provada em `npm run rls` (bloco "RF27", 9 testes). Ver item 0ab |
 | Manual da ONG (RNF07) | **escrito, não verificado com a equipe** (01/09/2026) — `docs/manual-da-equipe.md` (as quatro telas do painel, entrar/sair/senha, RN07 explicada, o que o painel NÃO faz e por quê, o que fazer quando dá erro) e `docs/guia-rapido-da-equipe.md` (uma página para imprimir). Escrito lendo as telas, passo a passo; **ninguém percorreu o painel autenticado para conferir** (item 3 de "O que trava hoje"), e o treinamento presencial que a RNF07 também pede continua faltando |
 
 ---
@@ -1209,6 +1234,55 @@ revisitada e mantida naquela tarefa.
    `TESTE AUTOMATIZADO - apagar (RF15)`, e depois
    `delete from public.inscricoes where email = 'teste-rf15@exemplo.invalid';` no SQL
    Editor. A equipe LÊ essa linha em `/admin/eventos/inscritos`, mas não a apaga por ali.
+
+0ab. **A migration 012 está escrita, testada e NÃO APLICADA — e a falta dela é a única que
+   ESCONDE em vez de degradar.** Nasceu com o RF27 (02/09/2026).
+   `supabase/migrations/012_avisos.sql` cria `public.avisos` e a função
+   `public.eh_voluntario_ativo()`.
+
+   **O comportamento sem ela é diferente de todas as outras migrations pendentes.** A 007 e a
+   010 tinham caminho de degradação: o formulário continuava gravando, só com limite pior.
+   Aqui não há caminho: sem a tabela, `/admin/avisos` mostra o estado de falha e `/avisos`
+   diz que não deu para carregar. **Nada quebra, e nada funciona** — o que é honesto, e é o
+   melhor desfecho possível para uma tela de comunicação interna que não existe ainda.
+
+   **Como aplicar:** colar `012_avisos.sql` no SQL Editor do Supabase. Depois disso, apagar
+   este item.
+
+   **Uma decisão desta migration precisa ser conferida com o grupo**, e ela está no comentário
+   da função: *"voluntário autenticado"* virou `situacao = 'ativo'`, e não `'novo'`. O escopo
+   pede o mural "visível para voluntários autenticados", e a leitura honesta disso é quem JÁ
+   É voluntário. A diferença importa porque `/voluntariado/candidatura` é pública: se `novo`
+   contasse, bastaria preencher um formulário para passar a ler a comunicação interna da ONG.
+
+   **O preço, dito em voz alta:** um aviso novo não alcança ninguém até a equipe promover
+   alguém a `ativo` em `/admin/voluntarios` — o que já é um toque naquela tela, e já é o gesto
+   que significa "esta pessoa entrou". Mudar para incluir `em_contato` é uma linha, na função
+   do banco e no comentário que a explica.
+
+0ac. **O RF28 é o único gesto do painel que não tem desfazer, e três coisas seguram isso.**
+   Todo o resto é reversível: tirar do ar devolve, editar regrava, apagar uma foto tem tela de
+   confirmação antes. **E-mail enviado não volta**, e o RF28 alcança um grupo.
+
+   1. **Três gestos separados** — escrever (`salvarAviso`, que não conhece a coluna
+      `publicado`), publicar (`alternarAviso`) e enviar (`enviarAviso`). Há teste que falha se
+      a palavra `publicado` aparecer dentro de `salvarAviso`;
+   2. **enviar só existe em aviso PUBLICADO**, recusado na Action E na Edge Function. A
+      segunda é a rede embaixo da primeira, e existe porque o botão fica a um toque do botão
+      de publicar, num celular;
+   3. **o texto não viaja.** Vai o `id`, e a função busca o corpo no banco. `PedidoDeEmail`
+      não tem campo de assunto, corpo nem destinatário em variante nenhuma — há teste que
+      falha se algum aparecer. Sem isso, este endpoint seria um jeito de mandar qualquer
+      coisa para uma lista, em nome do domínio da ONG.
+
+   **E um vazamento que o desenho evita:** o envio usa `/emails/batch` do Resend, com uma
+   mensagem por pessoa e um `to` de um elemento só. O caminho barato (`to: [todos]`) mostraria
+   o endereço de cada pessoa para todas as outras — um vazamento de dado pessoal em massa,
+   feito pela própria ONG, que só apareceria quando alguém respondesse "responder a todos".
+
+   **Apertar o botão duas vezes é seguro:** `public.envios` recebe uma linha por destinatário
+   ANTES da chamada ao provedor, e o índice único pula quem já recebeu aquele aviso. A segunda
+   vez alcança só quem faltou.
 
 **Do projeto, válidos para as duas branches:**
 

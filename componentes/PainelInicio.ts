@@ -188,6 +188,13 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     // app/admin/relatorio/ — é o que o teste de reconciliação cobra nos
     // dois sentidos.
     pronta: true
+  },
+  {
+    caminho: '/admin/avisos',
+    titulo: 'Avisos para voluntários',
+    descricao: 'Recados que aparecem no mural do site e podem ir por e-mail.',
+    // Virou `true` em 02/09/2026, no mesmo commit que criou app/admin/avisos/.
+    pronta: true
   }
 ];
 

@@ -76,10 +76,23 @@ function configuracao(): { endereco: string; chave: string; anon: string } | nul
  */
 const PRAZO_MS = 6_000;
 
-/** O que a Edge Function aceita. Duas formas, e nenhuma carrega texto. */
+/**
+ * O que a Edge Function aceita. Três formas, e NENHUMA carrega texto.
+ *
+ * É a regra da spec §9 escrita no tipo: não existe campo de assunto, de
+ * corpo nem de destinatário em variante nenhuma. O que viaja é sempre um
+ * identificador — a função busca o conteúdo no banco.
+ *
+ * O terceiro (`aviso`, RF28) é o que mais depende disso: ele alcança um
+ * GRUPO. Se o texto viesse daqui, este endpoint seria um jeito de mandar
+ * qualquer coisa para uma lista de terceiros, em nome do domínio da ONG.
+ * O grupo também é uma chave de lista fechada, não um critério de consulta
+ * — ver compartilhado/grupos-de-aviso.ts.
+ */
 export type PedidoDeEmail =
   | { tipo: 'inscricao'; evento_id: string; email: string }
-  | { tipo: 'doacao'; id: string };
+  | { tipo: 'doacao'; id: string }
+  | { tipo: 'aviso'; id: string; grupo: string; evento_id?: string };
 
 /**
  * Pede o envio. Devolve `true` só quando a função confirmou.

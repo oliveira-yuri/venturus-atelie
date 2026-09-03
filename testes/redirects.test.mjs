@@ -127,6 +127,22 @@ const PAGINAS_SEM_URL_ANTIGA = [
   '/admin/eventos/inscritos',
   '/admin/eventos/presenca',
   '/admin/relatorio',
+  /*
+   * RF27 e RF28 (02/09/2026): o mural de avisos e o envio para grupo.
+   *
+   * CONFERIDO antes de dispensar, porque a spec §3 desenhava um
+   * `site/admin/avisos.html` e valia checar: o diretório congelado do
+   * painel antigo (testes/apoio/html-original/admin/) tem UM arquivo só,
+   * `index.html` — e ele linka para quatro telas (doacoes, eventos,
+   * presenca, publicacoes) que também nunca existiram como arquivo. Aviso
+   * não estava nem entre as promessas.
+   *
+   * `/avisos` (o mural público) também nunca existiu: o site antigo não
+   * tinha área de voluntário nenhuma.
+   */
+  '/admin/avisos',
+  '/admin/avisos/editar',
+  '/avisos',
   // Tarefa P2 do painel. As duas telas de publicações NUNCA existiram como
   // arquivo: a home do painel antigo (hoje congelada em
   // testes/apoio/html-original/admin/index.html) LINKAVA para "publicacoes",

@@ -156,3 +156,72 @@ export const ehEquipe = cache(async function ehEquipe(): Promise<boolean> {
     return false;
   }
 });
+
+/**
+ * A pessoa é voluntária ATIVA? (RF27)
+ *
+ * =====================================================================
+ * ELA NÃO AUTORIZA NADA — QUEM AUTORIZA É A RLS
+ * =====================================================================
+ *
+ * A política de `public.avisos` (migration 012) é
+ *
+ *     using ((publicado and public.eh_voluntario_ativo()) or public.eh_equipe())
+ *
+ * ou seja, quem não é voluntário ativo já recebe lista VAZIA do Postgres,
+ * com ou sem esta função. Ela existe para a TELA conseguir dizer a
+ * diferença entre "não há aviso nenhum" e "você ainda não é voluntário
+ * ativo" — duas listas vazias idênticas que mandam a pessoa fazer coisas
+ * muito diferentes.
+ *
+ * =====================================================================
+ * ELA CHAMA A MESMA FUNÇÃO DO BANCO QUE A POLÍTICA CHAMA
+ * =====================================================================
+ *
+ * E isso é deliberado: consultar `voluntarios` daqui e comparar
+ * `situacao === 'ativo'` no JavaScript criaria uma SEGUNDA definição de
+ * "voluntário ativo". No dia em que a ONG decidisse que 'em_contato'
+ * também conta, a política mudaria e esta tela continuaria dizendo o
+ * contrário — sem nada quebrar.
+ *
+ * =====================================================================
+ * FALHA FECHADA, como `ehEquipe()`
+ * =====================================================================
+ *
+ * Sem Supabase, sem sessão, consulta com erro ou prazo estourado: tudo
+ * vira `false`. Aqui o custo de errar para o lado fechado é uma frase a
+ * mais na tela; para o lado aberto, seria a tela afirmar que a pessoa é
+ * voluntária quando o banco não devolveu nada.
+ */
+export const ehVoluntarioAtivo = cache(async function ehVoluntarioAtivo(): Promise<boolean> {
+  if (!temSupabase()) return false;
+  if (!await usuarioAtual()) return false;
+
+  try {
+    const resposta = await comPrazo(
+      (async () => (await obterCliente()).rpc('eh_voluntario_ativo'))(),
+      PRAZO_DA_PERMISSAO_MS
+    );
+
+    // `comPrazo` devolve NULL quando o prazo estoura — e prazo estourado é
+    // falha FECHADA, como todo o resto desta função. O TypeScript cobrou
+    // isto, e ele estava certo: sem o teste, `resposta.error` num timeout
+    // seria um acesso em nulo, ou seja, uma exceção no meio de uma
+    // verificação de permissão.
+    if (!resposta) {
+      console.error('[permissao] eh_voluntario_ativo: o banco não respondeu no prazo.');
+      return false;
+    }
+
+    if (resposta.error) {
+      console.error('[permissao] eh_voluntario_ativo:', descrever(resposta.error));
+      return false;
+    }
+
+    return resposta.data === true;
+  } catch (erro) {
+    repassarSeForControleDoNext(erro);
+    console.error('[permissao] eh_voluntario_ativo (exceção):', descrever(erro));
+    return false;
+  }
+});

@@ -245,6 +245,29 @@ export default async function MinhaConta(
         />
 
         {/*
+          O ÚNICO CAMINHO ATÉ O MURAL (RF27), e ele fica aqui pelo mesmo
+          motivo de /minha-conta ficar atrás do nome no cabeçalho: o menu é
+          o mesmo para toda visita, e um item "Avisos" ali só redirecionaria
+          a maioria.
+
+          O LINK APARECE PARA QUEM TEM QUALQUER CANDIDATURA, e não só para
+          quem está `ativo`. É deliberado: quem se candidatou ontem precisa
+          conseguir CHEGAR ao mural para ler, na própria página dele, que
+          ele é para quem já está voluntariando — e o que fazer enquanto
+          isso. Esconder o link faria a pessoa nunca descobrir que o mural
+          existe, e a explicação não teria onde aparecer.
+
+          Quem não pode ler não lê: a política de `public.avisos`
+          (migration 012) decide isso no banco, muito antes desta página.
+        */}
+        {candidaturas.length > 0 ? (
+          <p className="chamada-final">
+            <Link href="/avisos">Ver o mural de avisos</Link> — recados da equipe para quem
+            está voluntariando.
+          </p>
+        ) : null}
+
+        {/*
           O BOTÃO SÓ APARECE PARA QUEM NÃO TEM CANDIDATURA EM ANDAMENTO, e é
           a mesma regra que a tela de candidatura e a Server Action aplicam
           (compartilhado/candidatura.ts). Oferecer "Candidatar-se" a quem já

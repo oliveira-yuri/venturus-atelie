@@ -2981,3 +2981,76 @@ export function validarInscricao(
 
   return { valido: Object.keys(erros).length === 0, erros };
 }
+
+// =====================================================================
+// Mural de avisos (RF27) e mensagem para grupo (RF28)
+//
+// O MESMO TEXTO SERVE AS DUAS COISAS, e é isso que faz o RF28 caber na
+// regra da Edge Function (spec §9): ela não aceita texto no payload, só um
+// identificador. Com o aviso já gravado, o que viaja até ela é o `id` — e
+// ela busca o corpo no banco.
+//
+// Sem isso, "mandar mensagem para um grupo" seria um endpoint que recebe
+// texto e uma lista de destinatários, ou seja, um formulário aberto para
+// enviar e-mail em nome da ONG.
+// =====================================================================
+
+export type CamposAviso = {
+  /** Vazio quando é um aviso NOVO. Preenchido quando é correção. */
+  id: string;
+  titulo: string;
+  corpo: string;
+};
+
+/**
+ * Os tetos. Os mesmos de `publicacoes`, de propósito: é o mesmo gesto
+ * (escrever um texto no painel, do celular) e duas regras de tamanho para
+ * a mesma coisa divergiriam.
+ */
+export function lerAviso(dados: FormData): CamposAviso {
+  return {
+    id: textoDoCampo(dados, 'id'),
+    titulo: textoDoCampo(dados, 'titulo'),
+    corpo: textoDoCampo(dados, 'corpo')
+  };
+}
+
+export function validarAviso(campos: CamposAviso): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  // `id` vazio é um aviso NOVO — não é erro. O que é erro é um id que
+  // existe e não é um identificador.
+  if (campos.id && !ehIdentificador(campos.id)) {
+    erros.id = 'Não deu para identificar qual aviso é este. Volte para a lista e abra de novo.';
+  }
+
+  if (!campos.titulo) {
+    erros.titulo = 'Escreva um título — é o que aparece primeiro no mural.';
+  } else if (campos.titulo.length > LIMITE_TITULO) {
+    erros.titulo = `O título passou de ${LIMITE_TITULO} caracteres.`;
+  }
+
+  if (!campos.corpo) {
+    erros.corpo = 'Escreva o aviso.';
+  } else if (campos.corpo.length > LIMITE_CORPO) {
+    erros.corpo = `O aviso passou de ${LIMITE_CORPO} caracteres.`;
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}
+
+/**
+ * O objeto que vai ao `.insert()`/`.update()`, montado chave por chave.
+ *
+ * `publicado` E `publicado_em` NÃO ESTÃO AQUI, e a ausência é a regra:
+ * quem publica é `alternarAviso`, num botão separado. Escrever não é
+ * publicar — e num mural INTERNO o descuido põe algo na frente de gente
+ * que ainda não devia ver. Mesma decisão de `salvarPublicacao`.
+ *
+ * `id` também não: numa correção ele vai no `.eq()`, e numa criação ele
+ * nasce do `default` da coluna. Deixá-lo aqui permitiria escolher o id de
+ * uma linha nova pelo corpo da requisição.
+ */
+export function colunasDoAviso(campos: CamposAviso): { titulo: string; corpo: string } {
+  return { titulo: campos.titulo, corpo: campos.corpo };
+}

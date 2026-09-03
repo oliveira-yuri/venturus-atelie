@@ -317,6 +317,228 @@ async function enviarPeloProvedor(
 }
 
 /* =====================================================================
+   RF28 — o aviso para um grupo
+   ===================================================================== */
+
+/**
+ * Quantas pessoas um único aviso pode alcançar.
+ *
+ * NÃO É UM LIMITE DE PRODUTO, é um fusível. A ONG tem dezenas de
+ * voluntários, não milhares; um grupo que passe disto é sinal de que algo
+ * está errado na consulta, e o desfecho de mandar mesmo assim seria
+ * irreversível. Quem bater no teto recebe uma recusa com o número, não um
+ * envio pela metade.
+ */
+const LIMITE_DE_DESTINATARIOS = 300;
+
+/**
+ * O grupo, resolvido em endereços de e-mail — SEMPRE a partir do banco.
+ *
+ * A chave vem de uma lista fechada (compartilhado/grupos-de-aviso.ts, do
+ * lado do site) e é conferida de novo AQUI: quem chama a função pode não
+ * ser o site. Sem esta lista, o parâmetro escolheria a consulta.
+ */
+async function enderecosDoGrupo(
+  supabase: ReturnType<typeof createClient>,
+  grupo: string,
+  eventoId?: string
+): Promise<{ ok: true; enderecos: string[] } | { ok: false; erro: string }> {
+  if (grupo === 'voluntarios') {
+    // ATIVOS, e só. É o MESMO recorte de `public.eh_voluntario_ativo()`
+    // (migration 012), ou seja, o mesmo grupo que enxerga o mural — quem
+    // acabou de se candidatar não recebe comunicação interna.
+    const { data, error } = await supabase
+      .from('voluntarios')
+      .select('perfis(email)')
+      .eq('situacao', 'ativo');
+
+    if (error) return { ok: false, erro: String(error.message) };
+
+    return {
+      ok: true,
+      enderecos: (data ?? [])
+        .map((linha) => {
+          const p = Array.isArray(linha.perfis) ? linha.perfis[0] : linha.perfis;
+          return p?.email ?? null;
+        })
+        .filter((e): e is string => Boolean(e))
+    };
+  }
+
+  if (grupo === 'doadores') {
+    // A doação pode ter vindo de quem tem conta OU de fora do site
+    // (`doador_email` com `perfil_id` nulo — RF21). Os dois entram.
+    const { data, error } = await supabase
+      .from('doacoes')
+      .select('doador_email, perfis(email)');
+
+    if (error) return { ok: false, erro: String(error.message) };
+
+    return {
+      ok: true,
+      enderecos: (data ?? [])
+        .map((linha) => {
+          const p = Array.isArray(linha.perfis) ? linha.perfis[0] : linha.perfis;
+          return linha.doador_email ?? p?.email ?? null;
+        })
+        .filter((e): e is string => Boolean(e))
+    };
+  }
+
+  if (grupo === 'inscritos') {
+    if (!eventoId) return { ok: false, erro: 'grupo de inscritos sem evento' };
+
+    const { data, error } = await supabase
+      .from('inscricoes').select('email').eq('evento_id', eventoId);
+
+    if (error) return { ok: false, erro: String(error.message) };
+
+    return { ok: true, enderecos: (data ?? []).map((l) => l.email).filter(Boolean) };
+  }
+
+  return { ok: false, erro: `grupo desconhecido: ${grupo}` };
+}
+
+/**
+ * Manda o aviso para o grupo.
+ *
+ * ===================================================================
+ * UM E-MAIL POR PESSOA, NUNCA UMA LISTA NO MESMO `to`
+ * ===================================================================
+ *
+ * O caminho barato seria `to: [todos]` numa requisição só. Isso mostraria
+ * o endereço de cada pessoa para todas as outras — um vazamento de dado
+ * pessoal em massa, feito pela própria ONG, sem que ninguém percebesse até
+ * alguém responder "responder a todos".
+ *
+ * O `/emails/batch` do Resend resolve os dois lados: UMA requisição com N
+ * mensagens SEPARADAS, cada uma com um destinatário só. Ninguém vê ninguém,
+ * e o limite de requisições por segundo do provedor não é gasto uma vez por
+ * pessoa.
+ *
+ * ===================================================================
+ * O REGISTRO VEM ANTES DO ENVIO, PESSOA POR PESSOA
+ * ===================================================================
+ *
+ * `public.envios` recebe uma linha por destinatário ANTES da chamada ao
+ * provedor, e o índice único é quem decide quem entra: se este aviso já foi
+ * para aquela pessoa, ela é PULADA. Isso é o que torna o botão seguro de
+ * apertar duas vezes — a segunda vez alcança só quem faltou.
+ *
+ * Ao contrário, registrar depois faria uma falha de gravação virar reenvio
+ * na próxima tentativa.
+ */
+async function enviarAvisoParaGrupo(
+  supabase: ReturnType<typeof createClient>,
+  corpo: { id?: string; grupo?: string; evento_id?: string }
+): Promise<Response> {
+  const { id, grupo, evento_id: eventoId } = corpo;
+
+  if (typeof id !== 'string' || typeof grupo !== 'string') {
+    return responder({ erro: 'pedido_invalido' }, 400);
+  }
+
+  // O TEXTO VEM DO BANCO. É a regra inteira da spec §9.
+  const { data: aviso, error: erroDoAviso } = await supabase
+    .from('avisos').select('titulo, corpo, publicado').eq('id', id).maybeSingle();
+
+  if (erroDoAviso || !aviso) return responder({ erro: 'registro_nao_encontrado' }, 404);
+
+  // RASCUNHO NÃO SAI. A Action já recusa antes; esta é a rede embaixo dela,
+  // e ela existe porque o desfecho não tem desfazer.
+  if (!aviso.publicado) return responder({ erro: 'aviso_nao_publicado' }, 409);
+
+  const resolvido = await enderecosDoGrupo(supabase, grupo, eventoId);
+  if (!resolvido.ok) {
+    console.error('[enviar-email] não deu para resolver o grupo:', resolvido.erro);
+    return responder({ erro: 'grupo_invalido', detalhe: resolvido.erro }, 400);
+  }
+
+  // Sem duplicata: a mesma pessoa pode estar em duas candidaturas, ou ter
+  // duas doações. Um aviso que chega duas vezes parece defeito.
+  const enderecos = [...new Set(resolvido.enderecos.map((e) => e.trim().toLowerCase()))];
+
+  if (enderecos.length === 0) return responder({ ok: true, enviados: 0, grupo_vazio: true });
+
+  if (enderecos.length > LIMITE_DE_DESTINATARIOS) {
+    return responder({
+      erro: 'grupo_grande_demais',
+      detalhe: `${enderecos.length} destinatários, o teto é ${LIMITE_DE_DESTINATARIOS}`
+    }, 413);
+  }
+
+  // Reserva pessoa por pessoa. Quem já recebeu ESTE aviso é pulado pelo
+  // índice único (23505) — ver o cabeçalho.
+  const paraEnviar: { email: string; envioId: string }[] = [];
+
+  for (const email of enderecos) {
+    const destinatario = await hash(email);
+    const reserva = await supabase
+      .from('envios')
+      .insert({ tipo: 'aviso', referencia_id: id, destinatario, situacao: 'enviado' })
+      .select('id')
+      .maybeSingle();
+
+    if (reserva.error) {
+      if ((reserva.error as { code?: string }).code !== '23505') {
+        console.error('[enviar-email] não deu para reservar:', reserva.error);
+      }
+      continue;  // já enviado antes, ou falha de gravação: não manda.
+    }
+
+    paraEnviar.push({ email, envioId: reserva.data!.id });
+  }
+
+  if (paraEnviar.length === 0) return responder({ ok: true, enviados: 0, ja_enviado: true });
+
+  const mensagem = montar(aviso.titulo, [
+    escapar(aviso.corpo).replace(/\n/g, '<br>'),
+    `Você recebe este aviso porque tem um vínculo ativo com o Ateliê Afro Cultural. `
+    + `Para conversar, é só responder este e-mail ou chamar no WhatsApp ${WHATSAPP}.`
+  ]);
+
+  let falhou: string | null = null;
+
+  try {
+    const resposta = await fetch('https://api.resend.com/emails/batch', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${RESEND_API_KEY}`,
+        'content-type': 'application/json'
+      },
+      // UMA MENSAGEM POR PESSOA, com um `to` de um elemento só — ver o
+      // cabeçalho sobre por que nunca uma lista no mesmo `to`.
+      body: JSON.stringify(paraEnviar.map(({ email }) => ({
+        from: REMETENTE,
+        to: [email],
+        reply_to: RESPONDER_PARA,
+        subject: aviso.titulo,
+        html: mensagem.html,
+        text: mensagem.texto
+      })))
+    });
+
+    if (!resposta.ok) falhou = `${resposta.status}: ${(await resposta.text()).slice(0, 400)}`;
+  } catch (erro) {
+    falhou = `rede: ${String(erro).slice(0, 400)}`;
+  }
+
+  if (falhou) {
+    // Todas as reservas viram 'falhou', e o índice PARCIAL libera a
+    // retentativa — apertar o botão de novo alcança as mesmas pessoas.
+    await supabase
+      .from('envios')
+      .update({ situacao: 'falhou', erro: falhou })
+      .in('id', paraEnviar.map((p) => p.envioId));
+
+    console.error('[enviar-email] o provedor recusou o lote:', falhou);
+    return responder({ erro: 'falha_no_envio', detalhe: falhou }, 502);
+  }
+
+  return responder({ ok: true, enviados: paraEnviar.length });
+}
+
+/* =====================================================================
    A porta
    ===================================================================== */
 
@@ -341,24 +563,31 @@ Deno.serve(async (requisicao: Request) => {
     return responder({ erro: 'nao_autorizado' }, 401);
   }
 
-  let corpo: { tipo?: string; id?: string; evento_id?: string; email?: string };
+  let corpo: {
+    tipo?: string; id?: string; evento_id?: string; email?: string; grupo?: string;
+  };
   try {
     corpo = await requisicao.json();
   } catch {
     return responder({ erro: 'corpo_invalido' }, 400);
   }
 
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
+    auth: { persistSession: false }
+  });
+
   const tipo = corpo.tipo;
 
   // LISTA FECHADA, e ela é a mesma do `check` de `public.envios`. Divergindo,
   // um envio entraria com um tipo que nenhuma tela sabe ler.
-  if (tipo !== 'inscricao' && tipo !== 'doacao') {
+  if (tipo !== 'inscricao' && tipo !== 'doacao' && tipo !== 'aviso') {
     return responder({ erro: 'pedido_invalido' }, 400);
   }
 
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { persistSession: false }
-  });
+  // O RF28 alcança um GRUPO, e por isso ele tem um caminho próprio: em vez
+  // de um destinatário, ele resolve uma lista. Sai antes para não misturar
+  // com a lógica de "um e-mail só" abaixo.
+  if (tipo === 'aviso') return await enviarAvisoParaGrupo(supabase, corpo);
 
   // ---------------------------------------------------------------
   // Os dados vêm do BANCO, nunca do payload — é o desenho inteiro.

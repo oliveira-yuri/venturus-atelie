@@ -172,14 +172,15 @@ async function comoEVerificar(papel, uuid, sqlAcao, sqlVerificacao) {
 // =====================================================================
 
 describe('as migrations aplicam sem erro', () => {
-  test('as 16 tabelas existem', async () => {
+  test('as 17 tabelas existem', async () => {
     const { rows } = await cliente.query(`
       select tablename from pg_tables where schemaname = 'public' order by tablename
     `);
-    // A 16ª é `public.envios` (migration 011, RF18/RF20/RF28). Este número
-    // sobe DE PROPÓSITO junto com uma migration — ele é a trava que faz
-    // qualquer tabela nova passar por uma revisão de RLS antes de existir.
-    assert.equal(rows.length, 16, `esperadas 16 tabelas, vieram ${rows.length}`);
+    // A 16ª é `public.envios` (011) e a 17ª é `public.avisos` (012). Este
+    // número sobe DE PROPÓSITO junto com uma migration — ele é a trava que
+    // faz qualquer tabela nova passar por uma revisão de RLS antes de
+    // existir.
+    assert.equal(rows.length, 17, `esperadas 17 tabelas, vieram ${rows.length}`);
   });
 
   test('toda tabela do schema public tem RLS habilitada', async () => {
@@ -1722,5 +1723,130 @@ describe('RF18/RF20/RF28: o registro de envios (migration 011)', () => {
 
       assert.ok(erro, `o check de ${coluna} aceitou "${valor}"`);
     }
+  });
+});
+
+// =====================================================================
+// RF27 — o mural de avisos (migration 012)
+//
+// ESTA É A PRIMEIRA TABELA DO PROJETO COM UM PÚBLICO NO MEIO. Todas as
+// outras são "o mundo vê" ou "só a equipe vê". Esta tem um terceiro
+// estado: voluntário ativo vê o que está publicado, e mais ninguém.
+//
+// O QUE OS TESTES ABAIXO PROTEGEM:
+//
+//  · que `anon` não alcança NADA. É a trava antes da RLS — sem grant, o
+//    papel anônimo não tem nem o privilégio de tentar;
+//  · que uma conta comum, SEM candidatura, não lê. É o caso que reusar
+//    `publicacoes` teria deixado passar: lá, `publicado = true` significa
+//    "o mundo vê", e um aviso interno publicado ficaria na internet aberta;
+//  · que uma candidatura 'novo' NÃO basta. Qualquer pessoa com conta se
+//    candidata em /voluntariado/candidatura — se 'novo' contasse, preencher
+//    um formulário daria acesso à comunicação interna;
+//  · que 'ativo' basta, e que a equipe lê inclusive RASCUNHO.
+// =====================================================================
+
+describe('RF27: o mural de avisos (migration 012)', () => {
+  const AVISO = '88888888-8888-8888-8888-888888888888';
+  const RASCUNHO = '99999999-9999-9999-9999-999999999999';
+
+  /** Põe a candidatura da PESSOA numa situação, para medir o efeito dela. */
+  async function candidaturaEm(situacao) {
+    await cliente.query(
+      `insert into public.voluntarios (perfil_id, situacao) values ($1, $2)
+       on conflict do nothing`, [PESSOA, situacao]);
+  }
+
+  test('os avisos de teste existem, um publicado e um rascunho', async () => {
+    await cliente.query(
+      `insert into public.avisos (id, titulo, corpo, publicado)
+       values ($1, 'Aviso publicado', 'corpo', true),
+              ($2, 'Aviso em rascunho', 'corpo', false)
+       on conflict (id) do nothing`, [AVISO, RASCUNHO]);
+
+    const { rows } = await cliente.query('select count(*)::int as n from public.avisos');
+    assert.ok(rows[0].n >= 2);
+  });
+
+  test('anon NÃO alcança o mural — nem com a política errada alcançaria', async () => {
+    const { erro } = await comoAnonimo('select * from public.avisos');
+    assert.ok(erro, 'anon leu public.avisos — o mural é comunicação interna');
+  });
+
+  test('conta comum SEM candidatura não lê nada', async () => {
+    // É exatamente o caso que reaproveitar `publicacoes` deixaria passar.
+    const { linhas } = await comoPessoa('select * from public.avisos');
+    assert.deepEqual(linhas, [], 'quem não é voluntário leu o mural');
+  });
+
+  test('candidatura "novo" NÃO basta — preencher um formulário não é ser voluntário', async () => {
+    await cliente.query('begin');
+    try {
+      await cliente.query(
+        `insert into public.voluntarios (perfil_id, situacao) values ($1, 'novo')`, [PESSOA]);
+      await cliente.query(`select set_config('request.jwt.claims', '{"sub":"${PESSOA}"}', true)`);
+      await cliente.query('set local role authenticated');
+      const { rows } = await cliente.query('select * from public.avisos');
+      assert.deepEqual(rows, [],
+        'uma candidatura recém-enviada deu acesso à comunicação interna da ONG');
+    } finally {
+      await cliente.query('rollback');
+    }
+  });
+
+  test('candidatura "ativo" LÊ o que está publicado — e só isso', async () => {
+    await cliente.query('begin');
+    try {
+      await cliente.query(
+        `insert into public.voluntarios (perfil_id, situacao) values ($1, 'ativo')`, [PESSOA]);
+      await cliente.query(`select set_config('request.jwt.claims', '{"sub":"${PESSOA}"}', true)`);
+      await cliente.query('set local role authenticated');
+      const { rows } = await cliente.query('select id, titulo from public.avisos');
+
+      assert.ok(rows.length >= 1, 'o voluntário ativo não leu o aviso publicado');
+      assert.equal(rows.some((r) => r.id === RASCUNHO), false,
+        'o voluntário ativo leu um RASCUNHO — escrever não é publicar');
+    } finally {
+      await cliente.query('rollback');
+    }
+  });
+
+  test('a equipe lê tudo, inclusive rascunho', async () => {
+    const { linhas, erro } = await como('authenticated', EQUIPE, 'select id from public.avisos');
+    assert.equal(erro, null, `a equipe foi bloqueada: ${erro?.message}`);
+    assert.ok(linhas.some((l) => l.id === RASCUNHO), 'a equipe não enxergou o rascunho');
+  });
+
+  test('voluntário ativo NÃO escreve no mural — o mural é da ONG', async () => {
+    await cliente.query('begin');
+    try {
+      await cliente.query(
+        `insert into public.voluntarios (perfil_id, situacao) values ($1, 'ativo')`, [PESSOA]);
+      await cliente.query(`select set_config('request.jwt.claims', '{"sub":"${PESSOA}"}', true)`);
+      await cliente.query('set local role authenticated');
+
+      let erro = null;
+      try {
+        await cliente.query(
+          `insert into public.avisos (titulo, corpo) values ('meu aviso', 'oi')`);
+      } catch (falha) { erro = falha; }
+
+      assert.ok(erro, 'um voluntário escreveu no mural — ele LÊ, quem escreve é a equipe');
+    } finally {
+      await cliente.query('rollback');
+    }
+  });
+
+  test('eh_voluntario_ativo() não entra em recursão', async () => {
+    // A armadilha: a função consulta `voluntarios`, que tem política. Sem
+    // SECURITY DEFINER isto estoura com "stack depth limit exceeded" — é o
+    // mesmo defeito que `eh_equipe()` já teve de resolver em perfis.
+    const { erro } = await comoPessoa('select public.eh_voluntario_ativo()');
+    assert.equal(erro, null, `recursão em eh_voluntario_ativo: ${erro?.message}`);
+  });
+
+  test('anon não executa eh_voluntario_ativo()', async () => {
+    const { erro } = await comoAnonimo('select public.eh_voluntario_ativo()');
+    assert.ok(erro, 'anon executou a função que decide quem lê o mural');
   });
 });

@@ -641,19 +641,42 @@ test('a tela de edição com um id qualquer também é 404 — não conta o que 
 // 8. /agenda intacta
 // =====================================================================
 
-test('/agenda continua no ar, com as duas seções e o estado vazio escrito', async () => {
-  // A tabela `eventos` está vazia (e no modo offline não há Supabase
-  // nenhum), então a página continua mostrando o estado vazio da Tarefa A4.
-  // É o que prova que ligar o painel à tabela não mexeu na página pública —
-  // cujo texto é comparado palavra por palavra com o HTML original em
-  // testes/paridade-texto.test.mjs.
+test('/agenda continua no ar, com as duas seções e o estado certo para o conteúdo', async () => {
+  /*
+   * ESTE TESTE JÁ AFIRMOU "a agenda está vazia hoje", E APODRECEU.
+   *
+   * Ele ficou vermelho em 02/09/2026, quando a equipe publicou um evento —
+   * e estava certo em ficar: a página parou de mostrar o estado vazio
+   * porque ela passou a ter conteúdo. Era a suíte cobrando CONTEÚDO, não
+   * defeito, que é exatamente o que o item 0x do CLAUDE.md descreve.
+   *
+   * O conserto não é afrouxar a asserção: é cobrar o invariante certo, o
+   * mesmo de `vazioOuCheio` em testes/paginas-vazias-a4.test.mjs —
+   *
+   *     OU a lista está vazia E o estado vazio traz o texto real,
+   *     OU a lista tem itens E o estado vazio NÃO aparece.
+   *
+   * As duas metades importam. Sem a segunda, uma página que desenhasse
+   * eventos E "nenhuma atividade marcada" ao mesmo tempo passaria — e é
+   * essa contradição que a pessoa veria na tela.
+   */
   const resposta = await fetch(`${BASE}/agenda`);
   assert.equal(resposta.status, 200);
 
   const html = await resposta.text();
   assert.match(html, /id="titulo-proximos"/);
   assert.match(html, /id="titulo-passados"/);
-  assert.match(html, /Nenhuma atividade marcada por enquanto/);
+
+  const VAZIO = 'Nenhuma atividade marcada por enquanto';
+  const temEventos = html.includes('class="atividade"');
+
+  if (temEventos) {
+    assert.equal(html.includes(VAZIO), false,
+      'a agenda desenha eventos E o estado vazio ao mesmo tempo');
+  } else {
+    assert.match(html, new RegExp(VAZIO),
+      'a agenda está vazia e não traz o texto do estado vazio');
+  }
 
   // E nada do painel encostou na página pública.
   assert.ok(!html.includes('evento-painel'), '/agenda serve marcação da tela da equipe');

@@ -492,3 +492,64 @@ export function avisoDePresenca(valor: unknown): AvisoDoPainel | null {
   if (typeof valor !== 'string') return null;
   return Object.hasOwn(AVISOS_DE_PRESENCA, valor) ? AVISOS_DE_PRESENCA[valor] : null;
 }
+
+// =====================================================================
+// Mural de avisos (RF27) e envio para grupo (RF28)
+//
+// A LISTA MAIS LONGA DESTE ARQUIVO, e não por acaso: esta tela tem TRÊS
+// gestos separados (escrever, publicar, enviar), e o terceiro é o único do
+// painel inteiro que NÃO TEM DESFAZER. E-mail enviado não volta.
+//
+// Por isso duas frases aqui não são confirmações, e sim RECUSAS
+// explicadas: `rascunho-nao-envia` e `sem-evento`. As duas descrevem um
+// botão que a pessoa apertou e que não fez nada — e um botão que não faz
+// nada em silêncio é o começo de apertar várias vezes.
+// =====================================================================
+
+const AVISOS_DO_MURAL: Record<string, AvisoDoPainel> = {
+  criado: {
+    texto: 'Aviso guardado como rascunho. Ele ainda NÃO aparece no mural e NÃO foi enviado '
+      + 'para ninguém — use "Publicar" quando estiver pronto.',
+    ok: true
+  },
+  salvo: { texto: 'Alterações guardadas.', ok: true },
+  publicado: {
+    texto: 'Publicado. O aviso já aparece no mural para quem é voluntário ativo. '
+      + 'Ele NÃO foi enviado por e-mail: isso é o botão separado, ao lado.',
+    ok: true
+  },
+  retirado: {
+    texto: 'Tirado do mural. O texto continua guardado aqui. Quem já recebeu por e-mail '
+      + 'continua com o e-mail — isso não dá para desfazer.',
+    ok: true
+  },
+  enviado: {
+    texto: 'Enviado. Quem já tinha recebido ESTE aviso antes não recebeu de novo.',
+    ok: true
+  },
+  'envio-falhou': {
+    texto: 'Não deu para enviar agora, e ninguém recebeu nada. O aviso continua publicado no '
+      + 'mural. Tente de novo em alguns instantes — quem cuida do site vê o motivo em "envios".',
+    ok: false
+  },
+  'rascunho-nao-envia': {
+    texto: 'Este aviso ainda é rascunho, então não foi enviado. Publique primeiro: assim o que '
+      + 'sai por e-mail é sempre o mesmo texto que está no mural.',
+    ok: false
+  },
+  'sem-evento': {
+    texto: 'Escolha o evento antes de enviar para os inscritos. Sem ele não há lista, e um '
+      + 'envio para lista vazia diria "enviado" sem ninguém ter recebido.',
+    ok: false
+  },
+  erro: {
+    texto: 'Não deu para fazer isso agora. Tente de novo em alguns instantes — nenhum aviso '
+      + 'foi perdido.',
+    ok: false
+  }
+};
+
+export function avisoDoMural(valor: unknown): AvisoDoPainel | null {
+  if (typeof valor !== 'string') return null;
+  return Object.hasOwn(AVISOS_DO_MURAL, valor) ? AVISOS_DO_MURAL[valor] : null;
+}

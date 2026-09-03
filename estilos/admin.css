@@ -2308,3 +2308,61 @@ a.numeros__alvo:hover { background: var(--tinta); color: var(--cal); }
   font-weight: 700;
   text-decoration: none;
 }
+
+/* ---------------------------------------------------------------------
+   O envio de aviso para grupo (RF28)
+
+   O ÚNICO GESTO DO PAINEL QUE NÃO TEM DESFAZER, e o CSS carrega parte da
+   conta: o bloco é separado por uma linha, tem fundo próprio e o botão é
+   o único do painel com a cor de alerta. Num celular, o que separa
+   "publiquei" de "mandei para quarenta pessoas" é a distância entre dois
+   alvos de 44px.
+   --------------------------------------------------------------------- */
+
+.aviso-envio {
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1.5px dashed var(--tinta);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.aviso-envio__campo { font-weight: 700; font-size: 0.9rem; }
+
+.aviso-envio__select {
+  min-height: 44px;
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid var(--tinta);
+  background: #fff;
+  font: inherit;
+  /* `max-width` e não `width`: a 375px o select ocupa a coluna, e no
+     desktop ele para de crescer antes de virar uma faixa atravessada. */
+  max-width: 100%;
+}
+
+.aviso-envio__evento {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.aviso-envio__botao {
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  border: 1.5px solid var(--tinta);
+  /* A cor de alerta, e ela é usada UMA vez no painel inteiro — de
+     propósito. Se aparecer num segundo botão, deixa de significar
+     "cuidado, isto não volta". */
+  background: #f3d8d8;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  /* `justify-self: start`: o botão não se estica até a largura da coluna.
+     Um alvo do tamanho da tela inteira é um alvo que se toca sem querer,
+     e este é o gesto errado para se tocar sem querer. */
+  justify-self: start;
+}
+
+.cartao-painel__corpo { margin: 0.5rem 0; }
+.cartao-painel__corpo summary { cursor: pointer; font-weight: 700; }
+.cartao-painel__data { font-size: 0.85rem; opacity: 0.8; }

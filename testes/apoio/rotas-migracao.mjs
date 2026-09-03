@@ -140,7 +140,27 @@ export const ROTAS_DINAMICAS = {
   '/agenda/[id]/inscricao': null
 };
 
-/** O prefixo de cada rota dinâmica: `/projetos`, `/noticias`. */
+/**
+ * Cada rota dinâmica virada em EXPRESSÃO, para reconhecer um href real.
+ *
+ * A primeira versão disto cortava só o `[...]` FINAL e comparava por
+ * prefixo — o que funciona para `/projetos/[id]` e `/noticias/[id]`, e
+ * QUEBRA para `/agenda/[id]/inscricao`, onde o `[id]` está no meio.
+ *
+ * E o defeito era invisível: enquanto `public.eventos` estava vazia,
+ * nenhum link para `/agenda/<uuid>/inscricao` chegava a ser desenhado, e o
+ * teste passava. Ele só apareceu quando a equipe publicou um evento
+ * futuro, em `npm run test:supabase` — a suíte cobrando uma afirmação que
+ * eu tinha escrito como se fosse permanente ("nenhum link do site aponta
+ * para /agenda/<algo>") e que só valia com a tabela vazia.
+ *
+ * Agora cada `[algo]` vira `[^/]+`, e o casamento é da rota inteira.
+ */
+export const PADROES_DINAMICOS = Object.keys(ROTAS_DINAMICAS).map((rota) =>
+  new RegExp(`^${rota.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\\\[[^\\\]]+\\\]/g, '[^/]+')}$`));
+
+/** O prefixo de cada rota dinâmica — mantido para quem já o usava. */
 export const PREFIXOS_DINAMICOS = Object.keys(ROTAS_DINAMICAS)
   .map((rota) => rota.replace(/\/\[[^\]]+\]$/, ''));
 
@@ -151,8 +171,10 @@ export const PREFIXOS_DINAMICOS = Object.keys(ROTAS_DINAMICAS)
  * entrada própria no catálogo.
  */
 export function ehRotaDinamica(href) {
-  return PREFIXOS_DINAMICOS.some((prefixo) =>
-    href.startsWith(`${prefixo}/`) && href.slice(prefixo.length + 1).length > 0);
+  // Sem query string nem âncora: `/agenda/<uuid>/inscricao?aviso=x` é a
+  // mesma rota.
+  const caminho = href.split('?')[0].split('#')[0];
+  return PADROES_DINAMICOS.some((padrao) => padrao.test(caminho));
 }
 
 export const PAGINAS_PRONTAS_FORA_DO_MENU = [
@@ -263,6 +285,11 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   '/admin/eventos/inscritos',
   '/admin/eventos/presenca',
 
+  // RF27/RF28: os avisos internos. Uma rota para a lista e uma para
+  // escrever/corrigir, como em publicações e eventos.
+  '/admin/avisos',
+  '/admin/avisos/editar',
+
   // RF32: o relatório para salvar em PDF. Não há biblioteca de PDF aqui e
   // não vai haver (regra 7, spec §9): quem gera o documento é
   // `estilos/impressao.css` mais o `window.print()` do próprio navegador.
@@ -316,7 +343,19 @@ export const PAGINAS_SO_PARA_EQUIPE = [
  *
  * O que cobre esta rota é testes/minha-conta.test.mjs.
  */
-export const PAGINAS_SO_PARA_QUEM_ENTROU = ['/minha-conta'];
+/*
+ * `/avisos` (RF27) entra aqui, e não em PAGINAS_PRONTAS, pelo mesmo motivo
+ * de `/minha-conta`: sem sessão ela REDIRECIONA para /entrar, então os
+ * testes que buscam a página e afirmam coisas sobre o `<main>` dela não
+ * teriam `<main>` nenhum para ler.
+ *
+ * A diferença para `/voluntariado/candidatura` e `/doar/ofertar` — que são
+ * públicas de verdade e explicam a exigência a quem chega sem sessão — é
+ * que ali o conteúdo da tela é PÚBLICO (as áreas, os meios de doar). Aqui o
+ * conteúdo é comunicação interna da ONG: não há o que mostrar a quem não
+ * entrou, e a resposta certa é a tela de entrar.
+ */
+export const PAGINAS_SO_PARA_QUEM_ENTROU = ['/minha-conta', '/avisos'];
 
 /**
  * Toda página real de app/, pública ou não — é ESTA lista que precisa
