@@ -678,18 +678,34 @@ revisitada e mantida naquela tarefa.
    é ruído aceito de propósito, porque não há filtro por ambiente que funcione aqui: o
    servidor de um build do Next lê `NODE_ENV=production` mesmo quando a suíte pede `test`.
    Conferir as duas variáveis no painel da Netlify antes de anunciar o endereço.
-0e2. **Falta cadastrar `URL_DO_SITE` na Netlify, e a falta também não dá erro.** Nasceu com
-   a Tarefa 1 do Bloco B (`acoes/autenticacao.ts`): é dela que sai o endereço que vai DENTRO
-   do e-mail de confirmação de conta e de recuperação de senha (`redirectTo`/
-   `emailRedirectTo`, apontando para `/auth/confirm`). Sem prefixo `NEXT_PUBLIC_`, de
-   propósito — é lida só no servidor. Sem ela, o código cai em `DEPLOY_PRIME_URL` e `URL`,
-   que a própria Netlify injeta, e só depois no cabeçalho `Host` da requisição; ou seja, o
-   site não quebra, e é justamente por isso que a falta passa despercebida. **Cadastrar com
-   o endereço público, sem barra no fim.** E há uma segunda ponta, esta no painel do
-   Supabase: *Authentication → URL Configuration → Redirect URLs* precisa listar
-   `<endereço>/auth/confirm` dos três ambientes (local, branch deploy, produção) — o Supabase
-   IGNORA em silêncio qualquer `redirectTo` fora dessa lista e manda a pessoa para o Site
-   URL, o que faz o link do e-mail parecer defeito do código quando é configuração.
+0e2. **`URL_DO_SITE` e as Redirect URLs foram cadastradas em 02/09/2026 — e a sonda achou
+   duas frestas.** A variável é de onde sai o endereço que vai DENTRO do e-mail de
+   confirmação e de recuperação (`redirectTo`/`emailRedirectTo`, apontando para
+   `/auth/confirm`). Sem prefixo `NEXT_PUBLIC_`, de propósito.
+
+   **CONFERIDO no Supabase**, com uma sonda que não manda e-mail nenhum: um `GET
+   /auth/v1/verify?token=<inválido>&type=recovery&redirect_to=<X>` redireciona para `X`
+   quando `X` está na lista, e cai calado no **Site URL** quando não está.
+
+   | `redirect_to` | Resultado |
+   |---|---|
+   | `https://www.atelieafrocultural.site/auth/confirm` | volta para ele — **na lista** |
+   | `http://localhost:3000/auth/confirm` | volta para ele — **na lista** |
+   | `https://atelieafrocultural.site/auth/confirm` (apex) | caiu no Site URL — **FORA** |
+   | um endereço inventado (controle) | caiu no Site URL, que é `https://www.atelieafrocultural.site` ✅ |
+
+   **As duas frestas, e nenhuma delas dá erro:**
+   1. **o apex não está na lista.** Não morde hoje — a Vercel faz 308 do apex para o `www`
+      antes de a aplicação ver a requisição, então o código nunca gera o apex. Fechar custa
+      um clique;
+   2. **`https://venturus-atelie.vercel.app/auth/confirm` não está na lista**, e esta é a
+      que importa. Se `URL_DO_SITE` faltar em algum ambiente, a cadeia cai em
+      `VERCEL_PROJECT_PRODUCTION_URL`, que é o endereço `.vercel.app`. Fora da lista, o link
+      do e-mail leva a pessoa para a HOME em vez de `/auth/confirm`, o token não é
+      consumido por ninguém, e o sintoma parece defeito do código. **O mesmo vale para todo
+      preview deploy**, cujo endereço muda a cada commit — quem for medir autenticação num
+      preview precisa cadastrar `URL_DO_SITE` naquele ambiente (o passo 1 vence os outros, e
+      é para isso que ele existe).
 
 0f. **`app/error.tsx` não protege quem está sem JavaScript, e não tem teste.** Duas coisas
    separadas, as duas medidas em 30/08/2026 com um `throw` proposital num Server Component:
