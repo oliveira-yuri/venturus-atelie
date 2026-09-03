@@ -295,13 +295,21 @@ export default async function MinhaConta(
       <section aria-labelledby="titulo-minhas-coisas">
         <h2 id="titulo-minhas-coisas">Minhas participações</h2>
 
+        {/*
+          OS DOIS NO MESMO `.abertura__acoes`, e não um em cada.
+
+          Aquela classe zera a margem do parágrafo e separa os filhos com
+          `gap`. Com um contêiner por botão, o gap não tem entre o que
+          separar e as margens estão zeradas — os dois saem COLADOS, lendo
+          como um bloco escuro só. MEDIDO no navegador, a 450px.
+
+          Dois alvos de 44px encostados convidam ao toque errado, que é
+          justamente o que a regra 4 existe para evitar.
+        */}
         <p className="abertura__acoes">
           <Link className="botao" href="/minha-conta/candidaturas">
             Minhas candidaturas ao voluntariado
           </Link>
-        </p>
-
-        <p className="abertura__acoes">
           <Link className="botao" href="/minha-conta/doacoes">
             Minhas doações
           </Link>

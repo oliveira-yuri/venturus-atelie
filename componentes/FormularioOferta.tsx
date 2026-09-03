@@ -119,8 +119,37 @@ export default function FormularioOferta() {
         <p>{estado.mensagem}</p>
       </div>
 
+      {/*
+        `onChange` NO <form>, e não no campo: o evento chega por borbulhamento
+        e alcança tanto o select de tipo quanto o campo de quantia dentro de
+        `CampoFormulario`, que não expõe `onChange` próprio. É o mesmo
+        mecanismo de componentes/mascara-telefone.ts.
+
+        Os dois handlers convivem porque cada um checa o `name` do alvo antes
+        de agir — a máscara só mexe em `quantia`, a troca de tipo só em `tipo`.
+      */}
       <form ref={formulario} id="form-oferta" className="formulario" action={enviar}
-            noValidate aria-describedby="aviso">
+            noValidate aria-describedby="aviso"
+            onChange={(evento) => { mascararDinheiro(evento); aoTrocarTipo(evento); }}>
+        {/*
+          O VALOR INICIAL É O QUE TIRA O "Escolha uma opção" (pedido V1).
+
+          `CampoFormulario` acrescenta a opção vazia sozinho em todo select
+          OBRIGATÓRIO SEM valor inicial, e por um motivo real: um select sem
+          ela já chega com a primeira selecionada, e num campo obrigatório
+          isso é um padrão silencioso — foi assim que `tipo_pessoa` gravou
+          'fisica' para todo mundo no cadastro.
+
+          AQUI O RISCO NÃO EXISTE, e é o que justifica a exceção: os dois
+          tipos abrem CAMPOS DIFERENTES. Quem quer doar dinheiro e deixa o
+          select em "Um item" vê um campo de texto pedindo "conte o que é" —
+          a escolha errada aparece na tela antes do envio. Nos outros selects
+          do projeto (tipo de pessoa, situação) as opções não mudam nada
+          visível, e lá a opção vazia continua.
+
+          O SERVIDOR NÃO AFROUXOU: `validarOferta` continua recusando tipo
+          vazio e tipo fora da lista.
+        */}
         <CampoFormulario
           nome="tipo"
           rotulo="O que você quer doar"
@@ -129,7 +158,7 @@ export default function FormularioOferta() {
           obrigatorio
           ajuda="Se for mais de uma coisa, escolha a principal e conte o resto abaixo."
           erro={estado.erros?.tipo}
-          valorInicial={valor('tipo')}
+          valorInicial={valor('tipo') || TIPOS_DE_DOACAO[0].valor}
         />
 
         {/*
