@@ -117,14 +117,17 @@ export const INDICADORES: DefinicaoDeIndicador[] = [
   {
     chave: 'candidaturas-esperando',
     rotulo: 'Candidaturas de voluntariado sem resposta',
-    caminho: null,
-    // NÃO É UMA PROMESSA DE TELA, é o caminho que existe hoje — e ele
-    // existe de verdade por causa do RF31, na mesma tarefa: o arquivo em
-    // CSV logo abaixo é o único jeito de ler quem se candidatou. Sem esta
-    // frase, o número seria exatamente o beco que a home do painel antigo
-    // abriu seis vezes (ver componentes/PainelInicio.ts).
-    semTela: 'Não existe tela para ler as candidaturas ainda. Quem se candidatou aparece no '
-      + 'arquivo "candidaturas de voluntariado", aqui embaixo.'
+    // A TELA PASSOU A EXISTIR com o RF26 (01/09/2026), e este campo ficou
+    // apontando para lugar nenhum por um dia. O texto antigo dizia "não
+    // existe tela para ler as candidaturas ainda" — e a tela estava
+    // listada na mesma página, três cartões acima.
+    //
+    // O defeito só apareceu quando alguém OLHOU a home do painel com uma
+    // sessão de equipe de verdade, em 03/09/2026. É a regra 10 do
+    // CLAUDE.md acontecendo: 1249 testes verdes não pegam uma frase que
+    // envelheceu, porque nenhum deles sabe o que a frase deveria dizer.
+    caminho: '/admin/voluntarios',
+    semTela: null
   },
   {
     chave: 'noticias-rascunho',

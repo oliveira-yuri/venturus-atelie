@@ -279,7 +279,8 @@ export const CONJUNTOS_EXPORTAVEIS: DescricaoDeConjunto[] = [
     chave: 'voluntarios',
     rotulo: 'Baixar as candidaturas de voluntariado',
     descricao: 'Quem se candidatou pelo site, em quais áreas quer ajudar e o que escreveu. '
-      + 'Hoje este arquivo é o ÚNICO jeito de ler as candidaturas: não existe tela para elas.',
+      + 'Para triar e mudar a situação de cada uma, use a tela Voluntários — este arquivo é '
+      + 'para levar os dados para fora, numa prestação de contas.',
     arquivo: 'candidaturas-voluntariado',
     colunas: [
       { chave: 'recebida_em', titulo: 'Candidatou-se em' },

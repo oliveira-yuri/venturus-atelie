@@ -81,18 +81,38 @@ async function main() {
 
   try {
     let temSessao = false;
+    let temEquipe = false;
+
     if (EMAIL && SENHA) {
       await entrar(navegador);
       temSessao = true;
-      console.log(`  ✅ sessão aberta como ${EMAIL}`);
+
+      /*
+       * TER SESSÃO NÃO É SER EQUIPE, e a diferença precisa ser detectada
+       * aqui — senão o capturador fotografa 18 páginas de 404 e as põe no
+       * protótipo como se fossem as telas do painel.
+       *
+       * A verificação é a própria guarda do sistema: `/admin` responde 404
+       * para quem não é equipe. Se o título da página for o do 404, a
+       * conta não foi promovida.
+       */
+      await navegador.get(`${BASE}/admin`);
+      const titulo = await navegador.getTitle();
+      temEquipe = !/não encontrada|not found|404/i.test(titulo);
+
+      console.log(temEquipe
+        ? `  ✅ sessão de EQUIPE aberta como ${EMAIL}`
+        : `  ⚠️  ${EMAIL} entrou, mas NÃO é equipe — /admin respondeu 404.\n`
+          + '      Falta rodar: update public.perfis set eh_equipe = true where email = ...\n'
+          + '      As 18 telas do painel ficam de fora desta rodada.');
     } else {
       console.log('  ⚠️  sem ENTREGA_EMAIL/ENTREGA_SENHA — só as telas públicas');
     }
 
     for (const fluxo of FLUXOS) {
       for (const tela of fluxo.telas) {
-        const precisaSessao = fluxo.equipe || tela.sessao;
-        if (precisaSessao && !temSessao) {
+        const precisaSessao = fluxo.equipe ? !temEquipe : (tela.sessao && !temSessao);
+        if (precisaSessao) {
           puladas.push({ ...tela, fluxo: fluxo.id });
           continue;
         }

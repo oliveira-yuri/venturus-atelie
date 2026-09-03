@@ -253,6 +253,41 @@ test('quem não tem caminho tem explicação, e quem tem caminho não tem as dua
   }
 });
 
+/**
+ * O TESTE QUE FALTAVA, e ele nasce de um defeito real.
+ *
+ * MEDIDO em 03/09/2026, ao capturar a home do painel com uma sessão de
+ * equipe de verdade pela primeira vez: o indicador de candidaturas dizia
+ * "não existe tela para ler as candidaturas ainda" — e a tela
+ * (/admin/voluntarios, RF26) estava listada na MESMA PÁGINA, três cartões
+ * acima.
+ *
+ * O teste vizinho ("quem não tem caminho tem explicação") não pegava
+ * isso: ele exige que `caminho` e `semTela` não coexistam, e o estado
+ * errado tinha `caminho: null` com `semTela` preenchido — combinação
+ * legítima. O que envelheceu foi a AFIRMAÇÃO dentro da frase.
+ *
+ * É o item 0x do CLAUDE.md numa forma nova: afirmação sobre o que existe
+ * HOJE envelhece. Aqui o invariante que não envelhece é mais simples —
+ * todo número da home tem uma tela que o resolve.
+ *
+ * ESTE TESTE QUEBRA DE PROPÓSITO no dia em que alguém acrescentar um
+ * indicador sem tela. Quebrar é o ponto: quem acrescentar precisa
+ * escrever, no mesmo commit, por que aquele número é um beco aceitável —
+ * e a home do painel antigo abriu seis becos desses.
+ */
+test('todo indicador tem uma tela que o resolve — nenhum número é beco', () => {
+  const becos = INDICADORES
+    .filter((indicador) => indicador.caminho === null)
+    .map((indicador) => `${indicador.chave}: "${indicador.semTela}"`);
+
+  assert.deepEqual(becos, [],
+    'indicador sem tela que o resolva:\n  ' + becos.join('\n  ')
+    + '\n  Se a tela realmente não existe, a frase de `semTela` precisa ser conferida CONTRA'
+    + '\n  o que existe em app/ — foi assim que "não existe tela para ler as candidaturas"'
+    + '\n  sobreviveu um dia depois de /admin/voluntarios entrar no ar.');
+});
+
 test('nenhuma chave de indicador se repete', () => {
   const chaves = INDICADORES.map((indicador) => indicador.chave);
   assert.equal(new Set(chaves).size, chaves.length, 'chave repetida em INDICADORES');
