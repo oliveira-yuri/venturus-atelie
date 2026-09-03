@@ -643,8 +643,27 @@ Deno.serve(async (requisicao: Request) => {
       .maybeSingle();
 
     if (error || !data) {
+      /*
+       * O DETALHE VAI NA RESPOSTA, e não só no log.
+       *
+       * Em 03/09/2026 esta função respondeu `registro_nao_encontrado` para
+       * uma inscrição que EXISTIA — a mesma consulta, rodada por fora com
+       * um token de equipe, devolvia a linha com o evento embutido. Sem o
+       * detalhe, não havia como saber se o que faltou foi a LINHA (`!data`)
+       * ou se a consulta ERROU (`error`), e as duas causas são muito
+       * diferentes: a primeira é dado, a segunda é credencial ou permissão.
+       *
+       * O log da Edge Function não é alcançável por quem opera o site, e
+       * quem chama esta função é sempre o nosso servidor — não há terceiro
+       * para quem esta mensagem possa vazar alguma coisa.
+       */
       console.error('[enviar-email] inscrição não encontrada:', error);
-      return responder({ erro: 'registro_nao_encontrado' }, 404);
+      return responder({
+        erro: 'registro_nao_encontrado',
+        onde: 'inscricoes',
+        causa: error ? String((error as { message?: string }).message ?? error) : 'nenhuma linha casou',
+        procurei: { evento_id: eventoId, email: emailPedido }
+      }, 404);
     }
 
     referencia = data.id;
