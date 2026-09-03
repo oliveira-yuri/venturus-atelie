@@ -19,24 +19,40 @@
 export type AvisoDeInscricao = { texto: string; ok: boolean };
 
 /**
- * O QUE A FRASE PODE PROMETER, e o que ela não pode.
+ * DUAS FRASES, PORQUE HÁ DOIS DESFECHOS — e a diferença é visível para
+ * quem se inscreveu.
  *
- * PODE: que a inscrição ficou registrada. Isso é fato — a linha está em
- * `public.inscricoes`, e a equipe a vê em /admin/eventos/inscritos (RF16).
+ * O QUE AS DUAS PODEM PROMETER: que a inscrição ficou registrada. Isso é
+ * fato nos dois casos — a linha está em `public.inscricoes`, e a equipe a
+ * vê em /admin/eventos/inscritos (RF16).
  *
- * NÃO PODE: prometer e-mail de confirmação. O RF18 depende de uma Edge
- * Function que ainda não existe (CLAUDE.md), e uma frase dizendo "você vai
- * receber um e-mail" faria a pessoa esperar por algo que não vem — e, pior,
- * duvidar da inscrição quando ele não chegasse. No dia em que o RF18
- * existir, ESTA frase muda junto, e há teste que a compara por igualdade.
+ * O QUE SÓ A PRIMEIRA PODE: dizer que a confirmação foi enviada. Ela só
+ * aparece quando a Edge Function CONFIRMOU o envio (`servidor/email.ts`
+ * devolveu true). Prometer o e-mail sem essa confirmação faria a pessoa
+ * esperar por algo que não vem — e, pior, duvidar da própria inscrição
+ * quando ele não chegasse.
  *
- * É a regra 2 do CLAUDE.md aplicada a uma confirmação.
+ * A SEGUNDA É O CAMINHO DE HOJE ATÉ ALGUÉM PUBLICAR A FUNÇÃO, e ela não
+ * pede desculpa nem esconde: diz que a inscrição está guardada, que o
+ * e-mail não sai, e o que fazer com isso (anotar a data). É a regra 2 do
+ * CLAUDE.md aplicada a uma confirmação — nada de "você receberá um e-mail
+ * em breve", que ninguém prometeu.
+ *
+ * NENHUMA DAS DUAS REPETE O ENDEREÇO DE E-MAIL DA PESSOA. Ele viajaria na
+ * URL (`?aviso=`), ficaria no histórico do navegador e no log do servidor,
+ * e não acrescenta nada: quem acabou de digitá-lo sabe qual é.
  */
 const AVISOS: Record<string, AvisoDeInscricao> = {
   inscrita: {
-    texto: 'Inscrição registrada. Anote a data no seu calendário — não enviamos e-mail de '
-      + 'confirmação ainda. Se precisar mudar alguma coisa ou desistir, chame no WhatsApp '
-      + '(11) 95396-8344.',
+    texto: 'Inscrição registrada, e a confirmação foi enviada para o seu e-mail. Se ela não '
+      + 'aparecer em alguns minutos, confira o lixo eletrônico. Para mudar alguma coisa ou '
+      + 'desistir, chame no WhatsApp (11) 95396-8344.',
+    ok: true
+  },
+  'inscrita-sem-email': {
+    texto: 'Inscrição registrada. Anote a data no seu calendário: a confirmação por e-mail não '
+      + 'saiu desta vez, e isso NÃO afeta sua inscrição — ela está guardada. Para mudar alguma '
+      + 'coisa ou desistir, chame no WhatsApp (11) 95396-8344.',
     ok: true
   }
 };

@@ -251,14 +251,43 @@ describe('validarInscricao', () => {
 // =====================================================================
 
 describe('avisos', () => {
-  test('a confirmação de inscrição NÃO promete e-mail — o RF18 não existe', () => {
-    const aviso = avisoDeInscricao('inscrita');
-    assert.ok(aviso?.ok);
-    // Comparação por conteúdo: no dia em que o RF18 existir, ESTA frase
-    // muda junto, e este teste é o lembrete.
-    assert.match(aviso.texto, /não enviamos e-mail de confirmação ainda/,
-      'a frase deixou de avisar que não há e-mail de confirmação — se o RF18 passou a existir, '
-      + 'reescreva a frase E este teste no mesmo commit');
+  test('as DUAS confirmações existem, e só uma promete e-mail (RF18)', () => {
+    // Este teste já nasceu como lembrete, e o lembrete disparou no mesmo
+    // dia: a versão anterior exigia que a frase dissesse "não enviamos
+    // e-mail de confirmação ainda". O RF18 passou a existir, então a frase
+    // e o teste mudaram juntos — que é o combinado.
+    const comEmail = avisoDeInscricao('inscrita');
+    const semEmail = avisoDeInscricao('inscrita-sem-email');
+
+    assert.ok(comEmail?.ok && semEmail?.ok,
+      'as duas precisam ser desfechos POSITIVOS: a inscrição está gravada nos dois casos');
+
+    assert.match(comEmail.texto, /confirmação foi enviada/,
+      'a frase do caminho feliz precisa dizer que o e-mail saiu');
+    assert.match(semEmail.texto, /não saiu desta vez/,
+      'a frase do caminho degradado precisa dizer que o e-mail NÃO saiu');
+    assert.match(semEmail.texto, /não afeta sua inscrição|está guardada/i,
+      'sem esta parte, "o e-mail não saiu" faz a pessoa achar que a inscrição falhou');
+
+    // NENHUMA das duas repete o e-mail da pessoa: ele viajaria na URL, e
+    // ficaria no histórico do navegador e no log do servidor.
+    for (const frase of [comEmail.texto, semEmail.texto]) {
+      assert.equal(/@/.test(frase), false, 'a frase carrega um endereço de e-mail');
+    }
+  });
+
+  test('a Action escolhe a frase pelo resultado do envio, e nunca falha por causa dele', async () => {
+    const codigo = await fonte('acoes/inscricoes.ts');
+
+    assert.ok(codigo.includes("'inscrita' : 'inscrita-sem-email'"),
+      'a Action precisa escolher entre as duas frases pelo retorno de avisar()');
+
+    // O envio vem DEPOIS do `if (falha) return falha`: a inscrição já está
+    // gravada quando o e-mail é pedido. Se `avisar()` aparecesse antes,
+    // uma falha de e-mail poderia virar "não deu para inscrever" — e a
+    // pessoa se inscreveria de novo, ocupando outra vaga.
+    assert.ok(codigo.indexOf('if (falha) return falha') < codigo.indexOf('avisar({'),
+      'avisar() foi chamado ANTES do desfecho da gravação');
   });
 
   test('valor fora da lista não desenha nada — `?aviso=` é escrito por quem quiser', () => {

@@ -80,6 +80,7 @@ import { buscarEventoParaInscricao } from '@/servidor/dados/eventos';
 import { lerInscricao, validarInscricao } from '@/compartilhado/validacao';
 import { origemDoVisitante } from '@/compartilhado/origem-do-visitante';
 import { mensagemDeErroDeEnvio, FUNCAO_NAO_EXISTE } from '@/compartilhado/erros';
+import { avisar } from '@/servidor/email';
 import type { EstadoFormulario } from './autenticacao';
 
 /** Mensagem única de "o formulário voltou com campo errado" — a das outras Actions. */
@@ -285,7 +286,32 @@ export async function inscrever(
 
   if (falha) return falha;
 
+  /*
+   * RF18 — A CONFIRMAÇÃO POR E-MAIL, E ELA VEM DEPOIS DE TUDO.
+   *
+   * A inscrição JÁ ESTÁ GRAVADA neste ponto. `avisar()` nunca lança (ver o
+   * cabeçalho de servidor/email.ts): rede fora, função não publicada,
+   * provedor recusando — tudo devolve `false` e vira uma linha no log.
+   *
+   * O RESULTADO SÓ ESCOLHE A FRASE que a pessoa lê, nunca se a operação deu
+   * certo. Dizer "não deu para inscrever" porque um e-mail não saiu faria
+   * a pessoa se inscrever de novo — e o segundo envio ocuparia mais uma
+   * vaga.
+   *
+   * ELE VAI COM `await`, e isso é decisão medida em plataforma serverless:
+   * o processo é CONGELADO assim que a resposta é devolvida, então uma
+   * promessa solta morre no meio — às vezes DEPOIS de o e-mail sair e ANTES
+   * de `public.envios` ser gravado, que é o pior desfecho possível (a
+   * próxima tentativa mandaria de novo). O prazo é curto, e está lá.
+   */
+  const confirmou = await avisar({
+    tipo: 'inscricao',
+    evento_id: campos.eventoId,
+    email: campos.email
+  });
+
   // FORA do try — ver o cabeçalho. POST-redirect-GET: sem isto, atualizar a
   // página depois de enviar inscreveria a pessoa de novo.
-  redirect(`/agenda/${campos.eventoId}/inscricao?aviso=inscrita`);
+  redirect(`/agenda/${campos.eventoId}/inscricao`
+    + `?aviso=${confirmou ? 'inscrita' : 'inscrita-sem-email'}`);
 }

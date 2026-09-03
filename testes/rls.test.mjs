@@ -172,11 +172,14 @@ async function comoEVerificar(papel, uuid, sqlAcao, sqlVerificacao) {
 // =====================================================================
 
 describe('as migrations aplicam sem erro', () => {
-  test('as 15 tabelas existem', async () => {
+  test('as 16 tabelas existem', async () => {
     const { rows } = await cliente.query(`
       select tablename from pg_tables where schemaname = 'public' order by tablename
     `);
-    assert.equal(rows.length, 15, `esperadas 15 tabelas, vieram ${rows.length}`);
+    // A 16ª é `public.envios` (migration 011, RF18/RF20/RF28). Este número
+    // sobe DE PROPÓSITO junto com uma migration — ele é a trava que faz
+    // qualquer tabela nova passar por uma revisão de RLS antes de existir.
+    assert.equal(rows.length, 16, `esperadas 16 tabelas, vieram ${rows.length}`);
   });
 
   test('toda tabela do schema public tem RLS habilitada', async () => {
@@ -1591,5 +1594,133 @@ describe('RF15: inscrição em evento sem conta (migration 010)', () => {
 
     assert.equal(erro, null,
       'as 30 inscrições gastaram o balde das MENSAGENS: os dois baldes se misturaram');
+  });
+});
+
+// =====================================================================
+// RF18/RF20/RF28 — o registro de envios (migration 011)
+//
+// A tabela existe para responder três perguntas que hoje ninguém responde:
+// já mandei isto?, falhou?, e para quem foi o aviso do grupo?
+//
+// O QUE OS TESTES ABAIXO PROTEGEM, e cada um é um jeito de a tabela virar
+// o contrário do que ela é:
+//
+//  · NINGUÉM DO SITE ESCREVE AQUI. Quem grava é a Edge Function, com a
+//    service role, que ignora RLS por construção. Se um insert aberto
+//    aparecer, qualquer pessoa poderá marcar um envio como "enviado" — e a
+//    trava contra reenvio vira uma trava contra ENVIAR;
+//  · SÓ A EQUIPE LÊ. `destinatario` é um hash, mas `referencia_id` aponta
+//    para uma inscrição, e a lista de envios de um evento é a lista de
+//    quem se inscreveu nele por outro caminho;
+//  · O ÍNDICE ÚNICO É PARCIAL. Ele impede o reenvio do que DEU CERTO e
+//    deixa retentar o que falhou — sem isso, uma falha de rede do provedor
+//    trancaria aquela pessoa para sempre.
+// =====================================================================
+
+describe('RF18/RF20/RF28: o registro de envios (migration 011)', () => {
+  const ENVIO = '55555555-5555-5555-5555-555555555555';
+
+  test('anon não lê e não escreve — a tabela não é do site', async () => {
+    const leitura = await comoAnonimo('select * from public.envios');
+    assert.ok(leitura.erro, 'anon leu public.envios');
+
+    const escrita = await comoAnonimo(
+      `insert into public.envios (tipo, destinatario) values ('inscricao', 'abc')`);
+    assert.ok(escrita.erro, 'anon gravou em public.envios');
+  });
+
+  test('quem tem conta comum também NÃO grava — só a service role escreve', async () => {
+    // Não existe política de insert nesta tabela, de propósito. Um insert
+    // aberto deixaria qualquer pessoa autenticada marcar um envio como
+    // feito, e a trava contra reenvio viraria uma trava contra enviar.
+    const { erro } = await comoPessoa(
+      `insert into public.envios (tipo, destinatario) values ('inscricao', 'abc')`);
+    assert.ok(erro, 'uma conta comum gravou em public.envios');
+  });
+
+  test('quem tem conta comum não LÊ os envios de ninguém', async () => {
+    await cliente.query(
+      `insert into public.envios (id, tipo, destinatario) values ($1, 'inscricao', 'abc')
+       on conflict (id) do nothing`, [ENVIO]);
+
+    const { linhas } = await comoPessoa('select * from public.envios');
+    assert.deepEqual(linhas, [], 'uma conta comum leu a lista de envios');
+  });
+
+  test('a equipe LÊ — é ela que precisa ver o que falhou', async () => {
+    const { linhas, erro } = await como('authenticated', EQUIPE, 'select * from public.envios');
+    assert.equal(erro, null, `a equipe foi bloqueada: ${erro?.message}`);
+    assert.ok(linhas.length >= 1, 'a equipe não enxergou nenhum envio');
+  });
+
+  test('o mesmo envio não entra duas vezes quando deu certo', async () => {
+    const linha = `('inscricao', '66666666-6666-6666-6666-666666666666', 'hash-a', 'enviado')`;
+    const sql = `insert into public.envios (tipo, referencia_id, destinatario, situacao)
+                 values ${linha}`;
+
+    await cliente.query('begin');
+    try {
+      await cliente.query(sql);
+      let repetiu = null;
+      try {
+        await cliente.query(sql);
+      } catch (falha) { repetiu = falha; }
+
+      assert.ok(repetiu, 'o mesmo envio entrou duas vezes — a confirmação seria mandada de novo, '
+        + 'e a pessoa acharia que se inscreveu duas vezes');
+    } finally {
+      await cliente.query('rollback');
+    }
+  });
+
+  test('o que FALHOU pode ser tentado de novo — o índice é parcial', async () => {
+    const base = `('inscricao', '77777777-7777-7777-7777-777777777777', 'hash-b'`;
+
+    await cliente.query('begin');
+    try {
+      await cliente.query(`insert into public.envios (tipo, referencia_id, destinatario, situacao)
+                           values ${base}, 'falhou')`);
+      // A segunda tentativa, que desta vez dá certo. Sem o `where situacao =
+      // 'enviado'` no índice, esta linha seria recusada e a pessoa ficaria
+      // trancada fora do e-mail por causa de uma falha de rede do provedor.
+      const { rowCount } = await cliente.query(
+        `insert into public.envios (tipo, referencia_id, destinatario, situacao)
+         values ${base}, 'enviado')`);
+      assert.equal(rowCount, 1, 'não deu para retentar um envio que falhou');
+    } finally {
+      await cliente.query('rollback');
+    }
+  });
+
+  test('o aviso para GRUPO (RF28) pode ir mais de uma vez para a mesma pessoa', async () => {
+    // `referencia_id` nulo: dois avisos diferentes para a mesma pessoa é o
+    // uso normal do RF28, não um defeito.
+    await cliente.query('begin');
+    try {
+      const sql = `insert into public.envios (tipo, destinatario, situacao)
+                   values ('aviso', 'hash-c', 'enviado')`;
+      await cliente.query(sql);
+      const { rowCount } = await cliente.query(sql);
+      assert.equal(rowCount, 1, 'o índice único bloqueou dois avisos de grupo para a mesma pessoa');
+    } finally {
+      await cliente.query('rollback');
+    }
+  });
+
+  test('a situação e o tipo passam por lista fechada no BANCO', async () => {
+    for (const [coluna, valor] of [['tipo', 'inventado'], ['situacao', 'talvez']]) {
+      const campos = coluna === 'tipo'
+        ? `('${valor}', 'hash-d')`
+        : `('inscricao', 'hash-d', '${valor}')`;
+      const colunas = coluna === 'tipo' ? 'tipo, destinatario' : 'tipo, destinatario, situacao';
+
+      let erro = null;
+      try {
+        await cliente.query(`insert into public.envios (${colunas}) values ${campos}`);
+      } catch (falha) { erro = falha; }
+
+      assert.ok(erro, `o check de ${coluna} aceitou "${valor}"`);
+    }
   });
 });

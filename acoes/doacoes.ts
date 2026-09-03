@@ -125,6 +125,7 @@ import {
   ehIdentificador
 } from '@/compartilhado/validacao';
 import { mensagemDeErroDeEnvio } from '@/compartilhado/erros';
+import { avisar } from '@/servidor/email';
 import type { EstadoFormulario } from './autenticacao';
 
 /** Onde a doação registrada aparece para quem doou — e para onde `ofertar` leva. */
@@ -416,6 +417,27 @@ export async function responderDoacao(
 
   if (falha) return falha;
 
+  /*
+   * RF20 — A RESPOSTA VAI TAMBÉM POR E-MAIL, e não só para /minha-conta.
+   *
+   * O escopo pede "resposta de aceite ou recusa por e-mail". Até aqui a
+   * resposta era GRAVADA e lida em /minha-conta (RF22) — o que serve a quem
+   * tem conta e volta ao site, e não serve a quem ofertou e foi embora
+   * esperando notícia. Uma resposta que a pessoa precisa ir buscar não é
+   * uma resposta.
+   *
+   * `avisar()` nunca lança (ver o cabeçalho de servidor/email.ts), e o
+   * resultado NÃO decide se a Action deu certo: a resposta já está gravada
+   * neste ponto, e a pessoa a lê em /minha-conta de qualquer jeito. O que
+   * ele muda é a FRASE que a equipe lê ao voltar para a lista — porque
+   * "respondida" e "respondida, mas o e-mail não saiu" mandam a equipe
+   * fazer coisas diferentes: a segunda pede um WhatsApp.
+   *
+   * A Edge Function busca a doação pelo id e monta a mensagem com o texto
+   * que a equipe ESCREVEU. Nenhuma palavra do e-mail vem daqui.
+   */
+  const avisou = await avisar({ tipo: 'doacao', id: campos.id });
+
   // A área do usuário muda: é lá que quem doou lê a resposta (RF22).
   revalidatePath(MINHA_CONTA);
   revalidatePath(LISTA);
@@ -424,7 +446,7 @@ export async function responderDoacao(
   // fechada (`avisoDeDoacoes`, em compartilhado/avisos-do-painel.ts): um
   // redirect não carrega estado, e ecoar texto vindo da URL seria deixar
   // qualquer pessoa escrever uma mensagem dentro do painel da ONG.
-  redirect(`${LISTA}?aviso=respondida`);
+  redirect(`${LISTA}?aviso=${avisou ? 'respondida' : 'respondida-sem-email'}`);
 }
 
 /**

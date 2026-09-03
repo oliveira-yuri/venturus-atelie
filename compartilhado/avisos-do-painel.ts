@@ -417,6 +417,24 @@ export function avisoDoAcervo(valor: unknown): AvisoDoPainel | null {
  * significa que ficou escrito, não que entrou em conta nenhuma.
  */
 const AVISOS_DE_DOACOES: Record<string, AvisoDoPainel> = {
+  /*
+   * DOIS DESFECHOS PARA O MESMO GESTO (RF20), e a diferença manda a equipe
+   * fazer coisas diferentes.
+   *
+   * A resposta está GRAVADA nos dois casos — quem doou a lê em /minha-conta
+   * (RF22). O que muda é se o e-mail saiu. Quando não sai, a equipe precisa
+   * SABER, porque a pessoa que ofertou pode não voltar ao site nunca mais:
+   * o caminho que sobra é o WhatsApp, e a frase diz isso.
+   *
+   * Dizer só "respondida" nos dois casos seria a ONG achar que avisou
+   * alguém que não foi avisado.
+   */
+  'respondida-sem-email': {
+    texto: 'Resposta guardada — mas o e-mail para quem doou NÃO saiu. A resposta aparece na '
+      + 'área da pessoa no site; se ela não costuma entrar, avise pelo WhatsApp. Quem cuida do '
+      + 'site consegue ver o motivo em "envios".',
+    ok: false
+  },
   respondida: {
     texto: 'Resposta guardada. Quem ofereceu já vê a situação nova e o que você escreveu, na '
       + 'conta dele.',
