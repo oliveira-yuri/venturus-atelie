@@ -1031,9 +1031,16 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   .af-dialogo__acoes > * { flex: 0 0 auto; }
 }
 
-/* Os dois itens de quem está dentro (pedido V1): "Minha conta" e "Painel
-   da equipe". A borda de topo os separa dos 11 que valem para toda visita —
-   é a mesma divisão que a gaveta já faz entre navegação e o CTA de doar. */
+/* Os itens de quem está dentro: "Minha conta", "Mural de avisos" (para
+   quem é voluntário) e "Painel da equipe". A borda de topo os separa dos 11
+   que valem para toda visita — é a mesma divisão que a gaveta já faz entre
+   navegação e o CTA de doar. Ela fica em `--conta` porque esse item é o
+   primeiro dos três sempre que algum aparece (ver itensDeQuemEntrou).
+
+   `.af-navlink--avisos` EXISTE E NÃO PINTA NADA, de propósito: o ocre de
+   `--painel` significa "ferramenta de quem é equipe", e reusá-lo no mural
+   apagaria justamente a diferença entre ser equipe e ser voluntário. A
+   classe fica como gancho para o dia em que houver o que marcar. */
 .af-navlink--conta { border-top: 2px solid var(--af-ochre); }
 .af-navlink--painel { color: var(--af-ochre); font-weight: 600; }
 .af-navlink--painel:hover { background: var(--af-brown-800); color: var(--af-ochre); }

@@ -34,9 +34,16 @@ import { FUSO_DA_ONG } from '@/compartilhado/validacao';
  * diferença entre "não há aviso" e "você ainda não é voluntário ativo",
  * que são duas listas vazias idênticas e dois caminhos diferentes.
  *
- * ELA TAMBÉM NÃO É ITEM DE MENU, pelo mesmo motivo de /minha-conta: o menu
- * é o mesmo para toda visita, e para a maioria aquele item só
- * redirecionaria. Chega-se aqui por /minha-conta.
+ * ELA É ITEM DE MENU DESDE 03/09/2026, e só para quem é voluntário ATIVO
+ * (pedido do grupo). O item mora em `compartilhado/itens-de-quem-entrou.ts`,
+ * ao lado de "Minha conta" e "Painel da equipe", e não em `ITENS` — que é a
+ * navegação de toda visita.
+ *
+ * A CONDIÇÃO É `situacao = 'ativo'`, e não "tem conta". Se bastasse ter
+ * conta, o item apareceria para quem se candidatou ontem e levaria a esta
+ * tela dizendo "isto ainda não é para você" — pior que não ter item, porque
+ * parece uma porta fechada na cara. O estado abaixo continua existindo para
+ * quem chega por link ou pela barra de endereços.
  */
 export const metadata = {
   // Sem descrição de conteúdo: a página é interna, e o robots.txt já a

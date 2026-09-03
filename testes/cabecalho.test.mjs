@@ -240,12 +240,12 @@ test('visita sem sessão não vê "Minha conta" nem "Painel" no menu', async () 
     'a expressão "Painel da equipe" aparece no HTML de uma visita anônima');
 });
 
-test('a tabela de quem vê o quê no menu: sem sessão, com sessão, com equipe', async () => {
+test('a tabela de quem vê o quê no menu: sem sessão, com sessão, voluntário, equipe', async () => {
   // A DECISÃO é função pura (compartilhado/itens-de-quem-entrou.ts) porque
   // componentes/MenuMovel.tsx é `.tsx` e o runtime nativo do Node não
   // transforma JSX — dentro dele, esta regra ficaria sem verificação
   // nenhuma, justamente na parte que a suíte não alcança por não ter sessão.
-  const { itensDeQuemEntrou, ITEM_MINHA_CONTA, ITEM_PAINEL } =
+  const { itensDeQuemEntrou, ITEM_MINHA_CONTA, ITEM_PAINEL, ITEM_AVISOS } =
     await import('../compartilhado/itens-de-quem-entrou.ts');
 
   assert.deepEqual(itensDeQuemEntrou(false, false), [],
@@ -257,15 +257,35 @@ test('a tabela de quem vê o quê no menu: sem sessão, com sessão, com equipe'
   assert.deepEqual(itensDeQuemEntrou(true, true), [ITEM_MINHA_CONTA, ITEM_PAINEL],
     'quem é equipe vê os dois');
 
-  // SER EQUIPE SEM SESSÃO É IMPOSSÍVEL, e a função não pode confiar nisso:
-  // `app/layout.tsx` só pergunta ehEquipe() quando há sessão, e se essa
-  // ordem mudar um dia, o menu não pode passar a oferecer o painel a quem
-  // não entrou.
+  // O MURAL (RF27), pedido do grupo em 03/09/2026. Quem decide é
+  // `situacao = 'ativo'`, e não "tem conta": a maioria das candidaturas
+  // está em `novo` esperando a equipe conversar, e um item de menu para
+  // essas pessoas levaria a uma tela dizendo "isto ainda não é para você".
+  assert.deepEqual(itensDeQuemEntrou(true, false, true), [ITEM_MINHA_CONTA, ITEM_AVISOS],
+    'quem é voluntário ativo vê o mural — e NÃO vê o painel: voluntariar não é ser equipe');
+
+  assert.deepEqual(itensDeQuemEntrou(true, true, false), [ITEM_MINHA_CONTA, ITEM_PAINEL],
+    'quem é equipe mas não voluntaria NÃO vê o mural: a tela de escrever avisos é /admin/avisos');
+
+  assert.deepEqual(
+    itensDeQuemEntrou(true, true, true),
+    [ITEM_MINHA_CONTA, ITEM_AVISOS, ITEM_PAINEL],
+    'quem é as duas coisas vê os três, nesta ordem: do que alcança mais gente para o que '
+    + 'alcança menos, porque a gaveta é lida de cima para baixo num celular (regra 4)'
+  );
+
+  // SER EQUIPE OU VOLUNTÁRIO SEM SESSÃO É IMPOSSÍVEL, e a função não pode
+  // confiar nisso: `app/layout.tsx` só faz as duas perguntas quando há
+  // sessão, e se essa ordem mudar um dia, o menu não pode passar a oferecer
+  // o painel nem a comunicação interna a quem não entrou.
   assert.deepEqual(itensDeQuemEntrou(false, true), [],
     'sem sessão, nem mesmo o sinal de equipe pode desenhar o painel');
+
+  assert.deepEqual(itensDeQuemEntrou(false, false, true), [],
+    'sem sessão, nem mesmo o sinal de voluntário pode desenhar o mural');
 });
 
-test('os dois itens NÃO estão em ITENS — o menu de toda visita continua com 11', async () => {
+test('os itens condicionais NÃO estão em ITENS — o menu de toda visita continua com 11', async () => {
   // Se um deles vazasse para ITENS, `links-menu.test.mjs` e a contagem de 11
   // deste arquivo passariam a medir um número que muda conforme quem olha.
   //
@@ -283,7 +303,7 @@ test('os dois itens NÃO estão em ITENS — o menu de toda visita continua com 
   assert.equal(hrefs.length, 11,
     `ITENS tem ${hrefs.length} entradas; o menu de toda visita são 11`);
 
-  for (const proibido of ['/minha-conta', '/admin']) {
+  for (const proibido of ['/minha-conta', '/admin', '/avisos']) {
     assert.ok(!hrefs.includes(proibido),
       `"${proibido}" entrou em ITENS — ele é condicional e mora em `
       + 'compartilhado/itens-de-quem-entrou.ts. Em ITENS, ele apareceria para toda visita.');

@@ -59,12 +59,14 @@ export default function MenuMovel({
   aberto,
   temSessao = false,
   ehEquipe = false,
+  ehVoluntario = false,
   aoFechar
 }: {
   hidratado: boolean;
   aberto: boolean;
   temSessao?: boolean;
   ehEquipe?: boolean;
+  ehVoluntario?: boolean;
   aoFechar: () => void;
 }) {
   const rota = usePathname();
@@ -134,7 +136,7 @@ export default function MenuMovel({
           ))}
 
           {/*
-            OS DOIS ITENS DE QUEM ESTÁ DENTRO (pedido V1). Quem decide
+            OS ITENS DE QUEM ESTÁ DENTRO (pedido V1, mais o mural). Quem decide
             quais aparecem é `itensDeQuemEntrou`, em compartilhado/ — função
             pura, provada com uma tabela em testes/cabecalho.test.mjs.
             A decisão não mora aqui porque este arquivo é `.tsx`, e o
@@ -142,7 +144,7 @@ export default function MenuMovel({
             verificação justamente na parte que a suíte não alcança por
             falta de sessão. Ver o cabeçalho daquele módulo.
           */}
-          {itensDeQuemEntrou(temSessao, ehEquipe).map((item) => (
+          {itensDeQuemEntrou(temSessao, ehEquipe, ehVoluntario).map((item) => (
             <li key={item.href}>
               <Link
                 className={`af-navlink ${item.classe}`}

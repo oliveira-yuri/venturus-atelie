@@ -79,7 +79,8 @@ type SessaoNoCabecalho = { nome: string };
  * script preso na sessão.
  */
 export default function Cabecalho(
-  { sessao, ehEquipe = false }: { sessao?: SessaoNoCabecalho | null; ehEquipe?: boolean }
+  { sessao, ehEquipe = false, ehVoluntario = false }:
+  { sessao?: SessaoNoCabecalho | null; ehEquipe?: boolean; ehVoluntario?: boolean }
 ) {
   const rota = usePathname();
   const emEntrar = rota === '/entrar' || rota === '/recuperar-acesso';
@@ -226,6 +227,7 @@ export default function Cabecalho(
         aberto={menuAberto}
         temSessao={Boolean(sessao)}
         ehEquipe={ehEquipe}
+        ehVoluntario={ehVoluntario}
         aoFechar={() => { setMenuAberto(false); botaoMenu.current?.focus(); }}
       />
     </header>

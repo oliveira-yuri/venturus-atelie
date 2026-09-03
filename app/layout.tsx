@@ -13,7 +13,7 @@ import VLibras from '@/componentes/VLibras';
 import { BotaoWhatsApp } from '@/componentes/BotaoWhatsApp';
 import FocoNaNavegacao from '@/componentes/FocoNaNavegacao';
 import { sessaoParaOCabecalho, type SessaoNoCabecalho } from '@/servidor/sessao';
-import { ehEquipe } from '@/servidor/permissao';
+import { ehEquipe, ehVoluntarioAtivo } from '@/servidor/permissao';
 
 export const metadata = {
   title: 'Ateliê Afro Cultural',
@@ -82,7 +82,23 @@ export default async function LayoutRaiz({ children }: { children: React.ReactNo
   //
   // E ele NÃO vaza a existência do painel: quem não é equipe nunca recebe o
   // item, exatamente como `/admin` nunca admite existir para quem não é.
-  const ehDaEquipe = sessao !== null && !nomeForcado && await ehEquipe();
+  //
+  // "MURAL DE AVISOS" NO MENU, PARA QUEM É VOLUNTÁRIO ATIVO (RF27).
+  //
+  // Custa uma SEGUNDA consulta, e por isso as duas vão juntas num
+  // `Promise.all`: em série seriam duas idas ao Postgres uma depois da
+  // outra em toda página de quem está autenticado; em paralelo o custo é o
+  // da mais lenta. As duas são memoizadas por requisição (`cache()`), então
+  // perguntar de novo dentro da página não paga rede de novo.
+  //
+  // O recorte é `situacao = 'ativo'`, e ele não é escolha deste arquivo:
+  // `ehVoluntarioAtivo()` chama a MESMA função do banco que a política de
+  // `public.avisos` chama. Comparar `situacao` aqui criaria uma segunda
+  // definição de "voluntário", que divergiria em silêncio no dia em que a
+  // ONG decidisse incluir 'em_contato'.
+  const [ehDaEquipe, ehVoluntario] = sessao !== null && !nomeForcado
+    ? await Promise.all([ehEquipe(), ehVoluntarioAtivo()])
+    : [false, false];
 
   return (
     // suppressHydrationWarning aplicado só no <html>: a Tarefa 3 acrescenta o
@@ -111,7 +127,7 @@ export default async function LayoutRaiz({ children }: { children: React.ReactNo
         />
         <a className="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
         <FocoNaNavegacao />
-        <Cabecalho sessao={sessao} ehEquipe={ehDaEquipe} />
+        <Cabecalho sessao={sessao} ehEquipe={ehDaEquipe} ehVoluntario={ehVoluntario} />
         {children}
         <Rodape />
         {/*

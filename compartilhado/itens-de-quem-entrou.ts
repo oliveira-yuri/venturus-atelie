@@ -68,18 +68,57 @@ export const ITEM_PAINEL: ItemDeMenu = {
 };
 
 /**
+ * "Mural de avisos" só existe para quem JÁ É voluntário — `situacao =
+ * 'ativo'`, o mesmo recorte de `public.eh_voluntario_ativo()` (migration
+ * 012), que é o mesmo que a política da tabela usa.
+ *
+ * NÃO É `temSessao` que decide, e a diferença é o item inteiro. Qualquer
+ * pessoa com conta pode se candidatar, e a maioria das candidaturas está
+ * em `novo` esperando a equipe conversar. Um item de menu para essas
+ * pessoas levaria a uma tela que diz "isto ainda não é para você" — que é
+ * pior que não ter item nenhum: parece uma porta fechada na cara.
+ *
+ * O PREÇO ESTÁ NO LAYOUT, e é uma consulta a mais por página para quem
+ * está autenticado. Está escrita lá, ao lado da de `ehEquipe()`, e roda em
+ * paralelo com ela.
+ */
+export const ITEM_AVISOS: ItemDeMenu = {
+  texto: 'Mural de avisos',
+  href: '/avisos',
+  classe: 'af-navlink--avisos'
+};
+
+/**
  * A tabela inteira, em uma linha:
  *
- *   sem sessão            → nada
- *   com sessão            → Minha conta
- *   com sessão + equipe   → Minha conta, Painel da equipe
+ *   sem sessão                  → nada
+ *   com sessão                  → Minha conta
+ *   com sessão + voluntário     → Minha conta, Mural de avisos
+ *   com sessão + equipe         → Minha conta, Painel da equipe
+ *   com sessão + os dois        → Minha conta, Mural de avisos, Painel
  *
- * SER EQUIPE SEM SESSÃO É IMPOSSÍVEL, e a função trata isso: `ehEquipe`
- * sozinho não desenha nada. Não é defensivo à toa — `app/layout.tsx` só
- * pergunta `ehEquipe()` quando há sessão, e se um dia essa ordem mudar, o
- * menu não passa a oferecer o painel a quem não entrou.
+ * A ORDEM É DELIBERADA e vai do que alcança mais gente para o que alcança
+ * menos: a conta é de qualquer pessoa autenticada, o mural é de quem
+ * voluntaria, o painel é da equipe. Num celular a gaveta é lida de cima
+ * para baixo (regra 4), e é o item mais provável que precisa estar no topo.
+ *
+ * SER EQUIPE OU VOLUNTÁRIO SEM SESSÃO É IMPOSSÍVEL, e a função trata isso:
+ * os dois booleanos sozinhos não desenham nada. Não é defensivo à toa —
+ * `app/layout.tsx` só faz as duas perguntas quando há sessão, e se um dia
+ * essa ordem mudar, o menu não passa a oferecer o painel nem a comunicação
+ * interna a quem não entrou.
+ *
+ * O TERCEIRO PARÂMETRO TEM PADRÃO `false` de propósito: quem chamar com
+ * dois argumentos continua recebendo a tabela de antes, e o item novo é
+ * omitido — que é o lado seguro de errar num menu que mostra o que existe.
  */
-export function itensDeQuemEntrou(temSessao: boolean, ehEquipe: boolean): ItemDeMenu[] {
+export function itensDeQuemEntrou(
+  temSessao: boolean, ehEquipe: boolean, ehVoluntario = false
+): ItemDeMenu[] {
   if (!temSessao) return [];
-  return ehEquipe ? [ITEM_MINHA_CONTA, ITEM_PAINEL] : [ITEM_MINHA_CONTA];
+
+  const itens = [ITEM_MINHA_CONTA];
+  if (ehVoluntario) itens.push(ITEM_AVISOS);
+  if (ehEquipe) itens.push(ITEM_PAINEL);
+  return itens;
 }

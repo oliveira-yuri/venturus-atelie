@@ -408,11 +408,22 @@ describe('as rotas novas, por HTTP', () => {
     assert.match(resposta.headers.get('location') ?? '', /\/entrar/);
   });
 
-  test('o mural NÃO aparece no menu — ele é interno', async () => {
+  test('o mural NÃO aparece no menu de quem não entrou', async () => {
+    /*
+     * ANTES ESTE TESTE DIZIA "o mural não aparece no menu", ponto — e ele
+     * envelheceu no dia em que o grupo pediu a aba (03/09/2026). É o item
+     * 0x acontecendo de novo: afirmação sobre o CONTEÚDO de hoje envelhece,
+     * afirmação sobre a RELAÇÃO entre quem olha e o que a tela desenha não.
+     *
+     * O invariante que sobrevive é este: o item é de quem é voluntário
+     * ATIVO, e uma visita anônima nunca o recebe. A metade positiva (quem é
+     * voluntário RECEBE) é medida em testes/cabecalho.test.mjs, na tabela
+     * de `itensDeQuemEntrou` — aqui não há sessão para exercitá-la.
+     */
     const html = await (await fetch(`${endereco}/`)).text();
     const menu = html.slice(html.indexOf('<header'), html.indexOf('</header>'));
     assert.equal(menu.includes('href="/avisos"'), false,
-      'o mural entrou no menu: o menu é o mesmo para toda visita, e para a maioria aquele '
-      + 'item só redirecionaria');
+      'o mural apareceu no menu de uma visita ANÔNIMA: ele é comunicação interna, e o '
+      + 'item só existe para quem é voluntário ativo');
   });
 });
