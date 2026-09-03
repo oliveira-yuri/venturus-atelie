@@ -82,11 +82,20 @@ export function projetoDoAlbum(
 /**
  * O endereço do projeto na página pública.
  *
- * `/projetos#<id>` e não `/projetos/<id>`: a página de projetos é uma só, e
- * cada `<article>` já carrega o `id` da atividade (componentes/
- * CardAtividade.ts). O `#` leva direto ao cartão certo — sem rota nova,
- * sem consulta nova.
+ * `/projetos/<id>` — a página PRÓPRIA daquela atividade, com sinopse e
+ * ficha técnica.
+ *
+ * ANTES ERA `/projetos#<id>`, uma âncora no cartão da lista, e o comentário
+ * daqui dizia "a página de projetos é uma só". Deixou de ser: o pedido V1
+ * (02/09/2026) deu página própria a cada atividade. A âncora continua
+ * existindo — `CardAtividade` ainda põe o `id` no `<article>` —, então o
+ * link não estava QUEBRADO; ele levava a pessoa ao resumo quando a página
+ * inteira já existia a um clique dali.
+ *
+ * QUEM PEGOU ISSO FOI A SUÍTE, e só com credenciais: `public.midia` estava
+ * vazia, então o link nunca chegava a ser desenhado. É o mesmo padrão do
+ * item 0x do CLAUDE.md — o teste que só falha quando aparece conteúdo.
  */
 export function enderecoDoProjeto(projeto: ProjetoParaLigar): string {
-  return `/projetos#${projeto.id}`;
+  return `/projetos/${projeto.id}`;
 }

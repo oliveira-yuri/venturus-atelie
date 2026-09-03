@@ -102,8 +102,8 @@ export const REQUISITOS = [
     o: '§6', s: 'pronto', onde: '/admin/eventos/presenca',
     e: 'Três estados (veio / não veio / ninguém conferiu). Sem paginação, sem e-mail e sem CPF na tela. Cada botão é um <form> com Server Action — funciona sem JavaScript.' },
   { id: 'RF18', m: 'M3', nome: 'E-mail de confirmação',
-    o: '§6', s: 'parcial', onde: 'Edge Function enviar-email',
-    e: 'Função PUBLICADA e medida em produção (responde 401 sem a chave, o que prova que os quatro secrets estão lá). O envio real ainda não foi disparado.' },
+    o: '§6', s: 'pronto', onde: 'Edge Function enviar-email',
+    e: 'ENVIO REAL DISPARADO E MEDIDO em produção (03/09): a função leu a inscrição no banco, gravou a reserva em public.envios e o provedor aceitou; a segunda chamada respondeu ja_enviado, sem mandar de novo. Ela ficou muda por um dia por falta de GRANT ao service_role (migration 013), não por código — e passou a dizer qual papel a chave dela carrega, porque o Postgres responde "permission denied" sem falar de credencial.' },
 
   // ---- M4 ----
   { id: 'RF19', m: 'M4', nome: 'Oferta de doação',
@@ -146,11 +146,11 @@ export const REQUISITOS = [
 
   // ---- M6 ----
   { id: 'RF27', m: 'M6', nome: 'Mural de avisos',
-    o: '§6', s: 'parcial', onde: '/avisos · /admin/avisos',
-    e: 'Tabela NOVA, não uma coluna em publicacoes — reaproveitar aquela política publicaria comunicação interna na internet aberta. "Voluntário" = situação ATIVA. 9 testes contra Postgres real. Migration 012 APLICADA e medida em produção (a tabela e a função respondem 42501 a anon, que é o desenho). O mural ainda não foi visto COM conteúdo: exige um aviso publicado e alguém com candidatura ativa.' },
+    o: '§6', s: 'pronto', onde: '/avisos · /admin/avisos',
+    e: 'Tabela NOVA, não uma coluna em publicacoes — reaproveitar aquela política publicaria comunicação interna na internet aberta. "Voluntário" = situação ATIVA. 9 testes contra Postgres real. Migration 012 APLICADA. PERCORRIDO DE PONTA A PONTA em 03/09, com sessão real: publicar o aviso, promover a candidatura a ativa, ver o mural com conteúdo. Desde 03/09 ele é ABA DO MENU, e só para quem é voluntário ativo — medido: anônimo 11 itens sem o mural, voluntária ativa 14 com ele, e encerrando a candidatura pela tela o item some.' },
   { id: 'RF28', m: 'M6', nome: 'Mensagem para grupo',
-    o: '§6', s: 'parcial', onde: '/admin/avisos',
-    e: 'Grupo por lista fechada; nenhum alcança "todo mundo". Um e-mail por pessoa (/emails/batch), nunca uma lista no mesmo campo. Migration 012 aplicada; o envio real ainda não foi disparado.' },
+    o: '§6', s: 'pronto', onde: '/admin/avisos',
+    e: 'Grupo por lista fechada; nenhum alcança "todo mundo". Um e-mail por pessoa (/emails/batch), nunca uma lista no mesmo campo. ENVIO REAL DISPARADO E MEDIDO em produção (03/09): respondeu enviados 1; apertar de novo respondeu enviados 0 / ja_enviado, porque o índice único de public.envios pula quem já recebeu; e um grupo inventado foi recusado pela lista fechada DENTRO da função, que a confere de novo porque quem chama pode não ser o site.' },
   { id: 'RF29', m: 'M6', nome: 'Registro central de contatos',
     o: '§4, §6', s: 'pronto', onde: '/admin/contatos',
     e: 'Fila de atendimento com novo / em contato / concluída. Lê e tria: não apaga e não edita a mensagem — o texto recebido é registro.' },

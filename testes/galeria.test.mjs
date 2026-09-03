@@ -1054,7 +1054,7 @@ test('a ponte álbum→projeto ignora acento e caixa, mas NÃO casa por prefixo'
   assert.equal(projetoDoAlbum('Oficina de sábado', projetos), null,
     'um álbum que não é atividade nenhuma precisa devolver null, não o primeiro da lista');
 
-  assert.equal(enderecoDoProjeto(projetos[0]), '/projetos#cafu-e-o-cafe',
+  assert.equal(enderecoDoProjeto(projetos[0]), '/projetos/cafu-e-o-cafe',
     'o endereço leva ao cartão da atividade em /projetos, que já carrega esse id');
 });
 
@@ -1067,7 +1067,7 @@ test('cada foto é um LINK para ela mesma — sem JavaScript, tocar abre a image
     mensagemVazio: 'vazio',
     albuns: [{
       nome: 'Cafú e o Café',
-      projeto: { titulo: 'Cafú e o Café', href: '/projetos#cafu-e-o-cafe' },
+      projeto: { titulo: 'Cafú e o Café', href: '/projetos/cafu-e-o-cafe' },
       pecas: [{ id: 'a', url: 'https://exemplo.test/1.jpg', alt: 'Uma foto', legenda: 'Legenda' }]
     }]
   }));
@@ -1080,10 +1080,10 @@ test('cada foto é um LINK para ela mesma — sem JavaScript, tocar abre a image
   // Os `data-` são o que o componente de tela cheia lê.
   assert.match(html, /data-foto="sim"/);
   assert.match(html, /data-album="Cafú e o Café"/);
-  assert.match(html, /data-projeto-href="\/projetos#cafu-e-o-cafe"/);
+  assert.match(html, /data-projeto-href="\/projetos\/cafu-e-o-cafe"/);
 
   // E o título do álbum vira link para o projeto.
-  assert.match(html, /<a[^>]+class="album__projeto"[^>]+href="\/projetos#cafu-e-o-cafe"/);
+  assert.match(html, /<a[^>]+class="album__projeto"[^>]+href="\/projetos\/cafu-e-o-cafe"/);
 });
 
 test('álbum que não é atividade nenhuma NÃO vira link para lugar nenhum', async () => {

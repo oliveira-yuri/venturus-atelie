@@ -82,7 +82,7 @@ onde ninguém percorreu o caminho até o fim, está escrito que ninguém percorr
   <div><span class="n">${conta(REQUISITOS, 'pronto')}</span><span class="r">RF prontos</span></div>
   <div><span class="n">${conta(REQUISITOS, 'parcial')}</span><span class="r">RF parciais</span></div>
   <div><span class="n">${conta(REQUISITOS, 'falta')}</span><span class="r">RF não iniciados</span></div>
-  <div><span class="n">1249</span><span class="r">testes verdes</span></div>
+  <div><span class="n">1268</span><span class="r">testes verdes</span></div>
 </div>
 
 <p>Os três selos:</p>
@@ -168,11 +168,11 @@ está registrada como pendência desde o começo.</p>
 <p>Quatro camadas independentes, e elas medem coisas diferentes:</p>
 
 <ul>
-  <li><strong>1249 testes em modo offline</strong>, sem rede e sem credencial — determinísticos.
+  <li><strong>1268 testes em modo offline</strong>, sem rede e sem credencial — determinísticos.
   Incluem varreduras de código-fonte que cobram a presença <em>e a ausência</em> de guardas:
   há teste que falha se a Action pública de inscrição ganhar uma guarda de equipe, e teste
   irmão que falha se a Action do painel perder a dela.</li>
-  <li><strong>1250 testes contra o banco de produção</strong> — é o que impede o site de servir
+  <li><strong>1269 testes contra o banco de produção</strong> — é o que impede o site de servir
   conteúdo versionado achando que está lendo o banco.</li>
   <li><strong>118 testes contra um PostgreSQL real</strong> com as migrations reais aplicadas.
   É onde a política de acesso de cada tabela é exercitada de verdade, inclusive as tentativas
