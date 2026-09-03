@@ -83,7 +83,56 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
    ===================================================================== */
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+/**
+ * A CHAVE QUE FALA COM O BANCO — e ela tem DOIS nomes possiveis, de
+ * proposito.
+ *
+ * MEDIDO em 03/09/2026, em producao: a funcao respondeu
+ * `permission denied for table inscricoes` ao ler uma inscricao que
+ * EXISTIA. Esse e o erro de quem consulta como `anon` — a tabela da a
+ * `anon` apenas `grant insert` (003_eventos.sql). Ou seja, o que a
+ * plataforma injetou em `SUPABASE_SERVICE_ROLE_KEY` NAO era a service
+ * role: era uma chave de papel anonimo.
+ *
+ * O Supabase reserva o prefixo `SUPABASE_` e nao deixa uma pessoa
+ * corrigir aquele secret pelo painel. Por isso existe `CHAVE_SERVICO`,
+ * que vence: quem opera o projeto cola ali a service role de
+ * Settings -> API e a funcao passa a enxergar o banco. Sem ela, o
+ * comportamento e o de antes.
+ *
+ * Isto NAO alarga a superficie: a service role ja estava no ambiente
+ * desta funcao por injecao, e ela continua sendo o unico ponto do
+ * projeto que a tem (spec 9).
+ */
+const SERVICE_ROLE = Deno.env.get('CHAVE_SERVICO')
+  ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+/**
+ * O papel que a chave carrega, lido do proprio token — sem chamar o banco.
+ *
+ * Serve para DIAGNOSTICO, nunca para autorizar: quem decide o que a chave
+ * pode e o Postgres. Uma chave que diga `anon` aqui vai falhar em toda
+ * consulta, e a mensagem do Postgres (`permission denied`) nao conta que a
+ * causa foi a chave — foi preciso medir por fora para descobrir.
+ *
+ * Formatos: as chaves antigas sao JWT (tres partes separadas por ponto, com
+ * `role` no payload); as novas sao opacas, com prefixo `sb_secret_` ou
+ * `sb_publishable_`.
+ */
+function papelDaChave(chave: string): string {
+  if (chave.startsWith('sb_secret_')) return 'service_role (chave secreta nova)';
+  if (chave.startsWith('sb_publishable_')) return 'anon (chave publicavel nova)';
+
+  const partes = chave.split('.');
+  if (partes.length !== 3) return 'formato desconhecido';
+
+  try {
+    const corpo = atob(partes[1].replace(/-/g, '+').replace(/_/g, '/'));
+    return String(JSON.parse(corpo).role ?? 'sem papel declarado');
+  } catch {
+    return 'nao deu para ler o papel';
+  }
+}
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const CHAVE_DO_SITE = Deno.env.get('CHAVE_DE_ENVIO');
 
@@ -555,6 +604,16 @@ Deno.serve(async (requisicao: Request) => {
     return responder({ erro: 'nao_configurada' }, 500);
   }
 
+  // A CHAVE PODE ESTAR PRESENTE E SER A ERRADA, e o sintoma disso nao
+  // aparece aqui: aparece la na frente, como `permission denied` do
+  // Postgres, que nao diz uma palavra sobre a chave. Ver papelDaChave().
+  const papel = papelDaChave(SERVICE_ROLE);
+  if (!papel.startsWith('service_role')) {
+    console.error(`[enviar-email] A CHAVE DO BANCO NAO E A SERVICE ROLE: papel "${papel}". `
+      + 'Toda consulta vai responder "permission denied". Cole a service role em '
+      + 'CHAVE_SERVICO (Edge Functions -> Secrets), que vence a injetada.');
+  }
+
   // TRAVA 1 — a chave compartilhada. Ver o cabeçalho: a anon key é pública,
   // então sem isto qualquer pessoa chamaria a função.
   const recebida = requisicao.headers.get('x-chave-do-site') ?? '';
@@ -662,6 +721,7 @@ Deno.serve(async (requisicao: Request) => {
         erro: 'registro_nao_encontrado',
         onde: 'inscricoes',
         causa: error ? String((error as { message?: string }).message ?? error) : 'nenhuma linha casou',
+        papel_da_chave: papel,
         procurei: { evento_id: eventoId, email: emailPedido }
       }, 404);
     }
