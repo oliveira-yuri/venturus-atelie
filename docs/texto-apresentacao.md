@@ -5,9 +5,19 @@ entre eles enquanto troca a tela.*
 
 ---
 
+> **Preencha antes de apresentar:** os trechos entre `[colchetes]` na abertura —
+> nomes, curso e semestre. É a única coisa que falta neste texto.
+
 ## Abertura
 
-Boa tarde. Nosso projeto foi feito para o **Ateliê Afro Cultural**, uma ONG da Casa
+Boa tarde. Meu nome é **[seu nome]**, e junto comigo estão **[nome]**, **[nome]** e
+**[nome]**.
+
+Somos alunos do curso de **[nome do curso]** da **Fatec [unidade]**, e este é o nosso
+trabalho para o **Fatec Innovation Challenge**, em parceria com a **Venturus**.
+
+O desafio que a gente escolheu foi construir a presença digital de uma organização
+real. E a organização que atendemos foi o **Ateliê Afro Cultural**, uma ONG da Casa
 Verde, na zona norte de São Paulo.
 
 E a primeira coisa que eu preciso dizer é o que eles **não** são: não é uma ONG
@@ -114,4 +124,4 @@ pelo celular.
 
 É isso: um lugar onde o trabalho deles aparece — e que eles mesmos tocam.
 
-Obrigado.
+Obrigado pela atenção. Ficamos à disposição para as perguntas.
