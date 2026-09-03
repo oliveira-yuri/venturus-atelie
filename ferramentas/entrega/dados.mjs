@@ -108,7 +108,7 @@ export const REQUISITOS = [
   // ---- M4 ----
   { id: 'RF19', m: 'M4', nome: 'Oferta de doação',
     o: '§6', s: 'pronto', onde: '/doar/ofertar',
-    e: 'Descrição livre + tipo, como o plano pede. Sem campo de valor no formulário público: valor é escrito pela equipe, depois do fato (RN08).' },
+    e: 'Tipo (item ou dinheiro) e o campo que corresponde: descrição livre para item, quantia em reais para dinheiro, com máscara que conta os centavos da direita. A quantia NÃO vira a coluna `valor` — ela entra na descrição, porque `valor` é o que a ONG confirmou ter recebido (RN08). Assim o total dos indicadores continua somando fato, não promessa.' },
   { id: 'RF20', m: 'M4', nome: 'Análise e resposta ao doador',
     o: '§6', s: 'pronto', onde: '/admin/doacoes/responder',
     e: 'Aceite ou recusa com mensagem editável, e agora também POR E-MAIL. A equipe pode responder sem mudar a situação.' },
@@ -130,8 +130,8 @@ export const REQUISITOS = [
     o: '§6', s: 'pronto', onde: '/voluntariado/candidatura',
     e: 'MEDIDO contra produção, sem JavaScript: entrar, marcar duas áreas, enviar, e a candidatura desenhada. Exige conta, e o porquê é do esquema.' },
   { id: 'RF26', m: 'M5', nome: 'Gestão de voluntários',
-    o: '§6', s: 'parcial', onde: '/admin/voluntarios',
-    e: 'Lê as candidaturas com as áreas e move a situação entre as quatro. FILTRO: só por situação — o pedido V1 pediu também nome, e-mail, CPF/PJ e área.' },
+    o: '§6', s: 'pronto', onde: '/admin/voluntarios',
+    e: 'Lê as candidaturas com as áreas e move a situação entre as quatro. Filtro por nome ou e-mail, área, situação e tipo de pessoa — tudo por GET, o que faz o botão voltar desfazer e o endereço filtrado virar um link. Ele filtra em MEMÓRIA de propósito: como função pura, tem 11 testes sem banco nenhum, e a contagem da paginação continua honesta.' },
 
   // ---- M9 ----
   { id: 'RF35', m: 'M9', nome: 'Catálogo do acervo com busca',
@@ -186,8 +186,8 @@ export const NAO_FUNCIONAIS = [
     e: 'Interface, código, tabelas e colunas em português — é o que sustenta a RNF07.' },
   { id: 'RNF05', nome: 'Tom de comunicação', s: 'pronto',
     e: 'Há teste que recusa estética de pena e linguagem de caridade. Toda mensagem de erro diz o que houve e o que fazer.' },
-  { id: 'RNF06', nome: 'Identidade visual', s: 'parcial',
-    e: 'Design system "Ateliê Afro" v1, com a paleta e os significados declarados pela ONG. LOGOTIPO: só existe em baixa qualidade, bordado em camiseta — a marca está tipográfica.' },
+  { id: 'RNF06', nome: 'Identidade visual', s: 'pronto',
+    e: 'Design system "Ateliê Afro" v1, com a paleta e os significados declarados pela ONG. O LOGOTIPO estava anexado ao próprio formulário de levantamento, na última página, e ninguém tinha ido buscar: extraído do PDF, reduzido e limpo das franjas do JPEG (286 KB para 12 KB), está no rodapé de toda página. MEDIDO nos dois modos de contraste — o rodapé fica PRETO no alto contraste, não branco, e a primeira versão da regra fazia a marca sumir ali.' },
   { id: 'RNF07', nome: 'Autonomia de manutenção', s: 'parcial',
     e: 'Manual escrito (docs/manual-da-equipe.md) e guia de uma página para imprimir. O TREINAMENTO presencial que o requisito também pede não aconteceu.' },
   { id: 'RNF08', nome: 'Operação sem equipamento próprio', s: 'pronto',

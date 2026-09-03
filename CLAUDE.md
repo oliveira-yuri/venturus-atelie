@@ -1372,7 +1372,39 @@ De `docs/Correções Web Ateliê.txt`:
   (`testes/paginas.test.mjs`), e a instrução do grupo continua valendo: mover o botão,
   nunca remover o VLibras.
 
-**A lista está vazia.** Os pedidos que chegaram depois estão em
+**Uma segunda rodada de pedidos chegou em 03/09/2026**, do dono do projeto usando o site no
+celular, e os cinco foram feitos no mesmo dia:
+
+- **Doação:** o select perdeu a opção "Escolha uma opção" e cada tipo abre o campo dele — texto
+  para item, **quantia em reais** para dinheiro, com máscara que conta os centavos da direita.
+  A quantia NÃO vira a coluna `valor` (ela entra na descrição): `valor` é o que a ONG confirmou
+  ter recebido, e o total dos indicadores continua somando fato, não promessa (RN08);
+- **Minha conta:** o formulário foi para trás de um `<details>` ("Alterar meus dados") e a ficha
+  subiu — o que a pessoa vê ao abrir passou a ser o que ela veio ver. As duas seções viraram
+  `/minha-conta/candidaturas` e `/minha-conta/doacoes`, o que tirou DUAS consultas da página
+  principal;
+- **Filtro de voluntários:** de um select para quatro campos (nome ou e-mail, área, situação,
+  tipo de pessoa), tudo por `GET`. "CPF/PJ" virou tipo de pessoa porque **não existe CPF em
+  `public.perfis`**, e não deve existir (RNF09);
+- **Logotipo no rodapé:** ele estava anexado ao próprio formulário de levantamento da ONG, na
+  última página, e ninguém tinha ido buscar em três meses de projeto.
+
+**TRÊS DEFEITOS DESSA RODADA PASSARAM POR 1264 TESTES VERDES, e os três só apareceram com uma
+sessão de equipe na mão** — é a regra 10 acontecendo de novo:
+
+1. o "Escolha uma opção" continuava na tela depois de eu tirá-lo de `OPCOES_DE_TIPO`. Ele vinha
+   de `CampoFormulario`, que acrescenta a opção vazia SOZINHO em todo select obrigatório sem
+   valor inicial — e por um motivo real (foi assim que `tipo_pessoa` gravou 'fisica' para todo
+   mundo). A saída foi dar valor inicial, e ela é segura só AQUI, porque os dois tipos abrem
+   campos diferentes;
+2. o `onChange` do formulário de oferta **nunca chegou a ser escrito** — a substituição não
+   pegou e ninguém conferiu. O formulário novo estava servido e MUDO: trocar para "Dinheiro"
+   não revelava o campo de quantia;
+3. os dois botões de `/minha-conta` saíam **colados**, lendo como um bloco escuro só, porque eu
+   pus cada um no seu próprio `.abertura__acoes` — classe que zera a margem e separa por `gap`,
+   ou seja, com um contêiner por botão não há o que separar.
+
+**Os pedidos anteriores estão em
 `docs/alterações-atelie-v1/`, e os 34 itens dela foram feitos em 02/09/2026 — menos os dois
 que o próprio pedido marcou como "apenas se der tempo" (painel com gráficos e integração com
 gateway de pagamento), que continuam fora.

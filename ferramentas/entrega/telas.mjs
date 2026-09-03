@@ -50,6 +50,9 @@ export const FLUXOS = [
       { rota: '/recuperar-acesso', nome: 'Recuperar acesso', rf: 'RF10' },
       { rota: '/nova-senha', nome: 'Definir nova senha', rf: 'RF10' },
       { rota: '/minha-conta', nome: 'Minha conta', rf: 'RF11', sessao: true },
+      { rota: '/minha-conta/candidaturas', nome: 'Minhas candidaturas', rf: 'RF11 · RF25',
+        sessao: true },
+      { rota: '/minha-conta/doacoes', nome: 'Minhas doações', rf: 'RF22', sessao: true },
       { rota: '/avisos', nome: 'Mural de avisos', rf: 'RF27', sessao: true }
     ]
   },
