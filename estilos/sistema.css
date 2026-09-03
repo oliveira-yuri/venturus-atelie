@@ -141,9 +141,15 @@
   width: 2.875rem;
   height: 2.875rem;
   flex: none;
-  display: grid;
-  place-items: center;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* 3px entre as três barras. Era `gap: 4px` no grid MAIS `margin: 2px 0`
+     em cada <span> — os dois se somavam e deixavam os traços longe demais
+     ("os 3 palitinhos muito separados"). Agora o espaçamento é só este
+     `gap`. */
+  gap: 3px;
   background: var(--af-brown);
   border: var(--af-border);
   border-radius: var(--af-radius-control);
@@ -156,7 +162,29 @@
   width: 20px;
   height: 2px;
   background: var(--af-cream);
-  margin: 2px 0;
+}
+
+/* Enquanto a gaveta está aberta, o ícone vira "X" — um sinal a mais de
+   que o toque teve efeito. Sem movimento quando a pessoa pediu menos
+   animação. */
+.af-burger span {
+  transition: transform var(--af-dur) var(--af-ease), opacity var(--af-dur) var(--af-ease);
+}
+.af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(1) {
+  transform: translateY(5px) rotate(45deg);
+}
+.af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(2) {
+  opacity: 0;
+}
+.af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(3) {
+  transform: translateY(-5px) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af-burger span { transition: none; }
+  .af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(1),
+  .af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(3) { transform: none; }
+  .af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(2) { opacity: 1; }
 }
 
 /* ---------------------------------------------------------------------
@@ -347,6 +375,54 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   border-right: 2px solid var(--af-ochre);
   padding: var(--af-s8) 0 1.5rem;
   overflow-y: auto;
+}
+
+/* =====================================================================
+   ABRIR E FECHAR COM DESLIZE
+   =====================================================================
+
+   O scrim faz fade e o painel entra pela esquerda. `display` continua
+   sendo o que tira a gaveta da ordem de Tab quando fechada — a transição
+   de `display` com `allow-discrete`, casada com o `@starting-style`,
+   só faz o navegador segurar o `display: none` até o deslize terminar.
+   Navegador sem `@starting-style` cai no instantâneo de antes: é
+   aprimoramento, não requisito, e nenhum teste de menu depende do tempo.
+
+   TUDO ISTO É ESCOPADO ABAIXO DE 64rem, de propósito. Da largura de
+   desktop para cima a classe `af-nav--gaveta af-nav--fechada` continua no
+   HTML (o React não sabe a largura da tela) mas a navegação é uma faixa
+   horizontal — `pointer-events: none` e `translateX(-100%)` fora deste
+   `@media` deixariam a barra inteira do desktop invisível e não-clicável. */
+@media (max-width: 63.999rem) {
+  .af-nav--gaveta {
+    transition:
+      background-color var(--af-dur) var(--af-ease),
+      display var(--af-dur) var(--af-ease) allow-discrete;
+  }
+
+  .af-nav--gaveta.af-nav--fechada {
+    background-color: transparent;
+    /* O scrim ainda está desvanecendo durante o fecha: não deixa clicar
+       nele nesse meio-tempo. */
+    pointer-events: none;
+  }
+
+  .af-nav--gaveta.af-nav--fechada .af-nav__painel { transform: translateX(-100%); }
+
+  .af-nav--gaveta .af-nav__painel { transition: transform var(--af-dur) var(--af-ease); }
+
+  /* O estado "de onde" a gaveta entra, na primeira vez que sai do
+     display:none. Sem isto o scrim apareceria já cheio e o painel já no
+     lugar, sem deslize. */
+  @starting-style {
+    .af-nav--gaveta { background-color: transparent; }
+    .af-nav--gaveta .af-nav__painel { transform: translateX(-100%); }
+  }
+}
+
+@media (max-width: 63.999rem) and (prefers-reduced-motion: reduce) {
+  .af-nav--gaveta,
+  .af-nav--gaveta .af-nav__painel { transition: none; }
 }
 
 .af-nav--gaveta .af-nav__cabeca {
