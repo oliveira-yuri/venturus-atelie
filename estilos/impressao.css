@@ -1,0 +1,204 @@
+/* =====================================================================
+   estilos/impressao.css — o RF32: relatório em PDF.
+
+   ===================================================================
+   POR QUE NÃO EXISTE UMA BIBLIOTECA AQUI
+   ===================================================================
+
+   A spec (§9) decidiu isto antes de a tarefa existir, e a decisão vale
+   palavra por palavra:
+
+       PDF (RF32): `window.print()` com `impressao.css`, não biblioteca
+       via CDN. Zero dependência (...) A ONG não tem computador; um
+       gerador em JavaScript afinado para desktop resolveria o requisito
+       errado.
+
+   Um gerador de PDF em JavaScript (jsPDF, pdfmake) custaria centenas de
+   kB baixados no plano de dados de quem opera do celular, quebraria a
+   regra 7 (nada de biblioteca extra), teria de ser autorizado na política
+   de conteúdo, e produziria um documento com tipografia pior do que a que
+   o próprio navegador já sabe fazer.
+
+   `window.print()` no Android abre "Salvar como PDF" no seletor de
+   impressora. É exatamente o requisito, sem uma linha de dependência.
+
+   ===================================================================
+   A PÁGINA PRECISA SER IMPRIMÍVEL SEM JAVASCRIPT
+   ===================================================================
+
+   O botão "Salvar em PDF" é uma CONVENIÊNCIA — ele só chama
+   `window.print()`. Sem script ele não aparece, e o caminho continua
+   existindo pelo menu do próprio navegador. Por isso todo o trabalho de
+   verdade está NESTE ARQUIVO, em `@media print`, e não no botão: o que
+   sai no papel é o mesmo com ou sem script.
+
+   ===================================================================
+   ELE SÓ TEM `@media print`
+   ===================================================================
+
+   Nenhuma regra aqui vale na tela. Isso é o que permite importá-lo no
+   layout do painel inteiro sem risco: printar QUALQUER tela do painel
+   passa a dar um documento decente, e nenhuma delas muda de aparência.
+   ===================================================================== */
+
+@media print {
+  /* ---------------------------------------------------------------
+     1. O que NÃO vai para o papel.
+
+     Cabeçalho, gaveta, rodapé, VLibras, WhatsApp, barra de
+     acessibilidade e todo botão. Um relatório impresso com "Sair" e
+     "Menu" no topo é um relatório que ninguém anexa a um edital.
+
+     `!important` porque estas regras precisam vencer qualquer coisa
+     que sistema.css/admin.css digam — é o único lugar do projeto onde
+     ele se justifica, porque aqui não há cascata a preservar: a
+     pergunta é binária, o elemento sai ou não sai.
+     --------------------------------------------------------------- */
+  .af-header,
+  .af-nav,
+  .af-a11y,
+  .af-burger,
+  .af-footer,
+  .cabecalho,
+  .rodape,
+  .zap,
+  [vw],
+  .pular-para-conteudo,
+  .painel__voltar,
+  .painel__acoes,
+  .instrucoes,
+  .paginacao,
+  .presenca__botoes,
+  .nao-imprimir,
+  button {
+    display: none !important;
+  }
+
+  /* ---------------------------------------------------------------
+     2. Tinta preta em papel branco.
+
+     A paleta da ONG é linda na tela e cara na impressora — o marrom
+     `#2B2019` chapado num fundo creme gasta cartucho e sai cinza numa
+     laser velha. Aqui o texto é preto e o fundo é branco, que é o que
+     um documento oficial precisa ser.
+
+     Isto NÃO viola a regra 3 (a paleta é da ONG): a regra governa o
+     SITE. O papel é outro meio, e a própria regra 8 diz que
+     acessibilidade vence estética — um relatório ilegível impresso não
+     serve a ninguém.
+     --------------------------------------------------------------- */
+  :root,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body {
+    /* 11pt é o corpo padrão de documento impresso no Brasil. Em `pt`
+       porque aqui a unidade de referência É o papel — `rem` seguiria a
+       escala da tela, e o controle A+ não tem sentido numa folha. */
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  #conteudo,
+  .conteudo,
+  .painel__conteudo {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ---------------------------------------------------------------
+     3. Onde o papel pode ser cortado, e onde não pode.
+
+     `break-inside: avoid` num cartão impede que uma pessoa da lista
+     fique com o nome numa página e o telefone na seguinte — que é o
+     defeito clássico de lista impressa, e o que faz alguém ligar para
+     o número errado.
+     --------------------------------------------------------------- */
+  .cartao-painel,
+  .presenca__item,
+  .relatorio__linha,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  h1, h2, h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  h1 { font-size: 18pt; }
+  h2 { font-size: 14pt; margin-top: 1.2em; }
+  h3 { font-size: 12pt; }
+
+  /* ---------------------------------------------------------------
+     4. O endereço de cada link, escrito por extenso.
+
+     Num papel, "clique aqui" não leva a lugar nenhum. `a[href^="/"]`
+     de fora porque link interno impresso viraria "(/admin/contatos)",
+     que não ajuda quem está lendo a folha.
+     --------------------------------------------------------------- */
+  a { text-decoration: underline; color: #000 !important; }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    word-break: break-all;
+  }
+
+  /* ---------------------------------------------------------------
+     5. A tabela do relatório.
+
+     `border-collapse` e borda em toda célula: uma tabela sem linhas
+     numa impressão em preto e branco vira uma coluna de números
+     soltos.
+     --------------------------------------------------------------- */
+  .relatorio__tabela {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .relatorio__tabela th,
+  .relatorio__tabela td {
+    border: 1px solid #000;
+    padding: 0.35em 0.5em;
+    text-align: left;
+  }
+
+  .relatorio__tabela thead {
+    /* O cabeçalho se repete em toda página — sem isto, a página 2 de uma
+       lista de inscritos é uma grade de valores sem nome de coluna. */
+    display: table-header-group;
+  }
+
+  /* Números alinhados pela unidade, como numa planilha. */
+  .relatorio__numero {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* As etiquetas de estado perdem o fundo colorido (cartucho) e ficam
+     com a moldura. A PALAVRA continua lá, que é o que carrega a
+     informação — ver a regra 8 aplicada em estilos/admin.css. */
+  .etiqueta {
+    background: none !important;
+    border: 1px solid #000 !important;
+  }
+
+  /* O rodapé do relatório, repetido em toda página impressa, é o que
+     torna a folha rastreável quando ela sai de contexto. */
+  .relatorio__rodape {
+    margin-top: 2em;
+    padding-top: 0.6em;
+    border-top: 1px solid #000;
+    font-size: 9pt;
+  }
+}
+
+@page {
+  /* Margens de documento, não de página web. */
+  margin: 1.6cm 1.4cm;
+}

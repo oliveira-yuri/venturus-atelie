@@ -153,3 +153,13 @@ export const MENSAGENS: NomeDaFila = { singular: 'mensagem', plural: 'mensagens'
 export const CANDIDATURAS: NomeDaFila =
   { singular: 'candidatura', plural: 'candidaturas', artigo: 'a' };
 export const DOACOES: NomeDaFila = { singular: 'doação', plural: 'doações', artigo: 'a' };
+
+/**
+ * A fila de inscritos num evento (RF16).
+ *
+ * Note o artigo: "o inscrito" / "os inscritos". `frasePaginacao` precisa
+ * dos três campos porque o português não deriva o singular do plural
+ * cortando o "s" — foi assim que uma versão anterior deste arquivo produziu
+ * "Nenhuma mensagen".
+ */
+export const INSCRITOS: NomeDaFila = { singular: 'inscrito', plural: 'inscritos', artigo: 'o' };

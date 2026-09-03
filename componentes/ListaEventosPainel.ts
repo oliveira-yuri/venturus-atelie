@@ -226,6 +226,20 @@ export function ListaEventosPainel(
               createElement('span', { className: 'apenas-leitor-de-tela' }, ` ${evento.titulo}`)
             ),
 
+            // OS INSCRITOS (RF16) — link comum, como Editar. Vem logo
+            // depois porque, com o evento já no ar, esta é a tela que a
+            // equipe abre mais: quantas pessoas vêm, quem é menor de idade,
+            // quem autorizou imagem. Dali se chega à lista de presença.
+            createElement(
+              'a',
+              {
+                className: 'evento-painel__botao',
+                href: `/admin/eventos/inscritos?id=${encodeURIComponent(evento.id)}`
+              },
+              'Inscritos',
+              createElement('span', { className: 'apenas-leitor-de-tela' }, ` em ${evento.titulo}`)
+            ),
+
             createElement(
               'form',
               {

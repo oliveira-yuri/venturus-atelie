@@ -122,7 +122,22 @@ export const ROTAS_DINAMICAS = {
    * responderia 404, e os testes passariam a afirmar coisas sobre a página
    * de erro. Quando a primeira notícia existir, o exemplo entra.
    */
-  '/noticias/[id]': null
+  '/noticias/[id]': null,
+  /**
+   * SEM EXEMPLO, pelo mesmo motivo de /noticias: `public.eventos` está
+   * vazia na suíte offline, então não existe id real de evento para pôr
+   * aqui. Um uuid inventado responderia 404 e os testes passariam a
+   * afirmar coisas sobre a página de erro.
+   *
+   * A rota é `/agenda/[id]/inscricao` — ou seja, o `[id]` está no MEIO do
+   * caminho, e não no fim como nas outras duas. `PREFIXOS_DINAMICOS` corta
+   * só o `[...]` final, então o prefixo daqui sai como `/agenda/[id]`, que
+   * não casa com href nenhum — e é o certo: nenhum link do site aponta
+   * para `/agenda/<algo>` que não seja esta página de inscrição, e ela é
+   * alcançada pelo botão de cada evento, cujo href só existe quando há
+   * evento publicado.
+   */
+  '/agenda/[id]/inscricao': null
 };
 
 /** O prefixo de cada rota dinâmica: `/projetos`, `/noticias`. */
@@ -239,6 +254,19 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // o principal: eventos são marcados o tempo todo.
   '/admin/eventos',
   '/admin/eventos/editar',
+
+  // RF16 e RF17: quem se inscreveu, e quem veio. As duas moram DENTRO de
+  // /admin/eventos/ e são alcançadas pelo botão "Inscritos" de cada evento
+  // — não pela home do painel, porque "lista de presença" sem dizer de qual
+  // evento não é um gesto que se possa oferecer (ver componentes/
+  // PainelInicio.ts). As duas exigem `?id=<evento>` e respondem 404 sem ele.
+  '/admin/eventos/inscritos',
+  '/admin/eventos/presenca',
+
+  // RF32: o relatório para salvar em PDF. Não há biblioteca de PDF aqui e
+  // não vai haver (regra 7, spec §9): quem gera o documento é
+  // `estilos/impressao.css` mais o `window.print()` do próprio navegador.
+  '/admin/relatorio',
 
   // RF37: a tela onde a equipe sobe material do acervo (o formulário vive na
   // própria lista, como na galeria — ver o cabeçalho daquele page.tsx) e a

@@ -230,7 +230,7 @@ export function montarCsv(colunas: ColunaExportada[], linhas: LinhaExportada[]):
  * tudo, e "a RLS segura" não é desculpa para deixar a URL escolher a
  * consulta.
  */
-export type ConjuntoExportavel = 'contatos' | 'voluntarios';
+export type ConjuntoExportavel = 'contatos' | 'voluntarios' | 'inscritos';
 
 export type DescricaoDeConjunto = {
   chave: ConjuntoExportavel;
@@ -291,8 +291,82 @@ export const CONJUNTOS_EXPORTAVEIS: DescricaoDeConjunto[] = [
       { chave: 'mensagem', titulo: 'Mensagem' },
       { chave: 'id', titulo: 'Identificador' }
     ]
+  },
+  {
+    chave: 'inscritos',
+    rotulo: 'Baixar a lista de inscritos',
+    descricao: 'Quem se inscreveu num evento, com o contato, a autorização de imagem e se '
+      + 'veio. É a lista que a ONG anexa numa prestação de contas de edital.',
+    arquivo: 'inscritos',
+    /**
+     * A ORDEM É A DE QUEM VAI CONFERIR A LISTA NA PORTA: quem, se veio, se
+     * pode aparecer em foto, e só então como falar com a pessoa.
+     *
+     * "Autorizou imagem" vem ANTES do contato de propósito. Ela é a coluna
+     * que decide se aquela pessoa pode sair numa foto publicada (RN07), e
+     * numa planilha larga o que fica à direita é o que ninguém rola para
+     * ver.
+     */
+    colunas: [
+      { chave: 'nome', titulo: 'Nome' },
+      { chave: 'presenca', titulo: 'Presença' },
+      { chave: 'autoriza_imagem', titulo: 'Autorizou imagem' },
+      { chave: 'eh_menor', titulo: 'Menor de 18' },
+      { chave: 'responsavel_nome', titulo: 'Responsável' },
+      { chave: 'responsavel_telefone', titulo: 'Telefone do responsável' },
+      { chave: 'email', titulo: 'E-mail' },
+      { chave: 'telefone', titulo: 'Telefone' },
+      { chave: 'cpf', titulo: 'CPF' },
+      { chave: 'inscrita_em', titulo: 'Inscreveu-se em' },
+      { chave: 'consentimento', titulo: 'Autorizou o uso dos dados' },
+      { chave: 'id', titulo: 'Identificador' }
+    ]
   }
 ];
+
+/**
+ * Os conjuntos que EXIGEM um evento na URL (`?evento=<uuid>`).
+ *
+ * `inscritos` não é uma lista do site inteiro: é a lista DE UM EVENTO. Sem
+ * o parâmetro não há o que exportar, e a rota responde 404 em vez de
+ * entregar um arquivo vazio — que é a mesma regra de "consulta que falhou
+ * não vira arquivo vazio", aplicada antes de consultar.
+ */
+export const CONJUNTOS_POR_EVENTO: ConjuntoExportavel[] = ['inscritos'];
+
+export function exigeEvento(conjunto: ConjuntoExportavel): boolean {
+  return CONJUNTOS_POR_EVENTO.includes(conjunto);
+}
+
+/**
+ * Um pedaço de texto reduzido ao que cabe num nome de arquivo: minúsculas,
+ * sem acento, sem espaço, só ASCII.
+ *
+ * POR QUE ELE EXISTE: sem sufixo, baixar a lista de dois eventos no mesmo
+ * dia produz "inscritos-2026-09-02.csv" e "inscritos-2026-09-02(1).csv" na
+ * pasta de downloads do celular — e ninguém sabe qual é qual. Com o título
+ * do evento no nome, a equipe acha o arquivo pelo nome do evento, que é
+ * como ela o procura.
+ *
+ * SÓ ASCII, pelo mesmo motivo do resto de `nomeDoArquivo`: `filename` com
+ * acento exige a forma `filename*=UTF-8''...`, que navegador velho ignora —
+ * e o desfecho é o arquivo salvo como "download", sem extensão.
+ *
+ * `normalize('NFD')` separa a letra do acento, e a faixa `\u0300-\u036f` é
+ * a dos acentos soltos. É a mesma técnica de `apelidoDeAtividade` em
+ * compartilhado/validacao.ts — duplicada aqui, e não importada, porque
+ * ESTE arquivo não importa nada de propósito (ver o cabeçalho).
+ */
+export function pedacoParaNomeDeArquivo(texto: string, limite = 40): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, limite)
+    .replace(/-+$/g, '');
+}
 
 /** A lista fechada, como guarda de tipo. Qualquer outro valor é recusado. */
 export function ehConjuntoExportavel(valor: unknown): valor is ConjuntoExportavel {
@@ -322,12 +396,19 @@ export function conjuntoPorChave(valor: unknown): DescricaoDeConjunto | null {
  * `agora` é parâmetro, não `new Date()` lá dentro: é o que torna o nome
  * verificável num teste sem depender do dia em que ele roda.
  */
-export function nomeDoArquivo(conjunto: DescricaoDeConjunto, agora: Date): string {
+export function nomeDoArquivo(
+  conjunto: DescricaoDeConjunto, agora: Date, sufixo = ''
+): string {
   const ano = agora.getFullYear();
   const mes = String(agora.getMonth() + 1).padStart(2, '0');
   const dia = String(agora.getDate()).padStart(2, '0');
 
-  return `${conjunto.arquivo}-${ano}-${mes}-${dia}.csv`;
+  // O SUFIXO ENTRA ANTES DA DATA, e não depois: assim os arquivos de um
+  // mesmo evento ficam juntos na ordenação alfabética da pasta de
+  // downloads, que é onde a equipe procura.
+  const meio = sufixo ? `-${pedacoParaNomeDeArquivo(sufixo)}` : '';
+
+  return `${conjunto.arquivo}${meio}-${ano}-${mes}-${dia}.csv`;
 }
 
 /**

@@ -2,11 +2,13 @@ import 'server-only';
 import { obterCliente } from '../supabase';
 import { consultarComEstado, type Degradavel } from './degradacao';
 import { listarContatos } from './contatos';
+import { listarInscritos } from './inscricoes';
 import { rotuloDaSituacao, rotuloDaOrigem } from '@/compartilhado/triagem-de-contatos';
 import {
   dataParaPlanilha, rotuloDaCandidatura,
   type ConjuntoExportavel, type LinhaExportada
 } from '@/compartilhado/exportacao';
+import { formatarTelefone, formatarCpf } from '@/compartilhado/validacao';
 
 /**
  * servidor/dados/exportacao.ts — o que entra em cada arquivo do RF31.
@@ -190,11 +192,83 @@ async function candidaturasParaExportar(): Promise<Degradavel<LinhaExportada[]>>
  * compartilhado/exportacao.ts — que é a trava que impede uma chave de
  * existir na URL sem ter de onde ler.
  */
+/**
+ * A lista de inscritos de UM evento, como linhas de planilha (RF16 + RF31).
+ *
+ * ===================================================================
+ * REAPROVEITA `listarInscritos()`, E NÃO FAZ CONSULTA PRÓPRIA
+ * ===================================================================
+ *
+ * É a mesma decisão de `mensagensParaExportar`, e pelo mesmo motivo: duas
+ * consultas para a mesma tabela divergiriam no dia em que uma ganhasse um
+ * filtro, e aí a planilha e a tela mostrariam listas diferentes do mesmo
+ * evento — sem nada acusar. O que muda entre as duas não é a CONSULTA, é a
+ * apresentação.
+ *
+ * ===================================================================
+ * A PRESENÇA VIRA TRÊS PALAVRAS, NÃO UM BOOLEANO
+ * ===================================================================
+ *
+ * `escaparCampoCsv` transforma `true`/`false` em "sim"/"não", e para as
+ * outras colunas isso é o certo. Aqui não serve: a ausência de marcação é
+ * um TERCEIRO estado ("ninguém conferiu"), e mandá-lo como célula vazia ao
+ * lado de uma coluna "sim/não" faria o vazio ser lido como "não veio" — que
+ * é exatamente a conclusão errada numa prestação de contas.
+ *
+ * Por isso `presenca` sai como texto escrito, e não como booleano.
+ */
+async function inscritosParaExportar(
+  eventoId: string
+): Promise<Degradavel<LinhaExportada[]>> {
+  const { valor, degradou } = await listarInscritos(eventoId);
+
+  return {
+    degradou,
+    valor: valor.map((pessoa) => ({
+      nome: pessoa.nome,
+      presenca: pessoa.presente === null ? 'não conferido'
+        : pessoa.presente ? 'veio' : 'não veio',
+      // Estes DOIS continuam booleanos de verdade: "sim"/"não" respondem a
+      // pergunta inteira, e quem transforma é escaparCampoCsv, num lugar
+      // só (compartilhado/exportacao.ts).
+      autoriza_imagem: pessoa.autoriza_imagem,
+      eh_menor: pessoa.eh_menor,
+      responsavel_nome: pessoa.responsavel_nome,
+      // Formatados como a equipe lê e disca — a planilha é para ligar para
+      // as pessoas, não para processar número.
+      responsavel_telefone: pessoa.responsavel_telefone
+        ? formatarTelefone(pessoa.responsavel_telefone) : null,
+      email: pessoa.email,
+      telefone: pessoa.telefone ? formatarTelefone(pessoa.telefone) : null,
+      cpf: pessoa.cpf ? formatarCpf(pessoa.cpf) : null,
+      inscrita_em: dataParaPlanilha(pessoa.criado_em),
+      consentimento: pessoa.consentimento_dados,
+      id: pessoa.id
+    }))
+  };
+}
+
+/**
+ * As linhas de um conjunto da lista fechada.
+ *
+ * O `switch` é sobre um tipo de união fechado, então o TypeScript cobra o
+ * caso novo aqui no dia em que alguém acrescentar um conjunto em
+ * compartilhado/exportacao.ts — que é a trava que impede uma chave de
+ * existir na URL sem ter de onde ler. (Ela DISPAROU quando `inscritos`
+ * entrou, que é a prova de que funciona.)
+ *
+ * `eventoId` só é usado pelos conjuntos que `exigeEvento()` marca. Quem
+ * garante que ele chegou é a rota, ANTES de chamar aqui — sem ele,
+ * `inscritos` devolveria a lista de um evento chamado "" , que é lista
+ * nenhuma.
+ */
 export function linhasParaExportar(
-  conjunto: ConjuntoExportavel
+  conjunto: ConjuntoExportavel,
+  eventoId = ''
 ): Promise<Degradavel<LinhaExportada[]>> {
   switch (conjunto) {
     case 'contatos': return mensagensParaExportar();
     case 'voluntarios': return candidaturasParaExportar();
+    case 'inscritos': return inscritosParaExportar(eventoId);
   }
 }

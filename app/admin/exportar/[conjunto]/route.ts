@@ -1,7 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
 import { ehEquipe } from '@/servidor/permissao';
 import { linhasParaExportar } from '@/servidor/dados/exportacao';
-import { montarCsv, conjuntoPorChave, nomeDoArquivo } from '@/compartilhado/exportacao';
+import { montarCsv, conjuntoPorChave, nomeDoArquivo, exigeEvento } from '@/compartilhado/exportacao';
+import { buscarEventoDoPainel } from '@/servidor/dados/eventos';
+import { ehIdentificador } from '@/compartilhado/validacao';
 
 /**
  * `/admin/exportar/<conjunto>` — o RF31: a equipe leva os dados para fora,
@@ -100,7 +102,7 @@ export const dynamic = 'force-dynamic';
 const PAINEL = '/admin';
 
 export async function GET(
-  _requisicao: Request,
+  requisicao: Request,
   { params }: { params: Promise<{ conjunto: string }> }
 ) {
   // A GUARDA, antes de qualquer leitura. `ehEquipe()` (servidor/permissao.ts)
@@ -116,7 +118,39 @@ export async function GET(
   const conjunto = conjuntoPorChave((await params).conjunto);
   if (!conjunto) notFound();
 
-  const { valor: linhas, degradou } = await linhasParaExportar(conjunto.chave);
+  /*
+   * OS CONJUNTOS POR EVENTO (`inscritos`) PRECISAM DO `?evento=<uuid>`.
+   *
+   * Sem ele não existe lista para exportar — `inscritos` não é uma lista do
+   * site inteiro, é a lista DE UM evento. Responder 404 aqui, e não um
+   * arquivo vazio, é a mesma regra de "consulta que falhou não vira arquivo
+   * vazio" aplicada ANTES de consultar: um CSV com cabeçalho e zero linhas
+   * afirmaria que ninguém se inscreveu.
+   *
+   * O valor é ENTRADA DE USUÁRIO e passa por `ehIdentificador` antes de
+   * chegar a qualquer consulta.
+   */
+  const eventoId = new URL(requisicao.url).searchParams.get('evento') ?? '';
+  let sufixo = '';
+
+  if (exigeEvento(conjunto.chave)) {
+    if (!ehIdentificador(eventoId)) notFound();
+
+    // O título entra no NOME DO ARQUIVO — sem ele, baixar dois eventos no
+    // mesmo dia produz "inscritos(1).csv" na pasta de downloads do celular
+    // e ninguém sabe qual é qual. `pedacoParaNomeDeArquivo` reduz a ASCII.
+    const { valor: evento, degradou: eventoFalhou } = await buscarEventoDoPainel(eventoId);
+    if (eventoFalhou) {
+      console.error(`[exportacao] "${conjunto.chave}": não deu para ler o evento ${eventoId}; `
+        + 'NENHUM arquivo foi gerado.');
+      redirect(`${PAINEL}?aviso=exportacao-erro`);
+    }
+    if (!evento) notFound();
+
+    sufixo = evento.titulo;
+  }
+
+  const { valor: linhas, degradou } = await linhasParaExportar(conjunto.chave, eventoId);
 
   // Ver o bloco "consulta que falhou não vira arquivo vazio". `redirect()`
   // sinaliza por exceção e fica FORA de qualquer try — a mesma advertência
@@ -143,7 +177,8 @@ export async function GET(
       // `attachment` é o que faz o navegador SALVAR em vez de desenhar. Sem
       // ele, um CSV de contatos abriria como texto na tela — e ficaria no
       // histórico do navegador do celular pessoal de quem é da equipe.
-      'content-disposition': `attachment; filename="${nomeDoArquivo(conjunto, new Date())}"`,
+      'content-disposition':
+        `attachment; filename="${nomeDoArquivo(conjunto, new Date(), sufixo)}"`,
       'cache-control': 'no-store'
     }
   });

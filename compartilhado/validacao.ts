@@ -2758,3 +2758,226 @@ export function colunasDoRegistro(
     recebida_em: agora
   };
 }
+
+// =====================================================================
+// Inscrição em evento SEM CONTA (RF15)
+//
+// A DIFERENÇA PARA TODO O RESTO DESTE ARQUIVO: esta é a segunda tela do
+// projeto que qualquer pessoa do mundo alcança sem sessão (a outra é
+// /contato), e é a ÚNICA que grava dado de CRIANÇA. `public.inscricoes`
+// guarda nome, e-mail, telefone, CPF e — quando a pessoa inscrita é menor
+// de idade — nome e telefone de quem responde por ela.
+//
+// Três consequências que valem estar escritas aqui e não só no cabeçalho
+// da tabela:
+//
+//  · a validação abaixo é a ÚNICA barreira antes da gravação, porque não
+//    há guarda de sessão para segurar nada (Server Action é endpoint HTTP
+//    público — spec §4.5);
+//  · `eh_menor` NÃO é um campo de conveniência da tela: ele decide se o
+//    banco vai exigir responsável (`responsavel_obrigatorio_para_menor`,
+//    RN02). Marcar a caixa aumenta o que é pedido, nunca diminui — por
+//    isso não há caminho em que ela seja ignorada;
+//  · `autoriza_imagem` é a RN07 registrada no momento da inscrição, e ela
+//    é OPCIONAL de propósito: exigir autorização de imagem para participar
+//    de uma oficina condicionaria o acesso à arte à cessão da própria
+//    imagem, o que esta ONG não faz. Não marcada significa "não autorizou",
+//    e é assim que a equipe vê na lista.
+// =====================================================================
+
+export type CamposInscricao = {
+  /** De qual evento. Vem de campo escondido, e é conferido como uuid. */
+  eventoId: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  /** RN06: só é pedido quando o evento declara `exige_cpf`. */
+  cpf: string;
+  /** RN02: quando verdadeiro, o responsável passa a ser obrigatório. */
+  ehMenor: boolean;
+  responsavelNome: string;
+  responsavelTelefone: string;
+  /** RN07, registrada na inscrição. Opcional — ver o cabeçalho do bloco. */
+  autorizaImagem: boolean;
+  /** LGPD: o banco tem `check (consentimento_dados)` e recusa a linha sem. */
+  consentimento: boolean;
+};
+
+/**
+ * Os tetos. `LIMITE_NOME` e `LIMITE_EMAIL` são reaproveitados do bloco de
+ * contato de propósito — duas regras de tamanho de nome no mesmo site
+ * divergiriam, e o campo é o mesmo campo.
+ *
+ * O do responsável é o mesmo do nome pela mesma razão: é um nome.
+ */
+export const LIMITE_RESPONSAVEL = LIMITE_NOME;
+
+/**
+ * Campos do formulário de inscrição (componentes/FormularioInscricao.tsx).
+ *
+ * Um a um, por nome. Aqui isso tem uma consequência que não existe nas
+ * outras telas: `public.inscricoes` NÃO tem coluna que um corpo hostil
+ * queira forjar (não há `eh_equipe`, não há `situacao`) — o que ele
+ * ganharia espalhando o FormData seria escrever `criado_em` e `id`. Por
+ * isso a leitura campo a campo aqui protege menos, e mesmo assim é feita
+ * igual: a regra vale para o arquivo inteiro, e uma exceção seria o começo
+ * do fim dela.
+ */
+export function lerInscricao(dados: FormData): CamposInscricao {
+  return {
+    eventoId: textoDoCampo(dados, 'evento_id'),
+    nome: textoDoCampo(dados, 'nome'),
+    email: textoDoCampo(dados, 'email'),
+    telefone: textoDoCampo(dados, 'telefone'),
+    cpf: textoDoCampo(dados, 'cpf'),
+    ehMenor: marcado(dados, 'eh_menor'),
+    responsavelNome: textoDoCampo(dados, 'responsavel_nome'),
+    responsavelTelefone: textoDoCampo(dados, 'responsavel_telefone'),
+    autorizaImagem: marcado(dados, 'autoriza_imagem'),
+    consentimento: marcado(dados, 'consentimento')
+  };
+}
+
+/**
+ * Um CPF é válido? Onze dígitos, com os dois verificadores conferindo.
+ *
+ * POR QUE CONFERIR O DÍGITO, e não só contar onze: o CPF só é pedido
+ * quando a instituição parceira exige (RN06), e ela exige para EMITIR
+ * DOCUMENTO — lista de presença de projeto público, prestação de contas de
+ * edital. Um campo que aceita "111.111.111-11" entrega à ONG uma planilha
+ * que a instituição vai devolver, e a pessoa que digitou já foi embora.
+ *
+ * OS ONZE DÍGITOS IGUAIS SÃO RECUSADOS À PARTE, e não é preciosismo: eles
+ * PASSAM na conta dos verificadores (`111.111.111-11` fecha certinho). É o
+ * furo clássico de quem implementa a regra sem saber disso.
+ *
+ * O QUE ISTO NÃO FAZ: dizer se o CPF existe. Isso só a Receita responde, e
+ * consultar a Receita é integração que este projeto não tem e não vai ter.
+ * O que a conta pega é o erro de digitação, que é o caso comum.
+ */
+export function ehCpf(valor: unknown): boolean {
+  const digitos = apenasDigitos(valor);
+  if (digitos.length !== 11) return false;
+
+  // "00000000000", "11111111111"... — todos passam nos verificadores.
+  if (/^(\d)\1{10}$/.test(digitos)) return false;
+
+  // Os dois dígitos verificadores, pela regra do módulo 11.
+  for (const quantos of [9, 10]) {
+    let soma = 0;
+    for (let i = 0; i < quantos; i += 1) {
+      soma += Number(digitos[i]) * (quantos + 1 - i);
+    }
+    const resto = (soma * 10) % 11;
+    // Resto 10 vale como 0 — é a regra, não um arredondamento nosso.
+    const esperado = resto === 10 ? 0 : resto;
+    if (esperado !== Number(digitos[quantos])) return false;
+  }
+
+  return true;
+}
+
+/**
+ * Formata um CPF como a pessoa está acostumada a lê-lo. Texto que não tem
+ * onze dígitos volta COMO VEIO — a mesma regra de `formatarTelefone`:
+ * mascarar o que não entendemos esconderia o erro de quem digitou.
+ */
+export function formatarCpf(valor: unknown): string {
+  const digitos = apenasDigitos(valor);
+  if (digitos.length !== 11) return typeof valor === 'string' ? valor : '';
+
+  return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9)}`;
+}
+
+/**
+ * TODOS os erros de uma vez — a regra do topo deste arquivo.
+ *
+ * `exigeCpf` VEM DO EVENTO LIDO NO BANCO, nunca do formulário, e esta é a
+ * decisão mais importante deste bloco. A coluna `eventos.exige_cpf` é da
+ * ONG (RN06); se o valor viesse do corpo da requisição, quem quisesse pular
+ * o campo mandaria `exige_cpf=false` e pularia. A tela DESENHA o campo a
+ * partir do evento, e a Action VALIDA a partir do evento — a mesma fonte,
+ * duas vezes, porque uma delas é alcançável sem passar pela outra.
+ */
+export function validarInscricao(
+  campos: CamposInscricao,
+  opcoes: { exigeCpf: boolean }
+): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  // O evento não é campo que a pessoa preenche — quando ele está errado, o
+  // problema não é dela. A mensagem diz o que fazer, não o que ela errou.
+  if (!ehIdentificador(campos.eventoId)) {
+    erros.evento_id = 'Não deu para identificar o evento desta inscrição. '
+      + 'Volte para a agenda e abra o evento de novo.';
+  }
+
+  if (!campos.nome) {
+    erros.nome = 'Escreva o nome de quem vai participar.';
+  } else if (campos.nome.length > LIMITE_NOME) {
+    erros.nome = `O nome passou de ${LIMITE_NOME} caracteres.`;
+  }
+
+  if (!campos.email || !FORMATO_EMAIL.test(campos.email)) {
+    erros.email = 'Confira o e-mail: ele precisa ter um endereço completo, como nome@exemplo.com. '
+      + 'É por ele que confirmamos a inscrição.';
+  } else if (campos.email.length > LIMITE_EMAIL) {
+    erros.email = `O e-mail passou de ${LIMITE_EMAIL} caracteres.`;
+  }
+
+  // Telefone é opcional (coleta mínima, RNF09), mas se vier, vem completo —
+  // a mesma regra de validarContato e de validarCadastro.
+  if (campos.telefone) {
+    const digitos = apenasDigitos(campos.telefone);
+    if (digitos.length < 10 || digitos.length > 11) {
+      erros.telefone = 'O telefone precisa incluir o DDD, como (11) 95396-8344. '
+        + 'Se preferir não deixar telefone, apague o campo — ele é opcional.';
+    }
+  }
+
+  // RN06 — ver o cabeçalho desta função sobre de onde `exigeCpf` vem.
+  if (opcoes.exigeCpf) {
+    if (!campos.cpf) {
+      erros.cpf = 'Este evento acontece em parceria com uma instituição que pede o CPF de quem '
+        + 'participa. Sem ele não conseguimos incluir você na lista.';
+    } else if (!ehCpf(campos.cpf)) {
+      erros.cpf = 'Confira o CPF: algum número não bate. Ele tem 11 dígitos, '
+        + 'como 123.456.789-09.';
+    }
+  } else if (campos.cpf && !ehCpf(campos.cpf)) {
+    // Fora da exigência o campo nem aparece na tela. Chegando preenchido e
+    // errado, recusar é melhor que gravar um número quebrado que ninguém
+    // pediu.
+    erros.cpf = 'Confira o CPF: algum número não bate.';
+  }
+
+  // RN02 — o banco também recusa (`responsavel_obrigatorio_para_menor`).
+  // A recusa daqui existe para a pessoa ler uma frase em vez de um erro de
+  // banco, e para o formulário voltar preenchido.
+  if (campos.ehMenor) {
+    if (!campos.responsavelNome) {
+      erros.responsavel_nome = 'Para inscrever alguém com menos de 18 anos, precisamos do nome '
+        + 'de quem é responsável.';
+    } else if (campos.responsavelNome.length > LIMITE_RESPONSAVEL) {
+      erros.responsavel_nome = `O nome passou de ${LIMITE_RESPONSAVEL} caracteres.`;
+    }
+
+    const digitos = apenasDigitos(campos.responsavelTelefone);
+    if (!campos.responsavelTelefone) {
+      erros.responsavel_telefone = 'Precisamos de um telefone de contato de quem é responsável — '
+        + 'é por ele que falamos com a família no dia da atividade.';
+    } else if (digitos.length < 10 || digitos.length > 11) {
+      erros.responsavel_telefone = 'O telefone precisa incluir o DDD, como (11) 95396-8344.';
+    }
+  }
+
+  // A caixa é obrigatória na tela E o banco recusa a linha sem ela
+  // (`consentimento_obrigatorio`, 003_eventos.sql).
+  if (!campos.consentimento) {
+    erros.consentimento = 'Para concluir a inscrição, precisamos que você concorde com o uso '
+      + 'dos dados para organizar a atividade. O que fazemos com eles está na política de '
+      + 'privacidade.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}

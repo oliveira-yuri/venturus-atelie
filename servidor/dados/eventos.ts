@@ -201,3 +201,58 @@ export async function buscarEventoDoPainel(id: string): Promise<Degradavel<Event
       .maybeSingle(),
   null);
 }
+
+// =====================================================================
+// O que a INSCRIÇÃO precisa saber do evento (RF15)
+// =====================================================================
+
+/**
+ * Um evento como a tela de inscrição precisa vê-lo.
+ *
+ * `Evento` mais DUAS colunas, e as duas são regra de negócio, não
+ * apresentação:
+ *
+ *  · `exige_cpf` (RN06) decide se o campo de CPF aparece E se ele é
+ *    obrigatório. A tela desenha a partir daqui e `acoes/inscricoes.ts`
+ *    VALIDA a partir daqui — a mesma fonte, lida duas vezes, porque a
+ *    Action é alcançável sem passar pela tela (spec §4.5). Se este valor
+ *    viesse do formulário, quem quisesse pular o campo mandaria `false`;
+ *  · `vagas` é o que a tela usa para escrever "restam N" — o número em si
+ *    vem de `vagasRestantes()`, que conta no banco; este campo é o que diz
+ *    se HÁ limite.
+ *
+ * `publicado` NÃO entra: esta função já filtra por ele. Um evento em
+ * rascunho não tem página de inscrição, e devolver `null` é a resposta
+ * certa — quem tem o id de um rascunho não deve descobrir que ele existe.
+ */
+export type EventoParaInscricao = Evento & {
+  exige_cpf: boolean;
+  vagas: number | null;
+};
+
+/**
+ * O evento de uma inscrição, se ele estiver PUBLICADO.
+ *
+ * SEPARADA DE `buscarEvento()` de propósito, e não é duplicação: aquela é
+ * o porte literal do site antigo e não filtra por `publicado` — a RLS
+ * filtra por ela (`using (publicado or eh_equipe())`), o que significa que
+ * para QUEM É EQUIPE ela devolve rascunho. Uma página pública de inscrição
+ * que usasse aquela função abriria inscrição em rascunho para a própria
+ * equipe, que é justamente quem tem o link antes de todo mundo.
+ *
+ * O `.eq('publicado', true)` aqui é a intenção escrita: "esta consulta é a
+ * do caminho público". A tranca continua sendo a RLS mais a
+ * `reservar_vaga()` do banco, que confere de novo no instante de gravar.
+ */
+export async function buscarEventoParaInscricao(
+  id: string
+): Promise<Degradavel<EventoParaInscricao | null>> {
+  return consultarComEstado<EventoParaInscricao | null>('eventos (inscrição)', async () =>
+    (await obterCliente())
+      .from('eventos')
+      .select('*')
+      .eq('id', id)
+      .eq('publicado', true)
+      .maybeSingle(),
+  null);
+}

@@ -1311,3 +1311,285 @@ describe('RF19-RF22: o ciclo de doações', () => {
     assert.equal(linhas.length, 0, 'o delete da equipe não removeu a linha');
   });
 });
+
+// =====================================================================
+// RF15 — inscrição em evento SEM CONTA (migration 010)
+//
+// Este bloco é, como o da 007, a ÚNICA verificação possível da migration:
+// ela não está aplicada no projeto Supabase de produção, então
+// `npm run test:supabase` não a alcança. Aqui há um Postgres de verdade com
+// as migrations reais.
+//
+// O QUE ESTÁ SENDO PROVADO, e por que cada coisa importa:
+//
+//  · que `anon` CONSEGUE se inscrever. É o requisito inteiro (RF15,
+//    decisão D4: reduzir atrito importa mais que histórico individual).
+//    Se a política ou o grant estiverem errados, não há tela que resolva;
+//  · que a contagem de vagas EXISTE e é confiável. `anon` não tem select
+//    em `public.inscricoes`, então uma contagem feita com os privilégios de
+//    quem chamou devolveria zero para todo mundo e a trava passaria SEMPRE,
+//    em silêncio — é por isso que `vagas_restantes` é `security definer`, e
+//    é isto que os testes de lotação medem;
+//  · que evento em RASCUNHO não aceita inscrição. Sem esta trava, quem
+//    tivesse o id de um evento não publicado inscreveria gente nele;
+//  · que as duas constraints do esquema (LGPD e RN02) continuam sendo a
+//    rede embaixo da validação da tela — a função NÃO as contorna;
+//  · que a função não virou porta lateral de LEITURA. `anon` tem
+//    `grant insert` e nenhum select: o que volta é uma das três palavras
+//    fechadas, nunca dado de quem se inscreveu.
+// =====================================================================
+
+describe('RF15: inscrição em evento sem conta (migration 010)', () => {
+  const VISITANTE = hashDaOrigem('198.51.100.4');
+
+  /**
+   * Cria um evento como DONO do banco (fora de papel), porque criar evento é
+   * da equipe e não é isto que este bloco mede. Devolve o id.
+   *
+   * `daqui` em horas: negativo cria evento que já terminou.
+   */
+  async function criarEvento({ vagas = null, publicado = true, daqui = 48 } = {}) {
+    const { rows } = await cliente.query(
+      `insert into public.eventos (titulo, comeca_em, termina_em, vagas, publicado)
+       values ('Oficina de teste automatizado',
+               now() + make_interval(hours => $1),
+               now() + make_interval(hours => $1 + 2),
+               $2, $3)
+       returning id`,
+      [daqui, vagas, publicado]
+    );
+    return rows[0].id;
+  }
+
+  /** Chama registrar_inscricao como `anon`, e devolve o texto que ela responde. */
+  async function inscrever(eventoId, extra = {}) {
+    const {
+      nome = 'Fulana de Teste', email = 'fulana@exemplo.test', consentimento = true,
+      telefone = null, cpf = null, ehMenor = false,
+      responsavelNome = null, responsavelTelefone = null, autorizaImagem = false
+    } = extra;
+
+    const { linhas, erro } = await comoAnonimo(`
+      select public.registrar_inscricao(
+        '${VISITANTE}', '${eventoId}'::uuid, ${literal(nome)}, ${literal(email)},
+        ${consentimento}, ${literal(telefone)}, ${literal(cpf)}, ${ehMenor},
+        ${literal(responsavelNome)}, ${literal(responsavelTelefone)}, ${autorizaImagem}
+      ) as resultado
+    `);
+
+    return { resultado: linhas?.[0]?.resultado ?? null, erro };
+  }
+
+  /** Aspas simples ao redor, ou NULL. Só para montar SQL de teste. */
+  function literal(valor) {
+    return valor === null || valor === undefined
+      ? 'null'
+      : `'${String(valor).replace(/'/g, "''")}'`;
+  }
+
+  /**
+   * Vários passos como `anon` DENTRO DE UMA TRANSAÇÃO SÓ, e a contagem no
+   * fim já com o papel devolvido.
+   *
+   * Existe porque `comoAnonimo()` faz rollback ao terminar — por desenho, e
+   * é o que impede um teste de escrita de passar sem ter escrito. Aqui isso
+   * atrapalha: medir que a vaga DIMINUIU exige enxergar a inscrição que
+   * acabou de entrar. Foi assim que estes dois testes falharam da primeira
+   * vez, e a falha era do teste, não da migration.
+   *
+   * `reset role` no fim porque `anon` não tem select em `public.inscricoes`
+   * — quem confere é o dono do banco, dentro da mesma transação, antes do
+   * rollback.
+   */
+  async function anonimoEntao(passos, verificacao) {
+    await cliente.query('begin');
+    try {
+      await cliente.query(`select set_config('request.jwt.claims', '', true)`);
+      await cliente.query('set local role anon');
+
+      const respostas = [];
+      for (const sql of passos) {
+        await cliente.query('savepoint passo');
+        try {
+          respostas.push({ linhas: (await cliente.query(sql)).rows, erro: null });
+        } catch (falha) {
+          respostas.push({ linhas: null, erro: falha });
+          await cliente.query('rollback to savepoint passo');
+        }
+      }
+
+      await cliente.query('reset role');
+      const conferido = verificacao ? (await cliente.query(verificacao)).rows : [];
+      return { respostas, conferido };
+    } finally {
+      await cliente.query('rollback');
+    }
+  }
+
+  /** O SQL de uma chamada a registrar_inscricao, para usar em `anonimoEntao`. */
+  function sqlInscricao(eventoId, email) {
+    return `select public.registrar_inscricao('${VISITANTE}', '${eventoId}'::uuid,
+      'Fulana de Teste', '${email}', true, null, null, false, null, null, false) as resultado`;
+  }
+
+  test('quem não tem conta CONSEGUE se inscrever — é o RF15 inteiro', async () => {
+    const evento = await criarEvento();
+    const { resultado, erro } = await inscrever(evento);
+
+    assert.equal(erro, null, `registrar_inscricao foi bloqueada para anon: ${erro?.message}`);
+    assert.equal(resultado, 'ok');
+  });
+
+  test('a inscrição chega mesmo à tabela, com o vazio virando NULL', async () => {
+    const evento = await criarEvento();
+
+    const { linhas } = await comoEVerificar(
+      'anon', null,
+      `select public.registrar_inscricao('${VISITANTE}', '${evento}'::uuid,
+         'Fulana de Teste', 'fulana@exemplo.test', true, '  ', null, false, null, null, true)`,
+      `select nome, email, telefone, cpf, eh_menor, autoriza_imagem, consentimento_dados
+       from public.inscricoes where evento_id = '${evento}'`
+    );
+
+    assert.equal(linhas.length, 1, 'a linha não foi gravada');
+    assert.equal(linhas[0].telefone, null,
+      'telefone em branco precisa virar NULL, não string vazia');
+    assert.equal(linhas[0].cpf, null);
+    assert.equal(linhas[0].eh_menor, false);
+    assert.equal(linhas[0].autoriza_imagem, true, 'a autorização de imagem (RN07) não foi gravada');
+    assert.equal(linhas[0].consentimento_dados, true);
+  });
+
+  test('a função NÃO devolve dado de quem se inscreveu — só uma das três palavras', async () => {
+    const evento = await criarEvento();
+    const { resultado } = await inscrever(evento, { nome: 'Sigilo Absoluto' });
+
+    assert.ok(['ok', 'lotado', 'indisponivel'].includes(resultado),
+      `VAZAMENTO: registrar_inscricao respondeu algo fora da lista fechada: ${resultado}`);
+  });
+
+  test('anon continua SEM conseguir ler a tabela de inscrições', async () => {
+    const evento = await criarEvento();
+    await inscrever(evento);
+
+    const { erro } = await comoAnonimo(`select * from public.inscricoes`);
+    assert.ok(erro, 'anon leu public.inscricoes — a função abriu uma porta lateral de leitura');
+  });
+
+  // -------------------------------------------------------------------
+  // Vagas
+  // -------------------------------------------------------------------
+
+  test('evento sem limite de vagas devolve NULL — "ilimitado", não "zero"', async () => {
+    const evento = await criarEvento({ vagas: null });
+    const { rows } = await cliente.query('select public.vagas_restantes($1) as n', [evento]);
+
+    assert.equal(rows[0].n, null,
+      'vagas nula precisa continuar significando "sem limite" em toda a cadeia');
+  });
+
+  test('a contagem de vagas DIMINUI a cada inscrição', async () => {
+    const evento = await criarEvento({ vagas: 3 });
+
+    const antes = await cliente.query('select public.vagas_restantes($1) as n', [evento]);
+    assert.equal(antes.rows[0].n, 3);
+
+    const { conferido } = await anonimoEntao(
+      [sqlInscricao(evento, 'a@exemplo.test'), sqlInscricao(evento, 'b@exemplo.test')],
+      `select public.vagas_restantes('${evento}') as n`
+    );
+
+    assert.equal(conferido[0].n, 1,
+      'a contagem não enxergou as inscrições — é o defeito silencioso que `security definer` '
+      + 'existe para evitar: com os privilégios de anon, count(*) devolveria zero sempre');
+  });
+
+  test('EVENTO LOTADO recusa, e NADA é gravado', async () => {
+    const evento = await criarEvento({ vagas: 1 });
+
+    const { respostas, conferido } = await anonimoEntao(
+      [sqlInscricao(evento, 'primeira@exemplo.test'), sqlInscricao(evento, 'segunda@exemplo.test')],
+      `select count(*)::int as n from public.inscricoes where evento_id = '${evento}'`
+    );
+
+    assert.equal(respostas[0].linhas[0].resultado, 'ok');
+    assert.equal(respostas[1].linhas[0].resultado, 'lotado',
+      'a segunda inscrição passou num evento de uma vaga só');
+    assert.equal(conferido[0].n, 1,
+      'a recusa por lotação não pode gravar a linha assim mesmo');
+  });
+
+  test('evento em RASCUNHO responde "indisponivel" — id vazado não vira inscrição', async () => {
+    const evento = await criarEvento({ publicado: false });
+    const { resultado } = await inscrever(evento);
+
+    assert.equal(resultado, 'indisponivel');
+  });
+
+  test('evento que JÁ TERMINOU não aceita inscrição', async () => {
+    const evento = await criarEvento({ daqui: -72 });
+    const { resultado } = await inscrever(evento);
+
+    assert.equal(resultado, 'lotado',
+      'evento passado precisa recusar — a agenda não o oferece, mas o endereço sobrevive');
+  });
+
+  test('evento que não existe responde "indisponivel", sem estourar', async () => {
+    const { resultado, erro } = await inscrever('00000000-0000-0000-0000-000000000000');
+
+    assert.equal(erro, null, 'id inexistente não pode virar exceção na cara de quem se inscreve');
+    assert.equal(resultado, 'indisponivel');
+  });
+
+  // -------------------------------------------------------------------
+  // As constraints do esquema continuam sendo a rede
+  // -------------------------------------------------------------------
+
+  test('sem consentimento o BANCO recusa — a função não contorna a LGPD', async () => {
+    const evento = await criarEvento();
+    const { erro } = await inscrever(evento, { consentimento: false });
+
+    assert.ok(erro, 'a linha entrou sem consentimento_dados — o check da tabela foi contornado');
+    assert.match(String(erro.message), /consentimento/i);
+  });
+
+  test('RN02: menor sem responsável é recusado pelo BANCO', async () => {
+    const evento = await criarEvento();
+    const { erro } = await inscrever(evento, { ehMenor: true });
+
+    assert.ok(erro, 'menor de idade foi inscrito sem responsável identificado (RN02)');
+    assert.match(String(erro.message), /responsavel/i);
+  });
+
+  test('RN02: menor COM responsável passa', async () => {
+    const evento = await criarEvento();
+    const { resultado, erro } = await inscrever(evento, {
+      ehMenor: true, responsavelNome: 'Responsável de Teste', responsavelTelefone: '11953968344'
+    });
+
+    assert.equal(erro, null, `menor com responsável foi recusado: ${erro?.message}`);
+    assert.equal(resultado, 'ok');
+  });
+
+  // -------------------------------------------------------------------
+  // O balde de envios
+  // -------------------------------------------------------------------
+
+  test('o balde de inscrições é SEPARADO do de mensagens', async () => {
+    // 005 conta por (origem, tabela). Se um dia alguém unificar, uma turma
+    // de escola se inscrevendo fecharia o formulário de contato do site.
+    const evento = await criarEvento();
+
+    const { erro } = await comoAnonimo(`
+      ${Array.from({ length: 30 }, (_, i) => `
+        select public.registrar_inscricao('${VISITANTE}', '${evento}'::uuid,
+          'Pessoa ${i}', 'p${i}@exemplo.test', true, null, null, false, null, null, false);
+      `).join('\n')}
+      select public.registrar_contato('${VISITANTE}', 'Fulana', 'f@exemplo.test',
+        'oi', true, null, null);
+    `);
+
+    assert.equal(erro, null,
+      'as 30 inscrições gastaram o balde das MENSAGENS: os dois baldes se misturaram');
+  });
+});

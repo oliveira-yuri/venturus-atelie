@@ -103,6 +103,30 @@ const PAGINAS_SEM_URL_ANTIGA = [
    */
   '/projetos/[id]',
   '/noticias/[id]',
+  /*
+   * A INSCRIÇÃO EM EVENTO (RF15, 02/09/2026).
+   *
+   * `/agenda` existe desde o site antigo e tem o redirect dela. A página de
+   * inscrição não: o site antigo PROMETIA inscrição — o parágrafo "não
+   * precisa criar conta, basta preencher o formulário do evento" é texto
+   * original da ONG, travado por testes/paridade-texto.test.mjs — e nunca
+   * teve o formulário. A promessa estava no ar sem nada atrás dela.
+   *
+   * Cobrar redirect aqui seria inventar uma URL que nunca respondeu nada. É
+   * a mesma situação de /voluntariado/candidatura, logo abaixo.
+   */
+  '/agenda/[id]/inscricao',
+  /*
+   * RF16, RF17 e RF32 (02/09/2026): inscritos, lista de presença e
+   * relatório. Como as telas de publicações mais abaixo, as três NUNCA
+   * existiram como arquivo no site antigo — o painel antigo nunca existiu no
+   * ar, e a home dele (congelada em testes/apoio/html-original/admin/
+   * index.html) prometia seis telas que não existiam. Estas três não estavam
+   * nem entre as promessas.
+   */
+  '/admin/eventos/inscritos',
+  '/admin/eventos/presenca',
+  '/admin/relatorio',
   // Tarefa P2 do painel. As duas telas de publicações NUNCA existiram como
   // arquivo: a home do painel antigo (hoje congelada em
   // testes/apoio/html-original/admin/index.html) LINKAVA para "publicacoes",

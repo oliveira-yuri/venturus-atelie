@@ -60,12 +60,17 @@ export type TelaDoPainel = {
  * entrou porque o formulário público de /contato (RF07) passou a gravar de
  * verdade e não havia onde ler.
  *
- * Nenhuma outra entra aqui por antecipação: indicadores (RF30–RF32),
- * presença (RF17) continua fora, e listá-la seria de novo prometer tela que
- * ninguém vai construir tão cedo. Duas saíram desta frase em 01/09/2026, cada
- * uma pelo seu motivo: a gestão de voluntários (RF26), porque o formulário
- * público que a alimenta passou a gravar de verdade e não havia onde ler; e
- * eventos (RF13), porque a tela passou a existir e /agenda deixou de ser vazia.
+ * Nenhuma outra entra aqui por antecipação. Quatro saíram desta frase, cada
+ * uma quando a tela passou a EXISTIR: a gestão de voluntários (RF26) e
+ * eventos (RF13), em 01/09/2026; e o relatório (RF32), em 02/09/2026.
+ *
+ * A LISTA DE PRESENÇA (RF17) EXISTE E CONTINUA FORA DAQUI, de propósito, e
+ * é a única exceção — ela e a lista de inscritos (RF16) moram DENTRO de
+ * `/admin/eventos/`, alcançadas pelo botão "Inscritos" de cada evento.
+ * Listá-las na home seria oferecer "lista de presença" sem dizer de qual
+ * evento, que é o mesmo motivo de `/admin/publicacoes/editar` não estar
+ * aqui. O teste de reconciliação concorda: ele cobra rota de PRIMEIRO nível
+ * (`/admin/<algo>`), e as duas são de segundo.
  */
 export const TELAS_DO_PAINEL: TelaDoPainel[] = [
   {
@@ -173,6 +178,15 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     // É a SEGUNDA das cinco que não mexe no site, como a de mensagens: as
     // três primeiras existem para pôr coisa no ar; estas duas existem para
     // não perder gente.
+    pronta: true
+  },
+  {
+    caminho: '/admin/relatorio',
+    titulo: 'Relatório em PDF',
+    descricao: 'Os números do site numa folha só, para anexar a uma prestação de contas.',
+    // Virou `true` em 02/09/2026, no mesmo commit que criou
+    // app/admin/relatorio/ — é o que o teste de reconciliação cobra nos
+    // dois sentidos.
     pronta: true
   }
 ];

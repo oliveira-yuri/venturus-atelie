@@ -26,8 +26,8 @@ funcionando.
 ## Comandos
 
 ```bash
-npm test                        # suíte completa, modo offline (1148 testes)
-npm run test:supabase           # a mesma suíte, contra o banco real (1078)
+npm test                        # suíte completa, modo offline (1202 testes)
+npm run test:supabase           # a mesma suíte, contra o banco real (1203)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
 npm run rls                     # políticas de segurança contra Postgres real
@@ -36,6 +36,31 @@ npm run seed                    # regenera supabase/seed.sql dos JSON de dados-i
 npx next dev                    # servir o site
 npx @axe-core/cli http://localhost:3000/ --browser firefox   # acessibilidade
 ```
+
+**MEDIDO em 02/09/2026:** 1202 no modo offline (1188 passando, 5 pulados com motivo
+declarado, 9 `test.todo`) e 1203 com credenciais (1188 passando, 6 pulados, 9 todo), com
+**zero falhas nos dois**. `npm run rls` foi de 87 para **101** contra um Postgres de verdade.
+
+Os 54 que entraram nesse dia são a RF15/RF16/RF17 e o RF32: 40 em `testes/inscricoes.test.mjs`
+e 14 no bloco "RF15" de `testes/rls.test.mjs`. Os que mais pagam, porque medem coisas que
+falhariam em SILÊNCIO: que os onze dígitos iguais são recusados **à parte** (`111.111.111-11`
+PASSA na conta do módulo 11 — é o furo clássico de quem implementa a regra sem saber disso);
+que `vagas_restantes` é `security definer` e `registrar_inscricao` NÃO é (sem definer, contar
+com os privilégios de `anon` devolveria zero sempre e a trava de vagas passaria para todo
+mundo); que as três palavras que a função do banco devolve — `ok`, `lotado`, `indisponivel` —
+existem no SQL **e** na Action (são strings em arquivos diferentes: divergindo, toda inscrição
+responderia "não deu para confirmar" mesmo tendo gravado); que a migration 010 **não** contém
+`create policy` nem `alter table`; que a coluna "Autorizou imagem" vem ANTES do contato na
+planilha (numa planilha larga, o que fica à direita é o que ninguém rola para ver, e é a
+coluna que decide se a pessoa pode sair numa foto); e as duas varreduras OPOSTAS —
+`acoes/inscricoes.ts` **não pode** chamar `ehEquipe()` e `acoes/presencas.ts` **precisa**.
+
+**Uma armadilha do próprio método, para quem for escrever a próxima varredura:** as três
+primeiras deste arquivo nasceram vermelhas porque liam o código COM os comentários — o
+cabeçalho de `acoes/inscricoes.ts` explica que as Actions do painel chamam `ehEquipe()`, e o
+teste leu a palavra do comentário como se fosse código. O caso oposto é pior: um `.delete(`
+citado num comentário faz a contagem passar enquanto o código real não tem nenhum. Use
+`semComentarios()` (e a versão dele para SQL, que tira `-- ...`).
 
 O modo offline é o padrão **de propósito**: ele roda sem rede, sem `.env.local`, e é
 determinístico. O `test:supabase` é o que exercita a camada de dados de verdade — sem
@@ -449,7 +474,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | RF10 | Autenticação, papéis acumuláveis | **pronto até onde o e-mail deixa** — as quatro telas enviam (`/entrar`, criar conta, `/recuperar-acesso`, `/nova-senha`), com e sem JavaScript; `/auth/confirm` verifica o link e grava a sessão; `servidor/sessao.ts` lê a sessão com `getUser()`, nunca `getSession()`. **Entrar de verdade passou a funcionar em 01/09/2026** (RF11): com `mailer_autoconfirm` agora `true`, criar conta devolve sessão e `/entrar` autentica — medido no Firefox contra o Auth de produção, com e sem JavaScript, e o cabeçalho mostrou o nome de quem entrou por ter entrado. O caminho da recusa continua provado por `npm run test:supabase`. A Tarefa 4 fechou a ponta que faltava: **o cabeçalho mostra o nome de quem entrou e um "Sair"** no lugar de "Entrar", e o "Sair" é um `<form>` com a Action `sair` — funciona sem JavaScript (medido pelo POST cru, 303 para `/`, e no Firefox com script desligado). O nome vem do metadata da conta, com o e-mail como reserva — e desde a RF11 o nome é um LINK para `/minha-conta`, único caminho até a área do usuário |
 | RF11 | Área do usuário | **pronto, e é o primeiro caminho AUTENTICADO do projeto medido de ponta a ponta** (01/09/2026) — `/minha-conta` mostra a ficha da conta, o formulário de nome/telefone/tipo de pessoa (`acoes/conta.ts`), as candidaturas ao voluntariado e as doações registradas. Quem chega sem sessão é mandado para `/entrar` (redirect, não 404 — o porquê está no cabeçalho da página). MEDIDO contra o Supabase de produção, no Firefox, **com e sem JavaScript**: entrar, abrir a área pelo nome no cabeçalho, corrigir o nome, ver o cabeçalho acompanhar, e a recusa de validação devolvendo o formulário preenchido. **Sem bloco de inscrições**, e não é esquecimento: `public.inscricoes` não tem política de leitura para a própria pessoa NEM coluna ligando inscrição a conta (decisão D4) — ver o fim de `servidor/dados/conta.ts`. **Desde a RF25 (mesmo dia) a lista de candidaturas ENCHE de verdade**: `listarMinhasCandidaturas` traz as áreas junto, por embed do PostgREST, e o estado vazio deixou de dizer "candidatar-se pelo site ainda não existe" — ele agora manda para `/voluntariado/candidatura`. `doacoes` continua VAZIA |
 | RF12 | Confirmação de maioridade | **pronto** — caixa obrigatória na tela, regra (RN01) recusada no servidor (`criarConta` não chama o `signUp` sem ela, e a caixa é lida pelo conteúdo, não pela presença do campo), e a recusa medida ponta a ponta, inclusive sem JavaScript |
-| RF33 | Painel administrativo | **quatro telas de trabalho** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). P4 (01/09) fechou o bloco com **atividades**: `/admin/atividades` (as 11 reais, com tirar do ar/pôr de volta) e `/admin/atividades/editar?id=` (corrigir o texto — sem criar e sem apagar). O RF29 (01/09) acrescentou a quinta, que não estava no plano do bloco: `/admin/contatos`, as mensagens recebidas. Quem não é equipe recebe **404** nas oito rotas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável na suíte. O que FOI medido sem sessão está nos relatórios de P2/P3/P4/RF29 e em `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs`, `testes/atividades.test.mjs` e `testes/contatos.test.mjs` **PEDIDO V1 (02/09):** confirmação em toda ação (diálogo `<dialog>` interceptando o submit, com página de confirmação como base sem script), confirmação DUPLA por palavra digitada nas duas telas destrutivas, cartões comprimidos com "Ver mais", paginação nas três filas (com o TOTAL escrito na tela), filtro por situação em voluntários, formulário de envio atrás de um botão `<details>`, e instruções em bullets nas oito telas |
+| RF33 | Painel administrativo | **quatro telas de trabalho** — P1 (31/08) deu a fundação (`/admin`, guarda, home, `estilos/admin.css`) e P2 (01/09) deu **publicações**: `/admin/publicacoes` (lista, publicar/tirar do ar) e `/admin/publicacoes/editar` (escrever/editar). P3 (01/09) deu **galeria**: `/admin/galeria` (subir foto, publicar/tirar do ar) e `/admin/galeria/apagar` (a tela de confirmação que substitui um `confirm()`, que não existe sem JavaScript). P4 (01/09) fechou o bloco com **atividades**: `/admin/atividades` (as 11 reais, com tirar do ar/pôr de volta) e `/admin/atividades/editar?id=` (corrigir o texto — sem criar e sem apagar). O RF29 (01/09) acrescentou a quinta, que não estava no plano do bloco: `/admin/contatos`, as mensagens recebidas. **Em 02/09/2026 entraram mais três** (RF16, RF17 e RF32): `/admin/eventos/inscritos?id=`, `/admin/eventos/presenca?id=` e `/admin/relatorio`. As duas primeiras são de SEGUNDO nível — moram dentro de `/admin/eventos/` e são alcançadas pelo botão "Inscritos" de cada evento, **não pela home do painel**, porque "lista de presença" sem dizer de qual evento não é um gesto que se possa oferecer; o teste de reconciliação concorda (ele cobra rota de primeiro nível). O relatório está na home. Quem não é equipe recebe **404** em todas elas, medido; **o caminho autenticado ninguém percorreu**, porque não há sessão utilizável na suíte. O que FOI medido sem sessão está nos relatórios de P2/P3/P4/RF29 e em `testes/publicacoes.test.mjs`, `testes/galeria.test.mjs`, `testes/atividades.test.mjs` e `testes/contatos.test.mjs` **PEDIDO V1 (02/09):** confirmação em toda ação (diálogo `<dialog>` interceptando o submit, com página de confirmação como base sem script), confirmação DUPLA por palavra digitada nas duas telas destrutivas, cartões comprimidos com "Ver mais", paginação nas três filas (com o TOTAL escrito na tela), filtro por situação em voluntários, formulário de envio atrás de um botão `<details>`, e instruções em bullets nas oito telas |
 | RF34 | Perfis e permissões | **pronto no banco** — RLS, `eh_equipe()` e o trigger contra escalada, testados contra Postgres real (`npm run rls`). Nenhuma tela exercita isso ainda |
 
 ### M3 — Eventos
@@ -458,9 +483,9 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 |---|---|---|
 | RF13 | Cadastro e edição de eventos | **pronto** (01/09/2026) — `/admin/eventos` e `/admin/eventos/editar`. `salvarEvento` NÃO conhece `publicado` (a coluna é `not null default false`, como publicações e ao contrário de atividades), e a tela **não apaga**: `inscricoes.evento_id` tem `on delete cascade`, então apagar um evento apagaria a lista de inscritos. Caminho autenticado nunca percorrido |
 | RF14 | Agenda pública | **pronto** — deixou de ser "sem dados" com a RF13. ATENÇÃO: o parágrafo que promete inscrição sem conta é texto original da ONG, travado por `paridade-texto`, e passa a ser lido por quem quer participar assim que houver evento publicado. RF15 não existe — decisão do grupo |
-| RF15 | Inscrição sem conta | **falta** — tabela e política prontas |
-| RF16 | Consulta de inscritos | **falta** |
-| RF17 | Lista de presença pelo celular | **falta** |
+| RF15 | Inscrição sem conta | **pronto** (02/09/2026) — `/agenda/[id]/inscricao`, alcançada pelo botão "Quero me inscrever" de cada evento que ainda vem. `acoes/inscricoes.ts` grava em `public.inscricoes` **sem sessão nenhuma** (decisão D4), e é a 2ª Action do projeto sem `ehEquipe()` — a ausência é o requisito, e há varredura que falha se a guarda aparecer. O parágrafo de /agenda que promete "não precisa criar conta" é texto ORIGINAL da ONG, travado por `paridade-texto`: ele esteve no ar prometendo o que o site não fazia. **A vaga é conferida no BANCO, com a linha do evento travada** (`reservar_vaga`, migration 010) — conferir no servidor não resolveria a corrida de duas pessoas no último lugar. Depende da **migration 010, ainda não aplicada** (item 0y) |
+| RF16 | Consulta de inscritos | **pronto** (02/09/2026) — `/admin/eventos/inscritos?id=`, alcançada pelo botão "Inscritos" de cada evento. Lista com contato, CPF (quando há), responsável (RN02) e a marca de **autorização de imagem em toda linha** (RN07), mais exportação em planilha (`/admin/exportar/inscritos?evento=`). **Só lê**: não corrige e não apaga — há teste que falha se um `.insert(`/`.update(`/`.delete(` aparecer ali. Caminho autenticado nunca percorrido |
+| RF17 | Lista de presença pelo celular | **pronto** (02/09/2026) — `/admin/eventos/presenca?id=`. É a tela mais "regra 4" do projeto: sem paginação (numa lista de presença, "página 2" é onde as pessoas somem), **sem e-mail e sem CPF na tela** (um celular virado para uma fila não mostra isso), e cada botão é um `<form>` com Server Action, que funciona com internet de galpão. **TRÊS estados, não dois**: veio / não veio / ninguém conferiu — e o terceiro é o que impede uma lista não conferida de virar lista de faltas numa prestação de contas |
 | RF18 | E-mail de confirmação | **falta** — depende do Brevo |
 
 ### M4 — Doações · M5 — Voluntariado
@@ -483,7 +508,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | RF27 | Mural de avisos | **bloqueado por migration** (investigado em 01/09/2026, não é código faltando). O escopo pede "visível para voluntários autenticados", e `publicacoes` só sabe `publicado` (mundo) ou não (equipe) — MEDIDO: anônimo com a chave publicável lê `publicado=true` (HTTP 200). Nenhuma política do schema tem a forma `auth.uid() is not null`. Reaproveitar a tabela publicaria comunicação interna na internet aberta |
 | RF28 | Mensagem para grupo | **bloqueado pelo Brevo** — duas faltas independentes, as duas confirmadas em 01/09/2026: não existe `supabase/functions/` (a Edge Function `enviar-email` da spec §9 nunca foi escrita) e não há tabela de envios. Os destinatários existem; o que não existe é com o que enviar |
 | RF29 | Registro central de contatos | **pronto** (01/09/2026) — `/admin/contatos` lê `public.contatos` (`servidor/dados/contatos.ts`) e a equipe marca o andamento do atendimento: nova → em contato → concluída, e de volta, em qualquer sentido (`acoes/contatos.ts`, uma Action, um `update` de uma coluna). A fila começa por quem ainda espera resposta e o que foi concluído DESCE, nunca some. **Ela lê e tria: não apaga e não edita a mensagem** — o texto recebido é registro. Consequência LGPD em aberto: /privacidade promete exclusão a pedido, e isso só se faz no SQL Editor (item 0n). Ninguém percorreu o caminho autenticado — não há sessão de equipe na suíte; o que foi medido está no relatório e em `testes/contatos.test.mjs` + o bloco RF29 de `npm run rls` |
-| RF30–RF32 | Indicadores, CSV, PDF | **RF30 e RF31 prontos** (01/09/2026), RF32 (PDF) falta. Seis números na home do painel, abaixo dos cartões (no topo empurrariam o trabalho para fora da dobra a 375px), com `count` + `head: true` — nenhuma linha atravessa a rede para desenhar um algarismo. **Zero é número; contagem que falhou é traço**, nunca um zero inventado. CSV em `/admin/exportar/{contatos,voluntarios}`, com neutralização de fórmula (`= + - @`) — as aspas NÃO protegem disso. ANTES DIZIA: falta — **falta** — os indicadores da home do painel existiam no site antigo e **não foram portados**; só na `main` |
+| RF30–RF32 | Indicadores, CSV, PDF | **os três prontos** — RF30 e RF31 em 01/09/2026, **RF32 em 02/09/2026**: `/admin/relatorio` é uma folha com os seis indicadores e a agenda com inscritos/presentes/sem conferir por evento, mais `estilos/impressao.css` (`@media print` puro) e um botão que chama `window.print()`. **Sem biblioteca de PDF**, e a spec §9 decidiu isso antes da tarefa: no Android, "imprimir" abre "Salvar como PDF". O botão é conveniência — **sem JavaScript o menu do navegador produz o MESMO documento**, porque quem o gera é o CSS. A folha de impressão é importada no layout do painel inteiro, então imprimir qualquer tela dele passou a dar um documento legível. Seis números na home do painel, abaixo dos cartões (no topo empurrariam o trabalho para fora da dobra a 375px), com `count` + `head: true` — nenhuma linha atravessa a rede para desenhar um algarismo. **Zero é número; contagem que falhou é traço**, nunca um zero inventado. CSV em `/admin/exportar/{contatos,voluntarios}`, com neutralização de fórmula (`= + - @`) — as aspas NÃO protegem disso. ANTES DIZIA: falta — **falta** — os indicadores da home do painel existiam no site antigo e **não foram portados**; só na `main` |
 
 ### Infraestrutura
 
@@ -502,6 +527,9 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | `/robots.txt` (`app/robots.ts`) | **pronto** — em modo prévia, ver "O que trava hoje" 0c |
 | Supabase Storage (bucket `galeria`) | **ligado pelo código** (P3) — `upload`, `remove` e, desde 01/09/2026, `createSignedUrls` no lugar de `getPublicUrl` (item 0j), com o host do projeto no `img-src` da CSP (e **não** no `connect-src`; a URL assinada tem a MESMA origem, medido). **Nenhum arquivo real subiu**: falta sessão de equipe |
 | Migration 008 (bucket `galeria` privado) | **escrita e testada, NÃO APLICADA** — `supabase/migrations/008_galeria_privada.sql`. Mesma situação da 007: este repositório não tem credencial para aplicar migration (spec §4.1); quem aplica é uma pessoa, no SQL Editor do Supabase. Provada contra Postgres real em `npm run rls` (bloco "RN07 no ARQUIVO", 6 testes). **Diferente da 007, a falta desta é ANUNCIADA**: a sonda de `bucketAindaAberto()` bate no endereço público sem chave nenhuma e, enquanto ele responder, o painel mostra o aviso. Ver item 0j |
+| Migration 010 (inscrição por visitante) | **escrita e testada, NÃO APLICADA** — `supabase/migrations/010_inscricao_por_visitante.sql`. É a função irmã que a 007 deixou anotada. Mesma situação da 007 e da 008: quem aplica é uma pessoa, no SQL Editor. Provada contra Postgres real em `npm run rls` (bloco "RF15", 14 testes). Ver item 0y |
+| Domínio próprio `atelieafrocultural.site` | **comprado e no ar** (02/09/2026) — registrado na Hostinger, nameservers na Vercel. O site responde em `www.atelieafrocultural.site` (o apex faz 308 para o www), com a CSP, o `noindex` e o banco ligado (`data-origem-atividades="banco"`). **Isso resolve a decisão D6**, que assumia não haver domínio |
+| E-mail (Resend) | **DNS pronto, conta por ligar** — SPF, DKIM (218 caracteres, íntegro) e o MX do return-path `send` conferidos por `dig` em 02/09/2026, região São Paulo. Click tracking DESLIGADO de propósito: ele reescreveria todo link do e-mail, o que contradiz /privacidade e poria um salto no meio de um link de token de uso único. **Falta**: DMARC (`_dmarc` TXT `v=DMARC1; p=none;`), a API key na Edge Function e o SMTP no Supabase Auth. O Resend substituiu o Brevo porque **passou a haver domínio** — sem ele o Resend só entrega no e-mail da própria conta |
 | Edge Function de e-mail | **falta** |
 | Manual da ONG (RNF07) | **escrito, não verificado com a equipe** (01/09/2026) — `docs/manual-da-equipe.md` (as quatro telas do painel, entrar/sair/senha, RN07 explicada, o que o painel NÃO faz e por quê, o que fazer quando dá erro) e `docs/guia-rapido-da-equipe.md` (uma página para imprimir). Escrito lendo as telas, passo a passo; **ninguém percorreu o painel autenticado para conferir** (item 3 de "O que trava hoje"), e o treinamento presencial que a RNF07 também pede continua faltando |
 
@@ -517,6 +545,7 @@ Portão go/no-go: `docs/superpowers/plans/2026-08-28-resultado-do-portao.md` —
 
 | Endereço | Serve |
 |---|---|
+| **`www.atelieafrocultural.site`** | **o endereço oficial, desde 02/09/2026** — Vercel, branch `migracao-nextjs`. O apex (`atelieafrocultural.site`) faz **308 para o www**, então é o `www` que vai na documentação e em `URL_DO_SITE`. Domínio comprado na Hostinger, nameservers na Vercel; o e-mail (Resend) usa o MESMO domínio, em registros separados que convivem na mesma zona. CONFERIDO: CSP com nonce, `X-Robots-Tag: noindex` de pé (o lançamento é depois) e `data-origem-atividades="banco"` |
 | `marvelous-squirrel-176b0d.netlify.app` | **produção** — branch `main`, o site estático antigo |
 | `migracao-nextjs--marvelous-squirrel-176b0d.netlify.app` | **branch deploy** — a versão Next desta branch |
 
@@ -1083,6 +1112,69 @@ revisitada e mantida naquela tarefa.
 
    **Se um teste voltar a supor tabela vazia, ele volta a apodrecer.** Uma suíte que fica
    vermelha por hábito é uma suíte que ninguém lê.
+
+0y. **A migration 010 está escrita, testada e NÃO APLICADA — e agora ela é a única que
+   FALTA de verdade.** Nasceu com a RF15 (02/09/2026).
+   `supabase/migrations/010_inscricao_por_visitante.sql` acrescenta três funções e **nada
+   mais** (nenhuma tabela, nenhuma política — há teste que falha se alguém puser um
+   `create policy` ali): `registrar_inscricao` (a porta pública), `vagas_restantes` (a
+   contagem) e `reservar_vaga` (a mesma contagem, com a linha do evento TRAVADA).
+
+   **Ela é a função irmã que a 007 deixou anotada, palavra por palavra:**
+
+       RF15 vai precisar da função irmã — `registrar_inscricao(p_visitante, ...)`.
+       Enquanto ela não existir, `public.inscricoes` continua com o balde por CABEÇALHO.
+       Isso não é um problema em aberto: não existe uma linha de código que insira em
+       `inscricoes` nesta branch.
+
+   Passou a existir. **Enquanto a 010 não for aplicada, o formulário CONTINUA
+   FUNCIONANDO** — `acoes/inscricoes.ts` recebe `PGRST202` e cai num insert direto, que
+   grava. MEDIDO em 02/09/2026 contra o Supabase real: a sonda de `vagasRestantes()` grita
+   no log com o nome do arquivo a aplicar. O que degrada são DUAS coisas:
+
+   1. **o LIMITE** volta a ser o balde global de 005 — 30 inscrições por hora para o site
+      inteiro, porque quem faz a requisição é sempre este servidor. O caminho de
+      `/para-escolas` é uma turma se inscrevendo de um IP só, e a 31ª pessoa fecharia o
+      formulário para todo mundo (spec §4.6);
+   2. **a VAGA deixa de ser conferida.** `anon` não tem select em `public.inscricoes`, então
+      contar do lado do servidor devolveria zero para todo mundo e a trava passaria SEMPRE.
+      Uma verificação que nunca dispara é pior que nenhuma. Sem a função não há como
+      conferir, e o código diz isso em vez de fingir.
+
+   **Como aplicar:** colar `010_inscricao_por_visitante.sql` no SQL Editor do Supabase.
+   Depois disso, apagar este item. `npm run rls` prova a migration contra um Postgres de
+   verdade (14 testes, bloco "RF15") — inclusive que evento lotado recusa sem gravar, que
+   rascunho responde `indisponivel`, e que as duas constraints do esquema (LGPD e RN02)
+   continuam sendo a rede embaixo da validação da tela.
+
+0z. **A RF15 grava dado de CRIANÇA, e isso muda o peso de duas telas.** `public.inscricoes`
+   é a única tabela do projeto com nome e telefone de RESPONSÁVEL por menor de idade
+   (RN02), e o público da ONG começa aos 10 anos.
+
+   Consequência para o item **0h** (o VLibras no painel, sob `strict-dynamic`): até o RF29
+   o que estava pendurado ali era mensagem de contato. `/admin/eventos/inscritos` é agora a
+   tela com mais dado pessoal de terceiro do projeto — nome, e-mail, telefone, CPF e o
+   contato de quem responde por uma criança. **A decisão de 31/08 continua valendo pelo
+   mesmo motivo** (tirar a tradução da tela de trabalho excluiria quem usa Libras, e
+   acessibilidade é requisito), e continua sendo do dono do projeto. O que mudou de novo foi
+   o tamanho do que está exposto se o widget algum dia for comprometido.
+
+   Consequência para /privacidade: a página promete exclusão a pedido, e a tela de
+   inscritos **não apaga** (mesma decisão do item 0n, e pelo mesmo motivo — o que a pessoa
+   preencheu é registro). Hoje isso só se faz no SQL Editor.
+
+0aa. **A RF15 foi medida contra o Supabase real, e o que NÃO deu para ver está dito aqui.**
+   MEDIDO em 02/09/2026, com `next build` + `next start` e as credenciais de produção: a
+   página de inscrição do único evento publicado desenha o cartão do evento com a data no
+   fuso da ONG (13:00 UTC → 10:00 de São Paulo), o local, a faixa etária e a descrição — e
+   cai no estado certo, "este evento já aconteceu", porque ele já aconteceu. As três rotas
+   novas do painel respondem 404 sem sessão de equipe.
+
+   **O FORMULÁRIO EM SI NINGUÉM VIU AINDA**, e o motivo é bobo: só existe um evento
+   publicado no banco, e ele é do passado. Basta publicar um evento com data FUTURA em
+   `/admin/eventos` para o botão "Quero me inscrever" aparecer na agenda e o formulário
+   abrir. É o único passo que falta para a RF15 ter sido vista de ponta a ponta — e a
+   metade do BANCO já está provada em `npm run rls`.
 
 **Do projeto, válidos para as duas branches:**
 

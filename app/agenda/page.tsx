@@ -45,8 +45,19 @@ export default async function Agenda() {
       <section aria-labelledby="titulo-proximos">
         <h2 id="titulo-proximos">Em breve</h2>
         <div id="lista-proximos">
+          {/*
+            `inscricoesAbertas` SÓ nesta lista, nunca na de baixo: o link
+            de inscrição ao lado de um evento que já aconteceu seria um
+            convite para uma porta fechada. Ver componentes/ListaEventos.ts.
+
+            O parágrafo lá em cima ("basta preencher o formulário do
+            evento") é texto ORIGINAL da ONG, travado por
+            testes/paridade-texto.test.mjs. Ele esteve no ar prometendo uma
+            coisa que o site não fazia; a partir da RF15, faz.
+          */}
           <ListaEventos
             eventos={proximos}
+            inscricoesAbertas
             mensagemVazio={
               'Nenhuma atividade marcada por enquanto. Acompanhe nosso Instagram ou fale com '
               + 'a gente para saber das próximas.'

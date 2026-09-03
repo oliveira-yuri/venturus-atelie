@@ -2147,3 +2147,164 @@ a.numeros__alvo:hover { background: var(--tinta); color: var(--cal); }
   min-height: var(--alvo-toque);
   font-size: var(--texto-pequeno);
 }
+
+/* =====================================================================
+   Inscritos e lista de presença (RF16, RF17)
+
+   Escrito depois do design system v1, então usa os tokens `--af-*` por
+   meio dos nomes antigos (estilos/tokens.css faz a ponte). Nada de `vw`
+   em texto — regra 8.
+   ===================================================================== */
+
+/* As marcas de estado, na lista de inscritos. Cor NUNCA é a única pista:
+   cada etiqueta traz a palavra escrita, porque quem não distingue as cores
+   precisa da mesma informação (regra 8). */
+.etiqueta {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border: 1.5px solid var(--tinta);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.etiqueta--sim      { background: #d8ecd8; }
+.etiqueta--nao      { background: #f3d8d8; }
+.etiqueta--neutra   { background: var(--creme, #f4efe6); }
+.etiqueta--atencao  { background: var(--amarelo); }
+
+.cartao-painel__marcas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0.7rem;
+}
+
+.cartao-painel__dados {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.cartao-painel__dados > div {
+  display: grid;
+  /* Uma coluna no celular (o rótulo em cima do valor), duas no desktop.
+     Rótulo ao lado do valor a 375px espremeria um e-mail longo até quebrar
+     no meio. */
+  gap: 0.1rem;
+}
+
+.cartao-painel__dados dt {
+  font-size: 0.82rem;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.cartao-painel__dados dd {
+  margin: 0;
+  /* E-mail longo não pode empurrar a página para a horizontal a 375px. */
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 34rem) {
+  .cartao-painel__dados > div {
+    grid-template-columns: 11rem 1fr;
+    gap: 0.6rem;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   A lista de presença. A tela mais "de pé, no celular" do projeto
+   (regra 4): alvo grande, uma linha por pessoa, nada de rolagem
+   horizontal.
+   --------------------------------------------------------------------- */
+
+.presenca__placar {
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid var(--tinta);
+  background: var(--creme, #f4efe6);
+  margin-bottom: 1rem;
+}
+
+.lista-presenca {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.presenca__item {
+  border: 1.5px solid var(--tinta);
+  padding: 0.7rem 0.8rem;
+  display: grid;
+  gap: 0.6rem;
+  background: #fff;
+}
+
+/* A faixa da esquerda diz o estado SEM depender de cor sozinha — ela
+   acompanha as palavras dos botões (o do estado atual fica inerte). */
+.presenca__item[data-presente="sim"]          { border-left-width: 8px; border-left-color: #2f7a3f; }
+.presenca__item[data-presente="nao"]          { border-left-width: 8px; border-left-color: #9a3232; }
+.presenca__item[data-presente="sem-conferir"] { border-left-width: 8px; border-left-color: var(--azul); }
+
+.presenca__nome {
+  display: block;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.presenca__responsavel {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.presenca__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.presenca__form { margin: 0; }
+
+.presenca__botao {
+  /* 44px é o mínimo da RNF08, e aqui ele não é teto: quem usa isto está de
+     pé, com o celular numa mão. */
+  min-height: 44px;
+  min-width: 5.5rem;
+  padding: 0.5rem 0.9rem;
+  border: 1.5px solid var(--tinta);
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.presenca__botao:disabled {
+  /* O botão do estado ATUAL fica inerte. `opacity` sozinha não bastaria:
+     ela some no alto contraste, então o fundo também muda. */
+  cursor: default;
+  background: var(--tinta);
+  color: var(--papel, #fff);
+}
+
+.presenca__botao--sim:not(:disabled):hover     { background: #d8ecd8; }
+.presenca__botao--nao:not(:disabled):hover     { background: #f3d8d8; }
+.presenca__botao--limpar                       { font-weight: 400; }
+
+.painel__contagem {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  margin: 0.5rem 0 0.9rem;
+}
+
+.painel__acao-secundaria {
+  display: inline-block;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  border: 1.5px solid var(--tinta);
+  font-weight: 700;
+  text-decoration: none;
+}

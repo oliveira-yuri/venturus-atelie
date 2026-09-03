@@ -440,3 +440,37 @@ export function avisoDeDoacoes(valor: unknown): AvisoDoPainel | null {
   // `Object.hasOwn` pelo mesmo motivo de `avisoDaLista`.
   return Object.hasOwn(AVISOS_DE_DOACOES, valor) ? AVISOS_DE_DOACOES[valor] : null;
 }
+
+// =====================================================================
+// Presença na lista de inscritos (RF17)
+//
+// A LISTA É CURTA E ISSO É O DESENHO: esta tela faz UMA coisa — marcar
+// quem veio. Ela não inscreve, não apaga e não corrige dado nenhum de
+// quem se inscreveu, porque quem a usa está de pé na porta de uma oficina,
+// com o celular numa mão (regra 4), e todo gesto a mais ali é um gesto
+// que se dá por engano.
+// =====================================================================
+
+const AVISOS_DE_PRESENCA: Record<string, AvisoDoPainel> = {
+  marcada: { texto: 'Presença marcada.', ok: true },
+  desmarcada: {
+    texto: 'Marcado como ausente. Dá para mudar de novo a qualquer momento — inclusive depois '
+      + 'do evento.',
+    ok: true
+  },
+  limpa: {
+    texto: 'Marcação apagada. A pessoa voltou para "ainda não conferido", que é diferente de '
+      + '"faltou".',
+    ok: true
+  },
+  erro: {
+    texto: 'Não deu para marcar agora. Tente de novo — e se a internet estiver ruim aí, confira '
+      + 'a lista no papel e marque depois: ninguém perde a inscrição por isso.',
+    ok: false
+  }
+};
+
+export function avisoDePresenca(valor: unknown): AvisoDoPainel | null {
+  if (typeof valor !== 'string') return null;
+  return Object.hasOwn(AVISOS_DE_PRESENCA, valor) ? AVISOS_DE_PRESENCA[valor] : null;
+}

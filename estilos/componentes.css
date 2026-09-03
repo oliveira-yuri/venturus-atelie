@@ -589,3 +589,30 @@
 .lightbox__fechar { margin-left: auto; }
 
 .lightbox__conta { font: 400 var(--af-body-sm) var(--af-font); color: var(--af-cream-dim); }
+
+/* =====================================================================
+   Inscrição em evento (RF15) — PÚBLICO
+
+   Mora aqui, e não em estilos/admin.css, porque `admin.css` é importado
+   por `app/admin/layout.tsx` e só existe dentro do painel. A primeira
+   versão destas regras foi escrita lá por engano, e o efeito seria mudo:
+   o formulário público apareceria sem a moldura do grupo, sem erro nenhum
+   no console.
+   ===================================================================== */
+
+/* O grupo de campos do responsável (RN02). O `<fieldset>` dá ao grupo um
+   nome que o leitor de tela anuncia; a moldura dá o mesmo recado a quem
+   enxerga. */
+.formulario__grupo {
+  border: 1.5px solid var(--tinta);
+  padding: 0.9rem;
+  margin: 1.2rem 0;
+}
+
+.formulario__grupo legend {
+  font-weight: 700;
+  padding: 0 0.4rem;
+}
+
+/* O "Quero me inscrever" de cada evento da agenda. */
+.atividade__acao { margin-top: 0.8rem; }

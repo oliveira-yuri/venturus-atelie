@@ -80,7 +80,24 @@ function quando(iso: string): string {
   return `${dia}, às ${hora}`;
 }
 
-export function ListaEventos({ eventos, mensagemVazio }: { eventos: Evento[]; mensagemVazio: string }) {
+/**
+ * O LINK DE INSCRIÇÃO SÓ APARECE NA LISTA DO QUE AINDA VEM (RF15).
+ *
+ * `/agenda` desenha DUAS listas com este mesmo componente: os próximos
+ * eventos e os que já passaram. Um botão "Quero me inscrever" ao lado de
+ * uma oficina de março seria um convite para uma porta fechada — a página
+ * de inscrição recusa (o banco confere de novo), mas quem clicou já gastou
+ * o gesto e ficou sem entender.
+ *
+ * Por isso `inscricoesAbertas` é um parâmetro da lista inteira, e não uma
+ * conta feita por evento aqui dentro: quem sabe qual das duas listas está
+ * desenhando é a página, e ela já sabe disso pela consulta que fez.
+ */
+export function ListaEventos({ eventos, mensagemVazio, inscricoesAbertas = false }: {
+  eventos: Evento[];
+  mensagemVazio: string;
+  inscricoesAbertas?: boolean;
+}) {
   if (eventos.length === 0) {
     return createElement('p', { className: 'estado estado--vazio' }, mensagemVazio);
   }
@@ -102,6 +119,21 @@ export function ListaEventos({ eventos, mensagemVazio }: { eventos: Evento[]; me
         evento.descricao ? createElement('p', null, evento.descricao) : null,
         evento.faixa_etaria
           ? createElement('p', null, createElement('strong', null, 'Para:'), ` ${evento.faixa_etaria}`)
+          : null,
+        // Um `<a>` comum, e não um botão com script: funciona sem
+        // JavaScript, abre em nova aba se a pessoa quiser, e o teclado o
+        // alcança sem nada de especial. Mesma escolha de
+        // componentes/BotaoWhatsApp.ts.
+        inscricoesAbertas
+          ? createElement(
+            'p',
+            { className: 'atividade__acao' },
+            createElement(
+              'a',
+              { className: 'botao', href: `/agenda/${evento.id}/inscricao` },
+              'Quero me inscrever'
+            )
+          )
           : null
       )
     )

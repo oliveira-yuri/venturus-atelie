@@ -1,5 +1,10 @@
 import { notFound } from 'next/navigation';
 import '@/estilos/admin.css';
+// SÓ TEM `@media print`: nenhuma regra dela vale na tela, e é por isso que
+// ela pode ficar aqui, no layout do painel inteiro, em vez de só na página
+// de relatório. O efeito é que imprimir QUALQUER tela do painel passa a dar
+// um documento legível — sem nenhuma delas mudar de aparência (RF32).
+import '@/estilos/impressao.css';
 // A pele v1 (estilos/sistema-aplicado.css) já entra pelo layout raiz, que
 // envolve o painel. Ela alcança as classes do painel por seletor escopado
 // em `.painel` — especificidade maior que a das regras de admin.css —,
