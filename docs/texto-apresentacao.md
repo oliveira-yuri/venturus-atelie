@@ -6,7 +6,12 @@ entre eles enquanto troca a tela.*
 ---
 
 > **Preencha antes de apresentar:** os trechos entre `[colchetes]` na abertura —
-> nomes, curso e semestre. É a única coisa que falta neste texto.
+> nomes, curso e semestre.
+>
+> **E antes de mostrar a Agenda:** publique o evento futuro em `/admin/eventos`. Medido em
+> 03/09, os dois eventos estão *não publicados*, então a Agenda aparece vazia — e é nela que
+> está o botão "Quero me inscrever". O mesmo vale para Notícias. Galeria e Acervo já têm
+> conteúdo com nomes reais da ONG.
 
 ## Abertura
 

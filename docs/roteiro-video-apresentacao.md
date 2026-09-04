@@ -19,9 +19,12 @@ Fatec Innovation Challenge · conferido no projeto em 03/09/2026.
 `www.atelieafrocultural.site` responde **403** — bloqueio do firewall da rede, não do
 site. Grave usando **`venturus-atelie.vercel.app`**, que é a mesma aplicação.
 
-**2. O conteúdo de hoje.** Abra as onze páginas antes e veja quais têm conteúdo.
-Notícias, Galeria e Acervo têm itens de **teste** publicados durante a verificação —
-ou apague antes, ou não pare neles.
+**2. O conteúdo de hoje — MEDIDO em 03/09.** **Agenda e Notícias estão VAZIAS**: os dois
+eventos e as duas notícias existem no banco mas estão *não publicados*. Se quiser mostrar
+a Agenda com o botão "Quero me inscrever", **publique o evento futuro** em
+`/admin/eventos` antes de gravar. Galeria e Acervo **têm conteúdo com nomes reais da ONG**
+(álbuns "Brasil Negreiro" e "Cafú e o Café"; materiais "Cabaça e o Canto Ancestral" e
+"Catirina e Nego Dito") — esses dá para mostrar à vontade.
 
 ---
 
