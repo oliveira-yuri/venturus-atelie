@@ -173,6 +173,18 @@ test('a escala de fonte e o alto contraste sobrevivem a navegacao do roteador, n
   await navegador.get(`${BASE}/`);
   await navegador.sleep(500);
 
+  // A barra chega RECOLHIDA tambem no desktop desde 06/10/2026 (antes o CSS
+  // a forcava visivel, e o botao nao fazia nada): abre pelo botao, como uma
+  // pessoa faria, depois de a pagina hidratar.
+  const botaoBarra = await navegador.findElement(By.css('[aria-controls="barra-acessibilidade"]'));
+  await navegador.wait(async () => (await botaoBarra.getAttribute('aria-expanded')) !== null, 5000,
+    'a pagina nao hidratou: o botao de acessibilidade continua sem aria-expanded');
+  const barra = await navegador.findElement(By.css('#barra-acessibilidade'));
+  if (!(await barra.isDisplayed())) {
+    await botaoBarra.click();
+    await navegador.wait(async () => await barra.isDisplayed(), 2000);
+  }
+
   const aumentar = await navegador.findElement(By.css('[data-acao="aumentar"]'));
   await aumentar.click();
   await navegador.sleep(200);
