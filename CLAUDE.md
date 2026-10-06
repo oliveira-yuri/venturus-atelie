@@ -1454,6 +1454,15 @@ achados foram corrigidos juntos:
     antes da lista (eram o mesmo número, duas vezes, em link pequeno). O rodapé, no celular,
     põe os canais em duas colunas.
 
+**Ícone do navegador (06/10/2026).** O `app/icon.svg` era um "A" tipográfico, e **só SVG**: o
+Safari e o iOS ignoram ícone SVG, e `/favicon.ico` e `/apple-icon.png` davam 404 — nessas abas
+e no "adicionar à tela inicial" não aparecia nada. Agora são três arquivos que o Next liga
+sozinho: `app/favicon.ico` (16/32/48), `app/icon.png` (192) e `app/apple-icon.png` (180), com o
+**mapa da África extraído do logotipo da própria ONG** (`public/imagens/logo-atelie.png`) em
+marrom `#2B2019` sobre ocre `#D69A10`. Não é símbolo inventado (regra 2): é o recorte do que
+eles enviaram, e o logo inteiro não serve — a 16px a moldura e o texto viram mancha. Quando
+o vetor chegar (item 6 de "O que trava hoje"), os três arquivos se refazem a partir dele.
+
 **Os pedidos anteriores estão em
 `docs/alterações-atelie-v1/`, e os 34 itens dela foram feitos em 02/09/2026 — menos os dois
 que o próprio pedido marcou como "apenas se der tempo" (painel com gráficos e integração com
