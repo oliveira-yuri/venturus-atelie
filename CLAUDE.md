@@ -1426,8 +1426,16 @@ achados foram corrigidos juntos:
    `.af-tile p` com a mesma especificidade, e perdia; o texto claro nunca chegou à tela. Com a
    ordem corrigida, `--af-cream-dim` sobre `--af-brown`. Em alto contraste o mesmo texto ficava
    preto sobre preto — agora é branco;
-4. **Com A+ o nome da ONG virava "Ateliê Afr…"** (`nowrap` + reticências). Agora quebra em duas
-   linhas;
+4. **Com A+ o nome da ONG virava "Ateliê Afr…"** (`nowrap` + reticências). Agora quebra entre
+   as palavras, e a marca tem `min-width: min-content` (a largura de "Cultural"): quando nem
+   isso cabe — sessão aberta, ou A+ abaixo de ~380px — os botões DESCEM para uma segunda
+   linha, alinhados à direita, em vez de espremer o nome. ATENÇÃO, achado ao medir: a primeira
+   versão desta correção, só com a quebra, fazia o nome virar uma coluna de UMA LETRA POR
+   LINHA com sessão aberta a 390px. O teste que cobriria isso
+   (`sessao-no-cabecalho.test.mjs`, "nome longo") não alcança largura de celular no Firefox
+   headless deste ambiente (a janela para em 488px e o teste falha na pré-condição, igual
+   antes desta mudança) — foi medido com Playwright/Chromium a 320, 375 e 390px, com e sem
+   A+, com e sem sessão: zero overflow e "Sair" sempre dentro da tela;
 5. **Com A+ o botão de WhatsApp crescia a 69×69px** (era rem) e cobria o texto aumentado.
    `html[data-fonte="grande"]` — posto por `Acessibilidade.tsx` e pelo script anti-piscada —
    o reduz a 48px, só ícone, no celular. O VLibras é do governo e não foi mexido;

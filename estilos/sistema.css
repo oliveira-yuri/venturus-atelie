@@ -104,14 +104,28 @@
 
 .af-header__barra {
   display: flex;
+  flex-wrap: wrap;
+  /* Quando os botões descem para a segunda linha, eles vão para a DIREITA,
+     onde estavam. Na primeira linha a marca cresce até eles, e isto não
+     muda nada. */
+  justify-content: flex-end;
   align-items: center;
   gap: var(--af-s3);
   padding: var(--af-s4) var(--af-gutter);
 }
 
+/* A MARCA TEM LARGURA MÍNIMA, e os botões descem de linha quando não
+   cabem. Antes era `min-width: 0`: com sessão aberta (nome de quem entrou +
+   "Sair") ou com o A+ ligado, a marca era espremida até virar "A…" — e,
+   quando o nome passou a poder quebrar, até uma coluna de uma letra por
+   linha (MEDIDO em 06/10/2026, 390px com sessão). `min-content` é a
+   largura de "Cultural", a palavra mais longa do nome — o nome quebra entre
+   as palavras e nunca no meio delas; só quando nem isso cabe os botões
+   descem. Para `min-content` não ser a linha inteira de
+   `.af-header__meta` (que é `nowrap`), ela tem `contain: inline-size`. */
 .af-header__marca {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 0;
+  min-width: min-content;
   color: var(--af-brown);
   text-decoration: none;
 }
@@ -129,6 +143,7 @@
 
 .af-header__meta {
   display: block;
+  contain: inline-size;
   margin-top: 2px;
   font: 400 var(--af-overline) / 1.2 var(--af-font);
   color: #5C4423;
@@ -894,9 +909,11 @@ html[data-contraste="alto"] .af-tile.af-tile--invertido p { color: #FFFFFF; }
      duas.
 
      Sem JavaScript ela continua chegando aberta, como no celular: a
-     classe --recolhida só entra depois de hidratar (Acessibilidade.tsx). */
-  .af-a11y--recolhida { display: none; }
+     classe --recolhida só entra depois de hidratar (Acessibilidade.tsx).
 
+     A regra de recolher vem DEPOIS de `.af-a11y` e com DUAS classes: com
+     uma só e antes dela, `display: flex` vencia e o defeito continuava —
+     medido assim na primeira tentativa desta correção. */
   .af-a11y {
     display: flex;
     position: static;
@@ -905,6 +922,8 @@ html[data-contraste="alto"] .af-tile.af-tile--invertido p { color: #FFFFFF; }
     flex-wrap: nowrap;
     justify-content: flex-end;
   }
+
+  .af-a11y.af-a11y--recolhida { display: none; }
 
   .af-a11y__rotulo { width: auto; margin-right: auto; }
   .af-a11y__contraste { flex: none; min-width: 0; }
