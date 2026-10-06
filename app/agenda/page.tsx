@@ -23,6 +23,9 @@
 // aquela página existir: conteúdo literal não espera a próxima tarefa.
 import { listarProximos, listarPassados } from '@/servidor/dados/eventos';
 import { ListaEventos } from '@/componentes/ListaEventos';
+import Link from 'next/link';
+
+const INSTAGRAM_DA_ONG = 'https://instagram.com/atelie_afrocultural';
 
 export const metadata = {
   title: 'Agenda — Ateliê Afro Cultural',
@@ -59,8 +62,11 @@ export default async function Agenda() {
             eventos={proximos}
             inscricoesAbertas
             mensagemVazio={
-              'Nenhuma atividade marcada por enquanto. Acompanhe nosso Instagram ou fale com '
-              + 'a gente para saber das próximas.'
+              <>
+                Nenhuma atividade marcada por enquanto. Acompanhe nosso{' '}
+                <a href={INSTAGRAM_DA_ONG} rel="noopener">Instagram</a> ou{' '}
+                <Link href="/contato">fale com a gente</Link> para saber das próximas.
+              </>
             }
           />
         </div>

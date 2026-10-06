@@ -119,11 +119,12 @@
 .af-header__nome {
   display: block;
   font: 700 0.9375rem / var(--af-lh-tight) var(--af-font);
-  /* Uma linha só, com reticências: a marca não pode empurrar "Entrar"
-     para fora da tela num aparelho de 320px. */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* QUEBRA EM DUAS LINHAS, não corta. Era `nowrap` + reticências, e com o
+     A+ ligado o nome da ONG virava "Ateliê Afr…" justamente para quem
+     aumentou o texto para conseguir ler (MEDIDO em 06/10/2026, 390px a
+     137,5%). `min-width: 0` em `.af-header__marca` continua impedindo que
+     a marca empurre "Entrar" para fora da tela: ela encolhe e quebra. */
+  overflow-wrap: break-word;
 }
 
 .af-header__meta {
@@ -214,6 +215,18 @@
 .af-control[aria-pressed="true"] {
   background: var(--af-brown);
   color: var(--af-cream);
+}
+
+/* O botão que abre a barra de acessibilidade: figura + "Aa" no celular,
+   figura + "Acessibilidade" a partir de 40rem. Os dois rótulos são
+   `aria-hidden` — o nome acessível é o `aria-label` do botão. */
+.af-control .icone { flex: none; }
+.af-control:has(.af-control__curto) { gap: var(--af-s2); padding-inline: var(--af-s4); }
+.af-control__longo { display: none; }
+
+@media (min-width: 40rem) {
+  .af-control__curto { display: none; }
+  .af-control__longo { display: inline; }
 }
 
 .af-header__sessao {
@@ -691,11 +704,21 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
 
 .af-tile--invertido > a,
 .af-tile--invertido > a:hover { color: var(--af-cream); }
-.af-tile--invertido p { color: var(--af-cream-dim); }
 .af-tile--invertido:hover { box-shadow: 5px 5px 0 var(--af-ochre); }
 
 .af-tile h3 { margin: 0 0 var(--af-s2); font: 700 0.9375rem var(--af-font); }
 .af-tile p  { margin: 0; font: 400 var(--af-caption) / 1.45 var(--af-font); color: var(--af-brown-400); }
+
+/* DEPOIS de `.af-tile p`, e com dois seletores de classe, de propósito.
+   MEDIDO em 06/10/2026: esta regra morava ACIMA de `.af-tile p`, com a
+   mesma especificidade — e perdia. O texto do cartão "Apoiar" saía em
+   --af-brown-400 sobre --af-brown: 2,45:1, abaixo dos 4,5:1 da WCAG AA,
+   justo no cartão que leva à doação. Com --af-cream-dim fica em 9,5:1. */
+.af-tile.af-tile--invertido p { color: var(--af-cream-dim); }
+
+/* Em alto contraste --af-cream-dim e --af-brown viram os DOIS preto
+   (tokens.css): texto preto sobre fundo preto. Aqui o texto vira branco. */
+html[data-contraste="alto"] .af-tile.af-tile--invertido p { color: #FFFFFF; }
 
 /* Numeração 01–04 do handoff. Entra por CSS (`::before`), não por markup:
    um `<span>01</span>` seria texto novo dentro de <main> e
@@ -863,10 +886,18 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
     font-size: 0.875rem;
   }
 
-  /* A barra de acessibilidade nunca fica escondida no desktop: há espaço,
-     e o princípio 6 do sistema é que ela faz parte da interface. */
-  .af-a11y,
-  .af-a11y--recolhida {
+  /* A BARRA OBEDECE AO BOTÃO TAMBÉM NO DESKTOP. Até 06/10/2026 esta regra
+     forçava `display: flex` inclusive em `.af-a11y--recolhida`: o botão
+     de acessibilidade alternava o estado, e nada mudava na tela — clicar
+     nele "não fazia nada". E a barra sempre aberta era a terceira faixa do
+     cabeçalho (ocre + acessibilidade + menu), que o handoff desenha com
+     duas.
+
+     Sem JavaScript ela continua chegando aberta, como no celular: a
+     classe --recolhida só entra depois de hidratar (Acessibilidade.tsx). */
+  .af-a11y--recolhida { display: none; }
+
+  .af-a11y {
     display: flex;
     position: static;
     background: var(--af-card);
@@ -1186,18 +1217,44 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
 
 .zap .icone { margin-right: 0; }
 
-/* Na tela estreita fica só o ícone: o rótulo escrito empurraria o botão
-   para cima do conteúdo. O nome acessível NÃO some junto — ele está no
-   `aria-label`, não neste <span>. */
+/* NA TELA ESTREITA O RÓTULO FICA, e o botão encolhe. Até 06/10/2026 ele
+   virava um quadrado preto só com um balão genérico — e o balão não é o
+   logotipo do WhatsApp (componentes/Icone.ts explica por que não copiamos
+   marca alheia), então ninguém o reconhecia como WhatsApp justo no
+   celular, onde ele é mais usado. A palavra escrita resolve sem usar a
+   marca deles. */
 @media (max-width: 26rem) {
-  .zap__texto {
+  .zap {
+    min-height: 2.75rem;
+    padding: 0 var(--af-s5);
+    gap: var(--af-s2);
+    font-size: var(--af-body-sm);
+  }
+}
+
+/* COM O A+ LIGADO, o botão vira um quadrado pequeno, em px e não em rem,
+   e só com o ícone. Em rem ele crescia junto com o texto (69×69px a
+   137,5%) e cobria exatamente as linhas que a pessoa tinha aumentado para
+   conseguir ler. O nome acessível NÃO some junto: ele está no
+   `aria-label`, não no <span>. `data-fonte` vem de Acessibilidade.tsx e do
+   script anti-piscada de app/layout.tsx. */
+@media (max-width: 40rem) {
+  html[data-fonte="grande"] .zap {
+    width: 48px;
+    min-height: 48px;
+    height: 48px;
+    padding: 0;
+    justify-content: center;
+    bottom: 12px;
+    right: 12px;
+  }
+  html[data-fonte="grande"] .zap__texto {
     position: absolute;
     width: 1px; height: 1px;
     margin: -1px; padding: 0;
     overflow: hidden; clip-path: inset(50%);
     white-space: nowrap;
   }
-  .zap { padding: 0; width: var(--af-touch-cta); justify-content: center; }
 }
 
 /* A GAVETA COBRE A TELA INTEIRA: o botão sai do caminho enquanto ela está

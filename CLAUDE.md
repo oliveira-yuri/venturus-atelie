@@ -1411,6 +1411,41 @@ sessão de equipe na mão** — é a regra 10 acontecendo de novo:
    pus cada um no seu próprio `.abertura__acoes` — classe que zera a margem e separa por `gap`,
    ou seja, com um contêiner por botão não há o que separar.
 
+**Revisão de design e usabilidade de 06/10/2026** — feita OLHANDO as 13 páginas públicas a
+390px e a 1440px, com A+ e alto contraste ligados (regra 10), e não lendo código. Os dez
+achados foram corrigidos juntos:
+
+1. **"Aa" não fazia nada no desktop.** A regra de `min-width: 64rem` forçava `display: flex`
+   inclusive em `.af-a11y--recolhida`: o botão alternava o estado, a tela não mudava. Agora a
+   barra obedece ao botão em qualquer largura — e com isso o cabeçalho do desktop voltou a
+   ter DUAS faixas, como o handoff. Sem JavaScript ela continua chegando aberta;
+2. **O botão "Aa" ganhou a figura de acessibilidade** e, a partir de 40rem, a palavra
+   "Acessibilidade". "Alto contraste" ligado ganhou um "✓": em alto contraste os tokens viram
+   preto e branco, e ligado e desligado ficavam idênticos;
+3. **Cartão "Apoiar" da home a 2,45:1.** `.af-tile--invertido p` estava ACIMA de
+   `.af-tile p` com a mesma especificidade, e perdia; o texto claro nunca chegou à tela. Com a
+   ordem corrigida, `--af-cream-dim` sobre `--af-brown`. Em alto contraste o mesmo texto ficava
+   preto sobre preto — agora é branco;
+4. **Com A+ o nome da ONG virava "Ateliê Afr…"** (`nowrap` + reticências). Agora quebra em duas
+   linhas;
+5. **Com A+ o botão de WhatsApp crescia a 69×69px** (era rem) e cobria o texto aumentado.
+   `html[data-fonte="grande"]` — posto por `Acessibilidade.tsx` e pelo script anti-piscada —
+   o reduz a 48px, só ícone, no celular. O VLibras é do governo e não foi mexido;
+6. **No celular o botão flutuante era um quadrado com um balão genérico**, irreconhecível
+   como WhatsApp (o logotipo deles não é usado, ver `componentes/Icone.ts`). Agora leva a
+   palavra "WhatsApp";
+7. **`/doar/ofertar` tinha o caminho SEM conta em texto puro** — número e e-mail para copiar
+   à mão, no funil da doação. Viraram links e dois botões ("Combinar pelo WhatsApp/por
+   e-mail"). Ofertar pelo site continua exigindo conta (decisão da RF19, não mudou);
+8. **`/agenda` vazia mandava "acompanhar nosso Instagram" sem link.** `ListaEventos` passou a
+   aceitar `ReactNode` no estado vazio, e o Instagram e o "fale com a gente" são links;
+9. **`/projetos` no desktop: 11 cartões de largura total**, um embaixo do outro. Agora grade
+   de 2 colunas (48rem) e 3 (72rem), com "Saber mais" alinhado no pé. Cinco atividades
+   continuam sem resumo — é conteúdo a pedir à ONG, não a inventar;
+10. **`/contato` no celular**: "Chamar no WhatsApp" e "Ligar" viraram dois botões grandes
+    antes da lista (eram o mesmo número, duas vezes, em link pequeno). O rodapé, no celular,
+    põe os canais em duas colunas.
+
 **Os pedidos anteriores estão em
 `docs/alterações-atelie-v1/`, e os 34 itens dela foram feitos em 02/09/2026 — menos os dois
 que o próprio pedido marcou como "apenas se der tempo" (painel com gráficos e integração com

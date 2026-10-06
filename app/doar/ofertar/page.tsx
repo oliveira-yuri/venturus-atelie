@@ -68,6 +68,7 @@ export const metadata = {
 /** Canais reais da ONG — os mesmos de /doar, /contato e compartilhado/erros.ts. */
 const WHATSAPP = '(11) 95396-8344';
 const EMAIL_ATELIE = 'atelieafro@gmail.com';
+const WHATSAPP_LINK = 'https://wa.me/5511953968344';
 
 export default async function Ofertar() {
   const usuario = await usuarioAtual();
@@ -118,10 +119,27 @@ export default async function Ofertar() {
             (é /admin/doacoes/registrar). O que ela não terá é o
             acompanhamento nesta página, e a frase não esconde isso.
           */}
+          {/*
+            O CAMINHO SEM CONTA PRECISA SER TOCÁVEL. Até 06/10/2026 o número e
+            o e-mail estavam aqui em texto puro: quem desistia de criar conta
+            — no funil da doação, a dor nº 1 da ONG — tinha de copiar o
+            número à mão. Agora são links, e os dois botões abaixo levam
+            direto à conversa.
+          */}
           <p>
-            Se preferir não criar conta, fale com a gente pelo WhatsApp {WHATSAPP} ou pelo
-            e-mail {EMAIL_ATELIE}: a gente combina por ali e registra a doação por aqui. Só o
-            acompanhamento pelo site é que depende de ter conta.
+            Se preferir não criar conta, fale com a gente pelo WhatsApp{' '}
+            <a href={WHATSAPP_LINK} rel="noopener">{WHATSAPP}</a> ou pelo
+            e-mail <a href={`mailto:${EMAIL_ATELIE}`}>{EMAIL_ATELIE}</a>: a gente combina por ali
+            e registra a doação por aqui. Só o acompanhamento pelo site é que depende de ter conta.
+          </p>
+
+          <p className="abertura__acoes">
+            <a className="botao botao--secundario" href={WHATSAPP_LINK} rel="noopener">
+              Combinar pelo WhatsApp
+            </a>{' '}
+            <a className="botao botao--secundario" href={`mailto:${EMAIL_ATELIE}`}>
+              Combinar por e-mail
+            </a>
           </p>
         </section>
       )}

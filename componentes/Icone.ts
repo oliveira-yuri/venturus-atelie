@@ -72,6 +72,12 @@ const TRACOS: Record<string, string> = {
   // Retângulo com "play".
   youtube: 'M3 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8Zm2 0v8'
     + 'a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1Zm5 1.5 5 2.5-5 2.5v-5Z',
+  // Figura de acessibilidade universal: pessoa de braços abertos num
+  // círculo. Acompanha o rótulo do botão que abre a barra de acessibilidade.
+  acessibilidade: 'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Z'
+    + 'm0 1.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2ZM6.5 9.2l.4-1.5c1.7.5 3.4.8 5.1.8'
+    + 's3.4-.3 5.1-.8l.4 1.5c-1.3.4-2.6.7-3.9.8v2.6l1.7 4.6-1.4.5-1.9-4.6-1.9 4.6-1.4-.5'
+    + ' 1.7-4.6V10c-1.3-.1-2.6-.4-3.9-.8Z',
   // Alfinete de mapa.
   endereco: 'M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7Zm0 4.5A2.5 2.5 0 1 0'
     + ' 12 11.5a2.5 2.5 0 0 0 0-5Z'

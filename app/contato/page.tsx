@@ -98,6 +98,22 @@ export default async function Contato(
 
       <section aria-labelledby="titulo-canais">
         <h2 id="titulo-canais">Canais diretos</h2>
+        {/*
+          OS DOIS GESTOS DO CELULAR, GRANDES E PRIMEIRO (revisão de
+          usabilidade de 06/10/2026). Telefone e WhatsApp são o MESMO número,
+          e na lista abaixo apareciam como dois links pequenos com o número
+          repetido. Quem abre esta página no celular quer ligar ou chamar —
+          os botões fazem isso num toque. A lista continua, inteira, para quem
+          quer anotar o número ou procurar as redes.
+        */}
+        <p className="contato__atalhos">
+          <a className="botao" href="https://wa.me/5511953968344" rel="noopener">
+            <Icone nome="whatsapp" />Chamar no WhatsApp
+          </a>
+          <a className="botao botao--secundario" href="tel:+5511953968344">
+            <Icone nome="telefone" />Ligar
+          </a>
+        </p>
         <dl className="ficha">
           {/*
             ÍCONES NOS CANAIS (pedido V1). Eles ficam no <dt>, junto do
