@@ -28,9 +28,9 @@ import {
  *      `<div class="af-a11y" hidden>` e revela por script — o que deixaria
  *      quem esta sem JavaScript sem NENHUM controle de tamanho de texto,
  *      num site cuja ONG pediu "textos grandes". Aqui `af-a11y--recolhida`
- *      so' entra depois de `hidratado`, e no desktop o CSS a mantem visivel
- *      sempre (ha' espaco, e o principio 6 do proprio sistema diz que a
- *      acessibilidade faz parte da interface, nao de um menu escondido).
+ *      so' entra depois de `hidratado`. Ate' 06/10/2026 o CSS do desktop
+ *      a mantinha visivel sempre, e o botao "Aa" nao fazia nada ali; agora
+ *      ela obedece ao botao em qualquer largura (estilos/sistema.css).
  *
  *   2. A ESCALA CONTINUA EM `--escala-fonte`, NAO EM `zoom`. O handoff usa
  *      `document.documentElement.style.zoom = 0.92 | 1 | 1.1`. Aqui a
@@ -67,6 +67,12 @@ export default function Acessibilidade({
     if (!lido) return;
     const raiz = document.documentElement;
     raiz.style.setProperty('--escala-fonte', `${preferencias.escala}%`);
+    // `data-fonte="grande"` deixa o CSS encolher o que FLUTUA sobre o texto
+    // (o botão de WhatsApp) quando a pessoa aumentou a letra — CSS não
+    // consegue comparar o valor de uma custom property. O mesmo limite está
+    // no script anti-piscada de app/layout.tsx.
+    if (preferencias.escala > PADRAO.escala) raiz.setAttribute('data-fonte', 'grande');
+    else raiz.removeAttribute('data-fonte');
     if (preferencias.contraste === 'alto') raiz.setAttribute('data-contraste', 'alto');
     else raiz.removeAttribute('data-contraste');
   }, [preferencias, lido]);
@@ -121,9 +127,17 @@ export default function Acessibilidade({
         onClick={() => executar('aumentar')}
         disabled={lido && preferencias.escala === ESCALAS[ESCALAS.length - 1]}>A+</button>
 
+      {/*
+        O "✓" é o sinal VISÍVEL de ligado. Só cor não bastava: em alto
+        contraste os tokens viram preto e branco, e o botão ligado ficava
+        igual ao desligado (MEDIDO em 06/10/2026). Ele é `aria-hidden`
+        porque o leitor de tela já anuncia o estado pelo `aria-pressed`.
+      */}
       <button type="button" className="af-a11y__contraste" data-acao="contraste"
         aria-pressed={alto}
-        onClick={() => executar('contraste')}>Alto contraste</button>
+        onClick={() => executar('contraste')}>
+        {alto ? <span aria-hidden="true">✓ </span> : null}Alto contraste
+      </button>
 
       <p className="apenas-leitor-de-tela" role="status">{anuncio}</p>
     </div>

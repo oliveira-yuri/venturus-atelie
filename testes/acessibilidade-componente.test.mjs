@@ -22,12 +22,32 @@ before(async () => {
 
 after(async () => { await navegador?.quit(); });
 
-/** Carrega a pagina do zero, sem nenhuma preferencia gravada. */
+/**
+ * Abre a barra de acessibilidade pelo botao do cabecalho, como uma pessoa
+ * faria. Desde 06/10/2026 ela chega RECOLHIDA tambem no desktop (antes o CSS
+ * a forcava visivel ali, e o botao nao fazia nada) — e este arquivo roda na
+ * janela padrao do Firefox, que e desktop. Mesmo cuidado de
+ * `abrirBarraDeAcessibilidade` em testes/navegador.test.mjs: esperar a
+ * hidratacao (`aria-expanded`) antes de clicar, senao o React recolhe a
+ * barra logo depois do clique.
+ */
+async function abrirBarra() {
+  const botao = await navegador.findElement(By.css('[aria-controls="barra-acessibilidade"]'));
+  await navegador.wait(async () => (await botao.getAttribute('aria-expanded')) !== null, 5000,
+    'a pagina nao hidratou: o botao de acessibilidade continua sem aria-expanded');
+  const barra = await navegador.findElement(By.css('#barra-acessibilidade'));
+  if (await barra.isDisplayed()) return;
+  await botao.click();
+  await navegador.wait(async () => await barra.isDisplayed(), 2000);
+}
+
+/** Carrega a pagina do zero, sem nenhuma preferencia gravada, com a barra aberta. */
 async function prepararEstadoLimpo() {
   await navegador.get(`${BASE}/`);
   await navegador.executeScript(`localStorage.clear()`);
   await navegador.navigate().refresh();
   await navegador.sleep(600);
+  await abrirBarra();
 }
 
 test('servidor entrega os 4 botoes em estado neutro', async () => {
@@ -116,4 +136,30 @@ test('anuncio para leitor de tela descreve a acao feita', async () => {
   await navegador.findElement(By.css('[data-acao="aumentar"]')).click();
   await navegador.sleep(300);
   assert.equal(await anuncio.getText(), 'Texto em 112.5%');
+});
+
+test('no DESKTOP o botao de acessibilidade abre e fecha a barra de verdade', async () => {
+  // O defeito relatado em 06/10/2026: "no desktop, ao clicar em Aa ele nao
+  // faz nada". O CSS de `min-width: 64rem` forcava `display: flex` inclusive
+  // na barra recolhida — o estado mudava, a tela nao. Este teste mede a TELA
+  // (isDisplayed), nao o atributo, porque o atributo sempre esteve certo.
+  await navegador.manage().window().setRect({ width: 1440, height: 900 });
+  await navegador.get(`${BASE}/`);
+  const botao = await navegador.findElement(By.css('[aria-controls="barra-acessibilidade"]'));
+  await navegador.wait(async () => (await botao.getAttribute('aria-expanded')) !== null, 5000,
+    'a pagina nao hidratou: o botao de acessibilidade continua sem aria-expanded');
+  const barra = await navegador.findElement(By.css('#barra-acessibilidade'));
+
+  assert.equal(await barra.isDisplayed(), false,
+    'depois de hidratar, a barra deveria chegar recolhida tambem no desktop');
+
+  await botao.click();
+  await navegador.wait(async () => await barra.isDisplayed(), 2000,
+    'clicar no botao de acessibilidade no desktop nao abriu a barra');
+  assert.equal(await botao.getAttribute('aria-expanded'), 'true');
+
+  await botao.click();
+  await navegador.wait(async () => !(await barra.isDisplayed()), 2000,
+    'clicar de novo no botao de acessibilidade no desktop nao fechou a barra');
+  assert.equal(await botao.getAttribute('aria-expanded'), 'false');
 });

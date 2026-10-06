@@ -137,3 +137,90 @@
 .conteudo > .af-stripe {
   margin: var(--af-s2) calc(var(--espaco-3) * -1) var(--af-s9);
 }
+
+/* ---------------------------------------------------------------------
+   /projetos em grade (revisão de usabilidade de 06/10/2026)
+
+   Em 1440px eram 11 cartões de largura total, um embaixo do outro, com
+   metade da largura vazia em cada um — e cinco deles têm só o título,
+   porque a ONG ainda não mandou o resumo (não se inventa: regra 2). Em
+   grade, o cartão curto deixa de ser um retângulo vazio e a página encolhe
+   para um terço da altura.
+
+   Escopo pelo id: `.lista-atividades` também desenha o mural de avisos
+   (app/avisos/page.tsx), que é lista de leitura e continua em uma coluna.
+   --------------------------------------------------------------------- */
+
+@media (min-width: 48rem) {
+  #lista-atividades {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--af-s9);
+  }
+}
+
+@media (min-width: 72rem) {
+  #lista-atividades { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* "Saber mais" alinhado no pé de todos os cartões da mesma linha, tenham
+   eles resumo ou não. */
+#lista-atividades .card-atividade { display: flex; }
+#lista-atividades .atividade {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+#lista-atividades .atividade__acoes { margin-top: auto; padding-top: var(--af-s5); }
+
+/* A capa (migration 009), quando houver: mesma proporção em todos os
+   cartões, para a grade não ficar em degraus. */
+#lista-atividades .atividade__capa {
+  display: block;
+  width: calc(100% + 2 * var(--espaco-4));
+  max-width: none;
+  margin: calc(var(--espaco-4) * -1) calc(var(--espaco-4) * -1) var(--af-s5);
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-bottom: 1.5px solid var(--af-brown);
+}
+
+/* ---------------------------------------------------------------------
+   /contato — "Chamar no WhatsApp" e "Ligar" como botões de toque
+   --------------------------------------------------------------------- */
+
+.contato__atalhos {
+  display: grid;
+  gap: var(--af-s4);
+  margin: 0 0 var(--af-s9);
+}
+
+.contato__atalhos .botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--af-s3);
+  min-height: var(--af-touch-cta);
+}
+
+@media (min-width: 40rem) {
+  .contato__atalhos { grid-template-columns: repeat(2, max-content); }
+}
+
+/* ---------------------------------------------------------------------
+   Rodapé no celular — os canais em duas colunas
+
+   Eram cinco linhas de 44px, uma por canal, logo depois de toda página —
+   inclusive de /contato, que acabou de listar os mesmos canais. Em duas
+   colunas são três linhas; o e-mail ocupa a linha inteira porque não cabe
+   em meia coluna a 360px. O alvo de toque continua com 44px de altura.
+   --------------------------------------------------------------------- */
+
+@media (max-width: 39.99rem) {
+  .af-footer__links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--af-s5);
+  }
+  .af-footer__links li:has(a[href^="mailto:"]) { grid-column: 1 / -1; }
+  .af-footer__cols { gap: var(--af-s8); }
+}

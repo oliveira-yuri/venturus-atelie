@@ -120,7 +120,7 @@ export default async function LayoutRaiz({ children }: { children: React.ReactNo
             __html: `(function(){try{
       var g=localStorage.getItem('aac-preferencias'); if(!g)return;
       var p=JSON.parse(g), e=[87.5,100,112.5,125,137.5];
-      if(e.indexOf(p.escala)!==-1)document.documentElement.style.setProperty('--escala-fonte',p.escala+'%');
+      if(e.indexOf(p.escala)!==-1){document.documentElement.style.setProperty('--escala-fonte',p.escala+'%');if(p.escala>100)document.documentElement.setAttribute('data-fonte','grande');}
       if(p.contraste==='alto')document.documentElement.setAttribute('data-contraste','alto');
     }catch(x){}})();`
           }}

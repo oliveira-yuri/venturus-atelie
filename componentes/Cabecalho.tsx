@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import MenuMovel from './MenuMovel';
 import Acessibilidade from './Acessibilidade';
+import { Icone } from './Icone';
 import { sair } from '@/acoes/autenticacao';
 
 /**
@@ -168,7 +169,15 @@ export default function Cabecalho(
           aria-controls="barra-acessibilidade"
           onClick={() => setBarraAberta((aberta) => !aberta)}
         >
-          Aa
+          {/*
+            "Aa" sozinho não dizia o que o botão faz (revisão de usabilidade
+            de 06/10/2026). Agora vai a figura de acessibilidade junto, e a
+            palavra "Acessibilidade" aparece a partir de 40rem — no celular
+            ela empurraria "Entrar" para fora (estilos/sistema.css).
+          */}
+          <Icone nome="acessibilidade" />
+          <span className="af-control__curto" aria-hidden="true">Aa</span>
+          <span className="af-control__longo" aria-hidden="true">Acessibilidade</span>
         </button>
 
         {sessao ? (

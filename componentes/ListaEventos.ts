@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import { createElement, type ReactNode } from 'react';
 import type { Evento } from '@/servidor/dados/eventos';
 
 /**
@@ -95,7 +95,10 @@ function quando(iso: string): string {
  */
 export function ListaEventos({ eventos, mensagemVazio, inscricoesAbertas = false }: {
   eventos: Evento[];
-  mensagemVazio: string;
+  // ReactNode, e não só string, desde 06/10/2026: o estado vazio de /agenda
+  // mandava "acompanhar nosso Instagram" sem link nenhum — uma saída
+  // escrita que não levava a lugar algum.
+  mensagemVazio: ReactNode;
   inscricoesAbertas?: boolean;
 }) {
   if (eventos.length === 0) {
