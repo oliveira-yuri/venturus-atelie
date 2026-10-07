@@ -1506,6 +1506,37 @@ justamente os que o provariam. Só vale com o serviço alcançável e a CSP medi
 **`docs/guia-rapido-da-equipe.md` está DESATUALIZADO** (fala em "as quatro telas" e lista como
 "o que o painel não faz" coisas que existem há dias). `/admin/ajuda` não o repete de propósito.
 
+**Cartões do painel no celular (07/10/2026)**, a pedido do dono do projeto, que mandou uma foto do
+desenho que queria para `/admin/voluntarios`:
+
+- **Cartão de candidatura:** linha de topo com "CANDIDATURA" pequeno à esquerda e a situação à
+  direita; a dobra "Dados e mensagem" com seta desenhada (borda girada, não o `▾` de texto, que
+  muda de forma conforme a fonte do aparelho) e título discreto; e os botões numa COLUNA, largura
+  inteira, mesma altura. "Encerrar" — o gesto que devolve à pessoa o direito de se candidatar de
+  novo — é o último e o único com texto discreto (`voluntario__botao--discreto`). A FONTE não foi
+  trocada: a foto tinha outra família, e o pedido foi manter a do site;
+- **Padrão para TODO cartão do painel:** abaixo de 34rem, qualquer grupo `*__botoes` vira coluna
+  (`sistema-aplicado.css`, seletor `.painel [class*="__botoes"]:not(.presenca__botoes)`). Eram dez
+  grupos com a mesma falha — dois botões lado a lado, um sozinho na linha de baixo, larguras que
+  dependiam do texto. Uma tela nova que siga o sufixo `__botoes` já nasce padronizada. **A lista de
+  presença fica de fora de propósito**: são os três botões de CADA linha. O botão vermelho de
+  "enviar e-mail para o grupo" (`.aviso-envio__botao`) também fica como está — `justify-self: start`
+  é decisão escrita: um alvo do tamanho da tela é um alvo que se toca sem querer, e este gesto não
+  tem desfazer;
+- **Linha de topo igual** nos cartões de mensagem (`contato__origem`) e de doação (`doacao__tipo`):
+  o que o cartão É, pequeno à esquerda, e a situação à direita. `order: -1` em vez de trocar o
+  markup — a ordem de leitura continua "situação, depois a origem";
+- **Campo "Nome ou e-mail" do filtro** era o único campo do painel sem estilo (caía no padrão do
+  navegador, mais baixo e arredondado). Agora tem a regra dos `select` ao lado;
+- **Sem botão flutuante de WhatsApp no painel:** `body:has(.painel) .zap { display: none }`. O botão
+  é irmão do `<main>`, então nenhum seletor a partir do painel o alcança — daí o `:has`. Se um
+  navegador antigo não entender `:has`, o botão aparece e nada quebra;
+- **Como foi visto:** o painel exige sessão de equipe, que não existe aqui. Os COMPONENTES REAIS
+  (`ListaVoluntarios`, `ListaContatos`, `ListaDoacoes`, `ListaPublicacoes`, `ListaMidia`,
+  `ListaAtividades`, `ListaEventosPainel`, `ListaMateriaisDoPainel`) foram montados com
+  `react-dom/server` e o CSS real, com dados de mentira, a 390px e a 1100px: nos sete cartões
+  medidos, todo grupo ficou com uma única largura. É a tela desenhada, não a servida.
+
 **Os pedidos anteriores estão em
 `docs/alterações-atelie-v1/`, e os 34 itens dela foram feitos em 02/09/2026 — menos os dois
 que o próprio pedido marcou como "apenas se der tempo" (painel com gráficos e integração com
