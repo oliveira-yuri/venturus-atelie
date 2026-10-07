@@ -30,7 +30,7 @@ npm test                        # suíte completa, modo offline (1249 testes)
 npm run test:supabase           # a mesma suíte, contra o banco real (1250)
 npm run test:supabase-degradado # prova que falha de consulta não derruba a página
 npm run verificar-deploy        # guardião: barra deploy inseguro
-npm run rls                     # políticas de segurança contra Postgres real
+npm run rls                     # políticas de segurança contra Postgres real (126)
 npm run seed                    # regenera supabase/seed.sql dos JSON de dados-iniciais/
 ./ferramentas/gerar-sql-completo.sh  # junta migrations + seed num arquivo
 npx next dev                    # servir o site
@@ -561,6 +561,7 @@ inexistente devolve "E-mail ou senha não conferem" vindo do Auth e traduzido po
 | E-mail (Resend) | **DNS pronto, conta por ligar** — SPF, DKIM (218 caracteres, íntegro) e o MX do return-path `send` conferidos por `dig` em 02/09/2026, região São Paulo. Click tracking DESLIGADO de propósito: ele reescreveria todo link do e-mail, o que contradiz /privacidade e poria um salto no meio de um link de token de uso único. **Falta**: DMARC (`_dmarc` TXT `v=DMARC1; p=none;`), a API key na Edge Function e o SMTP no Supabase Auth. O Resend substituiu o Brevo porque **passou a haver domínio** — sem ele o Resend só entrega no e-mail da própria conta |
 | Edge Function de e-mail | **PUBLICADA E FUNCIONANDO** (03/09/2026) — `supabase/functions/enviar-email/`. Único ponto do projeto com a service role (spec §9). MEDIDO em produção: ela responde `401 {"erro":"nao_autorizado"}` sem a chave compartilhada — e como a conferência de configuração vem ANTES da conferência da chave, esse 401 prova que os quatro secrets estão lá (faltando um, seria `500 nao_configurada`). **Ela ficou muda por um dia inteiro por falta de GRANT, não de código** — ver a migration 013. Desde 03/09 ela também lê o papel da própria chave (`papelDaChave()`) e o devolve no diagnóstico: o Postgres responde `permission denied` sem dizer uma palavra sobre credencial, e foi preciso medir por fora para descobrir |
 | Migration 011 (registro de envios) | **APLICADA** (02/09/2026) — MEDIDO: `select` anônimo em `envios` responde `42501 permission denied`, e não `PGRST205 could not find the table`. A tabela existe e `anon` não alcança |
+| Migration 014 (depoimentos) | **escrita e testada contra Postgres real (`npm run rls`), NÃO APLICADA** — `supabase/migrations/014_depoimentos.sql`. Quem aplica é uma pessoa, no SQL Editor. Sem ela `/depoimentos` mostra o estado vazio e o envio avisa que ainda não está aberto |
 | Migration 012 (mural de avisos) | **APLICADA em 03/09/2026, e o efeito foi medido** — `supabase/migrations/012_avisos.sql`. Sem mandar chave nenhuma: `select` em `avisos` responde `42501 permission denied` (e não `PGRST205 could not find the table`), e `eh_voluntario_ativo()` responde `42501 permission denied for function`. Os dois erros são o desenho — `anon` não recebe grant em nenhum dos dois |
 | Migration 013 (grants do `service_role`) | **APLICADA em 03/09/2026, e o efeito foi medido** — `supabase/migrations/013_service_role.sql`. Antes dela o `service_role` respondia `42501 permission denied` nas SETE tabelas que a Edge Function consulta; depois, `200` nas sete. **`service_role` ignora a RLS mas NÃO ignora `grant`** — e toda migration deste projeto concedia privilégio nominalmente a `anon` e `authenticated`, nunca a ele, porque até a 011 não existia código que o usasse (spec §4.1). O sintoma era um e-mail que nunca chegava, com a função dizendo `registro_nao_encontrado` para um registro que EXISTE. Quatro testes em `testes/avisos.test.mjs` reconciliam as duas pontas: todo `.from(` da função precisa do grant, e as duas tabelas que só aparecem como embed contam igual (viram `join`) |
 | Manual da ONG (RNF07) | **escrito, não verificado com a equipe** (01/09/2026) — `docs/manual-da-equipe.md` (as quatro telas do painel, entrar/sair/senha, RN07 explicada, o que o painel NÃO faz e por quê, o que fazer quando dá erro) e `docs/guia-rapido-da-equipe.md` (uma página para imprimir). Escrito lendo as telas, passo a passo; **ninguém percorreu o painel autenticado para conferir** (item 3 de "O que trava hoje"), e o treinamento presencial que a RNF07 também pede continua faltando |
@@ -1536,6 +1537,59 @@ desenho que queria para `/admin/voluntarios`:
   `ListaAtividades`, `ListaEventosPainel`, `ListaMateriaisDoPainel`) foram montados com
   `react-dom/server` e o CSS real, com dados de mentira, a 390px e a 1100px: nos sete cartões
   medidos, todo grupo ficou com uma única largura. É a tela desenhada, não a servida.
+
+**Doze diferenciais baratos (07/10/2026)** — custo de operação perto de zero, sem serviço pago:
+
+1. **Relatório por período** (`/admin/relatorio?periodo=mes|trimestre|semestre|ano&deslocar=-1`):
+   atividades, inscritos, crianças inscritas/presentes (`eh_menor`), presenças, "sem conferir"
+   (não é falta), candidaturas novas, doações recebidas e valor em dinheiro. Limites em meia-noite
+   de São Paulo (UTC−3, fim exclusivo) em `compartilhado/periodo.ts`; só booleanos e valores
+   atravessam a rede, nunca dado pessoal. Metade que falha vira traço, nunca zero. "Crianças"
+   conta INSCRIÇÕES de menores, não pessoas únicas — dito na tela. Doação entra pela
+   `recebida_em`: recebida sem essa data não aparece;
+2. **Prévia do WhatsApp**: Open Graph em `app/layout.tsx` (imagem = herói da home, já autorizada),
+   `app/sitemap.ts` (páginas públicas + notícias; o `noindex` da prévia continua vencendo),
+   JSON-LD `Event` na `/agenda` só para eventos publicados. `compartilhado/endereco-do-site.ts`
+   monta o endereço absoluto SEM usar `Host` da requisição;
+3. **Compartilhar** (evento que ainda vem, notícia, material do acervo): `<a>` para `wa.me` que
+   funciona sem JavaScript; `CompartilharNativo` troca pela folha do aparelho (`navigator.share`);
+4. **Adicionar à agenda**: `/agenda/<id>/calendario` devolve `.ics` (UTC, escape RFC 5545, dobra de
+   linha em octetos). Sem `termina_em` o fim é início+2h — suposição de exibição, nomeada no código;
+5. **Ouvir esta página**: botão na barra de acessibilidade, só depois de hidratar e só se o navegador
+   tem `speechSynthesis` (usa a voz do aparelho, sem enviar nada). `testes/paginas.test.mjs` conta
+   os 4 botões fixos e deixa o `data-acao="ouvir"` de fora, porque ele depende do navegador;
+6. **QR Pix verdadeiro** (`compartilhado/pix.ts` + `qrcode.ts` + `QrCodePix.ts`): só aparece quando
+   `PIX_E_DE_TESTE = false`; hoje a página segue com o QR falso. O encoder foi conferido de DUAS
+   formas: matriz idêntica à da lib Python `qrcode` (3 payloads × máscaras; fixture em
+   `testes/apoio/qr-referencia.json`) e leitura por jsQR (versões 1–10, 5 a 211 bytes). **Não foi
+   lido por câmera de celular nem por app de banco.** Nome/cidade do recebedor em `app/doar/page.tsx`
+   (`PIX_NOME`/`PIX_CIDADE`) precisam bater com a conta real; item 0u continua valendo;
+7. **Depoimentos com moderação** (`/depoimentos`, `/admin/depoimentos`, migration **014**):
+   formulário público, sem conta e sem e-mail (coleta mínima), com DUAS declarações obrigatórias
+   (adulto/responsável + autorização de publicar), gravado por `registrar_depoimento` e nascendo
+   `pendente`. Só `aprovado` é legível por quem não é equipe. `acoes/depoimento.ts` (público, SEM
+   `ehEquipe()`) e `acoes/depoimentos.ts` (moderação, COM) — mesma dupla de nomes de contato/contatos,
+   com varredura nos dois sentidos. A moderação não edita nem apaga. **A migration 014 NÃO foi
+   aplicada** (item 0l, de novo: quem aplica é uma pessoa, no SQL Editor — `supabase/aplicar-tudo.sql`
+   já a inclui). Enquanto isso o site degrada: lista vazia e frase de "ainda não estão abertos" no
+   envio. Provada em `npm run rls` (126 testes; a lista de tabelas com insert anônimo agora tem 3);
+8. **/para-empresas**: só junta o que já existe (quem somos, "Na mídia", "Onde já estivemos", /doar,
+   contato). **NÃO diz nada sobre contrapartidas, cotas ou recibo — não existe fonte.** Pergunta
+   pendente à ONG: o que ela oferece a quem apoia?;
+9. **Contagem de visitas sem cookie** (GoatCounter): DESLIGADA até `GOATCOUNTER_CODIGO` existir. Com
+   ela, o host entra no `img-src`/`connect-src` e /privacidade ganha o parágrafo (que só existe
+   com a contagem ligada). Painel e rotas de conta não contam. Nunca exercitada contra o serviço;
+10. **/perguntas-frequentes**: 11 respostas, TODAS já escritas em outras páginas (campo `origem` de
+    cada uma em `compartilhado/perguntas-frequentes.ts`); a busca é `<form method="get">` filtrado
+    no servidor, sem JavaScript;
+11. **Painel instalável**: `public/painel/painel.webmanifest` (escopo `/admin`), anunciado só na
+    metadata GUARDADA de `/admin` — quem não é equipe nem fica sabendo. Ícones 192/512 do mapa da
+    África. **Não instalado num aparelho**; o que foi medido é o manifest e a ausência do link;
+12. **/en**: tradução fiel de /quem-somos (+ contato). **Tradução NÃO revisada pela ONG.** Se
+    /quem-somos mudar, /en precisa mudar junto.
+
+Rodapé ganhou os links (Perguntas frequentes, Depoimentos, Para empresas, English); o menu continua
+com 11 itens. /privacidade ganhou a seção "Depoimentos" (a "Contagem de visitas" é condicional).
 
 **Os pedidos anteriores estão em
 `docs/alterações-atelie-v1/`, e os 34 itens dela foram feitos em 02/09/2026 — menos os dois
