@@ -4,6 +4,7 @@ import { usuarioAtual } from '@/servidor/sessao';
 import { ehVoluntarioAtivo } from '@/servidor/permissao';
 import { listarAvisos } from '@/servidor/dados/avisos';
 import { FUSO_DA_ONG } from '@/compartilhado/validacao';
+import { enderecoDeEntrar } from '@/compartilhado/destino-apos-entrar';
 
 /**
  * `/avisos` — o mural de quem é voluntário (RF27).
@@ -60,7 +61,7 @@ function data(iso: string | null): string {
 
 export default async function PaginaDoMural() {
   // Sem sessão: a tela de entrar, não um 404 — ver o cabeçalho.
-  if (!await usuarioAtual()) redirect('/entrar?destino=/avisos');
+  if (!await usuarioAtual()) redirect(enderecoDeEntrar('/avisos'));
 
   const ativo = await ehVoluntarioAtivo();
 

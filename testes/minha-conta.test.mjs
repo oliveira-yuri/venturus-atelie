@@ -439,7 +439,7 @@ test('/minha-conta guarda o corpo E o título, e recusa com redirect — não co
   const componente = codigo.slice(corte);
 
   const guardado = (trecho) =>
-    /usuarioAtual\s*\(\s*\)/.test(trecho) && /redirect\(\s*'\/entrar'\s*\)/.test(trecho);
+    /usuarioAtual\s*\(\s*\)/.test(trecho) && /redirect\(\s*(enderecoDeEntrar\([^)]*\)|'\/entrar')\s*\)/.test(trecho);
 
   assert.ok(guardado(componente),
     'o COMPONENTE não recusa quem não tem sessão com `redirect(\'/entrar\')`');
@@ -739,8 +739,8 @@ test('anônimo em /minha-conta é mandado para /entrar — e não recebe 404 nem
     + '  não é segredo — o que falta é sessão.'
   );
   assert.equal(
-    resposta.headers.get('location')?.replace(/^https?:\/\/[^/]+/, ''), '/entrar',
-    'o redirect não aponta para /entrar'
+    resposta.headers.get('location')?.replace(/^https?:\/\/[^/]+/, ''), '/entrar?voltar=/minha-conta',
+    'o redirect não aponta para /entrar com o caminho de volta'
   );
 });
 

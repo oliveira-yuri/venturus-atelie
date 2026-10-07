@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import { createElement, type ReactNode } from 'react';
 import type { Material } from '@/servidor/dados/acervo';
 
 /**
@@ -82,7 +82,7 @@ export function ListaMateriais({
   mensagemVazio
 }: {
   materiais: MaterialComUrl[];
-  mensagemVazio: string;
+  mensagemVazio: ReactNode;
 }) {
   if (materiais.length === 0) {
     return createElement('p', { className: 'estado estado--vazio' }, mensagemVazio);

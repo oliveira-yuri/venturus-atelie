@@ -5,6 +5,7 @@ import { listarMinhasCandidaturas } from '@/servidor/dados/conta';
 import { candidaturaEmAndamento } from '@/compartilhado/candidatura';
 import { SITUACAO_DA_CANDIDATURA, dataPorExtenso } from '@/componentes/MinhaConta';
 import FormularioCandidatura from '@/componentes/FormularioCandidatura';
+import { enderecoDeEntrar } from '@/compartilhado/destino-apos-entrar';
 
 /**
  * `/voluntariado/candidatura` — o gesto que /voluntariado promete: RF25.
@@ -120,7 +121,7 @@ export default async function Candidatura() {
           </p>
 
           <p className="abertura__acoes">
-            <Link className="botao" href="/entrar">Criar conta ou entrar</Link>{' '}
+            <Link className="botao" href={enderecoDeEntrar('/voluntariado/candidatura')}>Criar conta ou entrar</Link>{' '}
             <Link className="botao botao--secundario" href="/voluntariado">Ver as áreas</Link>
           </p>
 

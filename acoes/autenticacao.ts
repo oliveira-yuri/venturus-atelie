@@ -54,10 +54,13 @@ import { obterCliente } from '@/servidor/supabase';
 import { temSupabase } from '@/servidor/dados/degradacao';
 import { mensagemDeErroDeAutenticacao } from '@/compartilhado/erros';
 import { usuarioAtual } from '@/servidor/sessao';
+import { comPrazo } from '@/compartilhado/prazo';
+import { ehEquipeNaResposta } from '@/compartilhado/permissao-de-equipe';
+import { destinoDepoisDeEntrar, destinoDepoisDeCriarConta } from '@/compartilhado/destino-apos-entrar';
 import {
   lerCadastro, lerEntrada, lerRecuperacao, lerNovaSenha,
   validarCadastro, validarEntrada, validarRecuperacao, validarNovaSenha,
-  apenasDigitos
+  apenasDigitos, textoDoCampo
 } from '@/compartilhado/validacao';
 
 /**
@@ -349,8 +352,9 @@ async function urlDeConfirmacao(): Promise<string | undefined> {
 /**
  * RF10 — entrar com e-mail e senha.
  *
- * No sucesso vai para `/`, e não para uma área da pessoa: a área do usuário
- * (RF11) ainda não existe. Quando existir, é aqui que o destino muda.
+ * No sucesso a pessoa volta para o que estava fazendo (`voltar`, validado em
+ * `compartilhado/destino-apos-entrar.ts`); sem isso, a equipe vai para o
+ * painel e as demais pessoas para a home. Até 06/10/2026 era sempre `/`.
  */
 export async function entrar(
   _anterior: EstadoFormulario,
@@ -371,21 +375,50 @@ export async function entrar(
   // então NADA de chamá-lo dentro do try: o catch abaixo o engoliria e a
   // pessoa autenticada ficaria vendo "não foi possível" na tela.
   let falha: EstadoFormulario | null = null;
+  let daEquipe = false;
 
   try {
     const supabase = await obterCliente();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: campos.email!,
       password: campos.senha!
     });
     if (error) falha = estadoDeFalha(error, 'entrar');
+    else daEquipe = await perguntarSeEhEquipe(supabase, data?.user?.id);
   } catch (erro) {
     falha = estadoDeFalha(erro, 'entrar (exceção)');
   }
 
   if (falha) return { ...falha, valores };
 
-  redirect('/');
+  redirect(destinoDepoisDeEntrar(textoDoCampo(dados, 'voltar'), daEquipe));
+}
+
+/**
+ * A pessoa que acabou de entrar é da equipe? Só decide PARA ONDE ela vai:
+ * quem autoriza o painel continua sendo `ehEquipe()` na própria página.
+ *
+ * Usa o MESMO cliente do `signInWithPassword`, que já tem a sessão na
+ * memória — perguntar por `ehEquipe()` aqui dependeria de o cookie recém-
+ * gravado já aparecer na leitura da mesma requisição. E falha PARA O LADO
+ * SEGURO: qualquer dúvida (prazo, erro de consulta) vira "não é equipe" e a
+ * pessoa vai para a home, de onde o painel continua a um toque na gaveta.
+ */
+async function perguntarSeEhEquipe(
+  supabase: Awaited<ReturnType<typeof obterCliente>>,
+  id: string | undefined
+): Promise<boolean> {
+  if (!id) return false;
+  try {
+    const resposta = await comPrazo(
+      (async () => supabase.from('perfis').select('eh_equipe').eq('id', id).maybeSingle())(),
+      3_000
+    );
+    if (!resposta || resposta.error) return false;
+    return ehEquipeNaResposta(resposta);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -496,7 +529,7 @@ export async function criarConta(
     return { ...estadoDeFalha(erro, 'criarConta (exceção)'), valores };
   }
 
-  redirect('/?aviso=conta-criada');
+  redirect(destinoDepoisDeCriarConta(textoDoCampo(dados, 'voltar')));
 }
 
 /**

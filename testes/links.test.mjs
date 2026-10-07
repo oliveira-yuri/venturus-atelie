@@ -58,7 +58,11 @@ function hrefsForaDoMenu(pagina) {
   // injeta no <head> — não é link de navegação, ninguém "clica" nele.
   return [...semEntrar.matchAll(/<a\b[^>]*\shref="([^"]+)"/g)]
     .map((achado) => achado[1])
-    .filter((href) => href.startsWith('/') && !href.startsWith('//'));
+    .filter((href) => href.startsWith('/') && !href.startsWith('//'))
+    // SÓ O CAMINHO: `/entrar?voltar=/doar/ofertar` (06/10/2026) leva a rota
+    // `/entrar`, e é a rota que precisa estar catalogada. O parâmetro é
+    // conferido por testes/destino-apos-entrar.test.mjs.
+    .map((href) => href.split('?')[0].split('#')[0] || '/');
 }
 
 test('o link de pular para o conteúdo existe, e o alvo existe, em toda página pronta', async () => {

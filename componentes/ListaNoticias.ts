@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import { createElement, type ReactNode } from 'react';
 import type { Publicacao } from '@/servidor/dados/publicacoes';
 
 /**
@@ -83,7 +83,7 @@ function paragrafos(texto: string): string[] {
 export function ListaNoticias(
   { publicacoes, mensagemVazio, imagens }: {
     publicacoes: Publicacao[];
-    mensagemVazio: string;
+    mensagemVazio: ReactNode;
     /** id → endereço da imagem. Resolvido na página, não aqui — ver /noticias. */
     imagens?: Map<string, string>;
   }

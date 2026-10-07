@@ -65,7 +65,7 @@ const PIX_E_DE_TESTE = true;
 
 export default function Doar() {
   return (
-    <main id="conteudo" className="conteudo">
+    <main id="conteudo" className="conteudo conteudo--duas-colunas">
       <h1>Apoiar o Ateliê</h1>
 
       <p className="destaque">
@@ -75,6 +75,14 @@ export default function Doar() {
 
       <div className="af-stripe" aria-hidden="true" />
 
+      {/*
+        DUAS COLUNAS NO DESKTOP, MESMA ORDEM NO CELULAR (06/10/2026). Os dois
+        <div> só agrupam: a ordem do documento — o que recebemos, como doar,
+        oferecer pelo site, dinheiro, transparência — não mudou, e é ela que o
+        celular e o leitor de tela seguem. A coluna da esquerda é "o que e como";
+        a da direita, o dinheiro.
+      */}
+      <div className="duas-colunas__a">
       <section aria-labelledby="titulo-aceitamos">
         <h2 id="titulo-aceitamos">O que recebemos</h2>
         <ul className="lista-simples">
@@ -135,6 +143,9 @@ export default function Doar() {
         </p>
       </section>
 
+      </div>
+
+      <div className="duas-colunas__b">
       <section aria-labelledby="titulo-financeiro">
         <h2 id="titulo-financeiro">Doação em dinheiro</h2>
         <div id="dados-pix">
@@ -195,6 +206,7 @@ export default function Doar() {
           oferta.
         </p>
       </section>
+      </div>
     </main>
   );
 }

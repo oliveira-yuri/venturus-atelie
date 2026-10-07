@@ -1,3 +1,4 @@
+import AlternarSenha from './AlternarSenha.ts';
 import { createElement } from 'react';
 
 /**
@@ -225,6 +226,15 @@ export function CampoFormulario({
     controle = createElement('input', { ...atributosComuns, type: 'checkbox', value: valor });
   } else if (tipo === 'file') {
     controle = createElement('input', { ...atributosComuns, type: 'file', accept, capture });
+  } else if (tipo === 'password') {
+    // Campo + "Mostrar" na mesma linha. O botão só existe depois de hidratar
+    // (componentes/AlternarSenha.ts).
+    controle = createElement(
+      'div',
+      { className: 'campo__senha' },
+      createElement('input', { ...atributosComuns, type: tipo }),
+      createElement(AlternarSenha, { alvo: idCampo })
+    );
   } else {
     controle = createElement('input', { ...atributosComuns, type: tipo });
   }

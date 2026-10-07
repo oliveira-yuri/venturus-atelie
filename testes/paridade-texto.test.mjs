@@ -112,7 +112,10 @@ const PAGINAS = [
     // testes/secao-na-midia.test.mjs (Rodada de correção 1 da Tarefa A2 —
     // antes dela nada exercitava esse caminho: comentar o `return null`
     // de componentes/SecaoNaMidia.ts não derrubava teste nenhum).
-    idsExcluidos: ['titulo-midia-home']
+    idsExcluidos: ['titulo-midia-home'],
+    // 06/10/2026: a faixa "Próxima atividade" só existe na página NOVA (e só
+    // quando há evento publicado e futuro). Não há texto original dela.
+    idsAcrescentados: ['titulo-proxima-atividade']
   },
   { rota: '/quem-somos', arquivoOriginal: 'testes/apoio/html-original/quem-somos.html' },
   { rota: '/privacidade', arquivoOriginal: 'testes/apoio/html-original/privacidade.html' },
@@ -667,6 +670,10 @@ test('a extração por bloco não degradou: o total das páginas continua alto',
 // causou o achado desta rodada, e nenhuma automação abaixo o teria pego —
 // só a comparação por igualdade que este arquivo motivou em cada teste.
 const COBERTURA_DAS_EXCLUSOES = {
+  'titulo-proxima-atividade': {
+    arquivo: 'testes/proxima-atividade.test.mjs',
+    nota: 'a faixa da home: some sem evento, e com evento traz data no fuso da ONG, título e o link de inscrição.'
+  },
   'titulo-midia-home': {
     arquivo: 'testes/secao-na-midia.test.mjs',
     nota: '"strong e span do item ficam colados" — prova a fronteira <strong></strong><span>, sem espaço solto (proposital).'

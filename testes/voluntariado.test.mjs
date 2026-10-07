@@ -446,7 +446,8 @@ test('anônimo recebe 200 e a explicação — não um 404 nem um redirect para 
   const conteudo = main(await resposta.text());
 
   assert.match(conteudo, /é preciso ter uma conta/i);
-  assert.match(conteudo, /href="\/entrar"/, 'faltou o caminho para criar conta ou entrar');
+  assert.match(conteudo, /href="\/entrar\?voltar=\/voluntariado\/candidatura"/,
+    'faltou o caminho para criar conta ou entrar — e ele precisa trazer a pessoa de volta aqui');
   assert.match(conteudo, /\(11\) 95396-8344/,
     'quem não quer criar conta precisa sair daqui com um canal que funciona');
 });

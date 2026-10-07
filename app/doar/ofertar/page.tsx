@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { usuarioAtual } from '@/servidor/sessao';
 import FormularioOferta from '@/componentes/FormularioOferta';
+import { enderecoDeEntrar } from '@/compartilhado/destino-apos-entrar';
 
 /**
  * `/doar/ofertar` — o gesto que /doar promete: RF19.
@@ -108,7 +109,7 @@ export default async function Ofertar() {
           </p>
 
           <p className="abertura__acoes">
-            <Link className="botao" href="/entrar">Criar conta ou entrar</Link>{' '}
+            <Link className="botao" href={enderecoDeEntrar('/doar/ofertar')}>Criar conta ou entrar</Link>{' '}
             <Link className="botao botao--secundario" href="/doar">Voltar para “Apoiar”</Link>
           </p>
 

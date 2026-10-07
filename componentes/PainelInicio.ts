@@ -195,6 +195,13 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     descricao: 'Recados que aparecem no mural do site e podem ir por e-mail.',
     // Virou `true` em 02/09/2026, no mesmo commit que criou app/admin/avisos/.
     pronta: true
+  },
+  {
+    caminho: '/admin/ajuda',
+    titulo: 'Ajuda',
+    descricao: 'As três regras do painel, como subir foto e o que fazer quando algo dá errado.',
+    // Entrou em 06/10/2026, no mesmo commit que criou app/admin/ajuda/.
+    pronta: true
   }
 ];
 
@@ -208,7 +215,33 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
 const AVISO_DE_PREPARO = 'As telas marcadas como "ainda não está pronta" não existem no site: '
   + 'elas aparecem aqui para você saber o que vem, e viram link no dia em que ficarem prontas.';
 
-export function PainelInicio({ telas }: { telas: TelaDoPainel[] }) {
+/**
+ * O SELO "N esperando", no próprio cartão (revisão de UX de 06/10/2026).
+ *
+ * Os números do painel ficam ABAIXO dos cartões, e quem abre o painel no
+ * celular não rola até lá: "Mensagens recebidas" não dizia que havia três
+ * esperando resposta — justamente o que a ONG perdeu em 2021. Agora o
+ * cartão diz.
+ *
+ * `esperando` é indexado pelo CAMINHO da tela. Só entra número MAIOR QUE
+ * ZERO: zero não é pendência, e `null` (a contagem falhou) não vira zero
+ * inventado — o cartão fica como sempre foi, e a seção de números, que já
+ * trata a falha, continua sendo quem a conta.
+ */
+export type EsperandoPorTela = Record<string, number | null | undefined>;
+
+function seloDeEspera(quantidade: number | null | undefined) {
+  if (typeof quantidade !== 'number' || quantidade <= 0) return null;
+  return createElement(
+    'span',
+    { className: 'painel__selo' },
+    quantidade === 1 ? '1 esperando' : `${quantidade} esperando`
+  );
+}
+
+export function PainelInicio(
+  { telas, esperando = {} }: { telas: TelaDoPainel[]; esperando?: EsperandoPorTela }
+) {
   const faltaAlguma = telas.some((tela) => !tela.pronta);
 
   return createElement(
@@ -228,6 +261,7 @@ export function PainelInicio({ telas }: { telas: TelaDoPainel[] }) {
             'a',
             { className: 'painel__tela-alvo', href: tela.caminho },
             createElement('strong', { className: 'painel__tela-titulo' }, tela.titulo),
+            seloDeEspera(esperando[tela.caminho]),
             createElement('span', { className: 'painel__tela-descricao' }, tela.descricao)
           )
           // Sem <a> e sem href: um link que devolve 404 dentro do painel é

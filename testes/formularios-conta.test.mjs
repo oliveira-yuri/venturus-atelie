@@ -251,6 +251,11 @@ test('com JavaScript: depois de um envio recusado, o foco vai para o primeiro ca
 });
 
 test('com JavaScript: o telefone é formatado enquanto se digita, e o valor colado é aceito', async () => {
+  // JANELA ESTREITA, de propósito: a partir de 64rem os dois painéis ficam
+  // lado a lado e as abas somem (estilos/sistema-aplicado.css, 06/10/2026).
+  // Este teste cobre o comportamento de ABAS — o painel de criar conta
+  // `hidden` até a escolha —, que continua valendo abaixo disso, no celular.
+  await comScript.manage().window().setRect({ width: 480, height: 900 });
   await comScript.get(`${BASE}/entrar`);
   // COM script os painéis se comportam como abas de novo: o de criar conta
   // fica `hidden` até alguém escolher a aba — e campo escondido não recebe
@@ -345,4 +350,28 @@ test('criarConta recusa cadastro sem tipo de pessoa, e com tipo inventado', asyn
     assert.equal(ok.valido, true,
       `recusou "${valido}", que está no check de 001_base.sql: ${JSON.stringify(ok.erros)}`);
   }
+});
+
+test('no DESKTOP /entrar mostra entrar e criar conta lado a lado, sem abas (06/10/2026)', async () => {
+  await comScript.manage().window().setRect({ width: 1440, height: 900 });
+  await comScript.get(`${BASE}/entrar`);
+  await comScript.wait(until.elementLocated(By.css('#painel-criar')), 10_000);
+  // Esperar a hidratação: é depois dela que o painel inativo ganha `hidden`.
+  await comScript.sleep(800);
+
+  const medida = await comScript.executeScript(`
+    const a = document.querySelector('#painel-entrar').getBoundingClientRect();
+    const b = document.querySelector('#painel-criar').getBoundingClientRect();
+    return {
+      entrarVisivel: a.width > 0 && a.height > 0,
+      criarVisivel: b.width > 0 && b.height > 0,
+      ladoALado: b.left > a.left + a.width / 2,
+      abasEscondidas: getComputedStyle(document.querySelector('.abas')).display === 'none'
+    };
+  `);
+  assert.equal(medida.entrarVisivel, true, 'o painel de entrar sumiu no desktop');
+  assert.equal(medida.criarVisivel, true,
+    'o painel de criar conta continua escondido no desktop: sem abas visíveis, ninguém o alcança');
+  assert.equal(medida.ladoALado, true, 'os painéis deveriam estar lado a lado');
+  assert.equal(medida.abasEscondidas, true, 'as abas deveriam sumir quando os dois painéis aparecem');
 });

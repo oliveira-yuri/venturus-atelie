@@ -69,7 +69,7 @@ const FUSO_DA_ONG = 'America/Sao_Paulo';
  * Data e hora por extenso, como uma pessoa escreveria — mesma função de
  * site/assets/js/paginas/agenda.js, agora com o fuso preso.
  */
-function quando(iso: string): string {
+export function quando(iso: string): string {
   const data = new Date(iso);
   const dia = data.toLocaleDateString('pt-BR', {
     weekday: 'long', day: 'numeric', month: 'long', timeZone: FUSO_DA_ONG

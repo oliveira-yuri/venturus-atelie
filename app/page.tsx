@@ -34,11 +34,17 @@ import { listarClippingComOrigem } from '@/servidor/dados/conteudo';
 import { avisoDaHome } from '@/compartilhado/avisos-da-home';
 import AvisoDaHome from '@/componentes/AvisoDaHome';
 import { SecaoNaMidia } from '@/componentes/SecaoNaMidia';
+import { ProximaAtividade } from '@/componentes/ProximaAtividade';
+import { listarProximos } from '@/servidor/dados/eventos';
 
 export default async function Home(
   { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
 ) {
-  const { registros: clipping, origem } = await listarClippingComOrigem();
+  const [{ registros: clipping, origem }, proximos] = await Promise.all([
+    listarClippingComOrigem(),
+    listarProximos()
+  ]);
+  const proximoEvento = proximos[0] ?? null;
 
   // Quem acabou de criar conta chega aqui por redirect (pedido V1), e um
   // redirect não carrega estado. `?aviso=` é escrito por quem quiser, então
@@ -111,6 +117,9 @@ export default async function Home(
       <div className="af-stripe" aria-hidden="true"></div>
 
       <div className="conteudo">
+        {/* Só desenha com evento publicado e futuro — ver componentes/ProximaAtividade.ts. */}
+        <ProximaAtividade evento={proximoEvento} />
+
         <section aria-labelledby="titulo-caminhos">
           <h2 id="titulo-caminhos">Por onde começar</h2>
           <ul className="caminhos af-grid">
