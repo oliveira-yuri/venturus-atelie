@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { QrCodeDeTeste } from '@/componentes/QrCodeDeTeste';
+import { QrCodePix } from '@/componentes/QrCodePix';
+import { montarPix } from '@/compartilhado/pix';
 
 // Conteúdo copiado literalmente do HTML original de doar.html — hoje a
 // cópia congelada em testes/apoio/html-original/doar.html, já que a
@@ -62,6 +64,11 @@ export const metadata = {
 // sendo a de exemplo.
 const CHAVE_PIX: string | null = 'chaveteste-123';
 const PIX_E_DE_TESTE = true;
+
+// Dados do recebedor para o QR REAL (BR Code). Só são usados quando
+// `PIX_E_DE_TESTE` vira false, com a chave verdadeira da conta institucional.
+const PIX_NOME = 'Atelie Afro Cultural';
+const PIX_CIDADE = 'Sao Paulo';
 
 export default function Doar() {
   return (
@@ -165,15 +172,31 @@ export default function Doar() {
                 <span className="pix__valor">{CHAVE_PIX}</span>
               </p>
 
-              <QrCodeDeTeste chave={CHAVE_PIX} />
+              {PIX_E_DE_TESTE ? (
+                <>
+                  <QrCodeDeTeste chave={CHAVE_PIX} />
 
-              {/* A legenda que o pedido V1 exige, logo abaixo do QR. Ela é
-                  a TERCEIRA marca (a primeira é a caixa acima, a segunda é
-                  a tarja dentro da própria imagem) — e é a que fica junto
-                  do gesto de apontar a câmera. */}
-              <p className="pix__legenda">
-                QR Code de exemplo, apenas para demonstração — ele não funciona.
-              </p>
+                  {/* A legenda que o pedido V1 exige, logo abaixo do QR. Ela é
+                      a TERCEIRA marca (a primeira é a caixa acima, a segunda é
+                      a tarja dentro da própria imagem) — e é a que fica junto
+                      do gesto de apontar a câmera. */}
+                  <p className="pix__legenda">
+                    QR Code de exemplo, apenas para demonstração — ele não funciona.
+                  </p>
+                </>
+              ) : (
+                <>
+                  {/* QR de verdade (BR Code estático, sem valor): quem doa
+                      escolhe a quantia no aplicativo do banco. */}
+                  <QrCodePix
+                    payload={montarPix({ chave: CHAVE_PIX, nome: PIX_NOME, cidade: PIX_CIDADE })}
+                    rotulo="QR Code do Pix do Ateliê Afro Cultural"
+                  />
+                  <p className="pix__legenda">
+                    Aponte a câmera do aplicativo do seu banco, ou copie a chave acima.
+                  </p>
+                </>
+              )}
 
               <p>
                 Depois de transferir,{' '}

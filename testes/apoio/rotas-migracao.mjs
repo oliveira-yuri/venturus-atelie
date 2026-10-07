@@ -180,6 +180,8 @@ export function ehRotaDinamica(href) {
 export const PAGINAS_PRONTAS_FORA_DO_MENU = [
   '/privacidade', '/recuperar-acesso', '/nova-senha', '/voluntariado/candidatura',
   '/doar/ofertar',
+  // Diferenciais baratos (07/10/2026): páginas novas, alcançadas pelo rodapé.
+  '/perguntas-frequentes', '/para-empresas', '/en',
 
   /**
    * AS DUAS ROTAS DE DETALHE (pedido V1, 02/09/2026): /projetos e /noticias
