@@ -347,3 +347,158 @@
   }
   #conteudo .abas { display: none; }
 }
+
+/* =====================================================================
+   Painel — cartões com muitos botões, no celular (revisão de 07/10/2026)
+
+   Os botões de triagem de um cartão (Falar por e-mail, Marcar como…,
+   Encerrar) saíam em fileiras quebradas: dois lado a lado numa linha,
+   um sozinho na seguinte, larguras diferentes conforme o texto. Num celular,
+   de pé, o dedo procura UMA coluna. Agora, abaixo de 34rem, todo grupo de
+   botões de cartão do painel vira uma coluna, cada botão com a largura
+   inteira e a mesma altura.
+
+   O seletor pega os dez grupos pelo sufixo `__botoes`
+   (publicacao, midia, atividade-painel, contato, voluntario, evento-painel,
+   material, doacao…) — uma tela nova que siga o nome já nasce padronizada.
+   `presenca__botoes` fica de fora, de propósito: são os três botões de CADA
+   linha da lista de presença, pensados para ficarem lado a lado.
+   ===================================================================== */
+
+@media (max-width: 33.99rem) {
+  .painel [class*="__botoes"]:not(.presenca__botoes) {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--af-s3);
+  }
+
+  .painel [class*="__botoes"]:not(.presenca__botoes) > * { width: 100%; margin: 0; }
+
+  .painel [class*="__botoes"]:not(.presenca__botoes) :is(a, button) {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: var(--af-touch-cta);
+    padding-inline: var(--af-s5);
+    border-width: 1.5px;
+    text-align: center;
+  }
+}
+
+/* O gesto mais pesado do cartão, no fim e mais discreto. */
+.painel .voluntario__botao--discreto {
+  color: var(--tinta-suave);
+  border-color: var(--borda);
+  font-weight: 400;
+}
+
+/* =====================================================================
+   O cartão de candidatura (/admin/voluntarios)
+   ===================================================================== */
+
+/* Linha de topo: "CANDIDATURA" pequeno à esquerda, a situação à direita. */
+.painel .voluntario__marcas {
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--af-s3);
+}
+
+.painel .voluntario__rotulo {
+  font: 600 var(--af-overline) var(--af-font);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+.painel .voluntario__estado { flex: none; padding: 0.15rem var(--af-s4); }
+
+.painel .voluntario__nome { margin-bottom: var(--af-s4); }
+
+/* A dobra "Dados e mensagem": título discreto e seta de verdade, igual em
+   todo bloco recolhível do painel (VerMais). Antes era um triângulo de
+   texto, que muda de tamanho e de forma conforme a fonte do aparelho. */
+.painel .painel__dobra-titulo { color: var(--tinta-suave); }
+
+.painel .painel__dobra-titulo::after {
+  content: '';
+  top: 50%;
+  right: var(--af-s6);
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.painel .painel__dobra[open] > .painel__dobra-titulo::after {
+  content: '';
+  transform: translateY(-30%) rotate(-135deg);
+}
+
+/* =====================================================================
+   Filtro da fila — o campo de busca com a cara dos outros campos
+   ===================================================================== */
+
+.filtro__campo input[type="search"],
+.filtro__campo input[type="text"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--alvo-toque);
+  padding: 0 var(--af-s4);
+  border: 1.5px solid var(--borda);
+  border-radius: 0;
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: var(--texto-base);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.filtro__campo input::placeholder { color: var(--tinta-suave); opacity: 1; }
+.filtro__campo input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+/* O botão flutuante de WhatsApp não existe no painel: quem trabalha ali é
+   a equipe, que já sabe o número. `:has` porque o botão é irmão do <main>, e
+   nenhum seletor a partir do painel o alcançaria. `display: none` tira
+   também da ordem de Tab e do leitor de tela. */
+body:has(.painel) .zap { display: none; }
+
+/* A mesma linha de topo nos cartões de mensagem e de doação: o que o cartão
+   é (origem / tipo), pequeno e à esquerda, e a situação à direita — igual ao
+   cartão de candidatura. `order: -1` e não troca de markup: a ordem de
+   leitura continua "situação, depois a origem". */
+.painel .contato__marcas,
+.painel .doacao__marcas {
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--af-s3);
+}
+
+.painel .contato__origem,
+.painel .doacao__tipo {
+  order: -1;
+  padding: 0;
+  font: 600 var(--af-overline) var(--af-font);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+.painel .contato__estado,
+.painel .doacao__estado { flex: none; }
+
+.painel .contato__nome,
+.painel .doacao__quem { margin-bottom: var(--af-s4); }
+
+/* `p { max-width: 62ch }` (base.css) fazia a linha de topo parar antes da
+   borda do cartão no desktop, com a situação solta no meio. */
+.painel .voluntario__marcas,
+.painel .contato__marcas,
+.painel .doacao__marcas { max-width: none; }

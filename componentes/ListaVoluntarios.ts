@@ -242,6 +242,9 @@ export function ListaVoluntarios({ itens, acaoSituacao, degradou }: PropsListaVo
           createElement(
             'p',
             { className: 'voluntario__marcas' },
+            // O que o cartão É, escrito pequeno à esquerda, e a situação à
+            // direita — a mesma linha de topo em todo cartão da fila.
+            createElement('span', { className: 'voluntario__rotulo' }, 'Candidatura'),
             createElement(
               'span',
               {
@@ -398,7 +401,15 @@ export function ListaVoluntarios({ itens, acaoSituacao, degradou }: PropsListaVo
               createElement('input', { type: 'hidden', name: 'situacao', value: destino.valor }),
               createElement(
                 'button',
-                { type: 'submit', className: 'voluntario__botao' },
+                {
+                  type: 'submit',
+                  // "Encerrar" é o gesto mais pesado da fila (devolve à pessoa o direito
+                  // de se candidatar de novo): fica no fim e com o texto mais discreto,
+                  // para não ser o alvo que o polegar acha primeiro.
+                  className: destino.valor === 'inativo'
+                    ? 'voluntario__botao voluntario__botao--discreto'
+                    : 'voluntario__botao'
+                },
                 destino.botao,
                 createElement('span', { className: 'apenas-leitor-de-tela' }, ` — ${quem}`)
               )
