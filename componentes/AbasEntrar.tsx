@@ -94,7 +94,13 @@ function useFocoNoErro(estado: EstadoFormulario, formulario: RefObject<HTMLFormE
   }, [estado, formulario]);
 }
 
-export default function AbasEntrar() {
+/**
+ * `voltar` é o caminho para onde a pessoa vai depois de entrar (ver
+ * `compartilhado/destino-apos-entrar.ts`). Chega JÁ validado pela página, e a
+ * Action o valida de novo: o campo é escondido, mas o corpo de uma Server
+ * Action é entrada de usuário como qualquer outra.
+ */
+export default function AbasEntrar({ voltar }: { voltar?: string | null }) {
   const [estadoEntrar, enviarEntrar, entrando] = useActionState(entrar, ESTADO_INICIAL);
   const [estadoCriar, enviarCriar, criando] = useActionState(criarConta, ESTADO_INICIAL);
 
@@ -151,10 +157,13 @@ export default function AbasEntrar() {
         <p>{estadoVisivel.mensagem}</p>
       </div>
 
-      <section id="painel-entrar" role="tabpanel" aria-labelledby="aba-entrar"
+      {/* Os dois painéis num contêiner só: no desktop ficam lado a lado e as abas somem (estilos/sistema-aplicado.css). */}
+      <div className="entrar__paineis">
+      <section id="painel-entrar" data-titulo="Entrar" role="tabpanel" aria-labelledby="aba-entrar"
                hidden={hidratado && abaAtual !== 'entrar'}>
         <form ref={formularioEntrar} id="form-entrar" className="formulario" action={enviarEntrar}
               noValidate aria-describedby="aviso">
+          {voltar ? <input type="hidden" name="voltar" value={voltar} /> : null}
           <CampoFormulario nome="email" rotulo="E-mail" tipo="email" prefixo="entrar"
                             autoComplete="email" inputMode="email" obrigatorio
                             erro={estadoEntrar.erros?.email}
@@ -172,10 +181,11 @@ export default function AbasEntrar() {
         </form>
       </section>
 
-      <section id="painel-criar" role="tabpanel" aria-labelledby="aba-criar"
+      <section id="painel-criar" data-titulo="Criar conta" role="tabpanel" aria-labelledby="aba-criar"
                hidden={hidratado && abaAtual !== 'criar'}>
         <form ref={formularioCriar} id="form-criar" className="formulario" action={enviarCriar}
               noValidate aria-describedby="aviso" onChange={mascararTelefone}>
+          {voltar ? <input type="hidden" name="voltar" value={voltar} /> : null}
           <CampoFormulario nome="nome" rotulo="Nome completo" tipo="text" prefixo="criar"
                             autoComplete="name" obrigatorio erro={estadoCriar.erros?.nome}
                             valorInicial={estadoCriar.valores?.nome} />
@@ -243,6 +253,7 @@ export default function AbasEntrar() {
           <button type="submit" disabled={criando}>{criando ? 'Criando...' : 'Criar conta'}</button>
         </form>
       </section>
+      </div>
     </>
   );
 }

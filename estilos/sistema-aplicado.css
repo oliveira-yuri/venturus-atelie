@@ -224,3 +224,126 @@
   .af-footer__links li:has(a[href^="mailto:"]) { grid-column: 1 / -1; }
   .af-footer__cols { gap: var(--af-s8); }
 }
+
+/* ---------------------------------------------------------------------
+   Alvos de toque e espaçamentos pequenos (revisão de UX de 06/10/2026)
+   --------------------------------------------------------------------- */
+
+/* /acervo: o botão "Buscar" encostava na caixa do resultado logo abaixo. */
+#filtros-acervo { margin-bottom: var(--af-s9); }
+
+/* Título-link dos cartões de /projetos: 23px de altura. O "Saber mais" já
+   cobre o toque, mas quem toca no título (o gesto mais natural) errava o
+   alvo. A área cresce SEM crescer o espaço visível: padding + margem
+   negativa de mesmo tamanho. */
+#lista-atividades .atividade__link {
+  display: inline-block;
+  padding-block: 0.6rem;
+  margin-block: -0.6rem;
+}
+
+/* Caixa de marcar: o quadrado tem 26px, mas a linha inteira — quadrado e
+   texto — é o alvo (o rótulo é <label for>). Garante 44px de altura. */
+.campo--caixa .campo__linha { min-height: var(--af-touch-min); align-items: center; }
+.campo--caixa label { padding-block: 0.4rem; }
+.campo--caixa input[type="checkbox"] { margin-top: 0; }
+
+/* Campo de senha com "Mostrar" ao lado. O botão só existe depois de
+   hidratar (componentes/AlternarSenha.ts); sem ele o campo ocupa a linha. */
+.campo__senha { display: flex; gap: var(--af-s3); align-items: stretch; }
+.campo__senha input { flex: 1 1 auto; min-width: 0; }
+.campo__alternar {
+  flex: none;
+  min-height: var(--af-touch-min);
+  padding: 0 var(--af-s6);
+  background: var(--af-card);
+  color: var(--af-brown);
+  border: 1.5px solid var(--af-brown);
+  border-radius: var(--af-radius-control);
+  font: 600 var(--af-body-sm) var(--af-font);
+  cursor: pointer;
+}
+.campo__alternar:hover,
+.campo__alternar[aria-pressed="true"] { background: var(--af-brown); color: var(--af-cream); }
+
+/* ---------------------------------------------------------------------
+   Faixa "Próxima atividade" da home (componentes/ProximaAtividade.ts)
+
+   Só existe com evento publicado e futuro. Borda ocre no topo, como o tile
+   de categoria do sistema, para se ler como "o que está para acontecer".
+   --------------------------------------------------------------------- */
+
+.proxima-atividade { margin-bottom: var(--af-s10); }
+
+.proxima-atividade__cartao {
+  background: var(--af-card);
+  border: 1.5px solid var(--af-brown);
+  border-top: 6px solid var(--af-ochre);
+  box-shadow: var(--af-shadow-md);
+  padding: var(--af-s8);
+}
+
+.proxima-atividade__quando {
+  margin: 0 0 var(--af-s2);
+  font: 600 var(--af-body-sm) var(--af-font);
+  color: var(--af-brown-400);
+}
+
+.proxima-atividade__titulo {
+  margin: 0 0 var(--af-s3);
+  font: 700 1.25rem / var(--af-lh-tight) var(--af-font);
+}
+
+.proxima-atividade__para { margin: 0 0 var(--af-s4); color: var(--af-brown-400); }
+
+.proxima-atividade__acoes { margin: var(--af-s5) 0 0; display: flex; flex-wrap: wrap; gap: var(--af-s4); }
+
+/* =====================================================================
+   Desktop — alinhamento e uso da largura (revisão de UX de 06/10/2026)
+
+   MEDIDO a 1440px em /entrar: logo do cabeçalho em x=162, título e
+   formulário em x=146, listra em x=130 — três bordas esquerdas para a
+   mesma coluna. O cabeçalho e o rodapé têm o contêiner de 1180px com 32px
+   de respiro; `.conteudo` tinha os mesmos 1180px mas só 16px. Agora os três
+   usam os mesmos 32px, e a listra acompanha o texto.
+   ===================================================================== */
+
+@media (min-width: 64rem) {
+  .conteudo { padding-inline: var(--af-gutter-desk); }
+  .conteudo > .af-stripe { margin-inline: 0; }
+
+  /* O logotipo do rodapé ficava em x≈590 numa tela de 1440: `.af-footer__marca`
+     zerava a margem automática que `.af-footer > *` dá a cada filho. */
+  .af-footer .af-footer__marca { margin-inline: auto; }
+
+  /* /doar — "o que e como" à esquerda, o dinheiro à direita. */
+  .conteudo--duas-colunas {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    column-gap: var(--af-s12, 3.5rem);
+    align-items: start;
+  }
+  .conteudo--duas-colunas > h1,
+  .conteudo--duas-colunas > .destaque,
+  .conteudo--duas-colunas > .af-stripe { grid-column: 1 / -1; }
+  .conteudo--duas-colunas .duas-colunas__b { position: sticky; top: 1.5rem; }
+
+  /* /entrar — entrar e criar conta lado a lado, sem abas. Os dois painéis
+     já estavam no DOM (um `hidden`); sem JavaScript sempre chegaram abertos,
+     um abaixo do outro, e aqui passam a chegar assim também com JavaScript. */
+  .entrar__paineis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--af-s12, 3.5rem);
+    align-items: start;
+  }
+  .entrar__paineis > section[role="tabpanel"],
+  .entrar__paineis > section[role="tabpanel"][hidden] { display: block; }
+  .entrar__paineis > section::before {
+    content: attr(data-titulo);
+    display: block;
+    margin-bottom: var(--af-s5);
+    font: 700 1.25rem var(--af-font);
+  }
+  #conteudo .abas { display: none; }
+}

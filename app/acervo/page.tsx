@@ -93,7 +93,13 @@ export default async function Acervo({
     ? `${mensagemDeErro(null, 'o acervo').titulo} Tente de novo em instantes.`
     : buscaLimpa
       ? `Nada encontrado para "${buscaLimpa}". Tente outra palavra.`
-      : 'Ainda não há material publicado no acervo. Estamos preparando os primeiros.';
+      : (
+        <>
+          Ainda não há material publicado no acervo. Estamos preparando os primeiros.{' '}
+          Quer ser avisado quando chegarem? <a href="/contato">Fale com a gente</a> ou siga o{' '}
+          <a href="https://instagram.com/atelie_afrocultural" rel="noopener">Instagram</a>.
+        </>
+      );
 
   return (
     <main id="conteudo" className="conteudo">

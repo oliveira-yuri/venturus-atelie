@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useRef, useState } from 'react';
+import { reduzirFoto } from './reduzir-foto';
 import { enviarMidia } from '@/acoes/galeria';
 import type { EstadoFormulario } from '@/acoes/autenticacao';
 import { CampoFormulario } from './CampoFormulario';
@@ -90,7 +91,7 @@ export default function FormularioMidia() {
   const jaRenderizou = useRef(false);
 
   /** O que o script sabe sobre o arquivo escolhido. `null` = nada escolhido. */
-  const [escolhido, setEscolhido] = useState<{ nome: string; bytes: number } | null>(null);
+  const [escolhido, setEscolhido] = useState<Escolhido | null>(null);
 
   // FOCO NO ERRO — mesmo motivo de componentes/AbasEntrar.tsx e
   // FormularioPublicacao.tsx: sem isto o foco fica no botão depois de
@@ -164,7 +165,10 @@ export default function FormularioMidia() {
               ? `${escolhido.nome} — ${emMegabytes(escolhido.bytes)}. Esta foto passa do limite de `
                 + `${emMegabytes(LIMITE_ARQUIVO_BYTES)}. No celular, ao escolher a foto, procure a `
                 + 'opção de enviar em tamanho médio (ou "otimizado") em vez do tamanho real.'
-              : `Escolhida: ${escolhido.nome} — ${emMegabytes(escolhido.bytes)}.`}
+              : `Escolhida: ${escolhido.nome} — ${emMegabytes(escolhido.bytes)}.`
+                + (escolhido.reduzidaDe
+                  ? ` A foto original tinha ${emMegabytes(escolhido.reduzidaDe)}; reduzimos para caber, e a qualidade continua boa para o site.`
+                  : '')}
         </p>
 
         <CampoFormulario
@@ -253,15 +257,34 @@ export default function FormularioMidia() {
  * a leitura de cima fique sobre o que a tela DESENHA. Ele não desenha nada.
  */
 function OuvirArquivo(
-  { aoEscolher }: { aoEscolher: (escolhido: { nome: string; bytes: number } | null) => void }
+  { aoEscolher }: { aoEscolher: (escolhido: Escolhido | null) => void }
 ) {
   useEffect(() => {
     const campo = document.querySelector<HTMLInputElement>('#form-midia input[name="arquivo"]');
     if (!campo) return;
 
-    const aoMudar = () => {
+    // Cada escolha tem um número: se a pessoa trocar de foto enquanto a
+    // anterior ainda está sendo reduzida, só a última vale.
+    let escolha = 0;
+
+    const aoMudar = async () => {
+      const minha = ++escolha;
       const arquivo = campo.files?.[0];
-      aoEscolher(arquivo ? { nome: arquivo.name, bytes: arquivo.size } : null);
+      if (!arquivo) return aoEscolher(null);
+
+      aoEscolher({ nome: arquivo.name, bytes: arquivo.size });
+      if (arquivo.size <= LIMITE_ARQUIVO_BYTES) return;
+
+      // Grande demais: tenta reduzir ANTES de acusar. Se der certo, a foto
+      // reduzida entra no lugar da original no próprio campo; se não, fica o
+      // aviso de sempre.
+      const reduzida = await reduzirFoto(arquivo, LIMITE_ARQUIVO_BYTES);
+      if (!reduzida || minha !== escolha) return;
+
+      const lote = new DataTransfer();
+      lote.items.add(reduzida);
+      campo.files = lote.files;
+      aoEscolher({ nome: reduzida.name, bytes: reduzida.size, reduzidaDe: arquivo.size });
     };
 
     campo.addEventListener('change', aoMudar);
@@ -270,3 +293,6 @@ function OuvirArquivo(
 
   return null;
 }
+
+/** O que o script sabe sobre o arquivo escolhido (`reduzidaDe`: o tamanho original, se foi reduzido). */
+type Escolhido = { nome: string; bytes: number; reduzidaDe?: number };

@@ -246,7 +246,7 @@ describe('as travas do código', () => {
 
   test('o mural público recusa com REDIRECT, não com 404', async () => {
     const codigo = await fonte('app/avisos/page.tsx');
-    assert.ok(/redirect\('\/entrar/.test(codigo),
+    assert.ok(/redirect\((enderecoDeEntrar\(|'\/entrar)/.test(codigo),
       'quem chega sem sessão precisa ir para /entrar — um 404 esconderia o mural de quem tem '
       + 'direito a ele');
     assert.equal(/notFound\(\)/.test(codigo), false,

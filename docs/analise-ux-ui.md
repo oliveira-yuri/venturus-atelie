@@ -15,6 +15,11 @@
   avaliados; as listas cheias, não.
 - **Não foi feito:** teste com pessoas reais, nem em aparelho físico. Onde digo "provável", é inferência.
 
+> **Atualização de 06/10/2026:** os itens 1, 2, 5, 6, 7, 9, 12, 13, 14, 16, 17 e 18 foram
+> implementados (ver o `CLAUDE.md`). Seguem abertos: 3 (candidatura e doação sem conta, decisão de
+> produto), 4 (Pix de teste), 8 (menu), 10 (lista de "Onde já estivemos"), 11 (mapa) e o VLibras
+> sob demanda.
+
 ## O que já está bom (manter)
 
 - Hierarquia limpa: uma `h1` por página, sem salto de nível, título único por página, `lang="pt-BR"`.

@@ -24,13 +24,21 @@
 // comentário daquele arquivo para o porquê de cada decisão, inclusive por
 // que os dois painéis chegam abertos no HTML do servidor.
 import AbasEntrar from '@/componentes/AbasEntrar';
+import { caminhoInternoSeguro } from '@/compartilhado/destino-apos-entrar';
 
 export const metadata = {
   title: 'Entrar — Ateliê Afro Cultural',
   description: 'Entre na sua conta do Ateliê Afro Cultural ou crie uma para se candidatar ao voluntariado e registrar doações.'
 };
 
-export default function Entrar() {
+export default async function Entrar(
+  { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
+) {
+  // Validado aqui E na Action: o que vai para o campo escondido já é um
+  // caminho do próprio site, ou nada.
+  const bruto = (await searchParams).voltar;
+  const voltar = caminhoInternoSeguro(Array.isArray(bruto) ? bruto[0] : bruto);
+
   return (
     <main id="conteudo" className="conteudo">
       <h1>Sua conta</h1>
@@ -40,7 +48,7 @@ export default function Entrar() {
         doações. Para se inscrever em um evento ou baixar material do acervo, não é preciso conta.
       </p>
 
-      <AbasEntrar />
+      <AbasEntrar voltar={voltar} />
     </main>
   );
 }

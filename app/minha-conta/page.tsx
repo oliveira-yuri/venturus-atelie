@@ -7,6 +7,7 @@ import {
 import { avisoDaConta } from '@/compartilhado/avisos-da-conta';
 import { FichaDaConta } from '@/componentes/MinhaConta';
 import FormularioMeusDados from '@/componentes/FormularioMeusDados';
+import { enderecoDeEntrar } from '@/compartilhado/destino-apos-entrar';
 
 /**
  * `/minha-conta` — a área do usuário (RF11): "consulta e edição dos próprios
@@ -33,13 +34,12 @@ import FormularioMeusDados from '@/componentes/FormularioMeusDados';
  * Ou seja: 404 esconde a existência; redirect resolve a ausência de sessão.
  * As duas telas escolheram o que cabe a elas.
  *
- * SEM `?destino=`: o redirect vai para `/entrar` seco, e depois de entrar a
- * pessoa cai em `/` (é o que `entrar` faz, em acoes/autenticacao.ts). O
- * caminho de volta é o próprio cabeçalho, onde o nome de quem entrou virou
- * link para cá. Um parâmetro de destino seria um endereço vindo da URL
- * decidindo para onde o site manda alguém depois de autenticar — redirect
- * aberto —, e fechá-lo direito (só caminho interno, nunca `//host`) é código
- * novo para economizar um toque.
+ * COM `?voltar=` desde 06/10/2026: o redirect leva a pessoa a
+ * `/entrar?voltar=/minha-conta`, e depois de entrar ela volta para cá. O
+ * receio antigo — um endereço vindo da URL decidindo para onde o site manda
+ * alguém depois de autenticar, o redirect aberto — está fechado em
+ * `compartilhado/destino-apos-entrar.ts`: só passa caminho do PRÓPRIO site,
+ * em letras minúsculas, dígitos e hífen, sem `//`, `:`, `?` nem `%`.
  *
  * ===================================================================
  * A GUARDA FICA NO CORPO DA PÁGINA **E** NO `generateMetadata`
@@ -84,7 +84,7 @@ import FormularioMeusDados from '@/componentes/FormularioMeusDados';
  * que é o cenário do celular compartilhado (regra 4 do CLAUDE.md).
  */
 export async function generateMetadata() {
-  if (!await usuarioAtual()) redirect('/entrar');
+  if (!await usuarioAtual()) redirect(enderecoDeEntrar('/minha-conta'));
 
   return {
     title: 'Sua conta — Ateliê Afro Cultural',
@@ -105,7 +105,7 @@ export default async function MinhaConta(
   { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
 ) {
   const usuario = await usuarioAtual();
-  if (!usuario) redirect('/entrar');
+  if (!usuario) redirect(enderecoDeEntrar('/minha-conta'));
 
   // O ID VEM DAQUI, da sessão verificada — nunca de `searchParams`. As três
   // consultas o recebem como argumento; ver o cabeçalho de

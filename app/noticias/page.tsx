@@ -34,9 +34,17 @@ export const metadata = {
   description: 'Notícias, campanhas e resultados do Ateliê Afro Cultural.'
 };
 
-const ESTADO_VAZIO = 'Ainda não publicamos nenhuma notícia por aqui. Siga a gente no Instagram '
-  + 'ou fale pelo WhatsApp para saber das novidades enquanto esta página ganha as primeiras '
-  + 'publicações.';
+// O TEXTO É O MESMO de sempre (`paginas-vazias-a4` o compara frase a frase);
+// o que mudou em 06/10/2026 é que "Instagram" e "WhatsApp" passaram a ser
+// links — uma instrução de "siga a gente" sem caminho para seguir.
+const ESTADO_VAZIO = (
+  <>
+    Ainda não publicamos nenhuma notícia por aqui. Siga a gente no{' '}
+    <a href="https://instagram.com/atelie_afrocultural" rel="noopener">Instagram</a>{' '}
+    ou fale pelo <a href="https://wa.me/5511953968344" rel="noopener">WhatsApp</a> para saber
+    das novidades enquanto esta página ganha as primeiras publicações.
+  </>
+);
 
 export default async function Noticias() {
   // Nunca lança: a política única de erro (servidor/dados/degradacao.ts) faz

@@ -132,7 +132,9 @@ test('noticias: as duas frases do estado vazio aparecem juntas, com o espaço en
   // Só cobrável quando a página ESTÁ vazia — ver `vazioOuCheio` acima.
   if (!estaVazia(pagina)) return;
   assert.match(
-    pagina,
+    // Sem as tags: "Instagram" e "WhatsApp" viraram links em 06/10/2026, e o
+    // que esta asserção guarda é o TEXTO e o espaço entre as frases.
+    pagina.replace(/<[^>]+>/g, ''),
     /Ainda não publicamos nenhuma notícia por aqui\. Siga a gente no Instagram ou fale pelo WhatsApp para saber das novidades enquanto esta página ganha as primeiras publicações\./
   );
 });

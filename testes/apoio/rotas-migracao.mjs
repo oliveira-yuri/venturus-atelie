@@ -289,6 +289,8 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   // escrever/corrigir, como em publicações e eventos.
   '/admin/avisos',
   '/admin/avisos/editar',
+  // 06/10/2026: a ajuda da equipe, tela de primeiro nível do painel.
+  '/admin/ajuda',
 
   // RF32: o relatório para salvar em PDF. Não há biblioteca de PDF aqui e
   // não vai haver (regra 7, spec §9): quem gera o documento é

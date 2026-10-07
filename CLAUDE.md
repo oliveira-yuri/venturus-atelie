@@ -1463,6 +1463,49 @@ marrom `#2B2019` sobre ocre `#D69A10`. Não é símbolo inventado (regra 2): é 
 eles enviaram, e o logo inteiro não serve — a 16px a moldura e o texto viram mancha. Quando
 o vetor chegar (item 6 de "O que trava hoje"), os três arquivos se refazem a partir dele.
 
+**Segunda rodada da revisão de UX (06/10/2026)** — itens 2, 6, 7, 9, 12, 13, 14, 16, 17 e 18 de
+`docs/analise-ux-ui.md`:
+
+- **Voltar para onde estava (item 2).** `?voltar=` + campo escondido `voltar` nos dois formulários
+  de `/entrar`. O destino passa por `compartilhado/destino-apos-entrar.ts`, que é uma LISTA DE
+  CARACTERES (letras minúsculas, dígitos, hífen e barra) e não uma tentativa de reconhecer o que é
+  perigoso — `//`, `\`, `:`, `?`, `#`, `%` e espaço ficam de fora, e `/entrar`, `/recuperar-acesso`,
+  `/nova-senha` e `/auth` também (laço, e token de uso único). A Action valida DE NOVO: o campo é
+  escondido, mas o corpo de uma Server Action é entrada de usuário. Sem destino: equipe → `/admin`,
+  os demais → `/`. A pergunta "é equipe?" usa o MESMO cliente do `signInWithPassword` (a sessão já
+  está na memória dele) e falha para o lado seguro (vai para a home). O comentário de
+  `app/minha-conta/page.tsx` dizia que `?destino=` era redirect aberto e por isso não existia;
+  agora existe, fechado. **Não medido contra o Auth real** (sem credencial de equipe aqui): o que
+  foi medido é o campo escondido, os links e o redirect de `/minha-conta`; o `redirect()` depois do
+  login é provado por varredura de código e pelas funções puras (`testes/destino-apos-entrar.test.mjs`);
+- **Estados vazios com links (6)** em `/noticias` e `/acervo`: `mensagemVazio` virou `ReactNode`
+  em `ListaNoticias` e `ListaMateriais`. O TEXTO das notícias não mudou (a paridade o compara);
+- **Desktop (7):** `.conteudo` passou a ter os mesmos 32px de respiro do cabeçalho e do rodapé — as
+  três bordas esquerdas (162/146/130 em 1440px) viraram uma. `/doar` em duas colunas (dois `<div>`
+  agrupando, **a ordem do documento não mudou**), `/entrar` com os dois painéis lado a lado e as
+  abas escondidas a partir de 64rem (sem JavaScript sempre foi assim; agora com também), e o logotipo
+  do rodapé voltou ao centro (`.af-footer__marca` zerava a margem automática);
+- **Pequenos (9, 14):** margem sob o "Buscar" do acervo; área de toque do título-link de
+  `/projetos` e da linha da caixa de marcar (44px);
+- **Mostrar senha (12):** `componentes/AlternarSenha.ts`, em todo campo `tipo="password"` via
+  `CampoFormulario`. **Só existe depois de hidratar** — sem JavaScript seria um botão morto;
+- **Próxima atividade na home (13):** `componentes/ProximaAtividade.ts`, uma faixa que NÃO desenha
+  nada sem evento publicado e futuro (regra 2). Entrou em `idsAcrescentados` da paridade de texto;
+- **Painel (16, 17, 18):** selo "N esperando" nos cartões de Mensagens e Voluntários (só > 0: zero
+  e contagem que falhou não viram selo); `/admin/ajuda` (as três regras, subir foto e "deu
+  problema?", com a lista de telas saída de `TELAS_DO_PAINEL`); e `componentes/reduzir-foto.ts`,
+  que reduz foto JPG/PNG/WebP acima de 4 MB no próprio celular antes do envio (medido num Chromium:
+  12 MB de ruído → 1,7 MB, 1 s). GIF e qualquer falha caem no aviso de antes. **GIF acima de 8 MB
+  ainda devolve "Internal Server Error"** (item 0i).
+
+**NÃO feito, de propósito:** o VLibras sob demanda. Trocar o carregamento do widget do governo por
+um botão nosso muda um recurso de acessibilidade que a ONG pediu, e os quatro testes de
+`csp-vlibras.test.mjs` — que dependem do serviço externo e não passam neste ambiente — são
+justamente os que o provariam. Só vale com o serviço alcançável e a CSP medida de novo.
+
+**`docs/guia-rapido-da-equipe.md` está DESATUALIZADO** (fala em "as quatro telas" e lista como
+"o que o painel não faz" coisas que existem há dias). `/admin/ajuda` não o repete de propósito.
+
 **Os pedidos anteriores estão em
 `docs/alterações-atelie-v1/`, e os 34 itens dela foram feitos em 02/09/2026 — menos os dois
 que o próprio pedido marcou como "apenas se der tempo" (painel com gráficos e integração com

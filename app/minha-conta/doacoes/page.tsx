@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { usuarioAtual } from '@/servidor/sessao';
 import { listarMinhasDoacoes } from '@/servidor/dados/conta';
 import { MinhasDoacoes } from '@/componentes/MinhaConta';
+import { enderecoDeEntrar } from '@/compartilhado/destino-apos-entrar';
 
 /**
  * `/minha-conta/doacoes` — as doações da própria pessoa (RF22).
@@ -22,7 +23,7 @@ export const metadata = {
 
 export default async function MinhasDoacoesPagina() {
   const usuario = await usuarioAtual();
-  if (!usuario) redirect('/entrar');
+  if (!usuario) redirect(enderecoDeEntrar('/minha-conta/doacoes'));
 
   const { valor: doacoes, degradou } = await listarMinhasDoacoes(usuario.id);
 

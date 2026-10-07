@@ -142,6 +142,7 @@ const PAGINAS_SEM_URL_ANTIGA = [
    */
   '/admin/avisos',
   '/admin/avisos/editar',
+  '/admin/ajuda',
   '/avisos',
   /*
    * As duas páginas que o pedido V1 tirou de dentro de /minha-conta

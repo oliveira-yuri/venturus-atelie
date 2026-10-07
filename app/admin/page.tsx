@@ -101,6 +101,14 @@ export default async function PaginaDoPainel(
   // escolhe uma frase nossa, nunca traz uma.
   const aviso = avisoDaExportacao((await searchParams).aviso);
 
+  // O que está esperando alguém, no próprio cartão da tela que resolve:
+  // mensagem sem resposta e candidatura sem retorno.
+  const quantidadeDe = (chave: string) => indicadores.find((i) => i.chave === chave)?.quantidade;
+  const esperando = {
+    '/admin/contatos': quantidadeDe('mensagens-esperando'),
+    '/admin/voluntarios': quantidadeDe('candidaturas-esperando')
+  };
+
   return (
     <main id="conteudo" className="conteudo painel__conteudo">
       <h1>Painel da equipe</h1>
@@ -123,7 +131,7 @@ export default async function PaginaDoPainel(
 
       <p className="destaque">O que você quer fazer?</p>
 
-      <PainelInicio telas={TELAS_DO_PAINEL} />
+      <PainelInicio telas={TELAS_DO_PAINEL} esperando={esperando} />
 
       {/* Os números depois das telas, e os downloads depois dos números: a
           ordem é "onde eu trabalho", "o que está me esperando", "o que eu

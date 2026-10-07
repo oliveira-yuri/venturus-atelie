@@ -4,6 +4,7 @@ import { usuarioAtual } from '@/servidor/sessao';
 import { listarMinhasCandidaturas } from '@/servidor/dados/conta';
 import { candidaturaEmAndamento } from '@/compartilhado/candidatura';
 import { MinhasCandidaturas } from '@/componentes/MinhaConta';
+import { enderecoDeEntrar } from '@/compartilhado/destino-apos-entrar';
 
 /**
  * `/minha-conta/candidaturas` — as candidaturas da própria pessoa (RF11).
@@ -42,7 +43,7 @@ export const metadata = {
 
 export default async function MinhasCandidaturasPagina() {
   const usuario = await usuarioAtual();
-  if (!usuario) redirect('/entrar');
+  if (!usuario) redirect(enderecoDeEntrar('/minha-conta/candidaturas'));
 
   const { valor: candidaturas, degradou } = await listarMinhasCandidaturas(usuario.id);
 

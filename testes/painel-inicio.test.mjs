@@ -156,3 +156,44 @@ test('TELAS_DO_PAINEL não repete caminho nem lista rota fora de /admin', () => 
   assert.deepEqual(foraDoPainel, [],
     `a home do painel não é lugar de atalho para fora dele: ${foraDoPainel.join(', ')}`);
 });
+
+// =====================================================================
+// O selo "N esperando" no cartão (revisão de UX de 06/10/2026)
+// =====================================================================
+
+test('cartão com pendência ganha o selo "N esperando" — dentro do link', () => {
+  const html = renderToStaticMarkup(createElement(PainelInicio, {
+    telas: TELAS_DO_PAINEL,
+    esperando: { '/admin/contatos': 3, '/admin/voluntarios': 1 }
+  }));
+
+  assert.match(html, /<span class="painel__selo">3 esperando<\/span>/);
+  assert.match(html, /<span class="painel__selo">1 esperando<\/span>/,
+    'um é singular: "1 esperando", não "1 esperandos"');
+
+  // O selo é lido junto com o título: mora DENTRO do <a>, não ao lado dele.
+  const contatos = html.match(/<a class="painel__tela-alvo" href="\/admin\/contatos">[\s\S]*?<\/a>/);
+  assert.ok(contatos && /painel__selo/.test(contatos[0]));
+});
+
+test('zero, ausente e contagem que falhou NÃO viram selo — nem um "0 esperando" inventado', () => {
+  for (const esperando of [
+    { '/admin/contatos': 0 },
+    { '/admin/contatos': null },
+    { '/admin/contatos': undefined },
+    {}
+  ]) {
+    const html = renderToStaticMarkup(createElement(PainelInicio, { telas: TELAS_DO_PAINEL, esperando }));
+    assert.doesNotMatch(html, /painel__selo/);
+  }
+  const semProp = renderToStaticMarkup(createElement(PainelInicio, { telas: TELAS_DO_PAINEL }));
+  assert.doesNotMatch(semProp, /painel__selo/);
+});
+
+test('a Ajuda é uma tela da home do painel, e existe em app/', async () => {
+  const { existsSync } = await import('node:fs');
+  const ajuda = TELAS_DO_PAINEL.find((t) => t.caminho === '/admin/ajuda');
+  assert.ok(ajuda, 'a tela de Ajuda não está em TELAS_DO_PAINEL');
+  assert.equal(ajuda.pronta, true);
+  assert.ok(existsSync(new URL('../app/admin/ajuda/page.tsx', import.meta.url)));
+});

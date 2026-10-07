@@ -2366,3 +2366,20 @@ a.numeros__alvo:hover { background: var(--tinta); color: var(--cal); }
 .cartao-painel__corpo { margin: 0.5rem 0; }
 .cartao-painel__corpo summary { cursor: pointer; font-weight: 700; }
 .cartao-painel__data { font-size: 0.85rem; opacity: 0.8; }
+
+/* ---------------------------------------------------------------------
+   Selo "N esperando" no cartão da home do painel (componentes/PainelInicio.ts)
+   --------------------------------------------------------------------- */
+
+.painel__selo {
+  display: inline-block;
+  margin: var(--espaco-1, 0.25rem) 0 var(--espaco-2, 0.5rem) 0;
+  padding: 0.15rem 0.65rem;
+  background: var(--af-ochre);
+  color: var(--af-brown);
+  border: 1.5px solid var(--af-brown);
+  font: 700 var(--af-body-sm) var(--af-font);
+}
+/* Cada cartão é uma coluna: o selo fica abaixo do título e não corre
+   para a margem. */
+.painel__tela-alvo > .painel__selo { align-self: flex-start; }
