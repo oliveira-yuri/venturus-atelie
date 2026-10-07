@@ -134,6 +134,18 @@ export default function Privacidade() {
         </p>
       </section>
 
+      <section aria-labelledby="titulo-depoimentos">
+        <h2 id="titulo-depoimentos">Depoimentos</h2>
+        <p>
+          Se você escrever um depoimento na página de depoimentos, guardamos o nome que você
+          escolheu, o texto, a atividade (se você disser) e a sua declaração de que tem 18 anos
+          ou mais, ou é responsável por quem participou. Não pedimos e-mail nem telefone. O
+          depoimento só vai para o site depois que a equipe lê e aprova, e só com a autorização
+          que você marcou no formulário. Para retirar um depoimento, escreva para{' '}
+          <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>.
+        </p>
+      </section>
+
       <section aria-labelledby="titulo-quanto-tempo">
         <h2 id="titulo-quanto-tempo">Por quanto tempo guardamos</h2>
         <ul className="lista-simples">
@@ -151,7 +163,7 @@ export default function Privacidade() {
           <p>
             Contamos quantas vezes cada página do site é aberta, usando o serviço GoatCounter.
             Não usamos cookies, não guardamos o seu endereço de rede nem criamos perfil de quem
-            visita: o que fica é só a página, o tipo de aparelho e o país de origem, em números
+            visita: o que fica é a página, o navegador, o tamanho da tela, o país e o site de onde você veio, em números
             somados. As páginas de conta e o painel da equipe não entram na contagem.
           </p>
         </section>

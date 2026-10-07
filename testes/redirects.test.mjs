@@ -90,7 +90,7 @@ const SEM_REDIRECT_DE_PROPOSITO = ['admin/index.html'];
 const PAGINAS_SEM_URL_ANTIGA = [
   '/nova-senha',
   // Diferenciais baratos (07/10/2026): nunca existiram no site antigo.
-  '/perguntas-frequentes', '/para-empresas', '/en',
+  '/perguntas-frequentes', '/para-empresas', '/en', '/depoimentos',
   /*
    * AS DUAS ROTAS DE DETALHE (pedido V1, 02/09/2026).
    *
@@ -145,6 +145,7 @@ const PAGINAS_SEM_URL_ANTIGA = [
   '/admin/avisos',
   '/admin/avisos/editar',
   '/admin/ajuda',
+  '/admin/depoimentos',
   '/avisos',
   /*
    * As duas páginas que o pedido V1 tirou de dentro de /minha-conta

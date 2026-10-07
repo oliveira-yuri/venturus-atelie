@@ -103,6 +103,8 @@ export default function Rodape() {
           {' · '}
           <Link href="/perguntas-frequentes">Perguntas frequentes</Link>
           {' · '}
+          <Link href="/depoimentos">Depoimentos</Link>
+          {' · '}
           <Link href="/para-empresas">Para empresas e apoiadores</Link>
           {' · '}
           <Link href="/en" lang="en" hrefLang="en">About us (English)</Link>

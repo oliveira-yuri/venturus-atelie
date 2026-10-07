@@ -172,15 +172,15 @@ async function comoEVerificar(papel, uuid, sqlAcao, sqlVerificacao) {
 // =====================================================================
 
 describe('as migrations aplicam sem erro', () => {
-  test('as 17 tabelas existem', async () => {
+  test('as 18 tabelas existem', async () => {
     const { rows } = await cliente.query(`
       select tablename from pg_tables where schemaname = 'public' order by tablename
     `);
-    // A 16ª é `public.envios` (011) e a 17ª é `public.avisos` (012). Este
+    // A 16ª é `public.envios` (011) a 17ª é `public.avisos` (012) e a 18ª é `public.depoimentos` (014). Este
     // número sobe DE PROPÓSITO junto com uma migration — ele é a trava que
     // faz qualquer tabela nova passar por uma revisão de RLS antes de
     // existir.
-    assert.equal(rows.length, 17, `esperadas 17 tabelas, vieram ${rows.length}`);
+    assert.equal(rows.length, 18, `esperadas 18 tabelas, vieram ${rows.length}`);
   });
 
   test('toda tabela do schema public tem RLS habilitada', async () => {
@@ -238,7 +238,7 @@ describe('privilégios: a camada antes da política', () => {
     });
   }
 
-  test('anon só escreve onde o site precisa: inscricoes e contatos', async () => {
+  test('anon só escreve onde o site precisa: inscricoes, contatos e depoimentos (014)', async () => {
     const { rows } = await cliente.query(`
       select c.relname as tabela
       from pg_class c
@@ -247,7 +247,7 @@ describe('privilégios: a camada antes da política', () => {
         and has_table_privilege('anon', c.oid, 'INSERT')
       order by c.relname
     `);
-    assert.deepEqual(rows.map((r) => r.tabela), ['contatos', 'inscricoes'],
+    assert.deepEqual(rows.map((r) => r.tabela), ['contatos', 'depoimentos', 'inscricoes'],
       'anon pode inserir em tabela que não deveria');
   });
 
@@ -1848,5 +1848,113 @@ describe('RF27: o mural de avisos (migration 012)', () => {
   test('anon não executa eh_voluntario_ativo()', async () => {
     const { erro } = await comoAnonimo('select public.eh_voluntario_ativo()');
     assert.ok(erro, 'anon executou a função que decide quem lê o mural');
+  });
+});
+
+
+// =====================================================================
+// Depoimentos com moderação (migration 014)
+// =====================================================================
+describe('depoimentos: escreve qualquer pessoa, lê o aprovado, modera a equipe (migration 014)', () => {
+  const VISITANTE = hashDaOrigem('198.51.100.20');
+  const TEXTO = 'Foi uma tarde que a minha filha não esquece, obrigada a todos.';
+
+  const enviar = (extra = {}) => {
+    const a = { nome: 'Maria', texto: TEXTO, adulto: 'true', autoriza: 'true', atividade: 'null', ...extra };
+    return comoAnonimo(`select public.registrar_depoimento(
+      '${VISITANTE}', '${a.nome}', '${a.texto}', ${a.adulto}, ${a.autoriza}, ${a.atividade});`);
+  };
+
+  test('anon envia pela função, e a linha nasce PENDENTE', async () => {
+    const { erro } = await enviar();
+    assert.equal(erro, null, erro?.message);
+
+    const r = await comoEVerificar('anon', null,
+      `select public.registrar_depoimento('${VISITANTE}', 'Maria', '${TEXTO}', true, true, 'Oficina');`,
+      `select situacao, moderado_em, atividade from public.depoimentos`);
+    assert.equal(r.erro, null);
+    assert.equal(r.linhas.length, 1);
+    assert.equal(r.linhas[0].situacao, 'pendente');
+    assert.equal(r.linhas[0].moderado_em, null);
+    assert.equal(r.linhas[0].atividade, 'Oficina');
+  });
+
+  test('sem a declaração de adulto/responsável ou sem a autorização, o BANCO recusa', async () => {
+    for (const extra of [{ adulto: 'false' }, { autoriza: 'false' }]) {
+      const { erro } = await enviar(extra);
+      assert.ok(erro, `o banco aceitou ${JSON.stringify(extra)}`);
+      // A política de insert (42501) é avaliada antes dos `check` da tabela
+      // (23514): qualquer um dos dois é o banco recusando.
+      assert.ok(['42501', '23514'].includes(erro.code), erro.message);
+    }
+  });
+
+  test('texto curto demais (menos de 20 caracteres) é recusado pelo check', async () => {
+    const { erro } = await enviar({ texto: 'curto' });
+    assert.equal(erro?.code, '23514');
+  });
+
+  test('anon NÃO publica por conta própria: insert direto com situacao=aprovado é recusado pela política', async () => {
+    const { erro } = await comoAnonimo(`
+      insert into public.depoimentos (nome, texto, declara_adulto, autoriza_publicacao, situacao)
+      values ('Eu', '${TEXTO}', true, true, 'aprovado');`);
+    assert.ok(erro, 'anon conseguiu inserir um depoimento já aprovado');
+    assert.equal(erro.code, '42501', erro.message);
+  });
+
+  test('anon NÃO se carimba como moderado (moderado_em) ao inserir', async () => {
+    const { erro } = await comoAnonimo(`
+      insert into public.depoimentos (nome, texto, declara_adulto, autoriza_publicacao, moderado_em)
+      values ('Eu', '${TEXTO}', true, true, now());`);
+    assert.equal(erro?.code, '42501');
+  });
+
+  test('o pendente NÃO é legível por anon nem por outra pessoa; o aprovado é', async () => {
+    await cliente.query(`
+      insert into public.depoimentos (id, nome, texto, declara_adulto, autoriza_publicacao, situacao)
+      values ('aaaaaaaa-0000-0000-0000-000000000001', 'Pendente', '${TEXTO}', true, true, 'pendente'),
+             ('aaaaaaaa-0000-0000-0000-000000000002', 'Aprovada', '${TEXTO}', true, true, 'aprovado'),
+             ('aaaaaaaa-0000-0000-0000-000000000003', 'Recusado', '${TEXTO}', true, true, 'recusado');`);
+    try {
+      for (const consulta of [comoAnonimo, comoPessoa]) {
+        const { linhas, erro } = await consulta(`select nome from public.depoimentos order by nome`);
+        assert.equal(erro, null, erro?.message);
+        assert.deepEqual(linhas.map((l) => l.nome), ['Aprovada'],
+          'quem não é equipe só pode ler o depoimento aprovado');
+      }
+      const equipe = await comoPessoa(`select nome from public.depoimentos order by nome`, EQUIPE);
+      assert.deepEqual(equipe.linhas.map((l) => l.nome), ['Aprovada', 'Pendente', 'Recusado']);
+    } finally {
+      await cliente.query(`delete from public.depoimentos where id::text like 'aaaaaaaa-0000-0000-0000-00000000000%'`);
+    }
+  });
+
+  test('só a equipe aprova: anon e pessoa comum não alteram a situação', async () => {
+    await cliente.query(`
+      insert into public.depoimentos (id, nome, texto, declara_adulto, autoriza_publicacao)
+      values ('bbbbbbbb-0000-0000-0000-000000000001', 'Para moderar', '${TEXTO}', true, true);`);
+    try {
+      for (const [papel, uuid] of [['anon', null], ['authenticated', PESSOA]]) {
+        const r = await comoEVerificar(papel, uuid,
+          `update public.depoimentos set situacao = 'aprovado' where id = 'bbbbbbbb-0000-0000-0000-000000000001'`,
+          `select situacao from public.depoimentos where id = 'bbbbbbbb-0000-0000-0000-000000000001'`);
+        assert.equal(r.linhas[0].situacao, 'pendente', `${papel} conseguiu aprovar`);
+      }
+      const r = await comoEVerificar('authenticated', EQUIPE,
+        `update public.depoimentos set situacao = 'aprovado', moderado_em = now() where id = 'bbbbbbbb-0000-0000-0000-000000000001'`,
+        `select situacao, moderado_em from public.depoimentos where id = 'bbbbbbbb-0000-0000-0000-000000000001'`);
+      assert.equal(r.erro, null, r.erro?.message);
+      assert.equal(r.linhas[0].situacao, 'aprovado');
+      assert.ok(r.linhas[0].moderado_em);
+    } finally {
+      await cliente.query(`delete from public.depoimentos where id = 'bbbbbbbb-0000-0000-0000-000000000001'`);
+    }
+  });
+
+  test('o limite de envio vale: depois de 30 na hora pelo mesmo visitante, o banco pausa', async () => {
+    const chamadas = Array.from({ length: 31 }, () => `select public.registrar_depoimento(
+      '${hashDaOrigem('198.51.100.77')}', 'Fulana', '${TEXTO}', true, true, null);`).join('\n');
+    const { erro } = await comoAnonimo(chamadas);
+    assert.equal(erro?.code, 'P0001', erro?.message);
   });
 });
