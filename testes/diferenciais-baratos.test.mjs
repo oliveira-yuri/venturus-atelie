@@ -150,3 +150,82 @@ test('resumo do período: separa crianças, presentes e "sem conferir" (que não
   });
   assert.match(emReais(15030).replace(/\s/g, ' '), /R\$ 150,30/);
 });
+
+// ---------------------------------------------------------------------
+// Contra o site servido (modo offline: sem Supabase, sem eventos)
+// ---------------------------------------------------------------------
+const BASE = process.env.URL_BASE || 'http://localhost:3123';
+
+test('HTTP: Open Graph na home — título, descrição, imagem ABSOLUTA e locale', async () => {
+  const html = await fetch(`${BASE}/`).then((r) => r.text());
+  assert.match(html, /<meta property="og:title" content="Ateliê Afro Cultural"/);
+  assert.match(html, /<meta property="og:locale" content="pt_BR"/);
+  assert.match(html, /<meta property="og:image" content="https?:\/\/[^"]+\/imagens\/heroi\.jpg"/);
+});
+
+test('HTTP: /sitemap.xml lista as páginas públicas e NÃO o painel nem as rotas de conta', async () => {
+  const r = await fetch(`${BASE}/sitemap.xml`);
+  assert.equal(r.status, 200);
+  const xml = await r.text();
+  for (const caminho of ['/quem-somos', '/agenda', '/doar', '/contato']) {
+    assert.match(xml, new RegExp(`<loc>https?://[^<]+${caminho}</loc>`), caminho);
+  }
+  assert.doesNotMatch(xml, /\/admin|\/entrar|\/nova-senha|\/auth/);
+});
+
+test('HTTP: evento inexistente não gera .ics — 404, nunca um arquivo vazio', async () => {
+  const r = await fetch(`${BASE}/agenda/00000000-0000-0000-0000-000000000000/calendario`);
+  assert.equal(r.status, 404);
+});
+
+test('HTTP: /perguntas-frequentes lista todas e filtra no servidor, sem JavaScript', async () => {
+  const todas = await fetch(`${BASE}/perguntas-frequentes`).then((r) => r.text());
+  assert.equal((todas.match(/<details/g) ?? []).length, 11);
+  const filtradas = await fetch(`${BASE}/perguntas-frequentes?busca=${encodeURIComponent('MICROFONE')}`).then((r) => r.text());
+  assert.equal((filtradas.match(/<details/g) ?? []).length, 1);
+  assert.match(filtradas, /1 resposta\./);
+  const nenhuma = await fetch(`${BASE}/perguntas-frequentes?busca=zzzzzz`).then((r) => r.text());
+  assert.match(nenhuma, /Nenhuma pergunta com essas palavras/);
+});
+
+test('HTTP: /en declara lang="en" no conteúdo e oferece o caminho de volta em português', async () => {
+  const html = await fetch(`${BASE}/en`).then((r) => r.text());
+  assert.match(html, /<main[^>]*lang="en"/);
+  assert.match(html, /<h1>About us<\/h1>/);
+  assert.match(html, /href="\/quem-somos"/);
+});
+
+test('HTTP: /para-empresas não promete contrapartida nenhuma (não há fonte para isso)', async () => {
+  const html = await fetch(`${BASE}/para-empresas`).then((r) => r.text());
+  assert.match(html, /<h1>Para empresas e apoiadores<\/h1>/);
+  assert.doesNotMatch(html, /recibo|dedut|incentivo fiscal|cota de patroc|logomarca/i);
+});
+
+test('HTTP: /depoimentos mostra o estado vazio e o formulário público, sem inventar depoimento', async () => {
+  const html = await fetch(`${BASE}/depoimentos`).then((r) => r.text());
+  assert.match(html, /Ainda não há depoimentos publicados/);
+  assert.match(html, /name="declara_adulto"/);
+  assert.match(html, /name="autoriza_publicacao"/);
+  assert.doesNotMatch(html, /name="situacao"/, 'o formulário público não pode oferecer a coluna de moderação');
+});
+
+test('HTTP: a contagem de visitas está DESLIGADA sem GOATCOUNTER_CODIGO — nenhum host novo na política', async () => {
+  const r = await fetch(`${BASE}/`);
+  const csp = r.headers.get('content-security-policy') ?? '';
+  assert.doesNotMatch(csp, /goatcounter/);
+  const html = await r.text();
+  assert.doesNotMatch(html, /goatcounter|gc\.zgo\.at/);
+  const privacidade = await fetch(`${BASE}/privacidade`).then((x) => x.text());
+  assert.doesNotMatch(privacidade, /Contagem de visitas/, 'a política não pode falar do que o site não faz');
+});
+
+test('HTTP: o manifest do painel NÃO é anunciado a quem não é equipe', async () => {
+  const html = await fetch(`${BASE}/admin`).then((r) => r.text());
+  assert.doesNotMatch(html, /painel\.webmanifest/);
+  const publico = await fetch(`${BASE}/`).then((r) => r.text());
+  assert.doesNotMatch(publico, /painel\.webmanifest/);
+  const manifest = await fetch(`${BASE}/painel/painel.webmanifest`).then((r) => r.json());
+  assert.equal(manifest.start_url, '/admin');
+  assert.equal(manifest.scope, '/admin');
+  assert.ok(manifest.icons.some((i) => i.sizes === '512x512'));
+});
