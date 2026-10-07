@@ -183,7 +183,7 @@ test('HTTP: /perguntas-frequentes lista todas e filtra no servidor, sem JavaScri
   assert.equal((todas.match(/<details/g) ?? []).length, 11);
   const filtradas = await fetch(`${BASE}/perguntas-frequentes?busca=${encodeURIComponent('MICROFONE')}`).then((r) => r.text());
   assert.equal((filtradas.match(/<details/g) ?? []).length, 1);
-  assert.match(filtradas, /1 resposta\./);
+  assert.match(filtradas.replace(/<!-- -->/g, ""), /1 resposta\./);
   const nenhuma = await fetch(`${BASE}/perguntas-frequentes?busca=zzzzzz`).then((r) => r.text());
   assert.match(nenhuma, /Nenhuma pergunta com essas palavras/);
 });
