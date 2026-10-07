@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { dividirParaLeitura } from '@/compartilhado/leitura-em-voz-alta';
 import {
   ESCALAS, PADRAO, proximaEscala, lerPreferencias, gravarPreferencias,
   type Preferencias
@@ -54,6 +55,41 @@ export default function Acessibilidade({
   const [preferencias, setPreferencias] = useState<Preferencias>({ ...PADRAO });
   const [lido, setLido] = useState(false);
   const [anuncio, setAnuncio] = useState('');
+  // "Ouvir esta página": só existe onde o navegador sabe falar. Começa false
+  // no servidor e na hidratação, então sem a API (ou sem JavaScript) o botão
+  // simplesmente não é desenhado — nunca um botão morto.
+  const [sabeFalar, setSabeFalar] = useState(false);
+  const [falando, setFalando] = useState(false);
+
+  useEffect(() => {
+    setSabeFalar(typeof window !== 'undefined' && 'speechSynthesis' in window
+      && typeof SpeechSynthesisUtterance !== 'undefined');
+    // Sair da página (navegação do roteador) para a leitura.
+    return () => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); };
+  }, []);
+
+  function alternarLeitura() {
+    const voz = window.speechSynthesis;
+    if (falando) {
+      voz.cancel();
+      setFalando(false);
+      setAnuncio('Leitura parada');
+      return;
+    }
+    const texto = (document.getElementById('conteudo') as HTMLElement | null)?.innerText ?? '';
+    const trechos = dividirParaLeitura(texto);
+    if (trechos.length === 0) return;
+    voz.cancel();
+    trechos.forEach((trecho, i) => {
+      const fala = new SpeechSynthesisUtterance(trecho);
+      fala.lang = 'pt-BR';
+      if (i === trechos.length - 1) fala.onend = () => setFalando(false);
+      fala.onerror = () => setFalando(false);
+      voz.speak(fala);
+    });
+    setFalando(true);
+    setAnuncio('Lendo a página em voz alta');
+  }
 
   useEffect(() => {
     setPreferencias(lerPreferencias(window.localStorage));
@@ -138,6 +174,14 @@ export default function Acessibilidade({
         onClick={() => executar('contraste')}>
         {alto ? <span aria-hidden="true">✓ </span> : null}Alto contraste
       </button>
+
+      {sabeFalar ? (
+        <button type="button" className="af-a11y__contraste" data-acao="ouvir"
+          aria-pressed={falando}
+          onClick={alternarLeitura}>
+          {falando ? 'Parar de ouvir' : 'Ouvir esta página'}
+        </button>
+      ) : null}
 
       <p className="apenas-leitor-de-tela" role="status">{anuncio}</p>
     </div>

@@ -1,5 +1,7 @@
 import { createElement, type ReactNode } from 'react';
 import type { Evento } from '@/servidor/dados/eventos';
+import { enderecoAbsoluto } from '../compartilhado/endereco-do-site.ts';
+import { LinkCompartilhar } from './LinkCompartilhar.ts';
 
 /**
  * Lista de eventos de uma seção da agenda (RF14) — "Em breve" ou "Já
@@ -127,6 +129,25 @@ export function ListaEventos({ eventos, mensagemVazio, inscricoesAbertas = false
         // JavaScript, abre em nova aba se a pessoa quiser, e o teclado o
         // alcança sem nada de especial. Mesma escolha de
         // componentes/BotaoWhatsApp.ts.
+        // Compartilhar e "Adicionar à agenda" valem para o que ainda vem: um
+        // .ics de evento passado entupiria o calendário de quem o abrisse.
+        inscricoesAbertas
+          ? createElement(
+            'p',
+            { className: 'atividade__acao atividade__acao--extras' },
+            createElement(
+              'a',
+              { className: 'botao botao--secundario', href: `/agenda/${evento.id}/calendario` },
+              'Adicionar à agenda',
+              createElement('span', { className: 'apenas-leitor-de-tela' }, ` — ${evento.titulo}`)
+            ),
+            ' ',
+            createElement(LinkCompartilhar, {
+              titulo: evento.titulo,
+              endereco: enderecoAbsoluto(`/agenda#${evento.id}`)
+            })
+          )
+          : null,
         inscricoesAbertas
           ? createElement(
             'p',

@@ -79,7 +79,12 @@ export async function generateMetadata() {
 
   return {
     title: 'Painel da equipe — Ateliê Afro Cultural',
-    description: 'Área de trabalho da equipe do Ateliê Afro Cultural.'
+    description: 'Área de trabalho da equipe do Ateliê Afro Cultural.',
+    // Painel instalável no celular. O manifest mora aqui, na metadata
+    // GUARDADA, e não no layout raiz: quem não é equipe nem fica sabendo
+    // que existe. O arquivo em si é estático e sem dado nenhum.
+    manifest: '/painel/painel.webmanifest',
+    appleWebApp: { capable: true, title: 'Painel Ateliê', statusBarStyle: 'default' as const }
   };
 }
 

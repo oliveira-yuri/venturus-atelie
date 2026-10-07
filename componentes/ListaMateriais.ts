@@ -1,5 +1,7 @@
 import { createElement, type ReactNode } from 'react';
 import type { Material } from '@/servidor/dados/acervo';
+import { enderecoAbsoluto } from '../compartilhado/endereco-do-site.ts';
+import { LinkCompartilhar } from './LinkCompartilhar.ts';
 
 /**
  * Um material do acervo com os DOIS endereços já resolvidos —
@@ -143,6 +145,12 @@ export function ListaMateriais({
             'Baixar material',
             createElement('span', { className: 'apenas-leitor-de-tela' }, ` — ${material.titulo}`)
           )
+          ,
+          ' ',
+          createElement(LinkCompartilhar, {
+            titulo: material.titulo,
+            endereco: enderecoAbsoluto(`/acervo#${material.id}`)
+          })
         )
       );
     })

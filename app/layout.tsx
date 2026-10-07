@@ -12,12 +12,32 @@ import Rodape from '@/componentes/Rodape';
 import VLibras from '@/componentes/VLibras';
 import { BotaoWhatsApp } from '@/componentes/BotaoWhatsApp';
 import FocoNaNavegacao from '@/componentes/FocoNaNavegacao';
+import CompartilharNativo from '@/componentes/CompartilharNativo';
+import ContagemDeVisitas from '@/componentes/ContagemDeVisitas';
+import { hostDaContagem } from '@/compartilhado/contagem-de-visitas';
 import { sessaoParaOCabecalho, type SessaoNoCabecalho } from '@/servidor/sessao';
 import { ehEquipe, ehVoluntarioAtivo } from '@/servidor/permissao';
+import { enderecoDoSite } from '@/compartilhado/endereco-do-site';
 
+const DESCRICAO = 'Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira, na Casa Verde, zona norte de São Paulo.';
+
+// Prévia de link (WhatsApp, Instagram, Telegram): título, descrição e imagem.
+// `metadataBase` faz o Next transformar a imagem em endereço ABSOLUTO — sem
+// ele a prévia não aparece. A imagem é a mesma do herói da home, que já tem
+// autorização confirmada (CLAUDE.md, item 0t). Cada página sobrescreve
+// título e descrição pelo próprio `metadata`.
 export const metadata = {
+  metadataBase: new URL(enderecoDoSite()),
   title: 'Ateliê Afro Cultural',
-  description: 'Espaço educativo de criação, reflexão e valorização da cultura e memória afro brasileira, na Casa Verde, zona norte de São Paulo.'
+  description: DESCRICAO,
+  openGraph: {
+    type: 'website',
+    siteName: 'Ateliê Afro Cultural',
+    locale: 'pt_BR',
+    title: 'Ateliê Afro Cultural',
+    description: DESCRICAO,
+    images: [{ url: '/imagens/heroi.jpg', alt: 'Ateliê Afro Cultural' }]
+  }
 };
 
 export default async function LayoutRaiz({ children }: { children: React.ReactNode }) {
@@ -127,6 +147,8 @@ export default async function LayoutRaiz({ children }: { children: React.ReactNo
         />
         <a className="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
         <FocoNaNavegacao />
+        <CompartilharNativo />
+        {hostDaContagem() ? <ContagemDeVisitas host={hostDaContagem()!} nonce={nonce} /> : null}
         <Cabecalho sessao={sessao} ehEquipe={ehDaEquipe} ehVoluntario={ehVoluntario} />
         {children}
         <Rodape />

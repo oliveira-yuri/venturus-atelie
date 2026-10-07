@@ -1,3 +1,4 @@
+import { hostDaContagem } from '@/compartilhado/contagem-de-visitas';
 // Conteúdo copiado literalmente do HTML original de privacidade.html — hoje a
 // cópia congelada em testes/apoio/html-original/privacidade.html, já que a
 // Tarefa A8 apagou site/ desta branch (regra 2 do CLAUDE.md: conteúdo
@@ -142,6 +143,19 @@ export default function Privacidade() {
           <li><strong>Registros de contenção de envio em massa:</strong> apagados em até um dia</li>
         </ul>
       </section>
+
+      {/* Só existe com a contagem ligada (GOATCOUNTER_CODIGO): privacidade não pode prometer o que o site não faz, nem calar o que faz. */}
+      {hostDaContagem() ? (
+        <section aria-labelledby="titulo-visitas">
+          <h2 id="titulo-visitas">Contagem de visitas</h2>
+          <p>
+            Contamos quantas vezes cada página do site é aberta, usando o serviço GoatCounter.
+            Não usamos cookies, não guardamos o seu endereço de rede nem criamos perfil de quem
+            visita: o que fica é só a página, o tipo de aparelho e o país de origem, em números
+            somados. As páginas de conta e o painel da equipe não entram na contagem.
+          </p>
+        </section>
+      ) : null}
 
       <section aria-labelledby="titulo-direitos">
         <h2 id="titulo-direitos">Seus direitos</h2>
