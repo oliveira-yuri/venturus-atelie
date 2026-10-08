@@ -1538,7 +1538,7 @@ desenho que queria para `/admin/voluntarios`:
   `react-dom/server` e o CSS real, com dados de mentira, a 390px e a 1100px: nos sete cartões
   medidos, todo grupo ficou com uma única largura. É a tela desenhada, não a servida.
 
-**Doze diferenciais baratos (07/10/2026)** — custo de operação perto de zero, sem serviço pago:
+**Onze diferenciais baratos (07/10/2026)** (o 6, QR Pix verdadeiro, ficou de fora por decisão do dono do projeto; a numeração original foi mantida) — custo de operação perto de zero, sem serviço pago:
 
 1. **Relatório por período** (`/admin/relatorio?periodo=mes|trimestre|semestre|ano&deslocar=-1`):
    atividades, inscritos, crianças inscritas/presentes (`eh_menor`), presenças, "sem conferir"
@@ -1558,12 +1558,6 @@ desenho que queria para `/admin/voluntarios`:
 5. **Ouvir esta página**: botão na barra de acessibilidade, só depois de hidratar e só se o navegador
    tem `speechSynthesis` (usa a voz do aparelho, sem enviar nada). `testes/paginas.test.mjs` conta
    os 4 botões fixos e deixa o `data-acao="ouvir"` de fora, porque ele depende do navegador;
-6. **QR Pix verdadeiro** (`compartilhado/pix.ts` + `qrcode.ts` + `QrCodePix.ts`): só aparece quando
-   `PIX_E_DE_TESTE = false`; hoje a página segue com o QR falso. O encoder foi conferido de DUAS
-   formas: matriz idêntica à da lib Python `qrcode` (3 payloads × máscaras; fixture em
-   `testes/apoio/qr-referencia.json`) e leitura por jsQR (versões 1–10, 5 a 211 bytes). **Não foi
-   lido por câmera de celular nem por app de banco.** Nome/cidade do recebedor em `app/doar/page.tsx`
-   (`PIX_NOME`/`PIX_CIDADE`) precisam bater com a conta real; item 0u continua valendo;
 7. **Depoimentos com moderação** (`/depoimentos`, `/admin/depoimentos`, migration **014**):
    formulário público, sem conta e sem e-mail (coleta mínima), com DUAS declarações obrigatórias
    (adulto/responsável + autorização de publicar), gravado por `registrar_depoimento` e nascendo
