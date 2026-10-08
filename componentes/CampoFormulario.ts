@@ -227,8 +227,9 @@ export function CampoFormulario({
   } else if (tipo === 'file') {
     controle = createElement('input', { ...atributosComuns, type: 'file', accept, capture });
   } else if (tipo === 'password') {
-    // Campo + "Mostrar" na mesma linha. O botão só existe depois de hidratar
-    // (componentes/AlternarSenha.ts).
+    // Campo + "Mostrar" DENTRO da mesma caixa (novo layout, 3f) — o CSS
+    // posiciona o botão no canto direito do campo. O botão só existe depois
+    // de hidratar (componentes/AlternarSenha.ts).
     controle = createElement(
       'div',
       { className: 'campo__senha' },

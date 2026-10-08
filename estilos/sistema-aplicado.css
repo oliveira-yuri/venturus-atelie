@@ -52,19 +52,26 @@
 }
 
 /* ---------------------------------------------------------------------
-   Superfícies — borda 1,5px e sombra dura marrom (a assinatura v1)
+   Superfícies — ELEVAÇÃO EM TRÊS NÍVEIS (novo layout, 08/10/2026)
+
+   Até aqui toda caixa do site levava borda marrom de 1,5px e a sombra
+   dura: cartão, aviso, campo, item de lista. A sombra é o gesto da marca
+   — e por aparecer em tudo deixou de destacar qualquer coisa (Análise
+   UX-UI, ponto 1, "o mais importante"). Agora são três níveis
+   (tokens.css): PLANO para listas e cartões comuns, CONTORNO para o que
+   pede atenção sem ser o destaque (aviso), e APLIQUE no máximo UMA vez
+   por tela, para a ação principal.
    --------------------------------------------------------------------- */
 
 #conteudo .setor,
 #conteudo .atividade,
 #conteudo .clipping__item,
-#conteudo .aviso,
-#conteudo .estado,
 #conteudo .grupo-campos,
 #conteudo .album__figura,
 #conteudo .conta__item,
+#conteudo .card-atividade .atividade,
+#conteudo .pergunta,
 .painel .painel__tela-alvo,
-.painel .painel__acao-principal,
 .painel .painel__dobra,
 .painel .atividade-painel,
 .painel .evento-painel,
@@ -76,40 +83,67 @@
 .painel .publicacao,
 .painel .exportacoes__alvo,
 .painel .numeros__alvo,
-.painel .apagar__previa,
 .painel .apagar__foto {
+  border: var(--af-borda-plano);
+  box-shadow: none;
+}
+
+/* O único aplique que o painel mantém: a ação principal da tela. */
+.painel .painel__acao-principal {
   border-width: 1.5px;
-  box-shadow: var(--af-shadow-md);
+  box-shadow: var(--af-elev-aplique);
 }
 
-/* O `:nth-child` de componentes.css pinta a sombra de cada cartão de
-   /projetos e /agenda de ocre/azul/marrom conforme a posição. O sistema v1
-   moveu "cor é categoria" para a borda de topo do tile; nos cartões de
-   atividade não há tile, então a cor da sombra simplesmente sai. Escopo
-   `#conteudo` (1,1,0) vence `.card-atividade:nth-child() .atividade` (0,3,0). */
-#conteudo .card-atividade .atividade {
-  box-shadow: var(--af-shadow-md);
-}
+/* A prévia do que vai ser APAGADO é contorno: ela precisa ser lida com
+   atenção, e não é a ação da tela (a ação é o botão de confirmar). */
+.painel .apagar__previa { border: var(--af-borda-contorno); box-shadow: none; }
 
-/* `.aviso--erro` (era sombra marrom) e `.aviso--sucesso` (era azul) são
-   caixas claras: no sistema v1 as duas usam a mesma sombra marrom dura. A
-   distinção entre erro e sucesso não é a cor da sombra — é o texto e a
-   caixa de `role="alert"` que a acompanha. */
+/* Aviso é CONTORNO, sem sombra. Erro e sucesso já se distinguem pelo
+   texto e pelo `role="alert"`; a sombra ocre/azul/marrom que os separava
+   só somava ruído a uma caixa que já interrompe a leitura. */
+#conteudo .aviso,
 #conteudo .aviso--erro,
-#conteudo .aviso--sucesso { box-shadow: var(--af-shadow-md); }
+#conteudo .aviso--sucesso,
+.painel .aviso {
+  border: var(--af-borda-contorno);
+  box-shadow: none;
+}
+
+/* Estado vazio padrão: tracejado leve, como o espaço reservado do
+   sistema — diz "aqui ainda não há nada", não "atenção". O de ERRO
+   continua contorno sólido: ali algo falhou. */
+#conteudo .estado {
+  border: 1.5px dashed var(--af-ph-ink);
+  box-shadow: none;
+}
+#conteudo .estado--erro { border: var(--af-borda-contorno); }
 
 /* ---------------------------------------------------------------------
-   Campos de formulário — borda 1,5px; foco com a sombra curta do sistema
+   Campos de formulário (novo layout)
+
+   52px de altura e texto de 16px — abaixo de 16px o Safari do iPhone dá
+   zoom na página ao focar o campo, e a pessoa perde o formulário de
+   vista. Borda LEVE em repouso (o campo é plano); no foco, borda marrom e
+   o anel azul — o azul é a cor de "isto é interativo" no site (links).
    --------------------------------------------------------------------- */
 
-#conteudo .campo input,
+#conteudo .campo input:not([type="checkbox"]):not([type="radio"]),
 #conteudo .campo textarea,
 #conteudo .campo select,
-.painel .campo input,
+.painel .campo input:not([type="checkbox"]):not([type="radio"]),
 .painel .campo textarea,
 .painel .campo select {
-  border-width: 1.5px;
+  min-height: 3.25rem;
+  padding: 0 var(--af-s6);
+  font-size: var(--af-body);
+  background: var(--af-card);
+  border: 1px solid var(--af-borda-campo);
+  border-radius: var(--af-radius-control);
+  box-shadow: none;
 }
+
+#conteudo .campo textarea,
+.painel .campo textarea { padding-block: var(--af-s5); min-height: 8rem; }
 
 #conteudo .campo input:focus,
 #conteudo .campo textarea:focus,
@@ -117,8 +151,24 @@
 .painel .campo input:focus,
 .painel .campo textarea:focus,
 .painel .campo select:focus {
-  box-shadow: var(--af-shadow-sm);
+  outline: none;
+  border: 1.5px solid var(--af-brown);
+  box-shadow: var(--af-anel-foco);
 }
+
+/* Campo com erro: contorno marrom cheio, sem sombra. O texto do erro, logo
+   abaixo, é que diz o quê. */
+#conteudo .form-campo.tem-erro :is(input, textarea, select),
+.painel .form-campo.tem-erro :is(input, textarea, select) {
+  border: 1.5px solid var(--af-brown);
+  box-shadow: none;
+}
+
+#conteudo .campo label,
+.painel .campo label { font-weight: 600; font-size: 0.9375rem; }
+
+#conteudo .campo__ajuda,
+.painel .campo__ajuda { font-size: var(--af-body-sm); }
 
 /* ---------------------------------------------------------------------
    Faixa listrada como divisor — o ritmo de seção do sistema.
@@ -207,25 +257,6 @@
 }
 
 /* ---------------------------------------------------------------------
-   Rodapé no celular — os canais em duas colunas
-
-   Eram cinco linhas de 44px, uma por canal, logo depois de toda página —
-   inclusive de /contato, que acabou de listar os mesmos canais. Em duas
-   colunas são três linhas; o e-mail ocupa a linha inteira porque não cabe
-   em meia coluna a 360px. O alvo de toque continua com 44px de altura.
-   --------------------------------------------------------------------- */
-
-@media (max-width: 39.99rem) {
-  .af-footer__links {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--af-s5);
-  }
-  .af-footer__links li:has(a[href^="mailto:"]) { grid-column: 1 / -1; }
-  .af-footer__cols { gap: var(--af-s8); }
-}
-
-/* ---------------------------------------------------------------------
    Alvos de toque e espaçamentos pequenos (revisão de UX de 06/10/2026)
    --------------------------------------------------------------------- */
 
@@ -248,23 +279,34 @@
 .campo--caixa label { padding-block: 0.4rem; }
 .campo--caixa input[type="checkbox"] { margin-top: 0; }
 
-/* Campo de senha com "Mostrar" ao lado. O botão só existe depois de
-   hidratar (componentes/AlternarSenha.ts); sem ele o campo ocupa a linha. */
-.campo__senha { display: flex; gap: var(--af-s3); align-items: stretch; }
-.campo__senha input { flex: 1 1 auto; min-width: 0; }
+/* Campo de senha com "Mostrar" DENTRO do campo (novo layout, 3f). Era um
+   botão de contorno ao lado, que roubava largura do campo no celular e
+   competia com o botão de enviar. Agora é texto azul no canto direito da
+   própria caixa — o azul é a cor de "isto se toca". O botão só existe
+   depois de hidratar (componentes/AlternarSenha.ts): sem ele o campo
+   ocupa a linha inteira, como sempre. */
+.campo__senha { position: relative; display: block; }
+.campo__senha input { width: 100%; }
+/* Mesmo peso de seletor que a regra de campo acima (1,3,1), e depois
+   dela: o espaço do "Mostrar" vence sem `!important`. */
+#conteudo .campo .campo__senha:has(.campo__alternar) input,
+.painel .campo .campo__senha:has(.campo__alternar) input { padding-right: 6.5rem; }
 .campo__alternar {
-  flex: none;
+  position: absolute;
+  top: 50%;
+  right: var(--af-s1);
+  transform: translateY(-50%);
   min-height: var(--af-touch-min);
-  padding: 0 var(--af-s6);
-  background: var(--af-card);
-  color: var(--af-brown);
-  border: 1.5px solid var(--af-brown);
+  padding: 0 var(--af-s5);
+  background: transparent;
+  color: var(--af-blue-deep);
+  border: none;
   border-radius: var(--af-radius-control);
   font: 600 var(--af-body-sm) var(--af-font);
   cursor: pointer;
 }
-.campo__alternar:hover,
-.campo__alternar[aria-pressed="true"] { background: var(--af-brown); color: var(--af-cream); }
+.campo__alternar:hover { text-decoration: underline; }
+.campo__alternar[aria-pressed="true"] { color: var(--af-brown); }
 
 /* ---------------------------------------------------------------------
    Faixa "Próxima atividade" da home (componentes/ProximaAtividade.ts)
@@ -311,10 +353,6 @@
 @media (min-width: 64rem) {
   .conteudo { padding-inline: var(--af-gutter-desk); }
   .conteudo > .af-stripe { margin-inline: 0; }
-
-  /* O logotipo do rodapé ficava em x≈590 numa tela de 1440: `.af-footer__marca`
-     zerava a margem automática que `.af-footer > *` dá a cada filho. */
-  .af-footer .af-footer__marca { margin-inline: auto; }
 
   /* /doar — "o que e como" à esquerda, o dinheiro à direita. */
   .conteudo--duas-colunas {
@@ -463,11 +501,6 @@
 .filtro__campo input::placeholder { color: var(--tinta-suave); opacity: 1; }
 .filtro__campo input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 
-/* O botão flutuante de WhatsApp não existe no painel: quem trabalha ali é
-   a equipe, que já sabe o número. `:has` porque o botão é irmão do <main>, e
-   nenhum seletor a partir do painel o alcançaria. `display: none` tira
-   também da ordem de Tab e do leitor de tela. */
-body:has(.painel) .zap { display: none; }
 
 /* A mesma linha de topo nos cartões de mensagem e de doação: o que o cartão
    é (origem / tipo), pequeno e à esquerda, e a situação à direita — igual ao
@@ -510,8 +543,6 @@ body:has(.painel) .zap { display: none; }
    forma conforme a fonte do aparelho.
    --------------------------------------------------------------------- */
 #conteudo .pergunta {
-  border: 1.5px solid var(--af-brown);
-  box-shadow: 4px 4px 0 var(--af-brown);
   background: var(--superficie);
   margin-block: 1rem;
 }

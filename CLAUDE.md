@@ -431,6 +431,53 @@ Cada uma vem do escopo e violá-la invalida a entrega — com a exceção anotad
   por `#conteudo` e `.painel` para vencer a especificidade. As telas públicas e as 17 do
   painel ganham a aparência do sistema sem reescrita de markup.
 
+## Novo layout (Análise UX-UI, 08/10/2026) — regras para toda tarefa daqui em diante
+
+Fonte: o handoff do Claude Design "Análise UX-UI" + "Plano de Migracao" (9 fases). **Fases 1 e 2
+entregues** (branch `claude/novo-layout-f1-f2`); as fases 3–8 (banco 015–020, páginas, biblioteca,
+painel) continuam por fazer. Decisões do grupo já tomadas: barra inferior **Início · Agenda ·
+Biblioteca · Menu**, e o botão flutuante de WhatsApp **saiu** (vive na folha do menu, no rodapé e
+em /contato).
+
+1. **Creme domina; ocre só em "Apoiar", estado ativo, contagem e data.** Texto ocre sobre creme é
+   sempre `--af-ochre-deep`.
+2. **Elevação em três níveis** (`estilos/tokens.css`): *plano* (`--af-borda-plano`, listas, cartões
+   comuns, campos), *contorno* (`--af-borda-contorno`, avisos, seleção, botão secundário) e
+   *aplique* (sombra dura) — **no máximo UM por tela**, declarado com `<Aplique>`.
+3. **Escala de tipo**: sobretítulo 12, corpo 16, H3 18, H2 22, H1 32 (48 no desktop). Sempre em
+   rem — o A+ precisa continuar escalando.
+4. **Toda página começa com `<CabecalhoDaPagina>`** (sobretítulo = grupo do menu → H1 → lead).
+5. **Telas de detalhe e de formulário usam `<BarraDeAcao>`** (a ação principal fixa no pé) e
+   `<LinkDeVoltar>` no topo. A barra de atalhos some sozinha (`body:has(.af-barra-acao)`).
+6. **Entrar, recuperar acesso e nova senha usam o layout focado** (`ROTAS_FOCADAS` em
+   `componentes/Cabecalho.tsx`): só "Voltar" (o `?voltar=` seguro) e "Aa".
+7. **Campos**: 52px, texto 16px, borda leve em repouso, borda marrom + anel azul no foco; "Mostrar"
+   dentro do campo de senha.
+8. **Nada flutua sobre o conteúdo** além do VLibras (regra 8) e das duas barras fixas do pé.
+9. **Movimento**: toque 90ms (o aplique "costura"), folha 280ms de baixo para cima, sempre com
+   `prefers-reduced-motion`.
+
+**A moldura (fase 2), e o que não muda nela:** o cabeçalho creme tem o logotipo; a barra de
+atalhos (`<nav aria-label="Atalhos">`) é UM elemento — fixa no pé no celular, navegação do
+cabeçalho no desktop (com Projetos, Quem somos, "Mais" e "Apoiar" em ocre). "Menu"/"Mais" e "Aa"
+abrem a MESMA folha (`#menu-principal`): o "Aa" já no bloco "Leitura", que é o antigo
+`#barra-acessibilidade` com os mesmos `data-acao`. **Sem JavaScript tudo chega aberto**: a folha
+é a lista no fluxo da página, e os dois botões são links para âncoras (`#menu-principal`,
+`#barra-acessibilidade`) que só viram `role="button"` depois de hidratar. O `<nav
+aria-label="Principal">` continua com os 11 de `ITENS` (agora com grupo: Conhecer, Participar,
+Ler, Fale com a gente); WhatsApp e "Apoiar o Ateliê" ficam fora dele. "Acervo" passou a se chamar
+**Biblioteca** na navegação; a rota segue `/acervo` até a fase 6.
+
+**Componentes base** (`componentes/*.ts`, testáveis pelo runtime do Node): `CabecalhoDaPagina`,
+`ItemDeLista`, `Chip`/`FiltroEmChips`, `Abas`, `EstadoVazio`, `Aplique`, `SeloDeData`,
+`BarraDeAcao`/`LinkDeVoltar`. Catálogo vivo, só equipe: `/admin/ajuda/componentes`.
+Testes sem navegador: `testes/novo-layout.test.mjs`.
+
+**NÃO VERIFICADO nesta entrega:** os 17 arquivos de teste com Selenium/Firefox (cabeçalho, foco,
+teclado, acessibilidade) não rodaram — o ambiente onde a fase 1–2 foi feita não tinha Firefox. A
+moldura foi conferida olhando no Chromium (390px e 1440px, com e sem JavaScript); rodar `npm test`
+completo numa máquina com Firefox antes de publicar.
+
 ---
 
 ## Status por módulo

@@ -129,6 +129,17 @@
   --aplique: 6px 6px 0;
   --aplique-curto: 4px 4px 0;
 
+  /* ELEVAÇÃO EM TRÊS NÍVEIS (novo layout). A sombra dura deixou de
+     destacar porque aparecia em toda caixa. Agora:
+       plano    — listas, cartões comuns, campos: linha fina, sem sombra;
+       contorno — botão secundário, foco, seleção: borda marrom de 1,5px;
+       aplique  — o destaque da tela, NO MÁXIMO UM por tela. */
+  --af-borda-plano: 1px solid var(--af-hairline);
+  --af-borda-contorno: var(--af-border);
+  --af-elev-aplique: var(--af-shadow-md);
+  --af-borda-campo: rgba(43, 32, 25, .4);
+  --af-anel-foco: 0 0 0 3px var(--af-blue);
+
   /* ---- Tipografia: uma serifa so, em tudo (principio 1 do sistema) ----
      `--display` e `--corpo` apontam para a MESMA familia de proposito.
      Os dois nomes continuam existindo porque o CSS antigo os usa; um dia
@@ -137,16 +148,22 @@
   --display: var(--af-font);
   --corpo: var(--af-font);
 
-  /* Escala do handoff, convertida de px para rem sobre base 16.
-     28px=1.75 · 19px=1.1875 · 16px=1 · 14.5px=0.90625 · 13px=0.8125
-     12.5px=0.78125 · 10.5px=0.65625 */
-  --af-h1: 1.75rem;
-  --af-h2: 1.1875rem;
-  --af-h3: 1rem;
-  --af-body: 0.90625rem;
-  --af-body-sm: 0.8125rem;
-  --af-caption: 0.78125rem;
-  --af-overline: 0.65625rem;
+  /* ESCALA DO NOVO LAYOUT (Análise UX-UI, "Fundamentos", 08/10/2026).
+     A do handoff v1 (H1 28 · H2 19 · H3 16 · corpo 14,5 · sobretítulo
+     10,5) deixava títulos e corpo parecidos demais e o texto corrido
+     pequeno para ler de pé, no celular. Razão ~1,2 entre níveis, e o corpo
+     em 16px — que é também o piso abaixo do qual o iOS dá zoom no campo.
+     Continua em rem: o A+ escala tudo.
+     32px=2 · 22px=1.375 · 18px=1.125 · 16px=1 · 14px=0.875 · 13px=0.8125
+     12px=0.75 */
+  --af-h1: 2rem;
+  --af-h2: 1.375rem;
+  --af-h3: 1.125rem;
+  --af-body: 1rem;
+  --af-body-sm: 0.875rem;
+  --af-caption: 0.8125rem;
+  --af-overline: 0.75rem;
+  --af-lead: 1rem;
   --af-lh-tight: 1.15;
   --af-lh-body: 1.6;
   --af-ls-overline: .12em;
@@ -212,16 +229,17 @@
 /* Tela muito estreita (320px): o titulo do heroi precisa caber sem partir.
    E' o piso do clamp() do handoff (22px), em rem. */
 @media (max-width: 22.5rem) {
-  :root { --af-h1: 1.375rem; }
+  :root { --af-h1: 1.75rem; }
 }
 
-/* Desktop: a escala inteira sobe (H1 46 · H2 30 · H3 22 · corpo 15). */
+/* Desktop: títulos sobem (H1 48 · H2 28 · H3 21 · lead 18); o corpo fica
+   em 16 — subir o corpo no desktop só alongava a linha. */
 @media (min-width: 64rem) {
   :root {
-    --af-h1: 2.875rem;
-    --af-h2: 1.875rem;
-    --af-h3: 1.375rem;
-    --af-body: 0.9375rem;
+    --af-h1: 3rem;
+    --af-h2: 1.75rem;
+    --af-h3: 1.3125rem;
+    --af-lead: 1.125rem;
     --espaco-6: 4rem;
   }
 }
@@ -257,6 +275,8 @@ html[data-contraste="alto"] {
   --af-hairline: #000000;
   --af-hairline-inv: #FFFFFF;
   --af-scrim: rgba(0, 0, 0, .7);
+  --af-borda-campo: #000000;
+  --af-anel-foco: 0 0 0 3px #00327A;
 
   /* Os apelidos que nao sao derivados diretos precisam ser refeitos aqui:
      `--marrom` aponta para --af-brown-400 la' em cima, e sem esta linha o

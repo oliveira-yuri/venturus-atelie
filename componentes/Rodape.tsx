@@ -2,32 +2,33 @@ import Link from 'next/link';
 import { Icone } from '@/componentes/Icone';
 
 /**
- * Rodape compartilhado. Traz os cinco contatos nomeados pela ONG (RF06) —
+ * Rodapé compartilhado. Traz os cinco contatos nomeados pela ONG (RF06) —
  * portado de `site/assets/js/componentes/aac-rodape.js`.
  *
- * Os blocos usam <div>, nao <section>: <section> criava colisao de landmark
- * no site antigo, corrigida antes — mantida a mesma escolha aqui.
- *
  * =====================================================================
- * DESIGN SYSTEM v1: TRES COLUNAS, FAIXA LISTRADA E A COLUNA DE APOIO
+ * NOVO LAYOUT (08/10/2026): COMPACTO, CREME, EM UMA LINHA NO DESKTOP
  * =====================================================================
  *
- * O sistema (variacao 1a aprovada) desenha o rodape marrom em tres
- * colunas: contato, endereco e apoio com um CTA. As duas primeiras ja
- * existiam; a terceira e' nova.
+ * Era um bloco marrom de três colunas — contato, endereço e "Apoie o
+ * ateliê" com outro botão de doar — depois de TODA página, inclusive de
+ * /contato, que acabou de listar os mesmos canais. Na Análise UX-UI (2a,
+ * 6a) ele vira o pé da página e não mais uma seção: endereço, os canais
+ * numa fileira e os links legais. No desktop, uma linha só.
  *
- * A FAIXA LISTRADA ACIMA DO RODAPE E' UMA DAS DUAS PERMITIDAS POR PAGINA
- * (regra do handoff: no maximo duas, uma antes do primeiro bloco de
- * conteudo e outra antes do rodape). Ela mora AQUI, e nao em app/layout.tsx,
- * para que rodape e faixa andem sempre juntos — separa-los faria a segunda
- * faixa aparecer em pagina onde a primeira nao aparece, e a conta de "no
- * maximo duas" viraria adivinhacao. E' decoracao pura, entao `aria-hidden`.
+ * O "Apoiar" saiu daqui porque passou a estar sempre à mão — no cabeçalho
+ * do desktop e no pé da folha do menu no celular. Repetido no rodapé, era o
+ * terceiro botão de doar na mesma tela.
  *
- * O TEXTO DA COLUNA NOVA NAO FOI INVENTADO (regra 2 do CLAUDE.md): a frase
- * sobre livros, instrumentos, materiais de arte e recursos e' a mesma que
- * ja esta' na home, no cartao "Apoiar" (app/page.tsx), e o titulo repete o
- * verbo que o botao ja usa. O handoff escreve /apoiar no href; a rota real
- * deste site e' /doar, e e' ela que vai aqui.
+ * OS CINCO CANAIS FICAM, com o rótulo escrito. Ícone `aria-hidden`: quem usa
+ * leitor de tela ouve "WhatsApp" uma vez só.
+ *
+ * A FAIXA LISTRADA acima do rodapé é a única por página na regra nova
+ * ("faixa listrada: uma por página, acima do rodapé"). Ela mora AQUI para
+ * andar sempre junto do rodapé. Decoração pura, `aria-hidden`.
+ *
+ * O logotipo leva `alt` VAZIO: o nome da ONG já está no logotipo do
+ * cabeçalho (com alt) e no endereço logo ao lado — um alt aqui faria quem
+ * usa leitor de tela ouvir o nome mais uma vez sem ganhar nada.
  */
 export default function Rodape() {
   return (
@@ -35,78 +36,28 @@ export default function Rodape() {
       <div className="af-stripe" aria-hidden="true"></div>
 
       <footer className="af-footer rodape">
-        <div className="af-footer__cols">
-          <div className="rodape__bloco">
-            <h2>Fale com a gente</h2>
-            {/*
-              ÍCONES NOS CANAIS (pedido V1). Cada um acompanha o rótulo
-              escrito e é `aria-hidden` — quem usa leitor de tela continua
-              ouvindo "WhatsApp", uma vez só. Ver componentes/Icone.ts.
-            */}
-            <ul className="af-footer__links rodape__lista">
-              <li><a href="tel:+5511953968344"><Icone nome="telefone" />(11) 95396-8344</a></li>
-              <li><a href="https://wa.me/5511953968344" rel="noopener"><Icone nome="whatsapp" />WhatsApp</a></li>
-              <li><a href="mailto:atelieafro@gmail.com"><Icone nome="email" />atelieafro@gmail.com</a></li>
-              <li><a href="https://instagram.com/atelie_afrocultural" rel="noopener"><Icone nome="instagram" />Instagram</a></li>
-              <li><a href="https://tiktok.com/@ateli.afro.cultur" rel="noopener"><Icone nome="tiktok" />TikTok</a></li>
-            </ul>
-          </div>
+        <div className="af-footer__linha">
+          <img className="af-footer__marca" src="/imagens/logo-atelie.png" alt="" width={260} height={106}
+            loading="lazy" decoding="async" />
 
-          <div className="rodape__bloco">
-            <h2>Onde estamos</h2>
-            <address className="af-footer__endereco rodape__endereco">
-              Rua Dr. Paulo Gatti, 135 — Vila Romero<br />
-              São Paulo/SP — CEP 02468-030
-            </address>
-          </div>
+          <address className="af-footer__endereco rodape__endereco">
+            Rua Dr. Paulo Gatti, 135 — Vila Romero, São Paulo/SP — CEP 02468-030
+          </address>
 
-          <div className="rodape__bloco">
-            <h2>Apoie o ateliê</h2>
-            <p className="af-footer__endereco">
-              Recebemos livros, instrumentos musicais, materiais de arte, itens de acervo e
-              recursos financeiros.
-            </p>
-            <p className="rodape__acao">
-              <Link className="af-btn af-btn--ochre" href="/doar">Doar agora</Link>
-            </p>
-          </div>
+          <ul className="af-footer__links rodape__lista" aria-label="Fale com a gente">
+            <li><a href="tel:+5511953968344"><Icone nome="telefone" />(11) 95396-8344</a></li>
+            <li><a href="https://wa.me/5511953968344" rel="noopener"><Icone nome="whatsapp" />WhatsApp</a></li>
+            <li><a href="mailto:atelieafro@gmail.com"><Icone nome="email" />atelieafro@gmail.com</a></li>
+            <li><a href="https://instagram.com/atelie_afrocultural" rel="noopener"><Icone nome="instagram" />Instagram</a></li>
+            <li><a href="https://tiktok.com/@ateli.afro.cultur" rel="noopener"><Icone nome="tiktok" />TikTok</a></li>
+          </ul>
         </div>
-
-        {/*
-          ===================================================================
-          A MARCA DA ONG, ENFIM (pedido V1 + RNF06)
-          ===================================================================
-
-          O formulário de levantamento respondeu "(X) Sim, mas em baixa
-          qualidade" sobre o logotipo — e ANEXOU o arquivo, na última página.
-          Ele estava lá o tempo todo; ninguém tinha ido buscar. Extraído do
-          PDF em 03/09/2026, reduzido para 520px e limpo das franjas cinzas
-          que o JPEG original tinha deixado em volta de cada traço (286 KB →
-          12 KB, com fundo transparente).
-
-          `alt` VAZIO, e não "logotipo do Ateliê Afro Cultural": o nome da
-          ONG já está escrito no cabeçalho de toda página e aqui em cima, no
-          endereço. Um alt descritivo faria quem usa leitor de tela ouvir o
-          nome uma terceira vez, sem ganhar informação nenhuma. A imagem é
-          decorativa NESTE lugar — o que ela acrescenta é para quem enxerga.
-
-          `loading="lazy"` porque o rodapé fica abaixo da dobra em toda
-          página: quem não rolar até aqui não baixa os 12 KB.
-        */}
-        <p className="af-footer__marca">
-          <img src="/imagens/logo-atelie.png" alt="" width={260} height={106}
-               loading="lazy" decoding="async" />
-        </p>
 
         <p className="af-footer__legal rodape__aviso">
           <Link href="/privacidade">Política de privacidade</Link>
-          {' · '}
           <Link href="/perguntas-frequentes">Perguntas frequentes</Link>
-          {' · '}
           <Link href="/depoimentos">Depoimentos</Link>
-          {' · '}
           <Link href="/para-empresas">Para empresas e apoiadores</Link>
-          {' · '}
           <Link href="/en" lang="en" hrefLang="en">About us (English)</Link>
         </p>
       </footer>
