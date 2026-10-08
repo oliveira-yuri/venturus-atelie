@@ -1,6 +1,6 @@
 /**
  * Os cartões do painel no celular (revisão de 07/10/2026): linha de topo,
- * botões em coluna, campo de busca do filtro e o WhatsApp que não existe ali.
+ * botões em coluna, campo de busca do filtro e o WhatsApp que não flutua mais.
  *
  * O que se mede é o markup e as regras de CSS que o sustentam. A TELA foi
  * vista numa bancada com os componentes reais e o CSS real (o painel exige
@@ -76,8 +76,11 @@ test('os grupos de botões do painel são padronizados pelo sufixo __botoes, e a
   assert.ok(usados.has('presenca__botoes'), 'a lista de presença continua com o grupo próprio');
 });
 
-test('o botão flutuante de WhatsApp não aparece no painel', () => {
-  assert.match(aplicado, /body:has\(\.painel\)\s+\.zap\s*\{\s*display:\s*none;?\s*\}/);
+test('não há botão flutuante de WhatsApp em lugar nenhum — nem regra para escondê-lo', () => {
+  // Novo layout (08/10/2026): o WhatsApp foi para a folha do menu. A regra
+  // que o escondia no painel saiu junto; se ela voltar, o botão voltou.
+  assert.doesNotMatch(aplicado, /\.zap\b/);
+  assert.doesNotMatch(css('sistema.css'), /\.zap\b/);
 });
 
 test('o painel continua dentro de um contêiner .painel — é ele que o :has procura', () => {

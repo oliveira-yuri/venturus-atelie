@@ -314,50 +314,37 @@ test('/projetos/<id> inexistente responde 404, e não uma página de conteúdo v
 });
 
 /* =====================================================================
-   O BOTÃO FLUTUANTE DE WHATSAPP (pedido do grupo)
+   O WHATSAPP SAIU DO BOTÃO FLUTUANTE E FOI PARA A FOLHA DO MENU
    =====================================================================
 
-   `docs/Correções Web Ateliê.txt`. A nota do grupo trazia um aviso junto:
-   "o VLibras já ocupa esse canto; empilhar ou trocar de lado, nunca
-   remover o VLibras". Tirar a tradução para caber um botão de conversa
-   seria trocar acessibilidade por conveniência.
+   Novo layout (Análise UX-UI, 08/10/2026, com o aval do grupo): nada
+   flutua por cima do conteúdo além do VLibras, e o WhatsApp mora na folha
+   do menu, no rodapé e em /contato. A nota do grupo continua valendo para
+   o que ficou fixo na tela: "nunca remover o VLibras".
    ===================================================================== */
 
-test('o botão de WhatsApp é um link comum — funciona sem JavaScript', async () => {
-  // `wa.me` é endereço, não API. Um `onClick` com `window.open` perderia o
-  // funcionamento sem script E o "abrir em nova aba".
-  const html = await fetch(`${BASE}/`).then((r) => r.text());
+// O WhatsApp na folha do menu (sem navegador) é medido em
+// testes/novo-layout.test.mjs.
 
-  assert.match(html, /<a[^>]+class="zap"[^>]+href="https:\/\/wa\.me\/5511953968344"/,
-    'o botão flutuante deixou de ser <a> para wa.me');
-  assert.match(html, /aria-label="Falar com o Ateliê pelo WhatsApp"/,
-    'sem nome acessível, quem usa leitor de tela ouve "link" e mais nada — e na tela '
-    + 'estreita o rótulo escrito é escondido por CSS');
-});
-
-test('o botão de WhatsApp NÃO cobre o VLibras', async () => {
-  // A condição que o grupo escreveu. MEDIDO a 390px: o widget fica na borda
-  // direita, na altura do meio; o canto inferior está livre. Este teste
-  // falha se um dos dois se mover para cima do outro.
+test('a barra de atalhos do celular não cobre o VLibras', async () => {
+  // MEDIDO a 390px: o widget fica na borda direita, na altura do meio da
+  // tela; a barra fica no pé. Este teste falha se um dos dois se mover para
+  // cima do outro.
   await navegador.manage().window().setRect({ width: 390, height: 844 });
   await navegador.get(`${BASE}/`);
   await new Promise((pronto) => setTimeout(pronto, 2500));
 
   const sobrepoe = await navegador.executeScript(`
-    const zap = document.querySelector('.zap');
-    if (!zap) return 'sem botao';
-
-    // O widget do VLibras monta fora do nosso controle e pode estar em
-    // shadow DOM: procura por QUALQUER elemento fixo que não seja o nosso.
+    const barra = document.querySelector('.af-atalhos');
+    if (!barra) return 'sem barra';
     const outros = [...document.querySelectorAll('body *')].filter((el) => {
-      if (el === zap || zap.contains(el)) return false;
+      if (el === barra || barra.contains(el) || el.closest('header')) return false;
       const e = getComputedStyle(el);
       if (e.position !== 'fixed' || e.display === 'none') return false;
       const r = el.getBoundingClientRect();
       return r.width > 20 && r.height > 20;
     });
-
-    const z = zap.getBoundingClientRect();
+    const z = barra.getBoundingClientRect();
     return outros.filter((el) => {
       const r = el.getBoundingClientRect();
       return !(r.right < z.left || r.left > z.right || r.bottom < z.top || r.top > z.bottom);
@@ -365,27 +352,6 @@ test('o botão de WhatsApp NÃO cobre o VLibras', async () => {
   `);
 
   assert.deepEqual(sobrepoe, [],
-    `algo fixo está por cima (ou por baixo) do botão de WhatsApp: ${JSON.stringify(sobrepoe)}. `
-    + 'O aviso do grupo é explícito: nunca remover o VLibras — mover o botão.');
-});
-
-test('com a gaveta aberta, o botão sai da ordem de Tab', async () => {
-  // O scrim já o cobre visualmente (z-index 40 contra 25). O que este teste
-  // mede é outra coisa: sem `display: none`, quem navega por teclado
-  // alcançaria um botão atrás de um fundo escuro.
-  await navegador.manage().window().setRect({ width: 390, height: 844 });
-  await navegador.get(`${BASE}/`);
-
-  const burger = await navegador.wait(async () => {
-    const b = await navegador.findElement(By.css('.af-burger'));
-    return (await b.getAttribute('aria-expanded')) !== null ? b : null;
-  }, 10000);
-
-  await burger.click();
-  await new Promise((pronto) => setTimeout(pronto, 500));
-
-  const display = await navegador.executeScript(
-    'return getComputedStyle(document.querySelector(".zap")).display;');
-  assert.equal(display, 'none',
-    'o botão continua na ordem de Tab com a gaveta aberta');
+    `algo fixo está por cima (ou por baixo) da barra de atalhos: ${JSON.stringify(sobrepoe)}. `
+    + 'O aviso do grupo é explícito: nunca remover o VLibras.');
 });

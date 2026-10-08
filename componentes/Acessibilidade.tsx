@@ -15,43 +15,30 @@ import {
  * o botao leva um instante para se marcar como ativo.
  *
  * =====================================================================
- * O DESIGN SYSTEM v1 MUDOU O LUGAR, NAO O MECANISMO
+ * NOVO LAYOUT (08/10/2026): A BARRA VIROU O BLOCO "LEITURA" DA FOLHA DO MENU
  * =====================================================================
  *
- * Antes: os quatro botoes ficavam soltos na faixa do cabecalho, visiveis
- * sempre. Agora sao uma BARRA propria, abaixo da faixa ocre, comandada pelo
- * botao "Aa" — que e' o que o sistema desenha (e o que o pedido V1 chama de
- * "acessibilidade acoplada ao menu").
+ * Era uma barra fixa logo abaixo do cabeçalho, comandada pelo "Aa" — mais
+ * uma faixa grudada no topo da tela de quem rola (Análise UX-UI, ponto 5:
+ * "elementos flutuando por cima do conteúdo"). Agora mora DENTRO da folha
+ * do menu (componentes/MenuMovel.tsx), e o "Aa" abre a folha já neste
+ * bloco. Quem recolhe e revela é a folha; este componente não tem mais
+ * estado de aberto/fechado.
  *
- * DUAS COISAS FORAM PRESERVADAS CONTRA O HANDOFF, e as duas sao a regra 8:
+ * O QUE FOI PRESERVADO, e é a regra 8:
  *
- *   1. A BARRA CHEGA ABERTA DO SERVIDOR. O handoff escreve
- *      `<div class="af-a11y" hidden>` e revela por script — o que deixaria
- *      quem esta sem JavaScript sem NENHUM controle de tamanho de texto,
- *      num site cuja ONG pediu "textos grandes". Aqui `af-a11y--recolhida`
- *      so' entra depois de `hidratado`. Ate' 06/10/2026 o CSS do desktop
- *      a mantinha visivel sempre, e o botao "Aa" nao fazia nada ali; agora
- *      ela obedece ao botao em qualquer largura (estilos/sistema.css).
+ *   1. SEM JAVASCRIPT OS CONTROLES CONTINUAM NA PÁGINA: a folha chega aberta
+ *      do servidor, no fluxo, e este bloco vem dentro dela. O "Aa" é um
+ *      link para `#barra-acessibilidade` e leva a pessoa até aqui.
  *
- *   2. A ESCALA CONTINUA EM `--escala-fonte`, NAO EM `zoom`. O handoff usa
- *      `document.documentElement.style.zoom = 0.92 | 1 | 1.1`. Aqui a
- *      escala e' o `font-size` do <html> e todo tamanho do sistema esta' em
- *      rem (ver estilos/tokens.css). Motivos: `zoom` cria contexto de
- *      empilhamento e briga com o `position: sticky` do cabecalho novo; ele
- *      escala tambem o que NAO e' texto; e a faixa do handoff vai so' ate'
- *      110%, contra os 137,5% daqui.
+ *   2. A ESCALA CONTINUA EM `--escala-fonte`, NÃO EM `zoom`: a escala é o
+ *      `font-size` do <html> e todo tamanho do sistema está em rem (ver
+ *      estilos/tokens.css), indo até 137,5%.
  *
- * O ESTADO DE ABERTO/FECHADO NAO MORA AQUI. O botao "Aa" fica dentro da
- * faixa ocre e a barra fica fora dela; duas instancias separadas nao
- * compartilhariam `useState`. Quem guarda e' componentes/Cabecalho.tsx.
+ * O `id` continua `barra-acessibilidade`: o "Aa" aponta para ele, e os
+ * testes de teclado também.
  */
-export default function Acessibilidade({
-  hidratado,
-  aberta
-}: {
-  hidratado: boolean;
-  aberta: boolean;
-}) {
+export default function Acessibilidade() {
   const [preferencias, setPreferencias] = useState<Preferencias>({ ...PADRAO });
   const [lido, setLido] = useState(false);
   const [anuncio, setAnuncio] = useState('');
@@ -103,10 +90,10 @@ export default function Acessibilidade({
     if (!lido) return;
     const raiz = document.documentElement;
     raiz.style.setProperty('--escala-fonte', `${preferencias.escala}%`);
-    // `data-fonte="grande"` deixa o CSS encolher o que FLUTUA sobre o texto
-    // (o botão de WhatsApp) quando a pessoa aumentou a letra — CSS não
-    // consegue comparar o valor de uma custom property. O mesmo limite está
-    // no script anti-piscada de app/layout.tsx.
+    // `data-fonte="grande"` deixa o CSS ajustar o que fica FIXO na tela (a
+    // barra de atalhos do celular) quando a pessoa aumentou a letra — CSS
+    // não consegue comparar o valor de uma custom property. O mesmo limite
+    // está no script anti-piscada de app/layout.tsx.
     if (preferencias.escala > PADRAO.escala) raiz.setAttribute('data-fonte', 'grande');
     else raiz.removeAttribute('data-fonte');
     if (preferencias.contraste === 'alto') raiz.setAttribute('data-contraste', 'alto');
@@ -135,19 +122,14 @@ export default function Acessibilidade({
 
   const alto = lido && preferencias.contraste === 'alto';
 
-  // Recolhida so' depois de hidratar. Sem JavaScript esta classe nunca entra
-  // e a barra fica aberta — ver o bloco no topo deste arquivo.
-  const classes = ['af-a11y'];
-  if (hidratado && !aberta) classes.push('af-a11y--recolhida');
-
   return (
     <div
       id="barra-acessibilidade"
-      className={classes.join(' ')}
+      className="af-a11y"
       role="group"
       aria-label="Acessibilidade"
     >
-      <span className="af-a11y__rotulo">Acessibilidade</span>
+      <span className="af-a11y__rotulo">Leitura</span>
 
       <button type="button" className="af-control" data-acao="diminuir"
         aria-label="Diminuir tamanho do texto"

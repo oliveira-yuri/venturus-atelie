@@ -293,6 +293,9 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   '/admin/avisos/editar',
   // 06/10/2026: a ajuda da equipe, tela de primeiro nível do painel.
   '/admin/ajuda',
+  // 08/10/2026: o catálogo dos componentes do novo layout (plano, tarefa
+  // 1.5). Segundo nível, alcançado por /admin/ajuda.
+  '/admin/ajuda/componentes',
   // 07/10/2026: a fila de moderação de depoimentos.
   '/admin/depoimentos',
 

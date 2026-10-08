@@ -95,6 +95,14 @@ export default async function PaginaDeAjuda() {
         </ul>
       </section>
 
+      <section aria-labelledby="titulo-componentes">
+        <h2 id="titulo-componentes">Para quem mexe no site</h2>
+        <p>
+          As peças do novo layout, desenhadas uma a uma:{' '}
+          <Link href="/admin/ajuda/componentes">componentes do novo layout</Link>.
+        </p>
+      </section>
+
       <section aria-labelledby="titulo-problemas">
         <h2 id="titulo-problemas">Deu problema?</h2>
         <ul>

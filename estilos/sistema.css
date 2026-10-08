@@ -82,7 +82,7 @@
    --------------------------------------------------------------------- */
 
 .af-stripe {
-  height: 14px;
+  height: 10px;
   background: repeating-linear-gradient(
     90deg,
     var(--af-brown) 0 3px,
@@ -90,132 +90,96 @@
   );
 }
 
-/* ---------------------------------------------------------------------
-   Cabeçalho fixo
-   --------------------------------------------------------------------- */
+/* =====================================================================
+   CABEÇALHO, BARRA DE ATALHOS E FOLHA DO MENU — novo layout (08/10/2026)
+
+   Análise UX-UI 2a/3a/6a. Três peças, um componente só
+   (componentes/Cabecalho.tsx + MenuMovel.tsx):
+
+     · CABEÇALHO creme de 60px (76px no desktop), com o logotipo;
+     · BARRA DE ATALHOS — Início · Agenda · Biblioteca · Menu. No celular
+       ela é FIXA NO PÉ DA TELA, ao alcance do polegar; no desktop é a
+       navegação do próprio cabeçalho, com "Projetos", "Quem somos" e
+       "Mais";
+     · FOLHA DO MENU — sobe de baixo no celular; no desktop é o painel que
+       o "Mais" abre sob o cabeçalho.
+
+   A REGRA DO SERVIDOR CONTINUA (topo deste arquivo): sem JavaScript a
+   folha chega como lista no fluxo da página, e `.af-nav--gaveta` só entra
+   depois de hidratar.
+
+   EMPILHAMENTO: `.af-header` é `sticky` com z-index, o que cria um contexto
+   de empilhamento próprio. Dentro dele, a faixa do topo (`__barra`, que
+   contém a barra de atalhos) fica ACIMA da folha: com a folha aberta, o
+   cabeçalho e a barra do pé continuam visíveis e tocáveis — o "Menu" da
+   barra fecha a folha, como no desenho 3a.
+   ===================================================================== */
+
+:root {
+  --af-altura-cabecalho: 3.75rem;
+  --af-altura-atalhos: 3.5rem;
+}
 
 .af-header {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: var(--af-ochre);
-  border-bottom: var(--af-border);
+  background: var(--af-cream);
+  border-bottom: var(--af-borda-plano);
 }
 
 .af-header__barra {
+  position: relative;
+  z-index: 2;
   display: flex;
-  flex-wrap: wrap;
-  /* Quando os botões descem para a segunda linha, eles vão para a DIREITA,
-     onde estavam. Na primeira linha a marca cresce até eles, e isto não
-     muda nada. */
-  justify-content: flex-end;
   align-items: center;
-  gap: var(--af-s3);
-  padding: var(--af-s4) var(--af-gutter);
-}
-
-/* A MARCA TEM LARGURA MÍNIMA, e os botões descem de linha quando não
-   cabem. Antes era `min-width: 0`: com sessão aberta (nome de quem entrou +
-   "Sair") ou com o A+ ligado, a marca era espremida até virar "A…" — e,
-   quando o nome passou a poder quebrar, até uma coluna de uma letra por
-   linha (MEDIDO em 06/10/2026, 390px com sessão). `min-content` é a
-   largura de "Cultural", a palavra mais longa do nome — o nome quebra entre
-   as palavras e nunca no meio delas; só quando nem isso cabe os botões
-   descem. Para `min-content` não ser a linha inteira de
-   `.af-header__meta` (que é `nowrap`), ela tem `contain: inline-size`. */
-.af-header__marca {
-  flex: 1 1 0;
-  min-width: min-content;
-  color: var(--af-brown);
-  text-decoration: none;
-}
-
-.af-header__nome {
-  display: block;
-  font: 700 0.9375rem / var(--af-lh-tight) var(--af-font);
-  /* QUEBRA EM DUAS LINHAS, não corta. Era `nowrap` + reticências, e com o
-     A+ ligado o nome da ONG virava "Ateliê Afr…" justamente para quem
-     aumentou o texto para conseguir ler (MEDIDO em 06/10/2026, 390px a
-     137,5%). `min-width: 0` em `.af-header__marca` continua impedindo que
-     a marca empurre "Entrar" para fora da tela: ela encolhe e quebra. */
-  overflow-wrap: break-word;
-}
-
-.af-header__meta {
-  display: block;
-  contain: inline-size;
-  margin-top: 2px;
-  font: 400 var(--af-overline) / 1.2 var(--af-font);
-  color: #5C4423;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* O hambúrguer. Alvo de 46px, quadrado, marrom sobre ocre. */
-.af-burger {
-  width: 2.875rem;
-  height: 2.875rem;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* 3px entre as três barras. Era `gap: 4px` no grid MAIS `margin: 2px 0`
-     em cada <span> — os dois se somavam e deixavam os traços longe demais
-     ("os 3 palitinhos muito separados"). Agora o espaçamento é só este
-     `gap`. */
-  gap: 3px;
-  background: var(--af-brown);
-  border: var(--af-border);
-  border-radius: var(--af-radius-control);
-  cursor: pointer;
-  padding: 0;
-}
-
-.af-burger span {
-  display: block;
-  width: 20px;
-  height: 2px;
+  gap: var(--af-s4);
+  min-height: var(--af-altura-cabecalho);
+  padding: var(--af-s2) var(--af-gutter);
   background: var(--af-cream);
 }
 
-/* Enquanto a gaveta está aberta, o ícone vira "X" — um sinal a mais de
-   que o toque teve efeito. Sem movimento quando a pessoa pediu menos
-   animação. */
-.af-burger span {
-  transition: transform var(--af-dur) var(--af-ease), opacity var(--af-dur) var(--af-ease);
-}
-.af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(1) {
-  transform: translateY(5px) rotate(45deg);
-}
-.af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(2) {
-  opacity: 0;
-}
-.af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(3) {
-  transform: translateY(-5px) rotate(-45deg);
+.af-header__marca {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  min-height: var(--af-touch-min);
+  margin-right: auto;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .af-burger span { transition: none; }
-  .af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(1),
-  .af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(3) { transform: none; }
-  .af-header__barra:has(.af-burger[aria-expanded="true"]) .af-burger span:nth-child(2) { opacity: 1; }
+/* Altura em rem: o logotipo cresce com o A+, como o nome escrito crescia. */
+.af-header__marca img { display: block; height: 2.125rem; width: auto; }
+
+.af-header__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--af-s3);
+  min-height: var(--af-touch-min);
+  padding-right: var(--af-s5);
+  margin-right: auto;
+  color: var(--af-brown);
+  font: 600 0.9375rem var(--af-font);
+  text-decoration: none;
 }
 
-/* ---------------------------------------------------------------------
-   Controles do cabeçalho (Aa, Entrar, Sair, nome de quem entrou)
-   --------------------------------------------------------------------- */
+.af-header__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--af-s3);
+  min-width: 0;
+}
+
+/* ---- Controles do cabeçalho (Aa, Entrar, Sair, nome, Apoiar) ---- */
 
 .af-control {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: var(--af-touch-min);
-  min-width: 2.875rem;
-  padding: 0 var(--af-s5);
-  background: var(--af-card);
-  border: var(--af-border);
+  min-width: var(--af-touch-min);
+  padding: 0 var(--af-s6);
+  background: transparent;
+  border: var(--af-borda-contorno);
   border-radius: var(--af-radius-control);
   color: var(--af-brown);
   font: 600 var(--af-body-sm) var(--af-font);
@@ -224,227 +188,305 @@
   cursor: pointer;
 }
 
-.af-control:hover { background: var(--af-brown); color: var(--af-cream); }
+.af-control:hover { background: rgba(43, 32, 25, .06); color: var(--af-brown); }
 
 .af-control[aria-current="page"],
-.af-control[aria-pressed="true"] {
+.af-control[aria-pressed="true"],
+.af-control[aria-expanded="true"] {
   background: var(--af-brown);
   color: var(--af-cream);
 }
 
-/* O botão que abre a barra de acessibilidade: figura + "Aa" no celular,
-   figura + "Acessibilidade" a partir de 40rem. Os dois rótulos são
-   `aria-hidden` — o nome acessível é o `aria-label` do botão. */
-.af-control .icone { flex: none; }
-.af-control:has(.af-control__curto) { gap: var(--af-s2); padding-inline: var(--af-s4); }
+.af-control--leitura { padding-inline: 0; font-weight: 700; font-size: 0.9375rem; }
 .af-control__longo { display: none; }
 
-@media (min-width: 40rem) {
-  .af-control__curto { display: none; }
-  .af-control__longo { display: inline; }
-}
+/* "Apoiar" do cabeçalho só existe no desktop; no celular ele é o pé da
+   folha do menu. */
+.af-control--apoiar { display: none; }
 
-.af-header__sessao {
-  display: flex;
-  align-items: center;
-  gap: var(--af-s3);
-  min-width: 0;
-}
+.af-header__sessao { display: flex; align-items: center; gap: var(--af-s3); min-width: 0; }
 
-/* O nome de quem entrou é um link para /minha-conta (RF11) e continua
-   sendo o único caminho até a área do usuário. Encolhe antes de tudo:
-   num aparelho estreito, "Sair" precisa continuar alcançável. */
+/* O nome de quem entrou encolhe antes de tudo: "Sair" precisa continuar
+   alcançável num aparelho estreito. */
 .af-header__sessao .af-control--nome {
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: block;
   min-width: 0;
-  max-width: 8rem;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: var(--af-touch-min);
   padding-inline: var(--af-s3);
 }
 
 .af-header__sessao form { display: flex; }
 
-/* ---------------------------------------------------------------------
-   Barra de acessibilidade
+/* ---- Barra de atalhos: no celular, fixa no pé da tela ---- */
 
-   O handoff a esconde atrás do botão "Aa". Aqui ela CHEGA ABERTA do
-   servidor e o "Aa" só passa a recolher depois que o React assume — ver o
-   bloco no topo deste arquivo. `--recolhida` é a classe que o componente
-   acrescenta; sem JavaScript ela nunca entra.
-   --------------------------------------------------------------------- */
-
-.af-a11y {
-  position: sticky;
-  top: var(--af-a11y-top, 4.25rem);
-  z-index: 29;
+.af-atalhos {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: var(--af-card);
-  border-bottom: var(--af-border);
-  padding: var(--af-s5) var(--af-gutter);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--af-s3);
-  align-items: center;
+  border-top: var(--af-borda-contorno);
+  padding: 0 var(--af-s2) env(safe-area-inset-bottom);
 }
 
-.af-a11y--recolhida { display: none; }
-
-.af-a11y__rotulo {
-  width: 100%;
-  font: 500 var(--af-overline) var(--af-font);
-  color: var(--af-brown-400);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-
-.af-a11y .af-control { background: var(--af-cream); flex: none; }
-.af-a11y .af-control:disabled { opacity: .4; cursor: default; }
-.af-a11y .af-control:disabled:hover { background: var(--af-cream); color: var(--af-brown); }
-
-.af-a11y__contraste {
-  flex: 1 1 auto;
-  min-width: 8.125rem;
-  min-height: var(--af-touch-min);
-  padding: 0 var(--af-s6);
-  background: var(--af-brown);
-  border: var(--af-border);
-  border-radius: var(--af-radius-control);
-  color: var(--af-cream);
-  font: 600 var(--af-body-sm) var(--af-font);
-  cursor: pointer;
-}
-
-.af-a11y__contraste[aria-pressed="true"] {
-  background: var(--af-ochre);
-  color: var(--af-brown);
-}
-
-/* ATENCAO: esta regra existe por causa de um defeito MEDIDO, e apaga-la o
-   traz de volta. Em alto contraste `--af-ochre` vira BRANCO (tokens.css), e
-   o botao ligado ficava identico ao desligado — ou seja, justo quem depende
-   do alto contraste perdia o unico sinal de que ele esta' ligado. Aqui o
-   estado ligado inverte: preto solido com texto branco. */
-html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
-  background: #000000;
-  color: #FFFFFF;
-}
-
-/* ---------------------------------------------------------------------
-   Navegação
-
-   Estado base = o que o servidor entrega: lista visível, no fluxo.
-   `.af-nav--gaveta` = o que o React acrescenta depois de hidratar.
-   --------------------------------------------------------------------- */
-
-.af-nav {
-  background: var(--af-brown);
-  border-bottom: var(--af-border);
-}
-
-.af-nav__lista {
+.af-atalhos__lista {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
 }
 
-.af-navlink {
+.af-atalhos__item--desktop { display: none; }
+
+.af-atalho,
+.af-burger {
+  position: relative;
   display: flex;
   align-items: center;
-  min-height: 3rem;
-  padding: 0 var(--af-gutter);
-  color: var(--af-cream);
-  font: 400 0.9375rem var(--af-font);
+  justify-content: center;
+  gap: var(--af-s2);
+  min-height: var(--af-altura-atalhos);
+  padding: 0 var(--af-s1);
+  color: var(--af-brown-400);
+  font: 600 0.8125rem var(--af-font);
+  text-align: center;
   text-decoration: none;
-  border-top: 1px solid var(--af-hairline-inv);
+  cursor: pointer;
 }
 
-.af-navlink:hover { background: var(--af-brown-800); color: var(--af-cream); }
+.af-atalho:hover,
+.af-burger:hover { color: var(--af-brown); }
 
-.af-navlink[aria-current="page"] {
+/* Onde a pessoa está: peso e um traço ocre no topo do item — ocre é a cor
+   de "estado ativo" na regra nova. */
+.af-atalho[aria-current="page"],
+.af-burger[aria-expanded="true"] { color: var(--af-brown); font-weight: 700; }
+
+.af-atalho[aria-current="page"]::before,
+.af-burger[aria-expanded="true"]::before {
+  content: '';
+  position: absolute;
+  top: -1.5px;
+  left: 22%;
+  right: 22%;
+  height: 4px;
   background: var(--af-ochre);
-  color: var(--af-brown);
-  font-weight: 600;
 }
 
-/* O cabeçalho da gaveta e o botão de fechar só fazem sentido quando ela É
-   gaveta: sem JavaScript não há como fechar nada, e um "×" que não fecha é
-   pior que nenhum. */
+html[data-contraste="alto"] .af-atalho[aria-current="page"]::before,
+html[data-contraste="alto"] .af-burger[aria-expanded="true"]::before { background: #000000; }
+
+.af-burger__desktop { display: none; }
+
+/* O conteúdo não pode ficar escondido atrás da barra fixa. */
+@media (max-width: 63.999rem) {
+  body:has(.af-atalhos) { padding-bottom: calc(var(--af-altura-atalhos) + 1.5px + env(safe-area-inset-bottom)); }
+
+  /* Telas de detalhe e de formulário trocam a barra de atalhos pela barra
+     de ação (componentes/BarraDeAcao.ts) — a página não precisa avisar o
+     layout: basta desenhar a barra de ação. */
+  body:has(.af-barra-acao) .af-atalhos { display: none; }
+  body:has(.af-barra-acao) { padding-bottom: calc(5.25rem + env(safe-area-inset-bottom)); }
+}
+
+/* ---- Folha do menu ----
+
+   Estado base = o que o servidor entrega: a lista no fluxo da página, logo
+   abaixo do cabeçalho. É o que vê quem está sem JavaScript. */
+
+.af-nav {
+  position: relative;
+  z-index: 1;
+  background: var(--af-card);
+  border-top: var(--af-borda-plano);
+}
+
+.af-nav__painel { padding: var(--af-s3) var(--af-gutter) var(--af-s10); }
+
+/* O cabeçalho da folha e o "×" só fazem sentido quando ela É folha: sem
+   JavaScript não há como fechar nada, e um "×" que não fecha é pior que
+   nenhum. */
 .af-nav__cabeca { display: none; }
 
-.af-nav__rodape { padding: var(--af-s8); }
-
-.af-nav__rodape .af-btn {
-  min-height: 3rem;
-  border: 1.5px solid var(--af-cream);
+.af-nav__grupo-titulo {
+  margin: var(--af-s8) 0 var(--af-s1);
+  font: 600 var(--af-overline) var(--af-font);
+  letter-spacing: var(--af-ls-overline);
+  text-transform: uppercase;
+  color: var(--af-brown-400);
 }
 
-/* ---- A gaveta propriamente dita (só depois de hidratar) ---- */
+.af-nav__grupo--conhecer .af-nav__grupo-titulo { color: var(--af-ochre-deep); }
+.af-nav__grupo--participar .af-nav__grupo-titulo { color: var(--af-blue-deep); }
+
+.af-nav__lista { list-style: none; margin: 0; padding: 0; }
+
+.af-navlink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 3.25rem;
+  border-bottom: var(--af-borda-plano);
+  color: var(--af-brown);
+  font: 600 1.0625rem var(--af-font);
+  text-decoration: none;
+}
+
+.af-navlink:hover { color: var(--af-brown); text-decoration: underline; }
+
+.af-navlink[aria-current="page"] { font-weight: 700; padding-left: var(--af-s5); }
+.af-navlink[aria-current="page"]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 4px;
+  background: var(--af-ochre);
+}
+
+.af-nav__whatsapp { margin: var(--af-s9) 0 0; }
+.af-nav__whatsapp .af-btn { min-height: 3rem; }
+
+.af-nav__rodape { margin-top: var(--af-s9); }
+.af-nav__rodape .af-btn { min-height: 3.25rem; border: var(--af-borda-contorno); }
+
+/* ---- Leitura (os controles de acessibilidade, dentro da folha) ---- */
+
+.af-a11y { margin-top: var(--af-s9); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.6fr); gap: var(--af-s3); }
+
+.af-a11y__rotulo {
+  grid-column: 1 / -1;
+  font: 600 var(--af-overline) var(--af-font);
+  letter-spacing: var(--af-ls-overline);
+  text-transform: uppercase;
+  color: var(--af-brown-400);
+}
+
+.af-a11y .af-control { min-width: 0; padding: 0; font-size: 0.875rem; }
+.af-a11y .af-control:disabled { opacity: .4; cursor: default; }
+.af-a11y .af-control:disabled:hover { background: transparent; }
+
+.af-a11y__contraste {
+  min-height: var(--af-touch-min);
+  padding: 0 var(--af-s3);
+  background: transparent;
+  border: var(--af-borda-contorno);
+  border-radius: var(--af-radius-control);
+  color: var(--af-brown);
+  font: 600 0.875rem var(--af-font);
+  cursor: pointer;
+}
+
+/* "Ouvir esta página" ocupa a linha de baixo inteira. */
+.af-a11y__contraste[data-acao="ouvir"] { grid-column: 1 / -1; }
+
+.af-a11y__contraste[aria-pressed="true"] { background: var(--af-brown); color: var(--af-cream); }
+
+/* Em alto contraste o estado ligado precisa continuar diferente do
+   desligado (MEDIDO em 06/10/2026: com o ocre virando branco, os dois
+   ficavam idênticos). Preto sólido, texto branco. */
+html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] { background: #000000; color: #FFFFFF; }
+
+/* ---- A folha propriamente dita (só depois de hidratar) ---- */
 
 .af-nav--gaveta {
   position: fixed;
   inset: 0;
-  z-index: 40;
   background: var(--af-scrim);
-  border-bottom: none;
-  display: block;
+  border-top: none;
 }
 
 .af-nav--gaveta.af-nav--fechada { display: none; }
 
-.af-nav--gaveta .af-nav__painel {
-  position: absolute;
+.af-nav--gaveta .af-nav__cabeca {
+  position: sticky;
   top: 0;
-  left: 0;
-  bottom: 0;
-  width: 82%;
-  max-width: 300px;
-  background: var(--af-brown);
-  border-right: 2px solid var(--af-ochre);
-  padding: var(--af-s8) 0 1.5rem;
-  overflow-y: auto;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  margin: 0 calc(var(--af-gutter) * -1);
+  padding: var(--af-s7) var(--af-gutter) var(--af-s3);
+  background: var(--af-card);
 }
 
-/* =====================================================================
-   ABRIR E FECHAR COM DESLIZE
-   =====================================================================
+.af-nav__alca {
+  position: absolute;
+  top: var(--af-s4);
+  left: 50%;
+  width: 2.75rem;
+  height: 4px;
+  margin-left: -1.375rem;
+  border-radius: 2px;
+  background: var(--af-cream-dim);
+}
 
-   O scrim faz fade e o painel entra pela esquerda. `display` continua
-   sendo o que tira a gaveta da ordem de Tab quando fechada — a transição
-   de `display` com `allow-discrete`, casada com o `@starting-style`,
-   só faz o navegador segurar o `display: none` até o deslize terminar.
-   Navegador sem `@starting-style` cai no instantâneo de antes: é
-   aprimoramento, não requisito, e nenhum teste de menu depende do tempo.
+.af-nav__titulo { font: 700 var(--af-h2) var(--af-font); }
 
-   TUDO ISTO É ESCOPADO ABAIXO DE 64rem, de propósito. Da largura de
-   desktop para cima a classe `af-nav--gaveta af-nav--fechada` continua no
-   HTML (o React não sabe a largura da tela) mas a navegação é uma faixa
-   horizontal — `pointer-events: none` e `translateX(-100%)` fora deste
-   `@media` deixariam a barra inteira do desktop invisível e não-clicável. */
+.af-nav__fechar {
+  width: var(--af-touch-min);
+  height: var(--af-touch-min);
+  background: transparent;
+  border: var(--af-borda-contorno);
+  border-radius: var(--af-radius-control);
+  color: var(--af-brown);
+  font: 400 1.25rem var(--af-font);
+  cursor: pointer;
+}
+
+/* O que a barra de atalhos já mostra não se repete na folha. */
+.af-nav--gaveta .af-nav__item--na-barra,
+.af-nav--gaveta .af-nav__item--no-rodape { display: none; }
+
+/* Layout focado (telas de conta): a folha é só a leitura. */
+.af-nav--gaveta.af-nav--focado :is(.af-nav__principal, .af-nav__whatsapp, .af-nav__rodape) { display: none; }
+.af-nav--gaveta.af-nav--focado .af-a11y { margin-top: var(--af-s3); }
+.af-nav--gaveta.af-nav--focado .af-a11y__rotulo { display: none; }
+
 @media (max-width: 63.999rem) {
+  .af-nav--gaveta .af-nav__painel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: calc(var(--af-altura-cabecalho) + 4px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--af-card);
+    border-top: var(--af-borda-contorno);
+    padding: 0 var(--af-gutter) calc(var(--af-altura-atalhos) + var(--af-s10) + env(safe-area-inset-bottom));
+  }
+
+  /* No layout focado não há barra no pé: a folha de leitura é curta e
+     encosta no pé da tela. */
+  .af-nav--gaveta.af-nav--focado .af-nav__painel {
+    top: auto;
+    padding-bottom: calc(var(--af-s10) + env(safe-area-inset-bottom));
+  }
+
+  /* MOVIMENTO: a folha sobe em 280ms e o fundo escurece junto (Análise
+     UX-UI, "Movimento": de baixo para cima, não pela esquerda). `display`
+     com `allow-discrete` + `@starting-style` seguram o `display: none` até
+     o movimento terminar; navegador sem suporte abre e fecha na hora — é
+     aprimoramento, não requisito. */
   .af-nav--gaveta {
     transition:
-      background-color var(--af-dur) var(--af-ease),
-      display var(--af-dur) var(--af-ease) allow-discrete;
+      background-color 280ms var(--af-ease),
+      display 280ms var(--af-ease) allow-discrete;
   }
+  .af-nav--gaveta .af-nav__painel { transition: transform 280ms var(--af-ease); }
+  .af-nav--gaveta.af-nav--fechada { background-color: transparent; pointer-events: none; }
+  .af-nav--gaveta.af-nav--fechada .af-nav__painel { transform: translateY(100%); }
 
-  .af-nav--gaveta.af-nav--fechada {
-    background-color: transparent;
-    /* O scrim ainda está desvanecendo durante o fecha: não deixa clicar
-       nele nesse meio-tempo. */
-    pointer-events: none;
-  }
-
-  .af-nav--gaveta.af-nav--fechada .af-nav__painel { transform: translateX(-100%); }
-
-  .af-nav--gaveta .af-nav__painel { transition: transform var(--af-dur) var(--af-ease); }
-
-  /* O estado "de onde" a gaveta entra, na primeira vez que sai do
-     display:none. Sem isto o scrim apareceria já cheio e o painel já no
-     lugar, sem deslize. */
   @starting-style {
     .af-nav--gaveta { background-color: transparent; }
-    .af-nav--gaveta .af-nav__painel { transform: translateX(-100%); }
+    .af-nav--gaveta .af-nav__painel { transform: translateY(100%); }
   }
 }
 
@@ -453,24 +495,106 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
   .af-nav--gaveta .af-nav__painel { transition: none; }
 }
 
-.af-nav--gaveta .af-nav__cabeca {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--af-s8) var(--af-s7);
+/* ---- Desktop: navegação no cabeçalho, "Mais" abre um painel ---- */
+
+@media (min-width: 40rem) {
+  .af-control--leitura { padding-inline: var(--af-s6); }
+  .af-control__curto { display: none; }
+  .af-control__longo { display: inline; }
 }
 
-.af-nav__titulo { font: 700 0.875rem var(--af-font); color: var(--af-ochre); }
+@media (min-width: 64rem) {
+  :root { --af-altura-cabecalho: 4.75rem; }
 
-.af-nav__fechar {
-  width: var(--af-touch-min);
-  height: var(--af-touch-min);
-  background: transparent;
-  border: 1.5px solid var(--af-brown-400);
-  border-radius: var(--af-radius-control);
-  color: var(--af-cream);
-  font: 400 1.125rem var(--af-font);
-  cursor: pointer;
+  .af-header__barra {
+    max-width: var(--af-container);
+    margin-inline: auto;
+    padding: 0 var(--af-gutter-desk);
+    gap: var(--af-s10);
+  }
+
+  .af-header__marca { margin-right: 0; }
+  .af-header__marca img { height: 2.75rem; }
+  .af-header__voltar { margin-right: auto; }
+
+  .af-control { font-size: 0.9375rem; }
+  .af-control--apoiar {
+    display: inline-flex;
+    background: var(--af-ochre);
+    font-weight: 700;
+    padding-inline: var(--af-s8);
+  }
+  .af-control--apoiar:hover { background: #C28D0C; color: var(--af-brown); }
+
+  .af-atalhos {
+    position: static;
+    flex: 1;
+    padding: 0;
+    background: transparent;
+    border: none;
+  }
+
+  .af-atalhos__lista { display: flex; gap: var(--af-s1); }
+  .af-atalhos__item--desktop { display: list-item; }
+
+  .af-atalho,
+  .af-burger {
+    min-height: var(--af-touch-min);
+    padding: 0 var(--af-s6);
+    color: var(--af-brown-600);
+    font-size: 0.9375rem;
+  }
+
+  .af-atalho[aria-current="page"]::before,
+  .af-burger[aria-expanded="true"]::before {
+    top: auto;
+    bottom: 4px;
+    left: var(--af-s6);
+    right: var(--af-s6);
+    height: 3px;
+  }
+
+  .af-burger__celular { display: none; }
+  .af-burger__desktop { display: inline; }
+  .af-burger::after {
+    content: '';
+    width: 0.4375rem;
+    height: 0.4375rem;
+    margin-left: var(--af-s2);
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+  }
+
+  /* Sem JavaScript, a lista inteira no fluxo, em colunas. */
+  .af-nav__principal { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 var(--af-s10); }
+  .af-nav__painel { max-width: var(--af-container); margin-inline: auto; padding-inline: var(--af-gutter-desk); }
+
+  /* Com JavaScript: o painel do "Mais", sob o cabeçalho, à direita. O fundo
+     fica transparente (clicar fora fecha), e o cabeçalho continua por cima
+     dele — "Aa" e "Mais" fecham o que abriram. */
+  .af-nav--gaveta { background: transparent; }
+  .af-nav--gaveta .af-nav__painel {
+    position: absolute;
+    top: var(--af-altura-cabecalho);
+    right: max(var(--af-gutter-desk), calc((100% - var(--af-container)) / 2 + var(--af-gutter-desk)));
+    width: 40rem;
+    max-width: calc(100% - 2 * var(--af-gutter-desk));
+    max-height: calc(100vh - var(--af-altura-cabecalho) - 2rem);
+    overflow-y: auto;
+    margin: 0;
+    padding: 0 var(--af-s9) var(--af-s9);
+    background: var(--af-card);
+    border: var(--af-borda-contorno);
+    box-shadow: var(--af-elev-aplique);
+  }
+  .af-nav--gaveta .af-nav__cabeca { margin: 0 calc(var(--af-s9) * -1); padding: var(--af-s7) var(--af-s9) var(--af-s3); }
+  .af-nav__alca { display: none; }
+  .af-nav--gaveta .af-nav__principal { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* O que o cabeçalho do desktop já mostra não se repete no painel. */
+  .af-nav--gaveta .af-nav__item--no-cabecalho,
+  .af-nav--gaveta .af-nav__rodape { display: none; }
 }
 
 /* ---------------------------------------------------------------------
@@ -613,55 +737,71 @@ html[data-contraste="alto"] .af-a11y__contraste[aria-pressed="true"] {
 }
 
 /* ---------------------------------------------------------------------
-   Rodapé
+   Rodapé — compacto e creme (novo layout, 2a/6a)
+
+   Era um bloco marrom de três colunas; agora é o pé da página: logotipo,
+   endereço, os cinco canais numa fileira e os links legais. Uma linha só
+   no desktop. A faixa listrada acima dele é a única da página.
    --------------------------------------------------------------------- */
 
 .af-footer {
-  background: var(--af-brown);
-  padding: var(--af-s10) var(--af-gutter) 1.875rem;
-  color: var(--af-cream);
+  padding: var(--af-s9) var(--af-gutter) var(--af-s10);
+  background: var(--af-cream);
+  color: var(--af-brown-400);
+  font: 400 var(--af-body-sm) / 1.5 var(--af-font);
 }
 
-.af-footer h2 {
-  margin: 0 0 var(--af-s5);
-  font: 700 0.9375rem var(--af-font);
-  color: var(--af-ochre);
-}
+.af-footer__linha { display: flex; flex-direction: column; gap: var(--af-s4); }
 
-.af-footer__cols { display: grid; gap: var(--af-s9); }
+.af-footer__marca { display: block; align-self: flex-start; height: 2.25rem; width: auto; }
 
-.af-footer__links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.af-footer__endereco { margin: 0; font-style: normal; }
 
-.af-footer__links a {
-  display: flex;
-  align-items: center;
-  min-height: var(--af-touch-min);
-  color: var(--af-cream);
-  font: 400 0.84375rem var(--af-font);
-  overflow-wrap: anywhere;
-}
-
-.af-footer__endereco {
+.af-footer__links {
+  list-style: none;
   margin: 0;
-  font: 400 0.84375rem / var(--af-lh-body) var(--af-font);
-  font-style: normal;
-  color: var(--af-cream-dim);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--af-s7);
 }
 
-.af-footer__legal {
-  margin-top: var(--af-s7);
-  padding-top: var(--af-s6);
-  border-top: 1px solid var(--af-hairline-inv);
-}
-
+.af-footer__links a,
 .af-footer__legal a {
   display: inline-flex;
   align-items: center;
   min-height: var(--af-touch-min);
-  font: 400 var(--af-caption) var(--af-font);
-  color: var(--af-cream-dim);
+  color: var(--af-blue-deep);
+  overflow-wrap: anywhere;
 }
 
+.af-footer__links a .icone { margin-right: var(--af-s2); }
+
+.af-footer__legal {
+  margin: var(--af-s3) 0 0;
+  padding-top: var(--af-s3);
+  border-top: var(--af-borda-plano);
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--af-s7);
+  max-width: none;
+}
+
+.af-footer__legal a { color: var(--af-brown-400); font-size: var(--af-caption); }
+
+@media (min-width: 64rem) {
+  .af-footer { padding: var(--af-s10) 0 2.5rem; }
+  .af-footer > * { max-width: var(--af-container); margin-inline: auto; padding-inline: var(--af-gutter-desk); }
+  .af-footer__linha {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--af-s10);
+  }
+  .af-footer__endereco { flex: 1; }
+  .af-footer__links { flex-wrap: nowrap; column-gap: var(--af-s8); }
+  .af-footer__legal { justify-content: flex-start; }
+  .af-stripe { height: 12px; }
+}
 
 /* ---------------------------------------------------------------------
    Grade e tile numerado — "Por onde começar"
@@ -833,8 +973,6 @@ html[data-contraste="alto"] .af-tile.af-tile--invertido p { color: #FFFFFF; }
    ===================================================================== */
 
 @media (min-width: 40rem) {
-  .af-footer__cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--af-s9) 2.5rem; }
-
   /* Deixa de ser carrossel: no tablet cabem dois cartoes lado a lado, e
      arrastar deixa de ser o gesto natural. */
   .af-hscroll {
@@ -850,84 +988,10 @@ html[data-contraste="alto"] .af-tile.af-tile--invertido p { color: #FFFFFF; }
 }
 
 /* =====================================================================
-   Desktop — 1024px: a navegação inteira fica exposta, a gaveta some.
+   Desktop — 1024px (cabeçalho, folha e rodapé têm o bloco próprio, acima).
    ===================================================================== */
 
 @media (min-width: 64rem) {
-  .af-header__barra {
-    max-width: var(--af-container);
-    margin-inline: auto;
-    padding: var(--af-s7) var(--af-gutter-desk);
-  }
-
-  .af-header__nome { font-size: 1.375rem; }
-  .af-header__meta { font-size: 0.75rem; }
-
-  /* Sem gaveta no desktop: some o hambúrguer, e a navegação volta a ser
-     uma faixa horizontal. A classe --gaveta continua no HTML (o React não
-     sabe a largura da tela); quem a desliga é esta regra. */
-  .af-burger { display: none; }
-
-  .af-nav,
-  .af-nav--gaveta,
-  .af-nav--gaveta.af-nav--fechada {
-    display: block;
-    position: static;
-    inset: auto;
-    background: var(--af-brown);
-    z-index: auto;
-  }
-
-  .af-nav--gaveta .af-nav__painel {
-    position: static;
-    width: auto;
-    max-width: var(--af-container);
-    margin-inline: auto;
-    padding: 0 var(--af-gutter-desk);
-    background: transparent;
-    border-right: none;
-    overflow: visible;
-  }
-
-  .af-nav--gaveta .af-nav__cabeca,
-  .af-nav__rodape { display: none; }
-
-  .af-nav__lista { display: flex; flex-wrap: wrap; }
-
-  .af-navlink {
-    min-height: 3.25rem;
-    padding: 0 var(--af-s7);
-    border-top: none;
-    font-size: 0.875rem;
-  }
-
-  /* A BARRA OBEDECE AO BOTÃO TAMBÉM NO DESKTOP. Até 06/10/2026 esta regra
-     forçava `display: flex` inclusive em `.af-a11y--recolhida`: o botão
-     de acessibilidade alternava o estado, e nada mudava na tela — clicar
-     nele "não fazia nada". E a barra sempre aberta era a terceira faixa do
-     cabeçalho (ocre + acessibilidade + menu), que o handoff desenha com
-     duas.
-
-     Sem JavaScript ela continua chegando aberta, como no celular: a
-     classe --recolhida só entra depois de hidratar (Acessibilidade.tsx).
-
-     A regra de recolher vem DEPOIS de `.af-a11y` e com DUAS classes: com
-     uma só e antes dela, `display: flex` vencia e o defeito continuava —
-     medido assim na primeira tentativa desta correção. */
-  .af-a11y {
-    display: flex;
-    position: static;
-    background: var(--af-card);
-    padding: var(--af-s5) var(--af-gutter-desk);
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-  }
-
-  .af-a11y.af-a11y--recolhida { display: none; }
-
-  .af-a11y__rotulo { width: auto; margin-right: auto; }
-  .af-a11y__contraste { flex: none; min-width: 0; }
-
   .af-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--af-s9); }
   .af-tile { box-shadow: var(--af-shadow-md); border-top-width: 6px; }
   .af-tile > a { padding: 22px var(--af-s9) 24px; }
@@ -939,11 +1003,6 @@ html[data-contraste="alto"] .af-tile.af-tile--invertido p { color: #FFFFFF; }
   .af-media__item { padding: 22px; gap: var(--af-s8); box-shadow: var(--af-shadow-md); }
   .af-media__titulo { font-size: 1.0625rem; }
 
-  .af-footer { padding: 3rem 0 2.25rem; }
-  .af-footer > * { max-width: var(--af-container); margin-inline: auto; padding-inline: var(--af-gutter-desk); }
-  .af-footer__cols { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.5rem; }
-  .af-footer h2 { font-size: 1.0625rem; }
-  .af-stripe { height: 16px; }
 
   /* Herói em duas colunas: cartão à esquerda (1.05fr) avançando -48px sobre
      a imagem vertical (1fr) à direita. `desktop.css` §herói do handoff. */
@@ -973,10 +1032,6 @@ html[data-contraste="alto"] .af-tile.af-tile--invertido p { color: #FFFFFF; }
   /* No desktop a foto do setor fica um pouco menos alta (16:10), como o
      protótipo. object-fit: cover cuida do recorte. */
   .setor__img { aspect-ratio: 16 / 10; }
-}
-
-@media (hover: hover) {
-  .af-navlink:hover { background: var(--af-brown-800); color: var(--af-ochre); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1081,19 +1136,13 @@ html[data-contraste="alto"] .af-tile.af-tile--invertido p { color: #FFFFFF; }
   .af-dialogo__acoes > * { flex: 0 0 auto; }
 }
 
-/* Os itens de quem está dentro: "Minha conta", "Mural de avisos" (para
-   quem é voluntário) e "Painel da equipe". A borda de topo os separa dos 11
-   que valem para toda visita — é a mesma divisão que a gaveta já faz entre
-   navegação e o CTA de doar. Ela fica em `--conta` porque esse item é o
-   primeiro dos três sempre que algum aparece (ver itensDeQuemEntrou).
-
-   `.af-navlink--avisos` EXISTE E NÃO PINTA NADA, de propósito: o ocre de
-   `--painel` significa "ferramenta de quem é equipe", e reusá-lo no mural
-   apagaria justamente a diferença entre ser equipe e ser voluntário. A
-   classe fica como gancho para o dia em que houver o que marcar. */
-.af-navlink--conta { border-top: 2px solid var(--af-ochre); }
-.af-navlink--painel { color: var(--af-ochre); font-weight: 600; }
-.af-navlink--painel:hover { background: var(--af-brown-800); color: var(--af-ochre); }
+/* Os itens de quem está dentro ("Minha conta", "Mural de avisos", "Painel
+   da equipe") ficam no grupo "Sua conta" da folha (MenuMovel.tsx). O
+   painel continua marcado: é ferramenta de quem é equipe. Ocre ESCURO —
+   ocre puro sobre creme não passa em contraste. `--avisos` existe e não
+   pinta nada, de propósito: reusar a marca do painel no mural apagaria a
+   diferença entre ser equipe e ser voluntário. */
+.af-navlink--painel { color: var(--af-ochre-deep); }
 
 /* ---------------------------------------------------------------------
    Bloco do Pix (RF23)
@@ -1202,87 +1251,305 @@ html[data-contraste="alto"] .af-tile.af-tile--invertido p { color: #FFFFFF; }
   max-width: 52ch;
 }
 
-/* ---------------------------------------------------------------------
-   Botão flutuante de WhatsApp (pedido do grupo)
 
-   NÃO PODE COBRIR O VLIBRAS — ver o cabeçalho de
-   componentes/BotaoWhatsApp.ts. MEDIDO: o widget fica na borda direita, na
-   altura do meio da tela; o canto inferior está livre. A margem abaixo é
-   maior que o necessário de propósito, para absorver uma mudança de
-   posição numa versão futura do widget.
-   --------------------------------------------------------------------- */
+/* =====================================================================
+   NOVO LAYOUT (Análise UX-UI, 08/10/2026) — componentes base
 
-.zap {
-  position: fixed;
-  right: var(--af-gutter);
-  bottom: var(--af-s9);
-  z-index: 25;             /* abaixo do cabeçalho (30) e da gaveta (40) */
+   CabecalhoDaPagina, ItemDeLista, Chip/FiltroEmChips, Abas, EstadoVazio,
+   Aplique e SeloDeData (componentes/*.ts). O catálogo vivo, com cada um
+   desenhado, está em /admin/ajuda/componentes.
 
-  display: inline-flex;
+   As três regras que eles carregam:
+     · creme domina; ocre só em ação "Apoiar", estado ativo, contagem e data;
+     · elevação em três níveis, e o aplique no MÁXIMO UMA vez por tela;
+     · alvo de toque de 44px no mínimo, em rem (cresce com o A+).
+   ===================================================================== */
+
+/* ---- Cabeçalho da página: sobretítulo → H1 → lead ---- */
+
+.af-cabecalho-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--af-s4);
+  padding: var(--af-s10) 0 var(--af-s9);
+}
+
+.af-cabecalho-pagina__sobre { margin: 0; color: var(--af-ochre-deep); }
+
+.af-cabecalho-pagina__lead {
+  margin: 0;
+  max-width: 40rem;
+  font: 400 var(--af-lead) / 1.55 var(--af-font);
+  color: var(--af-brown-600);
+  text-wrap: pretty;
+}
+
+.af-cabecalho-pagina__acao { margin-top: var(--af-s3); }
+
+/* ---- Item de lista: linha de 72px, fio embaixo, seta se for link ---- */
+
+.af-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1rem;
   align-items: center;
   gap: var(--af-s3);
-  min-height: var(--af-touch-cta);
-  padding: 0 var(--af-s7);
-
-  background: var(--af-brown);
-  color: var(--af-cream);
-  border: 1.5px solid var(--af-cream);
-  box-shadow: var(--af-shadow-ochre);
-  font: 600 var(--af-body) var(--af-font);
+  min-height: 4.5rem;
+  padding: var(--af-s5) 0;
+  border-bottom: var(--af-borda-plano);
+  color: var(--af-brown);
   text-decoration: none;
 }
 
-.zap:hover { background: var(--af-brown-800); color: var(--af-cream); }
+div.af-item { grid-template-columns: minmax(0, 1fr); }
+.af-item--numerado { grid-template-columns: 2rem minmax(0, 1fr) 1rem; }
+div.af-item--numerado { grid-template-columns: 2rem minmax(0, 1fr); }
 
-.zap .icone { margin-right: 0; }
+a.af-item:hover { background: rgba(43, 32, 25, .04); color: var(--af-brown); }
 
-/* NA TELA ESTREITA O RÓTULO FICA, e o botão encolhe. Até 06/10/2026 ele
-   virava um quadrado preto só com um balão genérico — e o balão não é o
-   logotipo do WhatsApp (componentes/Icone.ts explica por que não copiamos
-   marca alheia), então ninguém o reconhecia como WhatsApp justo no
-   celular, onde ele é mais usado. A palavra escrita resolve sem usar a
-   marca deles. */
-@media (max-width: 26rem) {
-  .zap {
-    min-height: 2.75rem;
-    padding: 0 var(--af-s5);
-    gap: var(--af-s2);
-    font-size: var(--af-body-sm);
+.af-item__numero { font: 700 0.8125rem var(--af-font); color: var(--af-ochre-deep); }
+.af-item__corpo { display: flex; flex-direction: column; gap: 2px; }
+.af-item__rotulo {
+  font: 600 var(--af-overline) var(--af-font);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--af-blue-deep);
+}
+.af-item__titulo { font: 700 1.0625rem / 1.25 var(--af-font); }
+.af-item__descricao { font: 400 var(--af-body-sm) / 1.45 var(--af-font); color: var(--af-brown-400); }
+
+/* A seta é desenhada (borda girada), como a de "Ver mais" no painel: um
+   caractere "›" muda de forma conforme a fonte do aparelho. */
+.af-item__seta {
+  justify-self: center;
+  width: 0.5625rem;
+  height: 0.5625rem;
+  border-right: 2px solid currentColor;
+  border-top: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+/* ---- Chips de filtro ---- */
+
+.af-chips { margin: 0 calc(var(--af-gutter) * -1); }
+
+.af-chips__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--af-gutter) var(--af-s7);
+  display: flex;
+  gap: var(--af-s3);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.af-chips__lista > li { flex: none; }
+
+.af-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--af-touch-min);
+  padding: 0 var(--af-s6);
+  border: var(--af-borda-contorno);
+  border-radius: 1.375rem;
+  color: var(--af-brown);
+  font: 600 var(--af-body-sm) var(--af-font);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.af-chip:hover { background: rgba(43, 32, 25, .06); color: var(--af-brown); }
+.af-chip--ativo,
+.af-chip--ativo:hover { background: var(--af-brown); color: var(--af-cream); }
+
+/* ---- Abas de página (links) ---- */
+
+.af-abas { padding: 0 0 var(--af-s5); background: var(--af-cream); }
+
+.af-abas--fixa {
+  position: sticky;
+  top: var(--af-altura-cabecalho, 3.75rem);
+  z-index: 5;
+}
+
+.af-abas__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  border: var(--af-borda-contorno);
+  border-radius: var(--af-radius-control);
+  overflow: hidden;
+}
+
+.af-abas__aba {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--af-touch-min);
+  padding: 0 var(--af-s3);
+  color: var(--af-brown);
+  font: 600 0.9375rem var(--af-font);
+  text-align: center;
+  text-decoration: none;
+}
+
+.af-abas__lista > li + li .af-abas__aba { border-left: var(--af-borda-contorno); }
+.af-abas__aba--ativa,
+.af-abas__aba--ativa:hover { background: var(--af-brown); color: var(--af-cream); }
+
+/* ---- Estado vazio ---- */
+
+.af-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--af-s4);
+  padding: 1.375rem var(--af-s8);
+  border: 1.5px dashed var(--af-ph-ink);
+}
+
+.af-vazio__titulo { margin: 0; font: 700 1.0625rem / 1.3 var(--af-font); }
+.af-vazio__texto { margin: 0; font: 400 0.9375rem / 1.5 var(--af-font); color: var(--af-brown-600); }
+.af-vazio__acoes { margin: 0; display: flex; flex-wrap: wrap; gap: var(--af-s3); }
+.af-vazio__acao { min-height: var(--af-touch-min); font-size: var(--af-body-sm); }
+
+/* ---- Aplique: o destaque da tela (máximo um) ---- */
+
+.af-aplique {
+  background: var(--af-card);
+  border: var(--af-borda-contorno);
+  box-shadow: var(--af-elev-aplique);
+}
+
+.af-aplique--escuro {
+  background: var(--af-brown);
+  color: var(--af-cream);
+  box-shadow: var(--af-shadow-ochre);
+}
+
+/* ---- Selo de data ---- */
+
+.af-selo {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  min-height: 4.75rem;
+  padding: var(--af-s3) 0;
+  background: var(--af-ph);
+  color: var(--af-brown);
+}
+
+.af-selo--destaque { background: var(--af-ochre); }
+.af-selo--grande { width: 5.25rem; min-height: 6rem; }
+
+.af-selo__semana,
+.af-selo__mes { font: 600 0.6875rem var(--af-font); letter-spacing: .1em; }
+.af-selo__dia { font: 700 1.625rem / 1 var(--af-font); }
+.af-selo--grande .af-selo__dia { font-size: 2.125rem; }
+
+/* ---- Botão com aplique: a ação principal, que "costura" ao toque ---- */
+
+.af-btn--aplique {
+  background: var(--af-brown);
+  color: var(--af-cream);
+  border: 1.5px solid var(--af-brown);
+  box-shadow: 4px 4px 0 var(--af-ochre);
+}
+.af-btn--aplique:hover { background: var(--af-brown-800); color: var(--af-cream); }
+
+/* MOVIMENTO (Análise UX-UI, "Movimento"): toque em 90ms — o aplique fecha,
+   o botão "costura" no lugar. `:active`, e não `:hover`: no celular não há
+   hover, e o retorno do toque é o que diz que ele pegou. */
+.af-btn { transition: transform 90ms ease-out, box-shadow 90ms ease-out, background-color 90ms ease-out; }
+.af-btn--aplique:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--af-ochre); }
+.af-btn--outline:active,
+.af-btn--primary:active,
+.af-btn--ochre:active { transform: scale(.98); }
+
+@media (prefers-reduced-motion: reduce) {
+  .af-btn { transition: none; }
+  .af-btn:active { transform: none; }
+}
+
+@media (min-width: 64rem) {
+  .af-cabecalho-pagina { padding: 3rem 0 var(--af-s10); }
+  .af-chips { margin: 0; }
+  .af-chips__lista { padding-inline: 0; flex-wrap: wrap; overflow: visible; }
+}
+
+/* ---- Voltar com o nome do destino ---- */
+
+.af-voltar { margin: 0; }
+.af-voltar a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--af-s3);
+  min-height: var(--af-touch-min);
+  padding-right: var(--af-s5);
+  color: var(--af-brown);
+  font: 600 0.9375rem var(--af-font);
+  text-decoration: none;
+}
+.af-voltar a:hover { text-decoration: underline; }
+.af-voltar__seta {
+  width: 0.5625rem;
+  height: 0.5625rem;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+/* ---- Barra de ação (detalhe e formulário) ---- */
+
+.af-barra-acao,
+.af-barra-acao-amostra {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-columns: auto;
+  gap: var(--af-s3);
+  padding: var(--af-s5) var(--af-gutter) calc(var(--af-s5) + env(safe-area-inset-bottom));
+  background: var(--af-card);
+  border-top: var(--af-borda-contorno);
+}
+
+.af-barra-acao-amostra { border: var(--af-borda-plano); }
+
+.af-barra-acao__principal,
+.af-barra-acao__secundaria { min-height: 3.25rem; }
+.af-barra-acao__secundaria { padding-inline: var(--af-s7); }
+
+@media (max-width: 63.999rem) {
+  .af-barra-acao {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 26;
   }
 }
 
-/* COM O A+ LIGADO, o botão vira um quadrado pequeno, em px e não em rem,
-   e só com o ícone. Em rem ele crescia junto com o texto (69×69px a
-   137,5%) e cobria exatamente as linhas que a pessoa tinha aumentado para
-   conseguir ler. O nome acessível NÃO some junto: ele está no
-   `aria-label`, não no <span>. `data-fonte` vem de Acessibilidade.tsx e do
-   script anti-piscada de app/layout.tsx. */
-@media (max-width: 40rem) {
-  html[data-fonte="grande"] .zap {
-    width: 48px;
-    min-height: 48px;
-    height: 48px;
+@media (min-width: 64rem) {
+  .af-barra-acao {
+    margin: var(--af-s10) 0 0;
     padding: 0;
-    justify-content: center;
-    bottom: 12px;
-    right: 12px;
+    background: transparent;
+    border: none;
+    grid-template-columns: none;
+    justify-content: start;
   }
-  html[data-fonte="grande"] .zap__texto {
-    position: absolute;
-    width: 1px; height: 1px;
-    margin: -1px; padding: 0;
-    overflow: hidden; clip-path: inset(50%);
-    white-space: nowrap;
-  }
+  .af-barra-acao__principal { padding-inline: var(--af-s10); }
 }
 
-/* A GAVETA COBRE A TELA INTEIRA: o botão sai do caminho enquanto ela está
-   aberta. `display: none` e não `opacity`, de propósito — o que importa
-   aqui não é sumir da vista (o scrim já faz isso), é sair da ORDEM DE TAB.
-   Sem isto, quem navega por teclado alcança um botão atrás de um fundo
-   escuro.
+/* ---- Catálogo de componentes (/admin/ajuda/componentes) ---- */
 
-   A marca vive no <html> porque o botão é irmão do <header>, e não da
-   gaveta: nenhum seletor a partir dela o alcança. Ver componentes/
-   Cabecalho.tsx. */
-html[data-gaveta="aberta"] .zap { display: none; }
+.catalogo__bloco { margin: 0 0 var(--af-s10); padding-top: var(--af-s8); border-top: var(--af-borda-plano); }
+.catalogo__arquivo { margin: 0 0 var(--af-s5); font-size: var(--af-body-sm); color: var(--af-brown-400); }
+.catalogo__amostra { padding: var(--af-s7); background: var(--af-cream); border: 1px dashed var(--af-hairline); }
+.catalogo__linha { display: flex; gap: var(--af-s5); flex-wrap: wrap; }
+.catalogo__nota { font-size: var(--af-body-sm); color: var(--af-brown-400); }
+.catalogo__aplique { padding: var(--af-s8); }
+.catalogo__aplique p { margin: 0; }

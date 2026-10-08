@@ -10,7 +10,6 @@ import '@/estilos/sistema-aplicado.css';
 import Cabecalho from '@/componentes/Cabecalho';
 import Rodape from '@/componentes/Rodape';
 import VLibras from '@/componentes/VLibras';
-import { BotaoWhatsApp } from '@/componentes/BotaoWhatsApp';
 import FocoNaNavegacao from '@/componentes/FocoNaNavegacao';
 import CompartilharNativo from '@/componentes/CompartilharNativo';
 import ContagemDeVisitas from '@/componentes/ContagemDeVisitas';
@@ -153,12 +152,12 @@ export default async function LayoutRaiz({ children }: { children: React.ReactNo
         {children}
         <Rodape />
         {/*
-          O botão de WhatsApp vem ANTES do VLibras na ordem do documento, e
-          é decisão: quem navega por teclado alcança primeiro o que fala
-          com a ONG, e o widget de tradução — que é de terceiro e monta
-          sozinho — fica por último, onde não atropela a ordem de foco.
+          O botão flutuante de WhatsApp SAIU no novo layout (Análise UX-UI,
+          08/10/2026, com o aval do grupo): o WhatsApp mora na folha do menu
+          (componentes/MenuMovel.tsx), no rodapé e em /contato. O VLibras
+          continua — regra 8 —, por último na ordem do documento, onde o
+          widget de terceiro não atropela a ordem de foco.
         */}
-        <BotaoWhatsApp />
         <VLibras nonce={nonce} />
       </body>
     </html>

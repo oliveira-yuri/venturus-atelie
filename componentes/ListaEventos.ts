@@ -127,8 +127,8 @@ export function ListaEventos({ eventos, mensagemVazio, inscricoesAbertas = false
           : null,
         // Um `<a>` comum, e não um botão com script: funciona sem
         // JavaScript, abre em nova aba se a pessoa quiser, e o teclado o
-        // alcança sem nada de especial. Mesma escolha de
-        // componentes/BotaoWhatsApp.ts.
+        // alcança sem nada de especial. Mesma escolha do WhatsApp na folha
+        // do menu (componentes/MenuMovel.tsx).
         // Compartilhar e "Adicionar à agenda" valem para o que ainda vem: um
         // .ics de evento passado entupiria o calendário de quem o abrisse.
         inscricoesAbertas

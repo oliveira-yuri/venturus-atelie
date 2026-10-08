@@ -145,6 +145,7 @@ const PAGINAS_SEM_URL_ANTIGA = [
   '/admin/avisos',
   '/admin/avisos/editar',
   '/admin/ajuda',
+  '/admin/ajuda/componentes',
   '/admin/depoimentos',
   '/avisos',
   /*
