@@ -180,6 +180,8 @@ export function ehRotaDinamica(href) {
 export const PAGINAS_PRONTAS_FORA_DO_MENU = [
   '/privacidade', '/recuperar-acesso', '/nova-senha', '/voluntariado/candidatura',
   '/doar/ofertar',
+  // Diferenciais baratos (07/10/2026): páginas novas, alcançadas pelo rodapé.
+  '/perguntas-frequentes', '/para-empresas', '/en', '/depoimentos',
 
   /**
    * AS DUAS ROTAS DE DETALHE (pedido V1, 02/09/2026): /projetos e /noticias
@@ -291,6 +293,8 @@ export const PAGINAS_SO_PARA_EQUIPE = [
   '/admin/avisos/editar',
   // 06/10/2026: a ajuda da equipe, tela de primeiro nível do painel.
   '/admin/ajuda',
+  // 07/10/2026: a fila de moderação de depoimentos.
+  '/admin/depoimentos',
 
   // RF32: o relatório para salvar em PDF. Não há biblioteca de PDF aqui e
   // não vai haver (regra 7, spec §9): quem gera o documento é

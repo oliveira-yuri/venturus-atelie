@@ -3109,3 +3109,68 @@ export function validarAviso(campos: CamposAviso): ResultadoValidacao {
 export function colunasDoAviso(campos: CamposAviso): { titulo: string; corpo: string } {
   return { titulo: campos.titulo, corpo: campos.corpo };
 }
+
+// =====================================================================
+// Depoimentos (formulário público de /depoimentos)
+//
+// Quem escreve é adulto ou responsável por quem participou — a declaração
+// é obrigatória aqui E no banco (`check`), porque o público da ONG começa
+// aos 10 anos (regra 9). Os limites espelham os `check` de
+// 014_depoimentos.sql. Não há e-mail: coleta mínima (RNF09).
+// =====================================================================
+export const LIMITE_TEXTO_DO_DEPOIMENTO = 1_500;
+export const MINIMO_TEXTO_DO_DEPOIMENTO = 20;
+export const LIMITE_ATIVIDADE_DO_DEPOIMENTO = 160;
+
+export type CamposDepoimento = {
+  nome: string;
+  atividade: string;
+  texto: string;
+  declaraAdulto: boolean;
+  autorizaPublicacao: boolean;
+};
+
+export function lerDepoimento(dados: FormData): CamposDepoimento {
+  return {
+    nome: textoDoCampo(dados, 'nome'),
+    atividade: textoDoCampo(dados, 'atividade'),
+    texto: textoDoCampo(dados, 'texto'),
+    declaraAdulto: marcado(dados, 'declara_adulto'),
+    autorizaPublicacao: marcado(dados, 'autoriza_publicacao')
+  };
+}
+
+export function validarDepoimento(campos: CamposDepoimento): ResultadoValidacao {
+  const erros: Record<string, string> = {};
+
+  if (!campos.nome) {
+    erros.nome = 'Escreva o nome que pode aparecer junto do depoimento.';
+  } else if (campos.nome.length > LIMITE_NOME) {
+    erros.nome = `O nome passou de ${LIMITE_NOME} caracteres.`;
+  }
+
+  if (campos.atividade.length > LIMITE_ATIVIDADE_DO_DEPOIMENTO) {
+    erros.atividade = `Passou de ${LIMITE_ATIVIDADE_DO_DEPOIMENTO} caracteres. Diga só o nome da atividade.`;
+  }
+
+  if (campos.texto.length < MINIMO_TEXTO_DO_DEPOIMENTO) {
+    erros.texto = campos.texto
+      ? `Conte um pouco mais: pelo menos ${MINIMO_TEXTO_DO_DEPOIMENTO} caracteres.`
+      : 'Escreva o seu depoimento.';
+  } else if (campos.texto.length > LIMITE_TEXTO_DO_DEPOIMENTO) {
+    erros.texto = `O depoimento passou de ${LIMITE_TEXTO_DO_DEPOIMENTO} caracteres. `
+      + 'Conte o essencial — a equipe pode pedir mais depois.';
+  }
+
+  if (!campos.declaraAdulto) {
+    erros.declara_adulto = 'Depoimentos são escritos por quem tem 18 anos ou mais, ou por um '
+      + 'responsável em nome de quem participou. Marque a caixa se for o seu caso.';
+  }
+
+  if (!campos.autorizaPublicacao) {
+    erros.autoriza_publicacao = 'Para o depoimento ir ao site precisamos da sua autorização '
+      + 'para publicar o texto e o nome acima.';
+  }
+
+  return { valido: Object.keys(erros).length === 0, erros };
+}

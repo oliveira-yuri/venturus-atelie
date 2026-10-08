@@ -152,6 +152,7 @@ export function frasePaginacao(paginacao: Paginacao, nome: NomeDaFila): string {
 export const MENSAGENS: NomeDaFila = { singular: 'mensagem', plural: 'mensagens', artigo: 'a' };
 export const CANDIDATURAS: NomeDaFila =
   { singular: 'candidatura', plural: 'candidaturas', artigo: 'a' };
+export const DEPOIMENTOS: NomeDaFila = { singular: 'depoimento', plural: 'depoimentos', artigo: 'o' };
 export const DOACOES: NomeDaFila = { singular: 'doação', plural: 'doações', artigo: 'a' };
 
 /**

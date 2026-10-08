@@ -197,6 +197,13 @@ export const TELAS_DO_PAINEL: TelaDoPainel[] = [
     pronta: true
   },
   {
+    caminho: '/admin/depoimentos',
+    titulo: 'Depoimentos',
+    descricao: 'Ler os depoimentos enviados pelo site e decidir quais vão ao ar.',
+    // Entrou em 07/10/2026, no mesmo commit que criou app/admin/depoimentos/.
+    pronta: true
+  },
+  {
     caminho: '/admin/ajuda',
     titulo: 'Ajuda',
     descricao: 'As três regras do painel, como subir foto e o que fazer quando algo dá errado.',

@@ -115,7 +115,7 @@ for (const pagina of PAGINAS) {
         menu: Boolean(document.querySelector('#menu-principal')),
         atual: document.querySelector('[aria-current="page"]')?.textContent.trim() || null,
         contatos: document.querySelectorAll('.af-footer__links a').length,
-        acessibilidade: document.querySelectorAll('.af-a11y button').length
+        acessibilidade: document.querySelectorAll('.af-a11y button:not([data-acao="ouvir"])').length
       };
     `);
 
@@ -136,6 +136,8 @@ for (const pagina of PAGINAS) {
       assert.equal(montou.atual, null, `${pagina.chave} não deveria ter item de menu marcado como atual`);
     }
     assert.ok(montou.contatos >= 5, 'o rodapé precisa dos cinco contatos do RF06');
+    // "Ouvir esta página" (data-acao="ouvir") fica de fora da conta: só existe onde o navegador
+    // sabe falar (speechSynthesis), então o total varia conforme o navegador.
     assert.equal(montou.acessibilidade, 4, 'faltam controles de acessibilidade');
   });
 

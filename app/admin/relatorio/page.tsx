@@ -7,6 +7,10 @@ import { resumoDeInscricoesPorEvento } from '@/servidor/dados/inscricoes';
 import { FUSO_DA_ONG } from '@/compartilhado/validacao';
 import { BotaoImprimir } from '@/componentes/BotaoImprimir';
 import { Instrucoes } from '@/componentes/Instrucoes';
+import { resumoDoPeriodo } from '@/servidor/dados/relatorio-periodo';
+import {
+  PERIODOS, ROTULO_DO_PERIODO, emReais, intervaloDoPeriodo, lerDeslocamento, lerPeriodo
+} from '@/compartilhado/periodo';
 
 /**
  * `/admin/relatorio` — o relatório em PDF (RF32).
@@ -78,14 +82,28 @@ function dataCurta(iso: string): string {
   });
 }
 
-export default async function PaginaDeRelatorio() {
+export default async function PaginaDeRelatorio(
+  { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
+) {
   if (!await ehEquipe()) notFound();
 
-  const [indicadores, eventos, resumo] = await Promise.all([
+  const consulta = await searchParams;
+  // Entrada de usuário: só passa o que está na lista fechada (compartilhado/periodo.ts).
+  const periodo = lerPeriodo(consulta.periodo) ?? 'mes';
+  const deslocamento = lerDeslocamento(consulta.deslocar);
+  const intervalo = intervaloDoPeriodo(periodo, deslocamento);
+
+  const [indicadores, eventos, resumo, doPeriodo] = await Promise.all([
     listarIndicadores(),
     listarEventosDoPainel(),
-    resumoDeInscricoesPorEvento()
+    resumoDeInscricoesPorEvento(),
+    resumoDoPeriodo(intervalo)
   ]);
+  const quadro = doPeriodo.resumo;
+  // Uma metade que falhou vira traço, nunca zero.
+  const agendaOk = !doPeriodo.agenda.degradou;
+  const doacoesOk = !doPeriodo.doacoes.degradou;
+  const numero = (ok: boolean, valor: number) => (ok ? valor : '—');
 
   return (
     <main id="conteudo" className="conteudo painel__conteudo">
@@ -133,6 +151,70 @@ export default async function PaginaDeRelatorio() {
             ))}
           </tbody>
         </table>
+      </section>
+
+      <section aria-labelledby="titulo-periodo">
+        <h2 id="titulo-periodo">Por período: {intervalo.rotulo}</h2>
+
+        <p className="painel__acoes nao-imprimir">
+          {PERIODOS.map((opcao) => (
+            <Link
+              key={opcao}
+              className={opcao === periodo ? 'botao' : 'botao botao--secundario'}
+              aria-current={opcao === periodo ? 'true' : undefined}
+              href={`/admin/relatorio?periodo=${opcao}`}
+            >
+              {ROTULO_DO_PERIODO[opcao]}
+            </Link>
+          ))}
+        </p>
+        <p className="painel__acoes nao-imprimir">
+          <Link className="botao botao--secundario"
+            href={`/admin/relatorio?periodo=${periodo}&deslocar=${deslocamento - 1}`}>← Anterior</Link>
+          {deslocamento < 0 ? (
+            <Link className="botao botao--secundario"
+              href={`/admin/relatorio?periodo=${periodo}&deslocar=${deslocamento + 1}`}>Seguinte →</Link>
+          ) : null}
+        </p>
+
+        <table className="relatorio__tabela">
+          <thead>
+            <tr>
+              <th scope="col">O que</th>
+              <th scope="col" className="relatorio__numero">Quantos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="relatorio__linha"><th scope="row">Atividades realizadas</th>
+              <td className="relatorio__numero">{numero(agendaOk, quadro.atividades)}</td></tr>
+            <tr className="relatorio__linha"><th scope="row">Pessoas inscritas</th>
+              <td className="relatorio__numero">{numero(agendaOk, quadro.inscritos)}</td></tr>
+            <tr className="relatorio__linha"><th scope="row">Crianças e adolescentes inscritos (por responsável)</th>
+              <td className="relatorio__numero">{numero(agendaOk, quadro.criancasInscritas)}</td></tr>
+            <tr className="relatorio__linha"><th scope="row">Presenças conferidas</th>
+              <td className="relatorio__numero">{numero(agendaOk, quadro.presentes)}</td></tr>
+            <tr className="relatorio__linha"><th scope="row">Crianças e adolescentes presentes</th>
+              <td className="relatorio__numero">{numero(agendaOk, quadro.criancasPresentes)}</td></tr>
+            <tr className="relatorio__linha"><th scope="row">Inscrições sem presença conferida</th>
+              <td className="relatorio__numero">{numero(agendaOk, quadro.semConferir)}</td></tr>
+            <tr className="relatorio__linha"><th scope="row">Novas candidaturas de voluntariado</th>
+              <td className="relatorio__numero">{doPeriodo.novosVoluntarios ?? '—'}</td></tr>
+            <tr className="relatorio__linha"><th scope="row">Doações recebidas (itens e dinheiro)</th>
+              <td className="relatorio__numero">{numero(doacoesOk, quadro.doacoesRecebidas)}</td></tr>
+            <tr className="relatorio__linha"><th scope="row">Valor em dinheiro recebido</th>
+              <td className="relatorio__numero">{doacoesOk ? emReais(quadro.valorRecebidoEmCentavos) : '—'}</td></tr>
+          </tbody>
+        </table>
+
+        <p className="relatorio__rodape">
+          Conta as atividades publicadas na agenda e as doações marcadas como recebidas dentro do
+          período. Os números de crianças contam inscrições de menores (feitas por um responsável),
+          não pessoas únicas: quem se inscreve em duas atividades aparece duas vezes. "Sem presença
+          conferida" não é falta — é lista que ninguém marcou.
+          {!agendaOk || !doacoesOk || doPeriodo.novosVoluntarios === null
+            ? ' Um traço quer dizer que aquela contagem não respondeu; não é zero.'
+            : ''}
+        </p>
       </section>
 
       <section aria-labelledby="titulo-agenda">

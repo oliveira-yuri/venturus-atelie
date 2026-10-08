@@ -1,3 +1,4 @@
+import { hostDaContagem } from '@/compartilhado/contagem-de-visitas';
 // Conteúdo copiado literalmente do HTML original de privacidade.html — hoje a
 // cópia congelada em testes/apoio/html-original/privacidade.html, já que a
 // Tarefa A8 apagou site/ desta branch (regra 2 do CLAUDE.md: conteúdo
@@ -133,6 +134,18 @@ export default function Privacidade() {
         </p>
       </section>
 
+      <section aria-labelledby="titulo-depoimentos">
+        <h2 id="titulo-depoimentos">Depoimentos</h2>
+        <p>
+          Se você escrever um depoimento na página de depoimentos, guardamos o nome que você
+          escolheu, o texto, a atividade (se você disser) e a sua declaração de que tem 18 anos
+          ou mais, ou é responsável por quem participou. Não pedimos e-mail nem telefone. O
+          depoimento só vai para o site depois que a equipe lê e aprova, e só com a autorização
+          que você marcou no formulário. Para retirar um depoimento, escreva para{' '}
+          <a href="mailto:atelieafro@gmail.com">atelieafro@gmail.com</a>.
+        </p>
+      </section>
+
       <section aria-labelledby="titulo-quanto-tempo">
         <h2 id="titulo-quanto-tempo">Por quanto tempo guardamos</h2>
         <ul className="lista-simples">
@@ -142,6 +155,19 @@ export default function Privacidade() {
           <li><strong>Registros de contenção de envio em massa:</strong> apagados em até um dia</li>
         </ul>
       </section>
+
+      {/* Só existe com a contagem ligada (GOATCOUNTER_CODIGO): privacidade não pode prometer o que o site não faz, nem calar o que faz. */}
+      {hostDaContagem() ? (
+        <section aria-labelledby="titulo-visitas">
+          <h2 id="titulo-visitas">Contagem de visitas</h2>
+          <p>
+            Contamos quantas vezes cada página do site é aberta, usando o serviço GoatCounter.
+            Não usamos cookies, não guardamos o seu endereço de rede nem criamos perfil de quem
+            visita: o que fica é a página, o navegador, o tamanho da tela, o país e o site de onde você veio, em números
+            somados. As páginas de conta e o painel da equipe não entram na contagem.
+          </p>
+        </section>
+      ) : null}
 
       <section aria-labelledby="titulo-direitos">
         <h2 id="titulo-direitos">Seus direitos</h2>

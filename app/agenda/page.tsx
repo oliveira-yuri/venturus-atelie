@@ -24,6 +24,9 @@
 import { listarProximos, listarPassados } from '@/servidor/dados/eventos';
 import { ListaEventos } from '@/componentes/ListaEventos';
 import Link from 'next/link';
+import { headers } from 'next/headers';
+import { dadosEstruturadosDosEventos } from '@/compartilhado/dados-estruturados';
+import { enderecoAbsoluto } from '@/compartilhado/endereco-do-site';
 
 const INSTAGRAM_DA_ONG = 'https://instagram.com/atelie_afrocultural';
 
@@ -34,9 +37,19 @@ export const metadata = {
 
 export default async function Agenda() {
   const [proximos, passados] = await Promise.all([listarProximos(), listarPassados()]);
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  const dados = dadosEstruturadosDosEventos(proximos, (caminho) => enderecoAbsoluto(caminho));
 
   return (
     <main id="conteudo" className="conteudo">
+      {/* Eventos que ainda vêm, para os buscadores. Só o que a equipe publicou. */}
+      {dados ? (
+        <script
+          type="application/ld+json"
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: dados }}
+        />
+      ) : null}
       <h1>Agenda</h1>
       <p className="destaque">
         Oficinas, apresentações e vivências abertas ao público. Para se inscrever não é preciso

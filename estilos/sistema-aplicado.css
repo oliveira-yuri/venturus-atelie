@@ -502,3 +502,38 @@ body:has(.painel) .zap { display: none; }
 .painel .voluntario__marcas,
 .painel .contato__marcas,
 .painel .doacao__marcas { max-width: none; }
+
+/* ---------------------------------------------------------------------
+   Perguntas frequentes (/perguntas-frequentes): cada pergunta é um
+   <details>, que abre e fecha sem JavaScript. A seta é desenhada (borda
+   girada), como a de "Dados e mensagem" no painel — o ▾ de texto muda de
+   forma conforme a fonte do aparelho.
+   --------------------------------------------------------------------- */
+#conteudo .pergunta {
+  border: 1.5px solid var(--af-brown);
+  box-shadow: 4px 4px 0 var(--af-brown);
+  background: var(--superficie);
+  margin-block: 1rem;
+}
+#conteudo .pergunta summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.9rem 2.75rem 0.9rem 1rem;
+  min-height: 2.75rem;
+  font-weight: 700;
+  position: relative;
+}
+#conteudo .pergunta summary::-webkit-details-marker { display: none; }
+#conteudo .pergunta summary::after {
+  content: '';
+  position: absolute;
+  right: 1.1rem;
+  top: 50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-70%) rotate(45deg);
+}
+#conteudo .pergunta[open] summary::after { transform: translateY(-30%) rotate(-135deg); }
+#conteudo .pergunta p { margin: 0; padding: 0 1rem 1rem; }

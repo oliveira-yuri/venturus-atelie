@@ -1,0 +1,15 @@
+{
+  "name": "Painel da equipe — Ateliê Afro Cultural",
+  "short_name": "Painel Ateliê",
+  "description": "Painel de trabalho da equipe do Ateliê Afro Cultural.",
+  "lang": "pt-BR",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "background_color": "#F9F4EA",
+  "theme_color": "#D69A10",
+  "icons": [
+    { "src": "/painel/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/painel/icone-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

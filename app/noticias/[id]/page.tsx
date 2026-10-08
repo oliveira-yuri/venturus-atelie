@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { buscarPublicacao, enderecoDaImagem } from '@/servidor/dados/publicacoes';
+import { LinkCompartilhar } from '@/componentes/LinkCompartilhar';
+import { enderecoAbsoluto } from '@/compartilhado/endereco-do-site';
 
 /**
  * A página de uma notícia (pedido V1).
@@ -120,6 +122,10 @@ export default async function PaginaDaNoticia(
       {publicacao.corpo.split('\n\n').map((paragrafo, indice) => (
         <p key={indice}>{paragrafo}</p>
       ))}
+
+      <p className="atividade__acao">
+        <LinkCompartilhar titulo={publicacao.titulo} endereco={enderecoAbsoluto(`/noticias/${publicacao.id}`)} />
+      </p>
 
       <p className="chamada-final">
         <Link href="/noticias">Ver todas as notícias</Link>

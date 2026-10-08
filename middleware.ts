@@ -3,6 +3,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { REDIRECTS_ANTIGOS } from './compartilhado/redirects-antigos';
 import { temCookieDeSessao } from './compartilhado/cookies-de-sessao';
 import { comPrazo } from './compartilhado/prazo';
+import { hostDaContagem } from './compartilhado/contagem-de-visitas';
 
 /**
  * Politica de conteudo (CSP) com nonce por requisicao, mais os cabecalhos de
@@ -254,7 +255,7 @@ export async function middleware(requisicao: NextRequest) {
     // forma de a galeria quebrar no dia em que o projeto Supabase mudar.
     // Sem a variavel, nada e acrescentado — que e o caso do modo offline
     // da suite e o de um deploy sem as variaveis (CLAUDE.md, item 0e).
-    `img-src 'self' data: https://vlibras.gov.br https://cdn.jsdelivr.net${hostDoSupabase()}`,
+    `img-src 'self' data: https://vlibras.gov.br https://cdn.jsdelivr.net${hostDoSupabase()}${hostDaContagem() ? ` ${hostDaContagem()}` : ''}`,
     // Todos os quatro MEDIDOS de verdade (ver comentario grande no topo do
     // arquivo). vlibras.gov.br: assets redirecionados e chamadas do menu do
     // player, que roda na pagina-mae. traducao2.vlibras.gov.br: acionado por
@@ -267,7 +268,7 @@ export async function middleware(requisicao: NextRequest) {
     // nesses dois. Sem qualquer um dos quatro, o painel correspondente
     // degrada em silencio — cada um ja foi visto quebrando assim numa
     // rodada desta tarefa.
-    `connect-src 'self' https://vlibras.gov.br https://traducao2.vlibras.gov.br https://dicionario2.vlibras.gov.br https://repositorio.vlibras.gov.br`,
+    `connect-src 'self' https://vlibras.gov.br https://traducao2.vlibras.gov.br https://dicionario2.vlibras.gov.br https://repositorio.vlibras.gov.br${hostDaContagem() ? ` ${hostDaContagem()}` : ''}`,
     // Mesmo motivo do img-src: as fontes do widget (rawline-*.woff2) tambem
     // passam pelo redirect de vlibras.gov.br para cdn.jsdelivr.net.
     `font-src 'self' https://vlibras.gov.br https://cdn.jsdelivr.net`,
